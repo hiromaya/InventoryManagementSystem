@@ -18,7 +18,7 @@ public class TestWithoutDatabase
             {
                 Category = "掛売上",
                 CustomerCode = "C001",
-                CustomerName = "Test Customer A",
+                CustomerName = "テスト得意先A",
                 Key = new InventoryKey 
                 { 
                     ProductCode = "00008",
