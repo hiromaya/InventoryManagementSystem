@@ -11,7 +11,8 @@
       "Bash(/home/hiroki/.dotnet/dotnet build)",
       "Bash(dotnet run)",
       "Bash(dotnet run:*)",
-      "Bash(fc-list:*)"
+      "Bash(fc-list:*)",
+      "Bash(dotnet build)"
     ],
     "deny": []
   }

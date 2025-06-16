@@ -1,18 +1,35 @@
 using System.Globalization;
+using System.Runtime.InteropServices;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using QuestPDF.Drawing;
 using InventorySystem.Core.Entities;
-using SkiaSharp;
 
 namespace InventorySystem.Reports.Services;
 
 public class UnmatchListReportService
 {
+    private static string? _fontFamily = null;
+    
     static UnmatchListReportService()
     {
         // QuestPDFのフォント設定
         QuestPDF.Settings.DocumentLayoutExceptionThreshold = 250;
+        
+        try
+        {
+            // 日本語フォントを動的に検出して登録
+            var fontPath = FontHelper.GetJapaneseFontPath();
+            _fontFamily = "Noto Sans CJK JP";  // システムフォント名を直接使用
+            
+            System.Console.WriteLine($"日本語フォントを使用: {fontPath} -> {_fontFamily}");
+        }
+        catch (Exception ex)
+        {
+            System.Console.WriteLine($"フォント設定エラー: {ex.Message}");
+            _fontFamily = null; // フォールバック
+        }
     }
     public byte[] GenerateUnmatchListReport(IEnumerable<UnmatchItem> unmatchItems, DateTime jobDate)
     {
@@ -24,10 +41,18 @@ public class UnmatchListReportService
             {
                 page.Size(PageSizes.A3.Landscape());
                 page.Margin(1, Unit.Centimetre);
-                // フォント設定
-                page.DefaultTextStyle(x => x
-                    .FontSize(9)
-                    .FontFamily("DejaVu Sans"));
+                // フォント設定（日本語フォントがあれば使用、なければデフォルト）
+                if (_fontFamily != null)
+                {
+                    page.DefaultTextStyle(x => x
+                        .FontSize(9)
+                        .FontFamily(_fontFamily));
+                }
+                else
+                {
+                    page.DefaultTextStyle(x => x
+                        .FontSize(9));
+                }
 
                 page.Header().Element(ComposeHeader);
                 page.Content().Element(content => ComposeContent(content, items, jobDate));
