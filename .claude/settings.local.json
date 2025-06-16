@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet new:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(export PATH=\"$PATH:/home/hiroki/.dotnet\")",
+      "Bash(/home/hiroki/.dotnet/dotnet --version)",
+      "Bash(/home/hiroki/.dotnet/dotnet build src/InventorySystem.Console/InventorySystem.Console.csproj)",
+      "Bash(/home/hiroki/projects/InventoryManagementSystem/src/InventorySystem.Core)",
+      "Bash(/home/hiroki/.dotnet/dotnet build)",
+      "Bash(dotnet run)",
+      "Bash(dotnet run:*)",
+      "Bash(fc-list:*)"
+    ],
+    "deny": []
+  }
+}

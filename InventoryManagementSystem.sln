@@ -1,0 +1,62 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CA896799-21E9-4072-B2AC-CBC38649252D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventorySystem.Core", "src\InventorySystem.Core\InventorySystem.Core.csproj", "{54D2D695-8135-4EB2-AA6C-18FD274F28B4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventorySystem.Data", "src\InventorySystem.Data\InventorySystem.Data.csproj", "{8F7424D7-F1D5-44BE-9F2E-F18BFAFCF613}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventorySystem.Import", "src\InventorySystem.Import\InventorySystem.Import.csproj", "{BEE4FA02-425D-4C7D-A765-BD9EA4F673BD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventorySystem.Reports", "src\InventorySystem.Reports\InventorySystem.Reports.csproj", "{D01D3A2B-B2EC-4CC1-8E3F-92C9AD4A1C44}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventorySystem.Console", "src\InventorySystem.Console\InventorySystem.Console.csproj", "{3839FD1D-47AF-4193-8264-67381A210544}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventorySystem.FileWatcher", "src\InventorySystem.FileWatcher\InventorySystem.FileWatcher.csproj", "{F3D64F5E-C5B4-47E9-84B8-8D678EB990B0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{54D2D695-8135-4EB2-AA6C-18FD274F28B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54D2D695-8135-4EB2-AA6C-18FD274F28B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54D2D695-8135-4EB2-AA6C-18FD274F28B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54D2D695-8135-4EB2-AA6C-18FD274F28B4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F7424D7-F1D5-44BE-9F2E-F18BFAFCF613}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F7424D7-F1D5-44BE-9F2E-F18BFAFCF613}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F7424D7-F1D5-44BE-9F2E-F18BFAFCF613}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F7424D7-F1D5-44BE-9F2E-F18BFAFCF613}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BEE4FA02-425D-4C7D-A765-BD9EA4F673BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEE4FA02-425D-4C7D-A765-BD9EA4F673BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BEE4FA02-425D-4C7D-A765-BD9EA4F673BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BEE4FA02-425D-4C7D-A765-BD9EA4F673BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D01D3A2B-B2EC-4CC1-8E3F-92C9AD4A1C44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D01D3A2B-B2EC-4CC1-8E3F-92C9AD4A1C44}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D01D3A2B-B2EC-4CC1-8E3F-92C9AD4A1C44}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D01D3A2B-B2EC-4CC1-8E3F-92C9AD4A1C44}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3839FD1D-47AF-4193-8264-67381A210544}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3839FD1D-47AF-4193-8264-67381A210544}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3839FD1D-47AF-4193-8264-67381A210544}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3839FD1D-47AF-4193-8264-67381A210544}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3D64F5E-C5B4-47E9-84B8-8D678EB990B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3D64F5E-C5B4-47E9-84B8-8D678EB990B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3D64F5E-C5B4-47E9-84B8-8D678EB990B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3D64F5E-C5B4-47E9-84B8-8D678EB990B0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{54D2D695-8135-4EB2-AA6C-18FD274F28B4} = {CA896799-21E9-4072-B2AC-CBC38649252D}
+		{8F7424D7-F1D5-44BE-9F2E-F18BFAFCF613} = {CA896799-21E9-4072-B2AC-CBC38649252D}
+		{BEE4FA02-425D-4C7D-A765-BD9EA4F673BD} = {CA896799-21E9-4072-B2AC-CBC38649252D}
+		{D01D3A2B-B2EC-4CC1-8E3F-92C9AD4A1C44} = {CA896799-21E9-4072-B2AC-CBC38649252D}
+		{3839FD1D-47AF-4193-8264-67381A210544} = {CA896799-21E9-4072-B2AC-CBC38649252D}
+		{F3D64F5E-C5B4-47E9-84B8-8D678EB990B0} = {CA896799-21E9-4072-B2AC-CBC38649252D}
+	EndGlobalSection
+EndGlobal
