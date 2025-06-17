@@ -10,25 +10,44 @@ namespace InventorySystem.Reports.Services;
 
 public class UnmatchListReportService
 {
-    private static string? _fontFamily = null;
+    private static bool _isFontRegistered = false;
+    private static string _registeredFontFamily = "";
     
     static UnmatchListReportService()
     {
-        // QuestPDFのフォント設定
-        QuestPDF.Settings.DocumentLayoutExceptionThreshold = 250;
-        
         try
         {
             // 日本語フォントを動的に検出して登録
             var fontPath = FontHelper.GetJapaneseFontPath();
-            _fontFamily = "Noto Sans CJK JP";  // システムフォント名を直接使用
             
-            System.Console.WriteLine($"日本語フォントを使用: {fontPath} -> {_fontFamily}");
+            // フォントファイルを直接読み込んで登録
+            var fontBytes = File.ReadAllBytes(fontPath);
+            using var fontStream = new MemoryStream(fontBytes);
+            FontManager.RegisterFont(fontStream);
+            
+            // フォントファミリー名を推測（Notoフォントの場合）
+            if (fontPath.Contains("NotoSansCJK"))
+            {
+                _registeredFontFamily = "Noto Sans CJK JP";
+            }
+            else if (fontPath.Contains("ipag"))
+            {
+                _registeredFontFamily = "IPAGothic";
+            }
+            else
+            {
+                _registeredFontFamily = "Noto Sans";
+            }
+            
+            _isFontRegistered = true;
+            
+            System.Console.WriteLine($"日本語フォントを登録しました: {fontPath}");
+            System.Console.WriteLine($"使用するフォントファミリー: {_registeredFontFamily}");
         }
         catch (Exception ex)
         {
-            System.Console.WriteLine($"フォント設定エラー: {ex.Message}");
-            _fontFamily = null; // フォールバック
+            System.Console.WriteLine($"フォント登録エラー: {ex.Message}");
+            _isFontRegistered = false;
         }
     }
     public byte[] GenerateUnmatchListReport(IEnumerable<UnmatchItem> unmatchItems, DateTime jobDate)
@@ -41,12 +60,12 @@ public class UnmatchListReportService
             {
                 page.Size(PageSizes.A3.Landscape());
                 page.Margin(1, Unit.Centimetre);
-                // フォント設定（日本語フォントがあれば使用、なければデフォルト）
-                if (_fontFamily != null)
+                // フォント設定（登録された日本語フォントを使用）
+                if (_isFontRegistered && !string.IsNullOrEmpty(_registeredFontFamily))
                 {
                     page.DefaultTextStyle(x => x
                         .FontSize(9)
-                        .FontFamily(_fontFamily));
+                        .FontFamily(_registeredFontFamily));
                 }
                 else
                 {
