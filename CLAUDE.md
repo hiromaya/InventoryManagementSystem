@@ -341,6 +341,42 @@ D:\InventoryImport\
 ```
 
 
+## 🔗 GitHubリポジトリ情報
+
+### リポジトリURL
+https://github.com/hiromaya/InventoryManagementSystem
+
+### ブランチ構成
+- **main**: メインブランチ（本番用）
+- その他のブランチは必要に応じて作成
+
+### コミット規約
+- feat: 新機能追加
+- fix: バグ修正
+- docs: ドキュメント更新
+- style: コードスタイル修正
+- refactor: リファクタリング
+- test: テスト追加・修正
+- chore: ビルド設定等の変更
+
+### 自動push設定
+プロジェクトルートに以下のスクリプトが用意されています：
+- `git-push.sh`: Linux/Mac用
+- `git-push.bat`: Windows用
+
+使用例：
+```bash
+# Linux/Mac
+./git-push.sh "コミットメッセージ"
+
+# Windows
+git-push.bat "コミットメッセージ"
+```
+
+### GitHub認証情報
+Personal Access Token（PAT）を使用した認証が設定済み。
+`git push`コマンドで自動的にGitHubへプッシュ可能。
+
 ## 🔨 新しいルールの追加プロセス
 
 ユーザーから今回限りではなく常に対応が必要だと思われる指示を受けた場合：
@@ -353,4 +389,4 @@ D:\InventoryImport\
 
 ---
 
-最終更新日: 2025年6月16日
+最終更新日: 2025年6月18日
