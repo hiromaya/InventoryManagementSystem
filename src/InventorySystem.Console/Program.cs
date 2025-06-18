@@ -6,6 +6,7 @@ using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Services;
 using InventorySystem.Data.Repositories;
 using InventorySystem.Reports.Services;
+using InventorySystem.Import.Services;
 using System.Diagnostics;
 using QuestPDF.Infrastructure;
 
@@ -34,8 +35,22 @@ builder.Services.AddScoped<ISalesVoucherRepository>(provider =>
     new SalesVoucherRepository(connectionString, provider.GetRequiredService<ILogger<SalesVoucherRepository>>()));
 builder.Services.AddScoped<IPurchaseVoucherRepository>(provider => 
     new PurchaseVoucherRepository(connectionString, provider.GetRequiredService<ILogger<PurchaseVoucherRepository>>()));
+builder.Services.AddScoped<IInventoryAdjustmentRepository>(provider => 
+    new InventoryAdjustmentRepository(connectionString, provider.GetRequiredService<ILogger<InventoryAdjustmentRepository>>()));
+builder.Services.AddScoped<IDataSetRepository>(provider => 
+    new DataSetRepository(connectionString, provider.GetRequiredService<ILogger<DataSetRepository>>()));
+
+// CSV取込専用リポジトリ
+builder.Services.AddScoped<SalesVoucherCsvRepository>(provider => 
+    new SalesVoucherCsvRepository(connectionString, provider.GetRequiredService<ILogger<SalesVoucherCsvRepository>>()));
+builder.Services.AddScoped<PurchaseVoucherCsvRepository>(provider => 
+    new PurchaseVoucherCsvRepository(connectionString, provider.GetRequiredService<ILogger<PurchaseVoucherCsvRepository>>()));
+
 builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<UnmatchListReportService>();
+builder.Services.AddScoped<SalesVoucherImportService>();
+builder.Services.AddScoped<PurchaseVoucherImportService>();
+builder.Services.AddScoped<InventoryAdjustmentImportService>();
 
 var host = builder.Build();
 
@@ -45,8 +60,12 @@ var commandArgs = Environment.GetCommandLineArgs();
 if (commandArgs.Length < 2)
 {
     Console.WriteLine("使用方法:");
-    Console.WriteLine("  dotnet run unmatch-list [YYYY-MM-DD]  - アンマッチリスト処理を実行");
+    Console.WriteLine("  dotnet run unmatch-list [YYYY-MM-DD]         - アンマッチリスト処理を実行");
+    Console.WriteLine("  dotnet run import-sales <file> [YYYY-MM-DD]  - 売上伝票CSVを取込");
+    Console.WriteLine("  dotnet run import-purchase <file> [YYYY-MM-DD] - 仕入伝票CSVを取込");
+    Console.WriteLine("  dotnet run import-adjustment <file> [YYYY-MM-DD] - 在庫調整CSVを取込");
     Console.WriteLine("  例: dotnet run unmatch-list 2025-06-16");
+    Console.WriteLine("  例: dotnet run import-sales sales.csv 2025-06-16");
     return 1;
 }
 
@@ -58,6 +77,18 @@ try
     {
         case "unmatch-list":
             await ExecuteUnmatchListAsync(host.Services, commandArgs);
+            break;
+            
+        case "import-sales":
+            await ExecuteImportSalesAsync(host.Services, commandArgs);
+            break;
+            
+        case "import-purchase":
+            await ExecuteImportPurchaseAsync(host.Services, commandArgs);
+            break;
+            
+        case "import-adjustment":
+            await ExecuteImportAdjustmentAsync(host.Services, commandArgs);
             break;
             
         case "test-pdf":
@@ -166,5 +197,188 @@ static async Task ExecuteUnmatchListAsync(IServiceProvider services, string[] ar
         Console.WriteLine($"処理時間: {result.ProcessingTime.TotalSeconds:F2}秒");
         
         logger.LogError("アンマッチリスト処理が失敗しました: {ErrorMessage}", result.ErrorMessage);
+    }
+}
+
+static async Task ExecuteImportSalesAsync(IServiceProvider services, string[] args)
+{
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var importService = services.GetRequiredService<SalesVoucherImportService>();
+    
+    if (args.Length < 3)
+    {
+        Console.WriteLine("エラー: CSVファイルパスが指定されていません");
+        Console.WriteLine("使用方法: dotnet run import-sales <file> [YYYY-MM-DD]");
+        return;
+    }
+    
+    var filePath = args[2];
+    
+    // ジョブ日付を取得
+    DateTime jobDate;
+    if (args.Length >= 4 && DateTime.TryParse(args[3], out jobDate))
+    {
+        logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+    }
+    else
+    {
+        jobDate = DateTime.Today;
+        logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+    }
+    
+    var stopwatch = Stopwatch.StartNew();
+    
+    Console.WriteLine("=== 売上伝票CSV取込処理開始 ===");
+    Console.WriteLine($"ファイル: {filePath}");
+    Console.WriteLine($"ジョブ日付: {jobDate:yyyy-MM-dd}");
+    Console.WriteLine();
+    
+    try
+    {
+        var dataSetId = await importService.ImportAsync(filePath, jobDate);
+        var result = await importService.GetImportResultAsync(dataSetId);
+        
+        stopwatch.Stop();
+        
+        Console.WriteLine("=== 取込結果 ===");
+        Console.WriteLine($"データセットID: {result.DataSetId}");
+        Console.WriteLine($"ステータス: {result.Status}");
+        Console.WriteLine($"取込件数: {result.ImportedCount}");
+        Console.WriteLine($"処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
+        
+        if (!string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            Console.WriteLine($"エラー情報: {result.ErrorMessage}");
+        }
+        
+        Console.WriteLine("=== 売上伝票CSV取込処理完了 ===");
+    }
+    catch (Exception ex)
+    {
+        stopwatch.Stop();
+        Console.WriteLine($"エラー: {ex.Message}");
+        logger.LogError(ex, "売上伝票CSV取込処理でエラーが発生しました");
+    }
+}
+
+static async Task ExecuteImportPurchaseAsync(IServiceProvider services, string[] args)
+{
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var importService = services.GetRequiredService<PurchaseVoucherImportService>();
+    
+    if (args.Length < 3)
+    {
+        Console.WriteLine("エラー: CSVファイルパスが指定されていません");
+        Console.WriteLine("使用方法: dotnet run import-purchase <file> [YYYY-MM-DD]");
+        return;
+    }
+    
+    var filePath = args[2];
+    
+    // ジョブ日付を取得
+    DateTime jobDate;
+    if (args.Length >= 4 && DateTime.TryParse(args[3], out jobDate))
+    {
+        logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+    }
+    else
+    {
+        jobDate = DateTime.Today;
+        logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+    }
+    
+    var stopwatch = Stopwatch.StartNew();
+    
+    Console.WriteLine("=== 仕入伝票CSV取込処理開始 ===");
+    Console.WriteLine($"ファイル: {filePath}");
+    Console.WriteLine($"ジョブ日付: {jobDate:yyyy-MM-dd}");
+    Console.WriteLine();
+    
+    try
+    {
+        var dataSetId = await importService.ImportAsync(filePath, jobDate);
+        var result = await importService.GetImportResultAsync(dataSetId);
+        
+        stopwatch.Stop();
+        
+        Console.WriteLine("=== 取込結果 ===");
+        Console.WriteLine($"データセットID: {result.DataSetId}");
+        Console.WriteLine($"ステータス: {result.Status}");
+        Console.WriteLine($"取込件数: {result.ImportedCount}");
+        Console.WriteLine($"処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
+        
+        if (!string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            Console.WriteLine($"エラー情報: {result.ErrorMessage}");
+        }
+        
+        Console.WriteLine("=== 仕入伝票CSV取込処理完了 ===");
+    }
+    catch (Exception ex)
+    {
+        stopwatch.Stop();
+        Console.WriteLine($"エラー: {ex.Message}");
+        logger.LogError(ex, "仕入伝票CSV取込処理でエラーが発生しました");
+    }
+}
+
+static async Task ExecuteImportAdjustmentAsync(IServiceProvider services, string[] args)
+{
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var importService = services.GetRequiredService<InventoryAdjustmentImportService>();
+    
+    if (args.Length < 3)
+    {
+        Console.WriteLine("エラー: CSVファイルパスが指定されていません");
+        Console.WriteLine("使用方法: dotnet run import-adjustment <file> [YYYY-MM-DD]");
+        return;
+    }
+    
+    var filePath = args[2];
+    
+    // ジョブ日付を取得
+    DateTime jobDate;
+    if (args.Length >= 4 && DateTime.TryParse(args[3], out jobDate))
+    {
+        logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+    }
+    else
+    {
+        jobDate = DateTime.Today;
+        logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+    }
+    
+    var stopwatch = Stopwatch.StartNew();
+    
+    Console.WriteLine("=== 在庫調整CSV取込処理開始 ===");
+    Console.WriteLine($"ファイル: {filePath}");
+    Console.WriteLine($"ジョブ日付: {jobDate:yyyy-MM-dd}");
+    Console.WriteLine();
+    
+    try
+    {
+        var dataSetId = await importService.ImportAsync(filePath, jobDate);
+        var result = await importService.GetImportResultAsync(dataSetId);
+        
+        stopwatch.Stop();
+        
+        Console.WriteLine("=== 取込結果 ===");
+        Console.WriteLine($"データセットID: {result.DataSetId}");
+        Console.WriteLine($"ステータス: {result.Status}");
+        Console.WriteLine($"取込件数: {result.ImportedCount}");
+        Console.WriteLine($"処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
+        
+        if (!string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            Console.WriteLine($"エラー情報: {result.ErrorMessage}");
+        }
+        
+        Console.WriteLine("=== 在庫調整CSV取込処理完了 ===");
+    }
+    catch (Exception ex)
+    {
+        stopwatch.Stop();
+        Console.WriteLine($"エラー: {ex.Message}");
+        logger.LogError(ex, "在庫調整CSV取込処理でエラーが発生しました");
     }
 }

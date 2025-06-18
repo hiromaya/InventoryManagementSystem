@@ -1,33 +1,229 @@
 namespace InventorySystem.Core.Entities;
 
+/// <summary>
+/// 仕入伝票エンティティ
+/// 販売大臣AXの仕入伝票CSVデータを格納
+/// </summary>
 public class PurchaseVoucher
 {
-    public int VoucherId { get; set; }                          // 伝票ID
-    public string VoucherNumber { get; set; } = string.Empty;   // 伝票番号
-    public string VoucherType { get; set; } = string.Empty;     // 伝票種類
-    public string DetailType { get; set; } = string.Empty;      // 明細種
-    public int LineNumber { get; set; }                         // 行番号
-    public DateTime VoucherDate { get; set; }                   // 伝票日付
-    public DateTime JobDate { get; set; }                       // 汎用日付2（ジョブデート）
+    /// <summary>
+    /// ID（自動採番）
+    /// </summary>
+    public long Id { get; set; }
+
+    /// <summary>
+    /// データセットID（取込単位の識別）
+    /// </summary>
+    public string DataSetId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 伝票番号
+    /// </summary>
+    public string VoucherNumber { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 伝票日付
+    /// </summary>
+    public DateTime VoucherDate { get; set; }
+
+    /// <summary>
+    /// ジョブ日付（汎用日付2）
+    /// </summary>
+    public DateTime JobDate { get; set; }
+
+    /// <summary>
+    /// 伝票種別コード (61:掛仕入, 62:現金仕入)
+    /// </summary>
+    public string VoucherType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 明細種別コード (1:商品, 2:返品, 3:値引, 4:その他)
+    /// </summary>
+    public string DetailType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 仕入先コード
+    /// </summary>
+    public string? SupplierCode { get; set; }
+
+    /// <summary>
+    /// 仕入先名
+    /// </summary>
+    public string? SupplierName { get; set; }
+
+    /// <summary>
+    /// 仕入先分類1（奨励金計算用）
+    /// </summary>
+    public string? SupplierCategory1 { get; set; }
+
+    /// <summary>
+    /// 商品コード
+    /// </summary>
+    public string ProductCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 商品名
+    /// </summary>
+    public string? ProductName { get; set; }
+
+    /// <summary>
+    /// 等級コード
+    /// </summary>
+    public string GradeCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 階級コード
+    /// </summary>
+    public string ClassCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 荷印コード
+    /// </summary>
+    public string ShippingMarkCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 荷印名
+    /// </summary>
+    public string ShippingMarkName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 数量
+    /// </summary>
+    public decimal Quantity { get; set; }
+
+    /// <summary>
+    /// 単価
+    /// </summary>
+    public decimal UnitPrice { get; set; }
+
+    /// <summary>
+    /// 金額
+    /// </summary>
+    public decimal Amount { get; set; }
+
+    /// <summary>
+    /// 商品分類1（担当者コード）
+    /// </summary>
+    public string? ProductCategory1 { get; set; }
+
+    /// <summary>
+    /// 商品分類2
+    /// </summary>
+    public string? ProductCategory2 { get; set; }
+
+    /// <summary>
+    /// 商品分類3
+    /// </summary>
+    public string? ProductCategory3 { get; set; }
+
+    /// <summary>
+    /// 除外フラグ（アンマッチ処理時）
+    /// </summary>
+    public bool IsExcluded { get; set; }
+
+    /// <summary>
+    /// 除外理由
+    /// </summary>
+    public string? ExcludeReason { get; set; }
+
+    /// <summary>
+    /// 取込日時
+    /// </summary>
+    public DateTime ImportedAt { get; set; }
+
+    /// <summary>
+    /// 作成日時
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// 更新日時
+    /// </summary>
+    public DateTime UpdatedAt { get; set; }
+
+    /// <summary>
+    /// 在庫キーを取得（互換性プロパティ）
+    /// </summary>
+    public InventoryKey InventoryKey => GetInventoryKey();
     
-    public InventoryKey InventoryKey { get; set; } = new();
-    
-    // 便利プロパティ（InventoryKeyの各要素へのアクセス）
-    public string ProductCode => InventoryKey.ProductCode;
-    public string GradeCode => InventoryKey.GradeCode;
-    public string ClassCode => InventoryKey.ClassCode;
-    public string ShippingMarkCode => InventoryKey.ShippingMarkCode;
-    public string ShippingMarkName => InventoryKey.ShippingMarkName;
-    
-    // 取引先情報
-    public string SupplierCode { get; set; } = string.Empty;    // 仕入先コード
-    public string SupplierName { get; set; } = string.Empty;    // 仕入先名
-    public string TransactionType { get; set; } = string.Empty; // 取引種別
-    
-    // 仕入情報
-    public decimal Quantity { get; set; }                       // 数量
-    public decimal UnitPrice { get; set; }                      // 仕入単価
-    public decimal Amount { get; set; }                         // 仕入金額
-    
-    public string DataSetId { get; set; } = string.Empty;      // データセットID
+    /// <summary>
+    /// 取引種別（互換性プロパティ）
+    /// </summary>
+    public string TransactionType => VoucherType;
+
+    /// <summary>
+    /// 在庫キーを取得
+    /// </summary>
+    public InventoryKey GetInventoryKey()
+    {
+        return new InventoryKey
+        {
+            ProductCode = ProductCode,
+            GradeCode = GradeCode,
+            ClassCode = ClassCode,
+            ShippingMarkCode = ShippingMarkCode,
+            ShippingMarkName = ShippingMarkName
+        };
+    }
+
+    /// <summary>
+    /// 除外対象かどうかを判定
+    /// アンマッチ・商品勘定処理での除外条件
+    /// </summary>
+    public bool ShouldBeExcluded()
+    {
+        // 荷印名の先頭4文字が「EXIT」「exit」
+        if (ShippingMarkName.Length >= 4)
+        {
+            var prefix = ShippingMarkName.Substring(0, 4).ToUpper();
+            if (prefix == "EXIT")
+            {
+                return true;
+            }
+        }
+
+        // 荷印コードが「9900」「9910」「1353」
+        if (ShippingMarkCode == "9900" || ShippingMarkCode == "9910" || ShippingMarkCode == "1353")
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 荷印名による商品分類1の自動設定
+    /// </summary>
+    public void ApplySpecialProcessingRules()
+    {
+        if (ShippingMarkName.Length >= 4)
+        {
+            var prefix = ShippingMarkName.Substring(0, 4);
+            
+            if (prefix == "9aaa")
+            {
+                ProductCategory1 = "8";
+            }
+            else if (prefix == "1aaa" || prefix == "0999")
+            {
+                ProductCategory1 = "6";
+            }
+        }
+    }
+}
+
+/// <summary>
+/// 仕入伝票種別の定数
+/// </summary>
+public static class PurchaseVoucherTypes
+{
+    /// <summary>
+    /// 掛仕入
+    /// </summary>
+    public const string Credit = "61";
+
+    /// <summary>
+    /// 現金仕入
+    /// </summary>
+    public const string Cash = "62";
 }

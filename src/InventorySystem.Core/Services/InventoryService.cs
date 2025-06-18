@@ -83,7 +83,7 @@ public class InventoryService : IInventoryService
                 if (inventoryDict.TryGetValue(keyString, out var inventory))
                 {
                     // 第1段階: 売上伝票1行ごとの粗利計算
-                    var grossProfit = sales.GrossProfit;
+                    var grossProfit = sales.GrossProfit ?? 0;
                     
                     inventory.DailyGrossProfit += grossProfit;
                     totalGrossProfit += grossProfit;

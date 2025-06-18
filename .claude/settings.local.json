@@ -12,7 +12,9 @@
       "Bash(dotnet run)",
       "Bash(dotnet run:*)",
       "Bash(fc-list:*)",
-      "Bash(dotnet build)"
+      "Bash(dotnet build)",
+      "Bash(sqlcmd:*)",
+      "Bash(dotnet build:*)"
     ],
     "deny": []
   }
