@@ -2,6 +2,7 @@ using System.Globalization;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using QuestPDF.Drawing;
 using InventorySystem.Core.Entities;
 
 namespace InventorySystem.Reports.Services;
@@ -9,12 +10,12 @@ namespace InventorySystem.Reports.Services;
 /// <summary>
 /// 商品日報PDF生成サービス
 /// </summary>
-public class DailyReportService
+public class DailyReportPdfService
 {
     private static bool _isFontRegistered = false;
     private static string _registeredFontFamily = "";
     
-    static DailyReportService()
+    static DailyReportPdfService()
     {
         try
         {

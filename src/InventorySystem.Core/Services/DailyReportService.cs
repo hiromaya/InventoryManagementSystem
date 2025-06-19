@@ -115,9 +115,12 @@ public class DailyReportService : IDailyReportService
 
         var reportItems = new List<DailyReportItem>();
 
+        // 一時的なデータセットIDを生成（実際の実装では、ProcessDailyReportAsyncで生成されたIDを使用）
+        var tempDataSetId = Guid.NewGuid().ToString();
+        
         // 仮実装：CP在庫Mから商品ごとに集計してDailyReportItemを作成
         // 実際の実装では、CP在庫Mテーブルからデータを取得して変換する
-        var cpInventories = await _cpInventoryRepository.GetAllAsync(); // 仮メソッド
+        var cpInventories = await _cpInventoryRepository.GetAllAsync(tempDataSetId);
 
         var groupedData = cpInventories
             .GroupBy(cp => new { cp.Key.ProductCode, cp.ProductCategory1 })
@@ -134,12 +137,12 @@ public class DailyReportService : IDailyReportService
                 // 日計項目（集計）
                 DailySalesQuantity = group.Sum(cp => cp.DailySalesQuantity),
                 DailySalesAmount = group.Sum(cp => cp.DailySalesAmount + cp.DailySalesReturnAmount),
-                DailyPurchaseDiscount = group.Sum(cp => cp.DailyPurchaseDiscountAmount),
+                DailyPurchaseDiscount = group.Sum(cp => cp.DailyDiscountAmount),
                 DailyInventoryAdjustment = group.Sum(cp => cp.DailyInventoryAdjustmentAmount),
                 DailyProcessingCost = group.Sum(cp => cp.DailyProcessingAmount),
                 DailyTransfer = group.Sum(cp => cp.DailyTransferAmount),
                 DailyIncentive = group.Sum(cp => cp.DailyIncentiveAmount),
-                DailyGrossProfit1 = group.Sum(cp => cp.DailyGrossProfitAmount),
+                DailyGrossProfit1 = group.Sum(cp => cp.DailyGrossProfit),
                 DailyDiscountAmount = group.Sum(cp => cp.DailyDiscountAmount)
             };
 

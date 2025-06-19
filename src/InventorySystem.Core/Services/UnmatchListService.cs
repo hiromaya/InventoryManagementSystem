@@ -262,7 +262,7 @@ public class UnmatchListService : IUnmatchListService
             .Where(a => a.DetailType == "1")                             // 明細種
             .Where(a => a.Quantity > 0)                                  // 数量 > 0
             .Where(a => a.CategoryCode.HasValue)                         // 区分コードあり
-            .Where(a => a.CategoryCode.Value != 2 && a.CategoryCode.Value != 5)  // 区分2,5（経費、加工）は除外
+            .Where(a => a.CategoryCode.GetValueOrDefault() != 2 && a.CategoryCode.GetValueOrDefault() != 5)  // 区分2,5（経費、加工）は除外
             .ToList();
 
         foreach (var adjustment in adjustmentList)
@@ -284,7 +284,7 @@ public class UnmatchListService : IUnmatchListService
                 // 該当無エラー
                 var unmatchItem = UnmatchItem.FromInventoryAdjustment(
                     adjustment.VoucherType,
-                    adjustment.CategoryCode.Value,
+                    adjustment.CategoryCode.GetValueOrDefault(),
                     adjustment.CustomerCode ?? string.Empty,
                     adjustment.CustomerName ?? string.Empty,
                     inventoryKey,
@@ -302,7 +302,7 @@ public class UnmatchListService : IUnmatchListService
                 // 在庫0エラー
                 var unmatchItem = UnmatchItem.FromInventoryAdjustment(
                     adjustment.VoucherType,
-                    adjustment.CategoryCode.Value,
+                    adjustment.CategoryCode.GetValueOrDefault(),
                     adjustment.CustomerCode ?? string.Empty,
                     adjustment.CustomerName ?? string.Empty,
                     inventoryKey,

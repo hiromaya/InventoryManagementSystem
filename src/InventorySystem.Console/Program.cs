@@ -50,7 +50,7 @@ builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<IDailyReportService, DailyReportService>();
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
 builder.Services.AddScoped<UnmatchListReportService>();
-builder.Services.AddScoped<InventorySystem.Reports.Services.DailyReportService>();
+builder.Services.AddScoped<InventorySystem.Reports.Services.DailyReportPdfService>();
 builder.Services.AddScoped<InventoryListReportService>();
 builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
@@ -403,7 +403,7 @@ static async Task ExecuteDailyReportAsync(IServiceProvider services, string[] ar
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var dailyReportService = services.GetRequiredService<IDailyReportService>();
-    var reportService = services.GetRequiredService<InventorySystem.Reports.Services.DailyReportService>();
+    var reportService = services.GetRequiredService<InventorySystem.Reports.Services.DailyReportPdfService>();
     
     // ジョブ日付を取得（引数から、またはデフォルト値）
     DateTime jobDate;

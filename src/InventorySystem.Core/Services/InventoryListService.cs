@@ -113,8 +113,11 @@ public class InventoryListService : IInventoryListService
 
         var inventoryItems = new List<InventoryListItem>();
 
+        // 一時的なデータセットIDを生成（実際の実装では、ProcessInventoryListAsyncで生成されたIDを使用）
+        var tempDataSetId = Guid.NewGuid().ToString();
+        
         // 仮実装：CP在庫Mからデータを取得してInventoryListItemに変換
-        var cpInventories = await _cpInventoryRepository.GetAllAsync(); // 仮メソッド
+        var cpInventories = await _cpInventoryRepository.GetAllAsync(tempDataSetId);
 
         foreach (var cpInventory in cpInventories)
         {
@@ -129,12 +132,12 @@ public class InventoryListService : IInventoryListService
                 GradeName = cpInventory.Key.GradeCode, // 仮実装：等級コード表示
                 ClassCode = cpInventory.Key.ClassCode,
                 ClassName = cpInventory.Key.ClassCode, // 仮実装：階級コード表示
-                CurrentStockQuantity = cpInventory.CurrentStockQuantity,
-                CurrentStockUnitPrice = cpInventory.CurrentStockUnitPrice,
-                CurrentStockAmount = cpInventory.CurrentStockAmount,
-                PreviousStockQuantity = cpInventory.PreviousStockQuantity,
-                PreviousStockAmount = cpInventory.PreviousStockAmount,
-                LastReceiptDate = cpInventory.LastReceiptDate
+                CurrentStockQuantity = cpInventory.DailyStock,
+                CurrentStockUnitPrice = cpInventory.DailyUnitPrice,
+                CurrentStockAmount = cpInventory.DailyStockAmount,
+                PreviousStockQuantity = cpInventory.PreviousDayStock,
+                PreviousStockAmount = cpInventory.PreviousDayStockAmount,
+                LastReceiptDate = cpInventory.DailyReceiptQuantity > 0 ? cpInventory.JobDate : (DateTime?)null
             };
 
             // 滞留マーク計算

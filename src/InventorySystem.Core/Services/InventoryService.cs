@@ -130,7 +130,7 @@ public class InventoryService : IInventoryService
         }
     }
 
-    public async Task<bool> RollbackProcessingAsync(string dataSetId)
+    public Task<bool> RollbackProcessingAsync(string dataSetId)
     {
         try
         {
@@ -140,12 +140,12 @@ public class InventoryService : IInventoryService
             // ここではログ出力のみ
             _logger.LogWarning("Rollback requested for DataSetId: {DataSetId}. Manual intervention required.", dataSetId);
             
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during rollback for DataSetId: {DataSetId}", dataSetId);
-            return false;
+            return Task.FromResult(false);
         }
     }
 
