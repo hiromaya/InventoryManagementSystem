@@ -64,12 +64,15 @@ var commandArgs = Environment.GetCommandLineArgs();
 if (commandArgs.Length < 2)
 {
     Console.WriteLine("使用方法:");
+    Console.WriteLine("  dotnet run test-connection                   - データベース接続テスト");
+    Console.WriteLine("  dotnet run test-pdf                          - PDF生成テスト（DB不要）");
     Console.WriteLine("  dotnet run unmatch-list [YYYY-MM-DD]         - アンマッチリスト処理を実行");
     Console.WriteLine("  dotnet run daily-report [YYYY-MM-DD]         - 商品日報を生成");
     Console.WriteLine("  dotnet run inventory-list [YYYY-MM-DD]       - 在庫表を生成");
     Console.WriteLine("  dotnet run import-sales <file> [YYYY-MM-DD]  - 売上伝票CSVを取込");
     Console.WriteLine("  dotnet run import-purchase <file> [YYYY-MM-DD] - 仕入伝票CSVを取込");
     Console.WriteLine("  dotnet run import-adjustment <file> [YYYY-MM-DD] - 在庫調整CSVを取込");
+    Console.WriteLine("  例: dotnet run test-connection");
     Console.WriteLine("  例: dotnet run unmatch-list 2025-06-16");
     Console.WriteLine("  例: dotnet run daily-report 2025-06-16");
     Console.WriteLine("  例: dotnet run inventory-list 2025-06-16");
@@ -109,6 +112,10 @@ try
             
         case "test-pdf":
             InventorySystem.Console.TestWithoutDatabase.RunPdfTest();
+            break;
+            
+        case "test-connection":
+            await TestDatabaseConnectionAsync(host.Services);
             break;
         
         default:
@@ -582,5 +589,71 @@ static async Task ExecuteInventoryListAsync(IServiceProvider services, string[] 
         Console.WriteLine($"処理時間: {result.ProcessingTime.TotalSeconds:F2}秒");
         
         logger.LogError("在庫表処理が失敗しました: {ErrorMessage}", result.ErrorMessage);
+    }
+}
+
+static async Task TestDatabaseConnectionAsync(IServiceProvider services)
+{
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var configuration = services.GetRequiredService<IConfiguration>();
+    
+    Console.WriteLine("=== データベース接続テスト開始 ===");
+    
+    try
+    {
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        Console.WriteLine($"接続文字列: {connectionString}");
+        Console.WriteLine();
+        
+        // 基本的な接続テスト
+        using var connection = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
+        
+        Console.WriteLine("データベースへの接続を試行中...");
+        await connection.OpenAsync();
+        Console.WriteLine("✅ データベース接続成功");
+        
+        // バージョン情報取得
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT @@VERSION as Version, DB_NAME() as DatabaseName, GETDATE() as CurrentTime";
+        using var reader = await command.ExecuteReaderAsync();
+        
+        if (await reader.ReadAsync())
+        {
+            Console.WriteLine($"データベース名: {reader["DatabaseName"]}");
+            Console.WriteLine($"現在時刻: {reader["CurrentTime"]}");
+            Console.WriteLine($"SQL Server バージョン: {reader["Version"]?.ToString()?.Split('\n')[0]}");
+        }
+        
+        Console.WriteLine();
+        Console.WriteLine("=== テーブル存在確認 ===");
+        
+        reader.Close();
+        
+        // テーブル存在確認
+        string[] tables = { "InventoryMaster", "CpInventoryMaster", "SalesVoucher", "PurchaseVoucher", "InventoryAdjustment", "DataSet" };
+        
+        foreach (var table in tables)
+        {
+            command.CommandText = $"SELECT CASE WHEN EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[{table}]') AND type in (N'U')) THEN 1 ELSE 0 END";
+            var exists = (int)await command.ExecuteScalarAsync() == 1;
+            Console.WriteLine($"{table}: {(exists ? "✅ 存在" : "❌ 未作成")}");
+        }
+        
+        Console.WriteLine();
+        Console.WriteLine("=== データベース接続テスト完了 ===");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ データベース接続エラー: {ex.Message}");
+        Console.WriteLine();
+        Console.WriteLine("=== トラブルシューティング ===");
+        Console.WriteLine("1. SQL Server Express が起動していることを確認してください");
+        Console.WriteLine("2. LocalDB を使用する場合:");
+        Console.WriteLine("   sqllocaldb info");
+        Console.WriteLine("   sqllocaldb start MSSQLLocalDB");
+        Console.WriteLine("3. 接続文字列を確認してください（appsettings.json）");
+        Console.WriteLine("4. database/CreateDatabase.sql を実行してデータベースを作成してください");
+        
+        logger.LogError(ex, "データベース接続テストでエラーが発生しました");
     }
 }
