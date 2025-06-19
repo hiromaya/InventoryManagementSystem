@@ -65,19 +65,9 @@ public class PurchaseVoucherImportService
             
             await _dataSetRepository.CreateAsync(dataSet);
 
-            // CSV読み込み処理
+            // CSV読み込み処理（販売大臣フォーマット対応）
             var purchaseVouchers = new List<PurchaseVoucher>();
-            
-            using var reader = new StringReader(File.ReadAllText(filePath, Encoding.UTF8));
-            using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
-            {
-                HasHeaderRecord = false,  // ヘッダーなし
-                IgnoreBlankLines = true,
-                TrimOptions = TrimOptions.Trim,
-                Encoding = Encoding.UTF8
-            });
-
-            var records = csv.GetRecords<PurchaseVoucherCsv>().ToList();
+            var records = await ReadDaijinCsvFileAsync(filePath);
             _logger.LogInformation("CSVレコード読み込み完了: {Count}件", records.Count);
 
             // バリデーションと変換
@@ -143,6 +133,53 @@ public class PurchaseVoucherImportService
             _logger.LogError(ex, "仕入伝票CSV取込エラー: {FilePath}", filePath);
             throw;
         }
+    }
+
+    /// <summary>
+    /// 販売大臣CSVファイルを読み込む（171列フォーマット対応）
+    /// </summary>
+    private async Task<List<PurchaseVoucherDaijinCsv>> ReadDaijinCsvFileAsync(string filePath)
+    {
+        using var reader = new StreamReader(filePath, Encoding.GetEncoding("UTF-8"));
+        using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = true,
+            HeaderValidated = null,  // ヘッダー検証を無効化
+            MissingFieldFound = null, // 不足フィールドのエラーを無効化
+            BadDataFound = context => 
+            {
+                _logger.LogWarning($"不正なデータ: 行 {context.Context.Parser.Row}, フィールド {context.Field}");
+            },
+            IgnoreBlankLines = true,
+            TrimOptions = TrimOptions.Trim
+        });
+
+        // ヘッダーを読み込む
+        await csv.ReadAsync();
+        csv.ReadHeader();
+        
+        var records = new List<PurchaseVoucherDaijinCsv>();
+        var rowNumber = 1;
+        
+        while (await csv.ReadAsync())
+        {
+            rowNumber++;
+            try
+            {
+                var record = csv.GetRecord<PurchaseVoucherDaijinCsv>();
+                if (record != null)
+                {
+                    records.Add(record);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"行 {rowNumber} の読み込みでエラー: {ex.Message}");
+                continue; // エラーがあっても処理を継続
+            }
+        }
+        
+        return records;
     }
 
     /// <summary>
