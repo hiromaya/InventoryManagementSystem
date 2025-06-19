@@ -131,11 +131,11 @@ BEGIN
 END
 
 -- ===================================================
--- 3. SalesVoucher テーブル（売上伝票）
+-- 3. SalesVouchers テーブル（売上伝票）
 -- ===================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SalesVoucher]') AND type in (N'U'))
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SalesVouchers]') AND type in (N'U'))
 BEGIN
-    CREATE TABLE SalesVoucher (
+    CREATE TABLE SalesVouchers (
         VoucherId NVARCHAR(50) NOT NULL,            -- 伝票ID
         LineNumber INT NOT NULL,                    -- 行番号
         ProductCode NVARCHAR(15) NOT NULL,          -- 商品コード
@@ -157,23 +157,23 @@ BEGIN
         CreatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),   -- 作成日
         DataSetId NVARCHAR(100),                    -- データセットID
         
-        CONSTRAINT PK_SalesVoucher PRIMARY KEY (VoucherId, LineNumber)
+        CONSTRAINT PK_SalesVouchers PRIMARY KEY (VoucherId, LineNumber)
     );
-    PRINT 'SalesVoucher テーブルを作成しました';
+    PRINT 'SalesVouchers テーブルを作成しました';
     
     -- インデックス作成
-    CREATE INDEX IX_SalesVoucher_VoucherDate ON SalesVoucher(VoucherDate);
-    CREATE INDEX IX_SalesVoucher_JobDate ON SalesVoucher(JobDate);
-    CREATE INDEX IX_SalesVoucher_ProductCode ON SalesVoucher(ProductCode);
-    CREATE INDEX IX_SalesVoucher_DataSetId ON SalesVoucher(DataSetId);
+    CREATE INDEX IX_SalesVouchers_VoucherDate ON SalesVouchers(VoucherDate);
+    CREATE INDEX IX_SalesVouchers_JobDate ON SalesVouchers(JobDate);
+    CREATE INDEX IX_SalesVouchers_ProductCode ON SalesVouchers(ProductCode);
+    CREATE INDEX IX_SalesVouchers_DataSetId ON SalesVouchers(DataSetId);
 END
 
 -- ===================================================
--- 4. PurchaseVoucher テーブル（仕入伝票）
+-- 4. PurchaseVouchers テーブル（仕入伝票）
 -- ===================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[PurchaseVoucher]') AND type in (N'U'))
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[PurchaseVouchers]') AND type in (N'U'))
 BEGIN
-    CREATE TABLE PurchaseVoucher (
+    CREATE TABLE PurchaseVouchers (
         VoucherId NVARCHAR(50) NOT NULL,            -- 伝票ID
         LineNumber INT NOT NULL,                    -- 行番号
         ProductCode NVARCHAR(15) NOT NULL,          -- 商品コード
@@ -194,23 +194,23 @@ BEGIN
         CreatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),   -- 作成日
         DataSetId NVARCHAR(100),                    -- データセットID
         
-        CONSTRAINT PK_PurchaseVoucher PRIMARY KEY (VoucherId, LineNumber)
+        CONSTRAINT PK_PurchaseVouchers PRIMARY KEY (VoucherId, LineNumber)
     );
-    PRINT 'PurchaseVoucher テーブルを作成しました';
+    PRINT 'PurchaseVouchers テーブルを作成しました';
     
     -- インデックス作成
-    CREATE INDEX IX_PurchaseVoucher_VoucherDate ON PurchaseVoucher(VoucherDate);
-    CREATE INDEX IX_PurchaseVoucher_JobDate ON PurchaseVoucher(JobDate);
-    CREATE INDEX IX_PurchaseVoucher_ProductCode ON PurchaseVoucher(ProductCode);
-    CREATE INDEX IX_PurchaseVoucher_DataSetId ON PurchaseVoucher(DataSetId);
+    CREATE INDEX IX_PurchaseVouchers_VoucherDate ON PurchaseVouchers(VoucherDate);
+    CREATE INDEX IX_PurchaseVouchers_JobDate ON PurchaseVouchers(JobDate);
+    CREATE INDEX IX_PurchaseVouchers_ProductCode ON PurchaseVouchers(ProductCode);
+    CREATE INDEX IX_PurchaseVouchers_DataSetId ON PurchaseVouchers(DataSetId);
 END
 
 -- ===================================================
--- 5. InventoryAdjustment テーブル（在庫調整）
+-- 5. InventoryAdjustments テーブル（在庫調整）
 -- ===================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[InventoryAdjustment]') AND type in (N'U'))
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[InventoryAdjustments]') AND type in (N'U'))
 BEGIN
-    CREATE TABLE InventoryAdjustment (
+    CREATE TABLE InventoryAdjustments (
         VoucherId NVARCHAR(50) NOT NULL,            -- 伝票ID
         LineNumber INT NOT NULL,                    -- 行番号
         ProductCode NVARCHAR(15) NOT NULL,          -- 商品コード
@@ -232,24 +232,24 @@ BEGIN
         CreatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),   -- 作成日
         DataSetId NVARCHAR(100),                    -- データセットID
         
-        CONSTRAINT PK_InventoryAdjustment PRIMARY KEY (VoucherId, LineNumber)
+        CONSTRAINT PK_InventoryAdjustments PRIMARY KEY (VoucherId, LineNumber)
     );
-    PRINT 'InventoryAdjustment テーブルを作成しました';
+    PRINT 'InventoryAdjustments テーブルを作成しました';
     
     -- インデックス作成
-    CREATE INDEX IX_InventoryAdjustment_VoucherDate ON InventoryAdjustment(VoucherDate);
-    CREATE INDEX IX_InventoryAdjustment_JobDate ON InventoryAdjustment(JobDate);
-    CREATE INDEX IX_InventoryAdjustment_ProductCode ON InventoryAdjustment(ProductCode);
-    CREATE INDEX IX_InventoryAdjustment_CategoryCode ON InventoryAdjustment(CategoryCode);
-    CREATE INDEX IX_InventoryAdjustment_DataSetId ON InventoryAdjustment(DataSetId);
+    CREATE INDEX IX_InventoryAdjustments_VoucherDate ON InventoryAdjustments(VoucherDate);
+    CREATE INDEX IX_InventoryAdjustments_JobDate ON InventoryAdjustments(JobDate);
+    CREATE INDEX IX_InventoryAdjustments_ProductCode ON InventoryAdjustments(ProductCode);
+    CREATE INDEX IX_InventoryAdjustments_CategoryCode ON InventoryAdjustments(CategoryCode);
+    CREATE INDEX IX_InventoryAdjustments_DataSetId ON InventoryAdjustments(DataSetId);
 END
 
 -- ===================================================
--- 6. DataSet テーブル（データセット管理）
+-- 6. DataSets テーブル（データセット管理）
 -- ===================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DataSet]') AND type in (N'U'))
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND type in (N'U'))
 BEGIN
-    CREATE TABLE DataSet (
+    CREATE TABLE DataSets (
         Id NVARCHAR(100) NOT NULL,                  -- データセットID
         Name NVARCHAR(100) NOT NULL,                -- データセット名
         Description NVARCHAR(500),                  -- 説明
@@ -261,14 +261,14 @@ BEGIN
         CompletedDate DATETIME2,                    -- 完了日
         ErrorMessage NVARCHAR(MAX),                 -- エラーメッセージ
         
-        CONSTRAINT PK_DataSet PRIMARY KEY (Id)
+        CONSTRAINT PK_DataSets PRIMARY KEY (Id)
     );
-    PRINT 'DataSet テーブルを作成しました';
+    PRINT 'DataSets テーブルを作成しました';
     
     -- インデックス作成
-    CREATE INDEX IX_DataSet_Status ON DataSet(Status);
-    CREATE INDEX IX_DataSet_JobDate ON DataSet(JobDate);
-    CREATE INDEX IX_DataSet_CreatedDate ON DataSet(CreatedDate);
+    CREATE INDEX IX_DataSets_Status ON DataSets(Status);
+    CREATE INDEX IX_DataSets_JobDate ON DataSets(JobDate);
+    CREATE INDEX IX_DataSets_CreatedDate ON DataSets(CreatedDate);
 END
 
 PRINT '=== データベースセットアップが完了しました ===';

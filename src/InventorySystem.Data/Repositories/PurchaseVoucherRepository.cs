@@ -19,7 +19,7 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
                 VoucherId, LineNumber, VoucherDate, JobDate,
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
                 Quantity, PurchaseUnitPrice, PurchaseAmount, DataSetId
-            FROM PurchaseVoucher 
+            FROM PurchaseVouchers 
             WHERE JobDate = @JobDate
             ORDER BY VoucherId, LineNumber";
 
@@ -40,7 +40,7 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
     public async Task<int> CreateAsync(PurchaseVoucher voucher)
     {
         const string sql = @"
-            INSERT INTO PurchaseVoucher (
+            INSERT INTO PurchaseVouchers (
                 VoucherId, LineNumber, VoucherDate, JobDate,
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
                 Quantity, PurchaseUnitPrice, PurchaseAmount, DataSetId
@@ -68,7 +68,7 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
     public async Task<int> BulkInsertAsync(IEnumerable<PurchaseVoucher> vouchers)
     {
         const string sql = @"
-            INSERT INTO PurchaseVoucher (
+            INSERT INTO PurchaseVouchers (
                 VoucherId, LineNumber, VoucherDate, JobDate,
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
                 Quantity, PurchaseUnitPrice, PurchaseAmount, DataSetId

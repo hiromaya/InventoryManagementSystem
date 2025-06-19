@@ -19,7 +19,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
                 VoucherId, LineNumber, VoucherDate, JobDate,
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
                 Quantity, SalesUnitPrice, SalesAmount, InventoryUnitPrice, DataSetId
-            FROM SalesVoucher 
+            FROM SalesVouchers 
             WHERE JobDate = @JobDate
             ORDER BY VoucherId, LineNumber";
 
@@ -40,7 +40,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
     public async Task<int> CreateAsync(SalesVoucher voucher)
     {
         const string sql = @"
-            INSERT INTO SalesVoucher (
+            INSERT INTO SalesVouchers (
                 VoucherId, LineNumber, VoucherDate, JobDate,
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
                 Quantity, SalesUnitPrice, SalesAmount, InventoryUnitPrice, DataSetId
@@ -68,7 +68,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
     public async Task<int> BulkInsertAsync(IEnumerable<SalesVoucher> vouchers)
     {
         const string sql = @"
-            INSERT INTO SalesVoucher (
+            INSERT INTO SalesVouchers (
                 VoucherId, LineNumber, VoucherDate, JobDate,
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
                 Quantity, SalesUnitPrice, SalesAmount, InventoryUnitPrice, DataSetId

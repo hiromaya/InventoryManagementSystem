@@ -45,15 +45,15 @@ INSERT INTO InventoryMaster (
 PRINT 'InventoryMaster テストデータを投入しました（13件）';
 
 -- ===================================================
--- 2. SalesVoucher テストデータ
+-- 2. SalesVouchers テストデータ
 -- ===================================================
-PRINT '=== SalesVoucher テストデータ投入開始 ===';
+PRINT '=== SalesVouchers テストデータ投入開始 ===';
 
 -- 既存データ削除（テスト用）
-DELETE FROM SalesVoucher WHERE VoucherId LIKE 'TEST%';
+DELETE FROM SalesVouchers WHERE VoucherId LIKE 'TEST%';
 
 -- テスト用売上伝票データ
-INSERT INTO SalesVoucher (
+INSERT INTO SalesVouchers (
     VoucherId, LineNumber, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
     VoucherType, DetailType, VoucherNumber, VoucherDate, JobDate,
     CustomerCode, CustomerName, Quantity, UnitPrice, Amount, InventoryUnitPrice
@@ -67,18 +67,18 @@ INSERT INTO SalesVoucher (
 -- 売上返品データ
 ('TEST_SALES_004', 1, '00001', '001', '001', '1001', 'テスト荷印A1', '12', '1', 'SR20250619001', '2025-06-19', '2025-06-19', 'C001', 'テスト得意先A', 5.00, 1100.00, 5500.00, 1000.00);
 
-PRINT 'SalesVoucher テストデータを投入しました（5件）';
+PRINT 'SalesVouchers テストデータを投入しました（5件）';
 
 -- ===================================================
--- 3. PurchaseVoucher テストデータ
+-- 3. PurchaseVouchers テストデータ
 -- ===================================================
-PRINT '=== PurchaseVoucher テストデータ投入開始 ===';
+PRINT '=== PurchaseVouchers テストデータ投入開始 ===';
 
 -- 既存データ削除（テスト用）
-DELETE FROM PurchaseVoucher WHERE VoucherId LIKE 'TEST%';
+DELETE FROM PurchaseVouchers WHERE VoucherId LIKE 'TEST%';
 
 -- テスト用仕入伝票データ
-INSERT INTO PurchaseVoucher (
+INSERT INTO PurchaseVouchers (
     VoucherId, LineNumber, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
     VoucherType, DetailType, VoucherNumber, VoucherDate, JobDate,
     SupplierCode, SupplierName, Quantity, UnitPrice, Amount
@@ -91,18 +91,18 @@ INSERT INTO PurchaseVoucher (
 -- 仕入返品データ
 ('TEST_PURCHASE_003', 1, '00021', '001', '001', '3001', 'テスト荷印C1', '22', '1', 'PR20250619001', '2025-06-19', '2025-06-19', 'S003', 'テスト仕入先C', 10.00, 550.00, 5500.00);
 
-PRINT 'PurchaseVoucher テストデータを投入しました（4件）';
+PRINT 'PurchaseVouchers テストデータを投入しました（4件）';
 
 -- ===================================================
--- 4. InventoryAdjustment テストデータ
+-- 4. InventoryAdjustments テストデータ
 -- ===================================================
-PRINT '=== InventoryAdjustment テストデータ投入開始 ===';
+PRINT '=== InventoryAdjustments テストデータ投入開始 ===';
 
 -- 既存データ削除（テスト用）
-DELETE FROM InventoryAdjustment WHERE VoucherId LIKE 'TEST%';
+DELETE FROM InventoryAdjustments WHERE VoucherId LIKE 'TEST%';
 
 -- テスト用在庫調整データ
-INSERT INTO InventoryAdjustment (
+INSERT INTO InventoryAdjustments (
     VoucherId, LineNumber, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
     VoucherType, DetailType, VoucherNumber, VoucherDate, JobDate,
     CustomerCode, CustomerName, CategoryCode, Quantity, UnitPrice, Amount
@@ -120,25 +120,25 @@ INSERT INTO InventoryAdjustment (
 ('TEST_ADJ_004', 1, '00001', '001', '001', '1001', 'テスト荷印A1', '71', '1', 'A20250619004', '2025-06-19', '2025-06-19', NULL, NULL, 2, 3.00, 1000.00, 3000.00),
 ('TEST_ADJ_005', 1, '00011', '001', '001', '2001', 'テスト荷印B1', '72', '1', 'A20250619005', '2025-06-19', '2025-06-19', NULL, NULL, 5, 8.00, 800.00, 6400.00);
 
-PRINT 'InventoryAdjustment テストデータを投入しました（5件）';
+PRINT 'InventoryAdjustments テストデータを投入しました（5件）';
 
 -- ===================================================
--- 5. DataSet テストデータ
+-- 5. DataSets テストデータ
 -- ===================================================
-PRINT '=== DataSet テストデータ投入開始 ===';
+PRINT '=== DataSets テストデータ投入開始 ===';
 
 -- 既存データ削除（テスト用）
-DELETE FROM DataSet WHERE Id LIKE 'TEST%';
+DELETE FROM DataSets WHERE Id LIKE 'TEST%';
 
 -- テスト用データセット
-INSERT INTO DataSet (
+INSERT INTO DataSets (
     Id, Name, Description, ProcessType, Status, JobDate
 ) VALUES
 ('TEST_DATASET_001', 'テスト用データセット1', '在庫管理システムのテスト用データセット', 'UnmatchList', 'Completed', '2025-06-19'),
 ('TEST_DATASET_002', 'テスト用データセット2', '商品日報テスト用データセット', 'DailyReport', 'Processing', '2025-06-19'),
 ('TEST_DATASET_003', 'テスト用データセット3', '在庫表テスト用データセット', 'InventoryList', 'Created', '2025-06-19');
 
-PRINT 'DataSet テストデータを投入しました（3件）';
+PRINT 'DataSets テストデータを投入しました（3件）';
 
 -- ===================================================
 -- データ投入結果確認
@@ -147,12 +147,12 @@ PRINT '=== データ投入結果確認 ===';
 
 SELECT 'InventoryMaster' AS TableName, COUNT(*) AS RecordCount FROM InventoryMaster
 UNION ALL
-SELECT 'SalesVoucher' AS TableName, COUNT(*) AS RecordCount FROM SalesVoucher
+SELECT 'SalesVouchers' AS TableName, COUNT(*) AS RecordCount FROM SalesVouchers
 UNION ALL
-SELECT 'PurchaseVoucher' AS TableName, COUNT(*) AS RecordCount FROM PurchaseVoucher
+SELECT 'PurchaseVouchers' AS TableName, COUNT(*) AS RecordCount FROM PurchaseVouchers
 UNION ALL
-SELECT 'InventoryAdjustment' AS TableName, COUNT(*) AS RecordCount FROM InventoryAdjustment
+SELECT 'InventoryAdjustments' AS TableName, COUNT(*) AS RecordCount FROM InventoryAdjustments
 UNION ALL
-SELECT 'DataSet' AS TableName, COUNT(*) AS RecordCount FROM DataSet;
+SELECT 'DataSets' AS TableName, COUNT(*) AS RecordCount FROM DataSets;
 
 PRINT '=== テストデータ投入完了 ===';

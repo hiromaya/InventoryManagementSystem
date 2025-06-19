@@ -630,7 +630,7 @@ static async Task TestDatabaseConnectionAsync(IServiceProvider services)
         reader.Close();
         
         // テーブル存在確認
-        string[] tables = { "InventoryMaster", "CpInventoryMaster", "SalesVoucher", "PurchaseVoucher", "InventoryAdjustment", "DataSet" };
+        string[] tables = { "InventoryMaster", "CpInventoryMaster", "SalesVouchers", "PurchaseVouchers", "InventoryAdjustments", "DataSets" };
         
         foreach (var table in tables)
         {
