@@ -262,8 +262,8 @@ public class CsvImportService
             var sales = salesVouchers[i];
             var rowNum = i + 1;
             
-            if (sales.VoucherId <= 0)
-                errors.Add($"Row {rowNum}: Invalid VoucherId");
+            if (string.IsNullOrWhiteSpace(sales.VoucherNumber))
+                errors.Add($"Row {rowNum}: Invalid VoucherNumber");
                 
             if (string.IsNullOrWhiteSpace(sales.ProductCode))
                 errors.Add($"Row {rowNum}: ProductCode is required");
@@ -271,8 +271,8 @@ public class CsvImportService
             if (sales.Quantity <= 0)
                 errors.Add($"Row {rowNum}: Quantity must be greater than 0");
                 
-            if (sales.SalesUnitPrice < 0)
-                errors.Add($"Row {rowNum}: SalesUnitPrice cannot be negative");
+            if (sales.UnitPrice < 0)
+                errors.Add($"Row {rowNum}: UnitPrice cannot be negative");
         }
         
         return errors;
@@ -287,8 +287,8 @@ public class CsvImportService
             var purchase = purchaseVouchers[i];
             var rowNum = i + 1;
             
-            if (purchase.VoucherId <= 0)
-                errors.Add($"Row {rowNum}: Invalid VoucherId");
+            if (string.IsNullOrWhiteSpace(purchase.VoucherNumber))
+                errors.Add($"Row {rowNum}: Invalid VoucherNumber");
                 
             if (string.IsNullOrWhiteSpace(purchase.ProductCode))
                 errors.Add($"Row {rowNum}: ProductCode is required");
@@ -296,8 +296,8 @@ public class CsvImportService
             if (purchase.Quantity <= 0)
                 errors.Add($"Row {rowNum}: Quantity must be greater than 0");
                 
-            if (purchase.PurchaseUnitPrice < 0)
-                errors.Add($"Row {rowNum}: PurchaseUnitPrice cannot be negative");
+            if (purchase.UnitPrice < 0)
+                errors.Add($"Row {rowNum}: UnitPrice cannot be negative");
         }
         
         return errors;

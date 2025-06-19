@@ -144,19 +144,34 @@ public class SalesVoucher
     /// <summary>
     /// 在庫キーを取得（互換性プロパティ）
     /// </summary>
-    public InventoryKey InventoryKey => GetInventoryKey();
+    public InventoryKey InventoryKey { get; set; } = new();
     
     /// <summary>
     /// 取引種別（互換性プロパティ）
     /// </summary>
     public string TransactionType => VoucherType;
+    
+    /// <summary>
+    /// 伝票ID（リポジトリで使用）
+    /// </summary>
+    public string VoucherId { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 行番号（リポジトリで使用）
+    /// </summary>
+    public int LineNumber { get; set; }
+    
+    /// <summary>
+    /// 在庫単価（リポジトリで使用）
+    /// </summary>
+    public decimal InventoryUnitPrice { get; set; }
 
     /// <summary>
     /// 在庫キーを取得
     /// </summary>
     public InventoryKey GetInventoryKey()
     {
-        return new InventoryKey
+        InventoryKey = new InventoryKey
         {
             ProductCode = ProductCode,
             GradeCode = GradeCode,
@@ -164,6 +179,7 @@ public class SalesVoucher
             ShippingMarkCode = ShippingMarkCode,
             ShippingMarkName = ShippingMarkName
         };
+        return InventoryKey;
     }
 
     /// <summary>
@@ -212,49 +228,3 @@ public class SalesVoucher
     }
 }
 
-/// <summary>
-/// 売上伝票種別の定数
-/// </summary>
-public static class SalesVoucherTypes
-{
-    /// <summary>
-    /// 掛売上
-    /// </summary>
-    public const string Credit = "51";
-
-    /// <summary>
-    /// 現金売上
-    /// </summary>
-    public const string Cash = "52";
-}
-
-/// <summary>
-/// 明細種別の定数
-/// </summary>
-public static class DetailTypes
-{
-    /// <summary>
-    /// 商品
-    /// </summary>
-    public const string Product = "1";
-
-    /// <summary>
-    /// 返品
-    /// </summary>
-    public const string Return = "2";
-
-    /// <summary>
-    /// 値引
-    /// </summary>
-    public const string Discount = "3";
-
-    /// <summary>
-    /// その他
-    /// </summary>
-    public const string Other = "4";
-
-    /// <summary>
-    /// 諸経費
-    /// </summary>
-    public const string Expense = "18";
-}

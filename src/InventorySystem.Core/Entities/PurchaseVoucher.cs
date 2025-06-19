@@ -144,19 +144,29 @@ public class PurchaseVoucher
     /// <summary>
     /// 在庫キーを取得（互換性プロパティ）
     /// </summary>
-    public InventoryKey InventoryKey => GetInventoryKey();
+    public InventoryKey InventoryKey { get; set; } = new();
     
     /// <summary>
     /// 取引種別（互換性プロパティ）
     /// </summary>
     public string TransactionType => VoucherType;
+    
+    /// <summary>
+    /// 伝票ID（リポジトリで使用）
+    /// </summary>
+    public string VoucherId { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 行番号（リポジトリで使用）
+    /// </summary>
+    public int LineNumber { get; set; }
 
     /// <summary>
     /// 在庫キーを取得
     /// </summary>
     public InventoryKey GetInventoryKey()
     {
-        return new InventoryKey
+        InventoryKey = new InventoryKey
         {
             ProductCode = ProductCode,
             GradeCode = GradeCode,
@@ -164,6 +174,7 @@ public class PurchaseVoucher
             ShippingMarkCode = ShippingMarkCode,
             ShippingMarkName = ShippingMarkName
         };
+        return InventoryKey;
     }
 
     /// <summary>
@@ -212,18 +223,3 @@ public class PurchaseVoucher
     }
 }
 
-/// <summary>
-/// 仕入伝票種別の定数
-/// </summary>
-public static class PurchaseVoucherTypes
-{
-    /// <summary>
-    /// 掛仕入
-    /// </summary>
-    public const string Credit = "61";
-
-    /// <summary>
-    /// 現金仕入
-    /// </summary>
-    public const string Cash = "62";
-}
