@@ -45,6 +45,21 @@ public class InventoryAdjustment
     /// 単位コード (01-06) ※重要：これで取込判定
     /// </summary>
     public string UnitCode { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 区分コード (1:ロス,4:振替,6:調整) ※受注伝票用
+    /// </summary>
+    public int? CategoryCode { get; set; }
+    
+    /// <summary>
+    /// 得意先コード（受注伝票用）
+    /// </summary>
+    public string? CustomerCode { get; set; }
+    
+    /// <summary>
+    /// 得意先名（受注伝票用）
+    /// </summary>
+    public string? CustomerName { get; set; }
 
     /// <summary>
     /// 商品コード

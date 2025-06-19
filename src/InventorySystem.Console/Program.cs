@@ -47,7 +47,11 @@ builder.Services.AddScoped<PurchaseVoucherCsvRepository>(provider =>
     new PurchaseVoucherCsvRepository(connectionString, provider.GetRequiredService<ILogger<PurchaseVoucherCsvRepository>>()));
 
 builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
+builder.Services.AddScoped<IDailyReportService, DailyReportService>();
+builder.Services.AddScoped<IInventoryListService, InventoryListService>();
 builder.Services.AddScoped<UnmatchListReportService>();
+builder.Services.AddScoped<InventorySystem.Reports.Services.DailyReportService>();
+builder.Services.AddScoped<InventoryListReportService>();
 builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
 builder.Services.AddScoped<InventoryAdjustmentImportService>();
@@ -61,10 +65,14 @@ if (commandArgs.Length < 2)
 {
     Console.WriteLine("使用方法:");
     Console.WriteLine("  dotnet run unmatch-list [YYYY-MM-DD]         - アンマッチリスト処理を実行");
+    Console.WriteLine("  dotnet run daily-report [YYYY-MM-DD]         - 商品日報を生成");
+    Console.WriteLine("  dotnet run inventory-list [YYYY-MM-DD]       - 在庫表を生成");
     Console.WriteLine("  dotnet run import-sales <file> [YYYY-MM-DD]  - 売上伝票CSVを取込");
     Console.WriteLine("  dotnet run import-purchase <file> [YYYY-MM-DD] - 仕入伝票CSVを取込");
     Console.WriteLine("  dotnet run import-adjustment <file> [YYYY-MM-DD] - 在庫調整CSVを取込");
     Console.WriteLine("  例: dotnet run unmatch-list 2025-06-16");
+    Console.WriteLine("  例: dotnet run daily-report 2025-06-16");
+    Console.WriteLine("  例: dotnet run inventory-list 2025-06-16");
     Console.WriteLine("  例: dotnet run import-sales sales.csv 2025-06-16");
     return 1;
 }
@@ -77,6 +85,14 @@ try
     {
         case "unmatch-list":
             await ExecuteUnmatchListAsync(host.Services, commandArgs);
+            break;
+            
+        case "daily-report":
+            await ExecuteDailyReportAsync(host.Services, commandArgs);
+            break;
+            
+        case "inventory-list":
+            await ExecuteInventoryListAsync(host.Services, commandArgs);
             break;
             
         case "import-sales":
@@ -380,5 +396,191 @@ static async Task ExecuteImportAdjustmentAsync(IServiceProvider services, string
         stopwatch.Stop();
         Console.WriteLine($"エラー: {ex.Message}");
         logger.LogError(ex, "在庫調整CSV取込処理でエラーが発生しました");
+    }
+}
+
+static async Task ExecuteDailyReportAsync(IServiceProvider services, string[] args)
+{
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var dailyReportService = services.GetRequiredService<IDailyReportService>();
+    var reportService = services.GetRequiredService<InventorySystem.Reports.Services.DailyReportService>();
+    
+    // ジョブ日付を取得（引数から、またはデフォルト値）
+    DateTime jobDate;
+    if (args.Length >= 3 && DateTime.TryParse(args[2], out jobDate))
+    {
+        logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+    }
+    else
+    {
+        jobDate = DateTime.Today;
+        logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+    }
+    
+    var stopwatch = Stopwatch.StartNew();
+    
+    Console.WriteLine("=== 商品日報処理開始 ===");
+    Console.WriteLine($"レポート日付: {jobDate:yyyy-MM-dd}");
+    Console.WriteLine();
+    
+    // 商品日報処理実行
+    var result = await dailyReportService.ProcessDailyReportAsync(jobDate);
+    
+    stopwatch.Stop();
+    
+    if (result.Success)
+    {
+        Console.WriteLine("=== 処理結果 ===");
+        Console.WriteLine($"データセットID: {result.DataSetId}");
+        Console.WriteLine($"データ件数: {result.ProcessedCount}");
+        Console.WriteLine($"処理時間: {result.ProcessingTime.TotalSeconds:F2}秒");
+        Console.WriteLine();
+        
+        if (result.ProcessedCount > 0)
+        {
+            Console.WriteLine("=== 商品日報データ（サンプル） ===");
+            foreach (var item in result.ReportItems.Take(5))
+            {
+                Console.WriteLine($"{item.ProductCode} | {item.ProductName} | 売上:{item.DailySalesAmount:N0}円 | 粗利1:{item.DailyGrossProfit1:N0}円");
+            }
+            
+            if (result.ProcessedCount > 5)
+            {
+                Console.WriteLine($"... 他 {result.ProcessedCount - 5} 件");
+            }
+            Console.WriteLine();
+        }
+        
+        // PDF出力
+        try
+        {
+            Console.WriteLine("PDF生成中...");
+            var pdfBytes = reportService.GenerateDailyReport(result.ReportItems, result.Subtotals, result.Total, jobDate);
+            
+            var outputPath = Path.Combine(Environment.CurrentDirectory, 
+                $"daily_report_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
+            
+            await File.WriteAllBytesAsync(outputPath, pdfBytes);
+            Console.WriteLine($"PDF出力完了: {outputPath}");
+            
+            // PDFを開く（Windows）
+            if (OperatingSystem.IsWindows())
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = outputPath,
+                    UseShellExecute = true
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "PDF生成でエラーが発生しました");
+            Console.WriteLine($"PDF生成エラー: {ex.Message}");
+        }
+        
+        Console.WriteLine("=== 商品日報処理完了 ===");
+    }
+    else
+    {
+        Console.WriteLine("=== 処理失敗 ===");
+        Console.WriteLine($"エラーメッセージ: {result.ErrorMessage}");
+        Console.WriteLine($"処理時間: {result.ProcessingTime.TotalSeconds:F2}秒");
+        
+        logger.LogError("商品日報処理が失敗しました: {ErrorMessage}", result.ErrorMessage);
+    }
+}
+
+static async Task ExecuteInventoryListAsync(IServiceProvider services, string[] args)
+{
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var inventoryListService = services.GetRequiredService<IInventoryListService>();
+    var reportService = services.GetRequiredService<InventoryListReportService>();
+    
+    // ジョブ日付を取得（引数から、またはデフォルト値）
+    DateTime jobDate;
+    if (args.Length >= 3 && DateTime.TryParse(args[2], out jobDate))
+    {
+        logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+    }
+    else
+    {
+        jobDate = DateTime.Today;
+        logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+    }
+    
+    var stopwatch = Stopwatch.StartNew();
+    
+    Console.WriteLine("=== 在庫表処理開始 ===");
+    Console.WriteLine($"レポート日付: {jobDate:yyyy-MM-dd}");
+    Console.WriteLine();
+    
+    // 在庫表処理実行
+    var result = await inventoryListService.ProcessInventoryListAsync(jobDate);
+    
+    stopwatch.Stop();
+    
+    if (result.Success)
+    {
+        Console.WriteLine("=== 処理結果 ===");
+        Console.WriteLine($"データセットID: {result.DataSetId}");
+        Console.WriteLine($"データ件数: {result.ProcessedCount}");
+        Console.WriteLine($"担当者数: {result.StaffInventories.Count}");
+        Console.WriteLine($"処理時間: {result.ProcessingTime.TotalSeconds:F2}秒");
+        Console.WriteLine();
+        
+        if (result.StaffInventories.Any())
+        {
+            Console.WriteLine("=== 担当者別集計結果 ===");
+            foreach (var staff in result.StaffInventories.Take(3))
+            {
+                Console.WriteLine($"担当者: {staff.StaffName} | 商品数: {staff.Items.Count} | 合計金額: {staff.Total.GrandTotalAmount:N0}円");
+            }
+            
+            if (result.StaffInventories.Count > 3)
+            {
+                Console.WriteLine($"... 他 {result.StaffInventories.Count - 3} 名");
+            }
+            Console.WriteLine($"全体合計: {result.GrandTotal.GrandTotalAmount:N0}円");
+            Console.WriteLine();
+        }
+        
+        // PDF出力
+        try
+        {
+            Console.WriteLine("PDF生成中...");
+            var pdfBytes = reportService.GenerateInventoryList(result.StaffInventories, result.GrandTotal, jobDate);
+            
+            var outputPath = Path.Combine(Environment.CurrentDirectory, 
+                $"inventory_list_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
+            
+            await File.WriteAllBytesAsync(outputPath, pdfBytes);
+            Console.WriteLine($"PDF出力完了: {outputPath}");
+            
+            // PDFを開く（Windows）
+            if (OperatingSystem.IsWindows())
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = outputPath,
+                    UseShellExecute = true
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "PDF生成でエラーが発生しました");
+            Console.WriteLine($"PDF生成エラー: {ex.Message}");
+        }
+        
+        Console.WriteLine("=== 在庫表処理完了 ===");
+    }
+    else
+    {
+        Console.WriteLine("=== 処理失敗 ===");
+        Console.WriteLine($"エラーメッセージ: {result.ErrorMessage}");
+        Console.WriteLine($"処理時間: {result.ProcessingTime.TotalSeconds:F2}秒");
+        
+        logger.LogError("在庫表処理が失敗しました: {ErrorMessage}", result.ErrorMessage);
     }
 }

@@ -14,7 +14,10 @@
       "Bash(fc-list:*)",
       "Bash(dotnet build)",
       "Bash(sqlcmd:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

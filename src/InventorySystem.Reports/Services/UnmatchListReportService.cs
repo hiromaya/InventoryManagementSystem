@@ -59,18 +59,18 @@ public class UnmatchListReportService
             container.Page(page =>
             {
                 page.Size(PageSizes.A3.Landscape());
-                page.Margin(1, Unit.Centimetre);
+                page.Margin(0.5f, Unit.Centimetre);
                 // フォント設定（登録された日本語フォントを使用）
                 if (_isFontRegistered && !string.IsNullOrEmpty(_registeredFontFamily))
                 {
                     page.DefaultTextStyle(x => x
-                        .FontSize(9)
+                        .FontSize(8)
                         .FontFamily(_registeredFontFamily));
                 }
                 else
                 {
                     page.DefaultTextStyle(x => x
-                        .FontSize(9));
+                        .FontSize(8));
                 }
 
                 page.Header().Element(ComposeHeader);
@@ -96,7 +96,7 @@ public class UnmatchListReportService
                     .FontSize(12).Bold();
             });
             
-            row.ConstantItem(50).Column(column =>
+            row.ConstantItem(80).Column(column =>
             {
                 column.Item().AlignRight().Text("頁").FontSize(10);
             });
@@ -129,67 +129,100 @@ public class UnmatchListReportService
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.RelativeColumn(8);  // 区分
-                    columns.ConstantColumn(40); // コード（取引先）
-                    columns.RelativeColumn(12); // 取引先名
-                    columns.ConstantColumn(40); // コード（商品）
-                    columns.RelativeColumn(15); // 商品名
-                    columns.ConstantColumn(30); // コード（荷印）
-                    columns.RelativeColumn(10); // 荷印
-                    columns.RelativeColumn(10); // 手入力
-                    columns.ConstantColumn(25); // コード（等級）
-                    columns.RelativeColumn(8);  // 等級
-                    columns.ConstantColumn(25); // コード（階級）
-                    columns.RelativeColumn(8);  // 階級
-                    columns.ConstantColumn(60); // 数量
-                    columns.ConstantColumn(50); // 単価
-                    columns.ConstantColumn(70); // 金額
-                    columns.ConstantColumn(50); // 伝票番号
-                    columns.RelativeColumn(8);  // アラート
+                    columns.ConstantColumn(60);  // 区分（掛売上、現金売上、等）
+                    columns.ConstantColumn(50);  // コード（取引先）
+                    columns.RelativeColumn(15);  // 取引先名
+                    columns.ConstantColumn(50);  // コード（商品）
+                    columns.RelativeColumn(15);  // 商品名
+                    columns.ConstantColumn(40);  // コード（荷印）
+                    columns.RelativeColumn(10);  // 荷印
+                    columns.RelativeColumn(10);  // 手入力
+                    columns.ConstantColumn(30);  // コード（等級）
+                    columns.ConstantColumn(50);  // 等級
+                    columns.ConstantColumn(30);  // コード（階級）
+                    columns.ConstantColumn(50);  // 階級
+                    columns.ConstantColumn(80);  // 数量
+                    columns.ConstantColumn(70);  // 単価
+                    columns.ConstantColumn(90);  // 金額
+                    columns.ConstantColumn(70);  // 伝票番号
+                    columns.ConstantColumn(50);  // アラート
                 });
 
                 // ヘッダー
                 table.Header(header =>
                 {
-                    header.Cell().Border(1).Padding(2).Text("区分").Bold();
-                    header.Cell().Border(1).Padding(2).Text("ｺｰﾄﾞ").Bold();
-                    header.Cell().Border(1).Padding(2).Text("取引先名").Bold();
-                    header.Cell().Border(1).Padding(2).Text("ｺｰﾄﾞ").Bold();
-                    header.Cell().Border(1).Padding(2).Text("商　品　名").Bold();
-                    header.Cell().Border(1).Padding(2).Text("ｺｰﾄﾞ").Bold();
-                    header.Cell().Border(1).Padding(2).Text("荷　印").Bold();
-                    header.Cell().Border(1).Padding(2).Text("手入力").Bold();
-                    header.Cell().Border(1).Padding(2).Text("ｺｰﾄﾞ").Bold();
-                    header.Cell().Border(1).Padding(2).Text("等　級").Bold();
-                    header.Cell().Border(1).Padding(2).Text("ｺｰﾄﾞ").Bold();
-                    header.Cell().Border(1).Padding(2).Text("階　級").Bold();
-                    header.Cell().Border(1).Padding(2).Text("数　量").Bold();
-                    header.Cell().Border(1).Padding(2).Text("単　価").Bold();
-                    header.Cell().Border(1).Padding(2).Text("金　額").Bold();
-                    header.Cell().Border(1).Padding(2).Text("伝票番号").Bold();
-                    header.Cell().Border(1).Padding(2).Text("ｱﾗｰﾄ").Bold();
+                    header.Cell().Padding(2).Text("区分").FontSize(8).Bold();
+                    header.Cell().Padding(2).AlignRight().Text("ｺｰﾄﾞ").FontSize(8).Bold();
+                    header.Cell().Padding(2).Text("取引先名").FontSize(8).Bold();
+                    header.Cell().Padding(2).AlignRight().Text("ｺｰﾄﾞ").FontSize(8).Bold();
+                    header.Cell().Padding(2).Text("商　品　名").FontSize(8).Bold();
+                    header.Cell().Padding(2).AlignRight().Text("ｺｰﾄﾞ").FontSize(8).Bold();
+                    header.Cell().Padding(2).Text("荷　印").FontSize(8).Bold();
+                    header.Cell().Padding(2).Text("手入力").FontSize(8).Bold();
+                    header.Cell().Padding(2).AlignRight().Text("ｺｰﾄﾞ").FontSize(8).Bold();
+                    header.Cell().Padding(2).Text("等　級").FontSize(8).Bold();
+                    header.Cell().Padding(2).AlignRight().Text("ｺｰﾄﾞ").FontSize(8).Bold();
+                    header.Cell().Padding(2).Text("階　級").FontSize(8).Bold();
+                    header.Cell().Padding(2).AlignRight().Text("数　量").FontSize(8).Bold();
+                    header.Cell().Padding(2).AlignRight().Text("単　価").FontSize(8).Bold();
+                    header.Cell().Padding(2).AlignRight().Text("金　額").FontSize(8).Bold();
+                    header.Cell().Padding(2).AlignRight().Text("伝票番号").FontSize(8).Bold();
+                    header.Cell().Padding(2).Text("ｱﾗｰﾄ").FontSize(8).Bold();
                 });
 
                 // データ行
                 foreach (var item in items)
                 {
-                    table.Cell().Border(1).Padding(2).Text(item.Category);
-                    table.Cell().Border(1).Padding(2).AlignRight().Text(FormatCode(item.CustomerCode, 5));
-                    table.Cell().Border(1).Padding(2).Text(TruncateText(item.CustomerName, 12));
-                    table.Cell().Border(1).Padding(2).AlignRight().Text(FormatCode(item.Key.ProductCode, 5));
-                    table.Cell().Border(1).Padding(2).Text(TruncateText(item.ProductName, 15));
-                    table.Cell().Border(1).Padding(2).AlignRight().Text(FormatCode(item.Key.ShippingMarkCode, 4));
-                    table.Cell().Border(1).Padding(2).Text(TruncateText(item.Key.ShippingMarkName, 10));
-                    table.Cell().Border(1).Padding(2).Text(TruncateText(item.Key.ShippingMarkName, 10)); // 手入力も荷印名を使用
-                    table.Cell().Border(1).Padding(2).AlignRight().Text(FormatCode(item.Key.GradeCode, 3));
-                    table.Cell().Border(1).Padding(2).Text(TruncateText(item.GradeName, 8));
-                    table.Cell().Border(1).Padding(2).AlignRight().Text(FormatCode(item.Key.ClassCode, 3));
-                    table.Cell().Border(1).Padding(2).Text(TruncateText(item.ClassName, 8));
-                    table.Cell().Border(1).Padding(2).AlignRight().Text(FormatQuantity(item.Quantity));
-                    table.Cell().Border(1).Padding(2).AlignRight().Text(FormatUnitPrice(item.UnitPrice));
-                    table.Cell().Border(1).Padding(2).AlignRight().Text(FormatAmount(item.Amount));
-                    table.Cell().Border(1).Padding(2).AlignRight().Text(FormatCode(item.VoucherNumber, 6));
-                    table.Cell().Border(1).Padding(2).Text(item.AlertType);
+                    // 区分 - 左揃え
+                    table.Cell().Padding(1).Text(item.Category).FontSize(8);
+                    
+                    // 取引先コード - 右揃え（コード項目）
+                    table.Cell().Padding(1).AlignRight().Text(FormatCode(item.CustomerCode, 5)).FontSize(8);
+                    
+                    // 取引先名 - 左揃え（文字項目）
+                    table.Cell().Padding(1).Text(TruncateText(item.CustomerName, 15)).FontSize(8);
+                    
+                    // 商品コード - 右揃え（コード項目）
+                    table.Cell().Padding(1).AlignRight().Text(FormatCode(item.Key.ProductCode, 5)).FontSize(8);
+                    
+                    // 商品名 - 左揃え（文字項目）
+                    table.Cell().Padding(1).Text(TruncateText(item.ProductName, 15)).FontSize(8);
+                    
+                    // 荷印コード - 右揃え（コード項目）
+                    table.Cell().Padding(1).AlignRight().Text(FormatCode(item.Key.ShippingMarkCode, 4)).FontSize(8);
+                    
+                    // 荷印 - 左揃え（文字項目）
+                    table.Cell().Padding(1).Text(TruncateText(item.Key.ShippingMarkName, 10)).FontSize(8);
+                    
+                    // 手入力 - 左揃え（文字項目）
+                    table.Cell().Padding(1).Text(TruncateText(item.Key.ShippingMarkName, 10)).FontSize(8);
+                    
+                    // 等級コード - 右揃え（コード項目）
+                    table.Cell().Padding(1).AlignRight().Text(FormatCode(item.Key.GradeCode, 3)).FontSize(8);
+                    
+                    // 等級 - 左揃え（文字項目）
+                    table.Cell().Padding(1).Text(item.GradeName ?? "").FontSize(8);
+                    
+                    // 階級コード - 右揃え（コード項目）
+                    table.Cell().Padding(1).AlignRight().Text(FormatCode(item.Key.ClassCode, 3)).FontSize(8);
+                    
+                    // 階級 - 左揃え（文字項目）
+                    table.Cell().Padding(1).Text(item.ClassName ?? "").FontSize(8);
+                    
+                    // 数量 - 右揃え（数値項目）
+                    table.Cell().Padding(1).AlignRight().Text(FormatQuantity(item.Quantity)).FontSize(8);
+                    
+                    // 単価 - 右揃え（数値項目）
+                    table.Cell().Padding(1).AlignRight().Text(FormatUnitPrice(item.UnitPrice)).FontSize(8);
+                    
+                    // 金額 - 右揃え（数値項目）
+                    table.Cell().Padding(1).AlignRight().Text(FormatAmount(item.Amount)).FontSize(8);
+                    
+                    // 伝票番号 - 右揃え（コード項目）
+                    table.Cell().Padding(1).AlignRight().Text(item.VoucherNumber ?? "").FontSize(8);
+                    
+                    // アラート - 左揃え（文字項目）
+                    table.Cell().Padding(1).Text(item.AlertType).FontSize(8);
                 }
             });
 
@@ -210,20 +243,20 @@ public class UnmatchListReportService
 
     private string FormatCode(string code, int width)
     {
-        if (string.IsNullOrEmpty(code)) return string.Empty;
+        if (string.IsNullOrEmpty(code)) return "";
         
-        // 数値として扱える場合は右詰め、そうでなければそのまま
+        // 数値として扱える場合は指定桁数で0埋め、そうでなければそのまま
         if (int.TryParse(code, out var numCode))
         {
             return numCode.ToString($"D{width}");
         }
-        return code.PadLeft(width);
+        return code;
     }
 
     private string FormatQuantity(decimal quantity)
     {
-        // フォーマット: ZZ,ZZ9.99-
-        if (quantity == 0) return string.Empty;
+        // ZZ,ZZ9.99-形式（仕様書通り）
+        if (quantity == 0) return "";
         
         var formattedValue = Math.Abs(quantity).ToString("N2", CultureInfo.InvariantCulture);
         if (quantity < 0)
@@ -235,15 +268,15 @@ public class UnmatchListReportService
 
     private string FormatUnitPrice(decimal unitPrice)
     {
-        // フォーマット: ZZZ,ZZ9
-        if (unitPrice == 0) return string.Empty;
+        // ZZZ,ZZ9形式（仕様書通り）
+        if (unitPrice == 0) return "";
         return unitPrice.ToString("N0", CultureInfo.InvariantCulture);
     }
 
     private string FormatAmount(decimal amount)
     {
-        // フォーマット: ZZ,ZZZ,ZZ9-
-        if (amount == 0) return string.Empty;
+        // ZZ,ZZZ,ZZ9-形式（仕様書通り）
+        if (amount == 0) return "";
         
         var formattedValue = Math.Abs(amount).ToString("N0", CultureInfo.InvariantCulture);
         if (amount < 0)

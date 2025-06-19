@@ -10,17 +10,20 @@ public class UnmatchListService : IUnmatchListService
     private readonly ICpInventoryRepository _cpInventoryRepository;
     private readonly ISalesVoucherRepository _salesVoucherRepository;
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
+    private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
     private readonly ILogger<UnmatchListService> _logger;
 
     public UnmatchListService(
         ICpInventoryRepository cpInventoryRepository,
         ISalesVoucherRepository salesVoucherRepository,
         IPurchaseVoucherRepository purchaseVoucherRepository,
+        IInventoryAdjustmentRepository inventoryAdjustmentRepository,
         ILogger<UnmatchListService> logger)
     {
         _cpInventoryRepository = cpInventoryRepository;
         _salesVoucherRepository = salesVoucherRepository;
         _purchaseVoucherRepository = purchaseVoucherRepository;
+        _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
         _logger = logger;
     }
 
@@ -110,9 +113,9 @@ public class UnmatchListService : IUnmatchListService
         var purchaseUnmatches = await CheckPurchaseUnmatchAsync(dataSetId, jobDate);
         unmatchItems.AddRange(purchaseUnmatches);
 
-        // 在庫調整のアンマッチチェック（実装が必要な場合）
-        // var adjustmentUnmatches = await CheckInventoryAdjustmentUnmatchAsync(dataSetId, jobDate);
-        // unmatchItems.AddRange(adjustmentUnmatches);
+        // 在庫調整のアンマッチチェック
+        var adjustmentUnmatches = await CheckInventoryAdjustmentUnmatchAsync(dataSetId, jobDate);
+        unmatchItems.AddRange(adjustmentUnmatches);
 
         // ソート：商品分類1、商品コード、荷印コード、荷印名、等級コード、階級コード
         return unmatchItems
@@ -246,5 +249,84 @@ public class UnmatchListService : IUnmatchListService
         // 階級名を取得するロジック（階級マスタから取得する必要があります）
         // 現時点ではコードをそのまま返す
         return classCode;
+    }
+
+    private async Task<IEnumerable<UnmatchItem>> CheckInventoryAdjustmentUnmatchAsync(string dataSetId, DateTime jobDate)
+    {
+        var unmatchItems = new List<UnmatchItem>();
+
+        // 在庫調整伝票取得
+        var adjustments = await _inventoryAdjustmentRepository.GetByJobDateAsync(jobDate);
+        var adjustmentList = adjustments
+            .Where(a => a.VoucherType == "71" || a.VoucherType == "72")  // 在庫調整伝票
+            .Where(a => a.DetailType == "1")                             // 明細種
+            .Where(a => a.Quantity > 0)                                  // 数量 > 0
+            .Where(a => a.CategoryCode.HasValue)                         // 区分コードあり
+            .Where(a => a.CategoryCode.Value != 2 && a.CategoryCode.Value != 5)  // 区分2,5（経費、加工）は除外
+            .ToList();
+
+        foreach (var adjustment in adjustmentList)
+        {
+            var inventoryKey = new InventoryKey
+            {
+                ProductCode = adjustment.ProductCode,
+                GradeCode = adjustment.GradeCode,
+                ClassCode = adjustment.ClassCode,
+                ShippingMarkCode = adjustment.ShippingMarkCode,
+                ShippingMarkName = adjustment.ShippingMarkName
+            };
+
+            // CP在庫マスタから該当データを取得
+            var cpInventory = await _cpInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
+
+            if (cpInventory == null)
+            {
+                // 該当無エラー
+                var unmatchItem = UnmatchItem.FromInventoryAdjustment(
+                    adjustment.VoucherType,
+                    adjustment.CategoryCode.Value,
+                    adjustment.CustomerCode ?? string.Empty,
+                    adjustment.CustomerName ?? string.Empty,
+                    inventoryKey,
+                    adjustment.Quantity,
+                    adjustment.UnitPrice,
+                    adjustment.Amount,
+                    adjustment.VoucherNumber,
+                    "該当無",
+                    productCategory1: GetProductCategory1FromAdjustment(adjustment)
+                );
+                unmatchItems.Add(unmatchItem);
+            }
+            else if (cpInventory.DailyStock == 0)
+            {
+                // 在庫0エラー
+                var unmatchItem = UnmatchItem.FromInventoryAdjustment(
+                    adjustment.VoucherType,
+                    adjustment.CategoryCode.Value,
+                    adjustment.CustomerCode ?? string.Empty,
+                    adjustment.CustomerName ?? string.Empty,
+                    inventoryKey,
+                    adjustment.Quantity,
+                    adjustment.UnitPrice,
+                    adjustment.Amount,
+                    adjustment.VoucherNumber,
+                    "在庫0",
+                    cpInventory.ProductName,
+                    GetGradeName(cpInventory.Key.GradeCode),
+                    GetClassName(cpInventory.Key.ClassCode),
+                    cpInventory.GetAdjustedProductCategory1()
+                );
+                unmatchItems.Add(unmatchItem);
+            }
+        }
+
+        return unmatchItems;
+    }
+
+    private string GetProductCategory1FromAdjustment(InventoryAdjustment adjustment)
+    {
+        // 商品分類1を取得するロジック（商品マスタから取得する必要があります）
+        // 現時点では空文字を返す
+        return string.Empty;
     }
 }

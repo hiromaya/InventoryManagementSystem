@@ -18,23 +18,20 @@ public class UnmatchItem
     // ソート用（商品分類1、商品コード、荷印コード、荷印名、等級コード、階級コード）
     public string ProductCategory1 { get; set; } = string.Empty;
     
+    // 区分コード（在庫調整用）
+    public int? CategoryCode { get; set; }
+    
     public static UnmatchItem FromSalesVoucher(SalesVoucher sales, string alertType, 
         string productName = "", string gradeName = "", string className = "", 
         string productCategory1 = "")
     {
-        var category = sales.TransactionType switch
-        {
-            "掛売上" => "掛売上",
-            "現金売上" => "現金売上",
-            "掛売上返品" => "掛売上",
-            _ => "売上"
-        };
+        var category = GetTransactionTypeName(sales.VoucherType);
         
         return new UnmatchItem
         {
             Category = category,
-            CustomerCode = sales.CustomerCode,
-            CustomerName = sales.CustomerName,
+            CustomerCode = sales.CustomerCode ?? string.Empty,
+            CustomerName = sales.CustomerName ?? string.Empty,
             Key = new InventoryKey
             {
                 ProductCode = sales.ProductCode,
@@ -59,19 +56,13 @@ public class UnmatchItem
         string productName = "", string gradeName = "", string className = "", 
         string productCategory1 = "")
     {
-        var category = purchase.TransactionType switch
-        {
-            "掛買" => "掛仕入",
-            "現金買" => "現金仕入",
-            "掛買返品" => "掛仕入",
-            _ => "仕入"
-        };
+        var category = GetTransactionTypeName(purchase.VoucherType);
         
         return new UnmatchItem
         {
             Category = category,
-            CustomerCode = purchase.SupplierCode,
-            CustomerName = purchase.SupplierName,
+            CustomerCode = purchase.SupplierCode ?? string.Empty,
+            CustomerName = purchase.SupplierName ?? string.Empty,
             Key = new InventoryKey
             {
                 ProductCode = purchase.ProductCode,
@@ -90,5 +81,66 @@ public class UnmatchItem
             AlertType = alertType,
             ProductCategory1 = productCategory1
         };
+    }
+    
+    /// <summary>
+    /// 在庫調整（受注伝票）からUnmatchItemを作成
+    /// </summary>
+    public static UnmatchItem FromInventoryAdjustment(string voucherType, int categoryCode,
+        string customerCode, string customerName, InventoryKey inventoryKey,
+        decimal quantity, decimal unitPrice, decimal amount, string voucherNumber,
+        string alertType, string productName = "", string gradeName = "", 
+        string className = "", string productCategory1 = "")
+    {
+        var category = GetTransactionTypeName(voucherType, categoryCode);
+        
+        return new UnmatchItem
+        {
+            Category = category,
+            CustomerCode = customerCode,
+            CustomerName = customerName,
+            Key = inventoryKey,
+            ProductName = productName,
+            GradeName = gradeName,
+            ClassName = className,
+            Quantity = quantity,
+            UnitPrice = unitPrice,
+            Amount = amount,
+            VoucherNumber = voucherNumber,
+            AlertType = alertType,
+            ProductCategory1 = productCategory1,
+            CategoryCode = categoryCode
+        };
+    }
+    
+    /// <summary>
+    /// 伝票種別と区分コードから取引種別名を取得
+    /// </summary>
+    public static string GetTransactionTypeName(string slipType, int? categoryCode = null)
+    {
+        // 売上伝票
+        if (slipType == "51") return "掛売上";
+        if (slipType == "52") return "現金売上";
+        
+        // 仕入伝票  
+        if (slipType == "11") return "掛仕入";
+        if (slipType == "12") return "現金仕入";
+        
+        // 在庫調整（受注伝票）
+        if (slipType == "71" || slipType == "72")
+        {
+            return categoryCode switch
+            {
+                1 => "在庫調整",  // ロス
+                2 => "加工費",    // 経費（将来用）
+                3 => "在庫調整",  // 腐り（将来用）
+                4 => "振替",      // 振替
+                5 => "加工費",    // 加工（将来用）
+                6 => "在庫調整",  // 調整
+                _ => "在庫調整"
+            };
+        }
+        
+        return "";
     }
 }
