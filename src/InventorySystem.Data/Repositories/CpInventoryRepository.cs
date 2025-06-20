@@ -197,11 +197,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 DailySalesAmount = ISNULL(sales.SalesAmount, 0),
                 UpdatedDate = GETDATE()
             FROM CpInventoryMaster cp
-            INNER JOIN (
+            LEFT JOIN (
                 SELECT 
                     ProductCode, GradeCode, ClassCode, ShippingMarkCode,
-                    SUM(CASE WHEN Quantity < 0 THEN ABS(Quantity) ELSE 0 END) as SalesQuantity,
-                    SUM(CASE WHEN Quantity < 0 AND VoucherType IN ('51', '52') THEN ABS(Amount) ELSE 0 END) as SalesAmount
+                    SUM(ABS(Quantity)) as SalesQuantity,
+                    SUM(ABS(Amount)) as SalesAmount
                 FROM SalesVouchers 
                 WHERE JobDate = @JobDate 
                     AND VoucherType IN ('51', '52')
@@ -228,14 +228,14 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 DailyPurchaseAmount = ISNULL(purchase.PurchaseAmount, 0),
                 UpdatedDate = GETDATE()
             FROM CpInventoryMaster cp
-            INNER JOIN (
+            LEFT JOIN (
                 SELECT 
                     ProductCode, GradeCode, ClassCode, ShippingMarkCode,
-                    SUM(CASE WHEN Quantity > 0 THEN Quantity ELSE 0 END) as PurchaseQuantity,
-                    SUM(CASE WHEN Quantity > 0 AND VoucherType IN ('11', '12') THEN Amount ELSE 0 END) as PurchaseAmount
+                    SUM(Quantity) as PurchaseQuantity,
+                    SUM(Amount) as PurchaseAmount
                 FROM PurchaseVouchers 
                 WHERE JobDate = @JobDate 
-                    AND VoucherType IN ('11', '12')
+                    AND VoucherType IN ('61', '62')
                     AND DetailType IN ('1', '2')
                     AND Quantity <> 0
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode
@@ -259,10 +259,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 DailyInventoryAdjustmentAmount = ISNULL(adj.AdjustmentAmount, 0),
                 UpdatedDate = GETDATE()
             FROM CpInventoryMaster cp
-            INNER JOIN (
+            LEFT JOIN (
                 SELECT 
                     ProductCode, GradeCode, ClassCode, ShippingMarkCode,
-                    SUM(CASE WHEN Quantity > 0 THEN Quantity ELSE 0 END) as AdjustmentQuantity,
+                    SUM(Quantity) as AdjustmentQuantity,
                     SUM(Amount) as AdjustmentAmount
                 FROM InventoryAdjustments 
                 WHERE JobDate = @JobDate 

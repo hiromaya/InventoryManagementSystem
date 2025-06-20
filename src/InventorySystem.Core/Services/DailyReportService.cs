@@ -136,21 +136,62 @@ public class DailyReportService : IDailyReportService
         var cpInventories = await _cpInventoryRepository.GetAllAsync(dataSetId);
         _logger.LogInformation("CP在庫Mデータ取得完了 - 件数: {Count}", cpInventories.Count());
         
+        // デバッグ: CP在庫データのサンプルを表示
+        var cpSample = cpInventories.Take(5);
+        foreach (var cp in cpSample)
+        {
+            _logger.LogInformation("CP在庫サンプル: 商品={ProductCode}, 売上数量={SalesQty}, 売上金額={SalesAmt}, 仕入数量={PurchaseQty}, 仕入金額={PurchaseAmt}",
+                cp.Key.ProductCode, cp.DailySalesQuantity, cp.DailySalesAmount, cp.DailyPurchaseQuantity, cp.DailyPurchaseAmount);
+        }
+        
+        // 統計情報を追加
+        var salesCount = cpInventories.Count(cp => cp.DailySalesAmount != 0);
+        var purchaseCount = cpInventories.Count(cp => cp.DailyPurchaseAmount != 0);
+        var adjustmentCount = cpInventories.Count(cp => cp.DailyInventoryAdjustmentAmount != 0);
+        _logger.LogInformation("統計: 売上データあり={SalesCount}件, 仕入データあり={PurchaseCount}件, 調整データあり={AdjustmentCount}件",
+            salesCount, purchaseCount, adjustmentCount);
+        
         // データがある在庫のみを対象とする（売上・仕入・調整のいずれかがある）
+        _logger.LogInformation("フィルタリング条件: 売上数量!=0 OR 売上金額!=0 OR 仕入数量!=0 OR 仕入金額!=0 OR 調整数量!=0 OR 調整金額!=0");
+        
         var activeInventories = cpInventories.Where(cp => 
-            cp.DailySalesQuantity != 0 || cp.DailySalesAmount != 0 ||
-            cp.DailyPurchaseQuantity != 0 || cp.DailyPurchaseAmount != 0 ||
-            cp.DailyInventoryAdjustmentQuantity != 0 || cp.DailyInventoryAdjustmentAmount != 0
-        ).ToList();
+        {
+            bool hasData = cp.DailySalesQuantity != 0 || cp.DailySalesAmount != 0 ||
+                          cp.DailyPurchaseQuantity != 0 || cp.DailyPurchaseAmount != 0 ||
+                          cp.DailyInventoryAdjustmentQuantity != 0 || cp.DailyInventoryAdjustmentAmount != 0;
+            
+            if (!hasData && cpInventories.ToList().IndexOf(cp) < 3) // 最初の3件のみログ出力
+            {
+                _logger.LogInformation("除外されたデータ: 商品={ProductCode}, 売上数量={SalesQty}, 売上金額={SalesAmt}",
+                    cp.Key.ProductCode, cp.DailySalesQuantity, cp.DailySalesAmount);
+            }
+            
+            return hasData;
+        }).ToList();
         
         _logger.LogInformation("有効な在庫データ件数: {Count}", activeInventories.Count);
         
         // デバッグ: 売上データがある最初の数件をログ出力
-        var salesDataSample = activeInventories.Where(cp => cp.DailySalesAmount > 0).Take(3);
+        var salesDataSample = activeInventories.Where(cp => cp.DailySalesAmount > 0).Take(5);
+        _logger.LogInformation("有効な在庫データ中の売上データ件数: {Count}", salesDataSample.Count());
         foreach (var sample in salesDataSample)
         {
             _logger.LogInformation("売上データサンプル: 商品コード={ProductCode}, 売上金額={SalesAmount}, 売上数量={SalesQuantity}",
                 sample.Key.ProductCode, sample.DailySalesAmount, sample.DailySalesQuantity);
+        }
+        
+        // もし有効なデータが0件の場合、全データからサンプルを表示
+        if (activeInventories.Count == 0)
+        {
+            _logger.LogWarning("有効なデータが0件です。全CP在庫データからサンプルを表示します。");
+            var allSample = cpInventories.Take(10);
+            foreach (var sample in allSample)
+            {
+                _logger.LogWarning("全データサンプル: 商品={ProductCode}, 売上数量={SalesQty}, 売上金額={SalesAmt}, 仕入数量={PurchaseQty}, 仕入金額={PurchaseAmt}, 調整数量={AdjQty}, 調整金額={AdjAmt}",
+                    sample.Key.ProductCode, sample.DailySalesQuantity, sample.DailySalesAmount, 
+                    sample.DailyPurchaseQuantity, sample.DailyPurchaseAmount,
+                    sample.DailyInventoryAdjustmentQuantity, sample.DailyInventoryAdjustmentAmount);
+            }
         }
 
         var groupedData = activeInventories
