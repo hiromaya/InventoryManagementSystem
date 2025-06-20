@@ -11,15 +11,17 @@ public interface IDailyReportService
     /// 商品日報データを取得
     /// </summary>
     /// <param name="reportDate">レポート日付</param>
+    /// <param name="dataSetId">データセットID</param>
     /// <returns>商品日報データリスト</returns>
-    Task<List<DailyReportItem>> GetDailyReportDataAsync(DateTime reportDate);
+    Task<List<DailyReportItem>> GetDailyReportDataAsync(DateTime reportDate, string dataSetId);
     
     /// <summary>
     /// 商品日報処理を実行（CP在庫Mの作成・集計含む）
     /// </summary>
     /// <param name="reportDate">レポート日付</param>
+    /// <param name="existingDataSetId">既存のデータセットID（指定されない場合は新規作成）</param>
     /// <returns>処理結果</returns>
-    Task<DailyReportResult> ProcessDailyReportAsync(DateTime reportDate);
+    Task<DailyReportResult> ProcessDailyReportAsync(DateTime reportDate, string? existingDataSetId = null);
 }
 
 /// <summary>

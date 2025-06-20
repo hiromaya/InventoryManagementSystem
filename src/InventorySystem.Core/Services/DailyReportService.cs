@@ -30,42 +30,56 @@ public class DailyReportService : IDailyReportService
         _logger = logger;
     }
 
-    public async Task<DailyReportResult> ProcessDailyReportAsync(DateTime reportDate)
+    public async Task<DailyReportResult> ProcessDailyReportAsync(DateTime reportDate, string? existingDataSetId = null)
     {
         var stopwatch = Stopwatch.StartNew();
-        var dataSetId = Guid.NewGuid().ToString();
+        var dataSetId = existingDataSetId ?? Guid.NewGuid().ToString();
+        var isNewDataSet = existingDataSetId == null;
         
         try
         {
             _logger.LogInformation("商品日報処理開始 - レポート日付: {ReportDate}, データセットID: {DataSetId}", 
                 reportDate, dataSetId);
 
-            // 1. CP在庫M作成
-            _logger.LogInformation("CP在庫マスタ作成開始");
-            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, reportDate);
-            _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
+            if (isNewDataSet)
+            {
+                // 1. CP在庫M作成
+                _logger.LogInformation("CP在庫マスタ作成開始");
+                var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, reportDate);
+                _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
 
-            // 2. 当日エリアクリア
-            _logger.LogInformation("当日エリアクリア開始");
-            await _cpInventoryRepository.ClearDailyAreaAsync(dataSetId);
-            _logger.LogInformation("当日エリアクリア完了");
+                // 2. 当日エリアクリア
+                _logger.LogInformation("当日エリアクリア開始");
+                await _cpInventoryRepository.ClearDailyAreaAsync(dataSetId);
+                _logger.LogInformation("当日エリアクリア完了");
 
-            // 3. 当日データ集計
-            _logger.LogInformation("当日データ集計開始");
-            await _cpInventoryRepository.AggregateSalesDataAsync(dataSetId, reportDate);
-            await _cpInventoryRepository.AggregatePurchaseDataAsync(dataSetId, reportDate);
-            await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, reportDate);
-            _logger.LogInformation("当日データ集計完了");
+                // 3. 当日データ集計
+                _logger.LogInformation("当日データ集計開始");
+                var salesResult = await _cpInventoryRepository.AggregateSalesDataAsync(dataSetId, reportDate);
+                _logger.LogInformation("売上データ集計完了 - 更新件数: {Count}", salesResult);
+                
+                var purchaseResult = await _cpInventoryRepository.AggregatePurchaseDataAsync(dataSetId, reportDate);
+                _logger.LogInformation("仕入データ集計完了 - 更新件数: {Count}", purchaseResult);
+                
+                var adjustmentResult = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, reportDate);
+                _logger.LogInformation("在庫調整データ集計完了 - 更新件数: {Count}", adjustmentResult);
+                
+                _logger.LogInformation("当日データ集計完了");
 
-            // 4. 当日在庫計算
-            _logger.LogInformation("当日在庫計算開始");
-            await _cpInventoryRepository.CalculateDailyStockAsync(dataSetId);
-            await _cpInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
-            _logger.LogInformation("当日在庫計算完了");
+                // 4. 当日在庫計算
+                _logger.LogInformation("当日在庫計算開始");
+                await _cpInventoryRepository.CalculateDailyStockAsync(dataSetId);
+                await _cpInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
+                _logger.LogInformation("当日在庫計算完了");
+            }
+            else
+            {
+                _logger.LogInformation("既存のデータセットを使用: {DataSetId}", dataSetId);
+            }
 
             // 5. 商品日報データ生成
             _logger.LogInformation("商品日報データ生成開始");
-            var reportItems = await GetDailyReportDataAsync(reportDate);
+            var reportItems = await GetDailyReportDataAsync(reportDate, dataSetId);
             _logger.LogInformation("商品日報データ生成完了 - データ件数: {Count}", reportItems.Count);
 
             // 6. 集計データ作成
@@ -92,7 +106,10 @@ public class DailyReportService : IDailyReportService
             
             try
             {
-                await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+                if (isNewDataSet)
+                {
+                    await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+                }
             }
             catch (Exception cleanupEx)
             {
@@ -109,22 +126,38 @@ public class DailyReportService : IDailyReportService
         }
     }
 
-    public async Task<List<DailyReportItem>> GetDailyReportDataAsync(DateTime reportDate)
+    public async Task<List<DailyReportItem>> GetDailyReportDataAsync(DateTime reportDate, string dataSetId)
     {
-        _logger.LogInformation("商品日報データ取得開始 - レポート日付: {ReportDate}", reportDate);
+        _logger.LogInformation("商品日報データ取得開始 - レポート日付: {ReportDate}, データセットID: {DataSetId}", reportDate, dataSetId);
 
         var reportItems = new List<DailyReportItem>();
-
-        // 一時的なデータセットIDを生成（実際の実装では、ProcessDailyReportAsyncで生成されたIDを使用）
-        var tempDataSetId = Guid.NewGuid().ToString();
         
-        // 仮実装：CP在庫Mから商品ごとに集計してDailyReportItemを作成
-        // 実際の実装では、CP在庫Mテーブルからデータを取得して変換する
-        var cpInventories = await _cpInventoryRepository.GetAllAsync(tempDataSetId);
+        // CP在庫Mから商品ごとに集計してDailyReportItemを作成
+        var cpInventories = await _cpInventoryRepository.GetAllAsync(dataSetId);
+        _logger.LogInformation("CP在庫Mデータ取得完了 - 件数: {Count}", cpInventories.Count());
+        
+        // データがある在庫のみを対象とする（売上・仕入・調整のいずれかがある）
+        var activeInventories = cpInventories.Where(cp => 
+            cp.DailySalesQuantity != 0 || cp.DailySalesAmount != 0 ||
+            cp.DailyPurchaseQuantity != 0 || cp.DailyPurchaseAmount != 0 ||
+            cp.DailyInventoryAdjustmentQuantity != 0 || cp.DailyInventoryAdjustmentAmount != 0
+        ).ToList();
+        
+        _logger.LogInformation("有効な在庫データ件数: {Count}", activeInventories.Count);
+        
+        // デバッグ: 売上データがある最初の数件をログ出力
+        var salesDataSample = activeInventories.Where(cp => cp.DailySalesAmount > 0).Take(3);
+        foreach (var sample in salesDataSample)
+        {
+            _logger.LogInformation("売上データサンプル: 商品コード={ProductCode}, 売上金額={SalesAmount}, 売上数量={SalesQuantity}",
+                sample.Key.ProductCode, sample.DailySalesAmount, sample.DailySalesQuantity);
+        }
 
-        var groupedData = cpInventories
+        var groupedData = activeInventories
             .GroupBy(cp => new { cp.Key.ProductCode, cp.ProductCategory1 })
             .ToList();
+            
+        _logger.LogInformation("グループ化後のデータ件数: {Count}", groupedData.Count);
 
         foreach (var group in groupedData)
         {
@@ -136,7 +169,7 @@ public class DailyReportService : IDailyReportService
 
                 // 日計項目（集計）
                 DailySalesQuantity = group.Sum(cp => cp.DailySalesQuantity),
-                DailySalesAmount = group.Sum(cp => cp.DailySalesAmount + cp.DailySalesReturnAmount),
+                DailySalesAmount = group.Sum(cp => cp.DailySalesAmount),
                 DailyPurchaseDiscount = group.Sum(cp => cp.DailyDiscountAmount),
                 DailyInventoryAdjustment = group.Sum(cp => cp.DailyInventoryAdjustmentAmount),
                 DailyProcessingCost = group.Sum(cp => cp.DailyProcessingAmount),
@@ -156,11 +189,11 @@ public class DailyReportService : IDailyReportService
             // 月計データを仮設定
             item.SetTemporaryMonthlyData();
 
-            // オール0明細は除外
-            if (!item.IsAllZero())
-            {
-                reportItems.Add(item);
-            }
+            // データがある場合は追加（すでにフィルタリング済み）
+            reportItems.Add(item);
+            
+            _logger.LogDebug("商品データ追加: {ProductCode} - 売上: {SalesAmount}円", 
+                item.ProductCode, item.DailySalesAmount);
         }
 
         // ソート：商品分類1 → 商品コード

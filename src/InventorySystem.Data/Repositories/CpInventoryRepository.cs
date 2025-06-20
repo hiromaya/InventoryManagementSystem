@@ -199,20 +199,19 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             INNER JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode,
                     SUM(CASE WHEN Quantity < 0 THEN ABS(Quantity) ELSE 0 END) as SalesQuantity,
                     SUM(CASE WHEN Quantity < 0 AND VoucherType IN ('51', '52') THEN ABS(Amount) ELSE 0 END) as SalesAmount
-                FROM SalesVoucher 
+                FROM SalesVouchers 
                 WHERE JobDate = @JobDate 
                     AND VoucherType IN ('51', '52')
                     AND DetailType IN ('1', '2')
                     AND Quantity <> 0
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode
             ) sales ON cp.ProductCode = sales.ProductCode 
                 AND cp.GradeCode = sales.GradeCode 
                 AND cp.ClassCode = sales.ClassCode 
-                AND cp.ShippingMarkCode = sales.ShippingMarkCode 
-                AND cp.ShippingMarkName = sales.ShippingMarkName
+                AND cp.ShippingMarkCode = sales.ShippingMarkCode
             WHERE cp.DataSetId = @DataSetId
             """;
 
@@ -231,20 +230,19 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             INNER JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode,
                     SUM(CASE WHEN Quantity > 0 THEN Quantity ELSE 0 END) as PurchaseQuantity,
                     SUM(CASE WHEN Quantity > 0 AND VoucherType IN ('11', '12') THEN Amount ELSE 0 END) as PurchaseAmount
-                FROM PurchaseVoucher 
+                FROM PurchaseVouchers 
                 WHERE JobDate = @JobDate 
                     AND VoucherType IN ('11', '12')
                     AND DetailType IN ('1', '2')
                     AND Quantity <> 0
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode
             ) purchase ON cp.ProductCode = purchase.ProductCode 
                 AND cp.GradeCode = purchase.GradeCode 
                 AND cp.ClassCode = purchase.ClassCode 
-                AND cp.ShippingMarkCode = purchase.ShippingMarkCode 
-                AND cp.ShippingMarkName = purchase.ShippingMarkName
+                AND cp.ShippingMarkCode = purchase.ShippingMarkCode
             WHERE cp.DataSetId = @DataSetId
             """;
 
@@ -263,20 +261,19 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             INNER JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode,
                     SUM(CASE WHEN Quantity > 0 THEN Quantity ELSE 0 END) as AdjustmentQuantity,
                     SUM(Amount) as AdjustmentAmount
-                FROM InventoryAdjustment 
+                FROM InventoryAdjustments 
                 WHERE JobDate = @JobDate 
                     AND VoucherType IN ('71', '72')
                     AND DetailType IN ('1', '3', '4')
                     AND Quantity <> 0
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode
             ) adj ON cp.ProductCode = adj.ProductCode 
                 AND cp.GradeCode = adj.GradeCode 
                 AND cp.ClassCode = adj.ClassCode 
-                AND cp.ShippingMarkCode = adj.ShippingMarkCode 
-                AND cp.ShippingMarkName = adj.ShippingMarkName
+                AND cp.ShippingMarkCode = adj.ShippingMarkCode
             WHERE cp.DataSetId = @DataSetId
             """;
 

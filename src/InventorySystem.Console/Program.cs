@@ -67,7 +67,7 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  dotnet run test-connection                   - データベース接続テスト");
     Console.WriteLine("  dotnet run test-pdf                          - PDF生成テスト（DB不要）");
     Console.WriteLine("  dotnet run unmatch-list [YYYY-MM-DD]         - アンマッチリスト処理を実行");
-    Console.WriteLine("  dotnet run daily-report [YYYY-MM-DD]         - 商品日報を生成");
+    Console.WriteLine("  dotnet run daily-report [YYYY-MM-DD] [--dataset-id ID] - 商品日報を生成");
     Console.WriteLine("  dotnet run inventory-list [YYYY-MM-DD]       - 在庫表を生成");
     Console.WriteLine("  dotnet run import-sales <file> [YYYY-MM-DD]  - 売上伝票CSVを取込");
     Console.WriteLine("  dotnet run import-purchase <file> [YYYY-MM-DD] - 仕入伝票CSVを取込");
@@ -424,14 +424,30 @@ static async Task ExecuteDailyReportAsync(IServiceProvider services, string[] ar
         logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
     }
     
+    // --dataset-id オプションをチェック
+    string? existingDataSetId = null;
+    for (int i = 3; i < args.Length - 1; i++)
+    {
+        if (args[i] == "--dataset-id" && i + 1 < args.Length)
+        {
+            existingDataSetId = args[i + 1];
+            logger.LogInformation("既存のデータセットIDを使用: {DataSetId}", existingDataSetId);
+            break;
+        }
+    }
+    
     var stopwatch = Stopwatch.StartNew();
     
     Console.WriteLine("=== 商品日報処理開始 ===");
     Console.WriteLine($"レポート日付: {jobDate:yyyy-MM-dd}");
+    if (existingDataSetId != null)
+    {
+        Console.WriteLine($"既存データセットID: {existingDataSetId}");
+    }
     Console.WriteLine();
     
     // 商品日報処理実行
-    var result = await dailyReportService.ProcessDailyReportAsync(jobDate);
+    var result = await dailyReportService.ProcessDailyReportAsync(jobDate, existingDataSetId);
     
     stopwatch.Stop();
     
