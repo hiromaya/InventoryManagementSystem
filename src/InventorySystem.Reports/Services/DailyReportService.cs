@@ -168,15 +168,10 @@ public class DailyReportPdfService
                     columns.ConstantColumn(18, Unit.Millimetre);   // 月２粗利率
                 });
 
-                // ヘッダー（枠線なし）
+                // シンプルなヘッダー（枠線なし、ColumnSpanなし）
                 table.Header(header =>
                 {
-                    // 第1行：セクションタイトル
-                    header.Cell().ColumnSpan(2).Padding(1).AlignCenter().Text("日　　　　　　計").FontSize(9).Bold();
-                    header.Cell().ColumnSpan(11).Padding(1).AlignCenter().Text("").FontSize(9);
-                    header.Cell().ColumnSpan(5).Padding(1).AlignCenter().Text("月　　　　計").FontSize(9).Bold();
-                    
-                    // 第2行：項目名
+                    // 項目名のみ（日計・月計の区別はコメントで示す）
                     header.Cell().Padding(1).AlignCenter().Text("商品ｺｰﾄﾞ").FontSize(9).Bold();
                     header.Cell().Padding(1).AlignCenter().Text("商　品　名").FontSize(9).Bold();
                     header.Cell().Padding(1).AlignCenter().Text("売上数量").FontSize(9).Bold();
@@ -190,7 +185,7 @@ public class DailyReportPdfService
                     header.Cell().Padding(1).AlignCenter().Text("１粗利率").FontSize(9).Bold();
                     header.Cell().Padding(1).AlignCenter().Text("２粗利益").FontSize(9).Bold();
                     header.Cell().Padding(1).AlignCenter().Text("２粗利率").FontSize(9).Bold();
-                    
+                    // 月計項目
                     header.Cell().Padding(1).AlignCenter().Text("月売上金額").FontSize(9).Bold();
                     header.Cell().Padding(1).AlignCenter().Text("月１粗利益").FontSize(9).Bold();
                     header.Cell().Padding(1).AlignCenter().Text("月１粗利率").FontSize(9).Bold();
