@@ -7,8 +7,17 @@ using InventorySystem.Core.Services;
 using InventorySystem.Data.Repositories;
 using InventorySystem.Reports.Services;
 using InventorySystem.Import.Services;
+using InventorySystem.Reports.Tests;
+using InventorySystem.Reports.FastReport.Services;
 using System.Diagnostics;
 using QuestPDF.Infrastructure;
+
+// FastReportテストコマンド
+if (args.Length > 0 && args[0] == "test-fastreport")
+{
+    RunFastReportTest();
+    return 0;
+}
 
 // QuestPDF ライセンス設定（Community License）
 QuestPDF.Settings.License = LicenseType.Community;
@@ -70,6 +79,7 @@ if (commandArgs.Length < 2)
     Console.WriteLine("使用方法:");
     Console.WriteLine("  dotnet run test-connection                   - データベース接続テスト");
     Console.WriteLine("  dotnet run test-pdf                          - PDF生成テスト（DB不要）");
+    Console.WriteLine("  dotnet run test-fastreport                   - FastReportテスト（DB不要）");
     Console.WriteLine("  dotnet run unmatch-list [YYYY-MM-DD]         - アンマッチリスト処理を実行");
     Console.WriteLine("  dotnet run daily-report [YYYY-MM-DD] [--dataset-id ID] - 商品日報を生成");
     Console.WriteLine("  dotnet run inventory-list [YYYY-MM-DD]       - 在庫表を生成");
@@ -655,7 +665,7 @@ static async Task TestDatabaseConnectionAsync(IServiceProvider services)
         foreach (var table in tables)
         {
             command.CommandText = $"SELECT CASE WHEN EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[{table}]') AND type in (N'U')) THEN 1 ELSE 0 END";
-            var exists = (int)await command.ExecuteScalarAsync() == 1;
+            var exists = (int)(await command.ExecuteScalarAsync() ?? 0) == 1;
             Console.WriteLine($"{table}: {(exists ? "✅ 存在" : "❌ 未作成")}");
         }
         
@@ -676,4 +686,62 @@ static async Task TestDatabaseConnectionAsync(IServiceProvider services)
         
         logger.LogError(ex, "データベース接続テストでエラーが発生しました");
     }
+}
+
+// FastReportテスト実行メソッド
+static void RunFastReportTest()
+{
+    Console.WriteLine("=== FastReport.NET Trial テスト開始 ===");
+    Console.WriteLine($"実行時刻: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+    
+    try
+    {
+        // 基本的なレポートテスト
+        Console.WriteLine("\n1. 基本レポートテスト...");
+        FastReportTest.TestBasicReport();
+        Console.WriteLine("✓ 基本レポートテスト成功");
+        
+        // 最小限のレポートテスト
+        Console.WriteLine("\n2. 最小レポートテスト...");
+        TestMinimalReport();
+        Console.WriteLine("✓ 最小レポートテスト成功");
+        
+        Console.WriteLine("\n=== すべてのテストが完了しました ===");
+        Console.WriteLine("生成されたPDFファイルを確認してください。");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"\n✗ エラーが発生しました: {ex.Message}");
+        Console.WriteLine($"詳細: {ex.StackTrace}");
+    }
+}
+
+// 最小限のFastReportテスト
+static void TestMinimalReport()
+{
+    using var report = new FastReport.Report();
+    
+    // ページ追加
+    var page = new FastReport.ReportPage();
+    report.Pages.Add(page);
+    
+    // タイトルバンド
+    var title = new FastReport.ReportTitleBand { Height = 50 };
+    page.ReportTitle = title;
+    
+    // タイトルテキスト
+    var text = new FastReport.TextObject
+    {
+        Bounds = new System.Drawing.RectangleF(0, 0, 300, 30),
+        Text = "FastReport.NET 最小テスト",
+        Font = new System.Drawing.Font("MS Gothic", 14)
+    };
+    title.Objects.Add(text);
+    
+    // レポート生成
+    report.Prepare();
+    
+    // PDF出力
+    var pdf = new FastReport.Export.Pdf.PDFExport();
+    report.Export(pdf, "minimal_test.pdf");
 }
