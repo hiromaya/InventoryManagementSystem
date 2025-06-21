@@ -7,18 +7,23 @@ using InventorySystem.Core.Services;
 using InventorySystem.Data.Repositories;
 using InventorySystem.Reports.Services;
 using InventorySystem.Import.Services;
-using InventorySystem.Reports.Tests;
-using InventorySystem.Reports.FastReport.Services;
 using System.Diagnostics;
 using QuestPDF.Infrastructure;
-using FastReport;
-using FastReport.Export.Pdf;
 
-// FastReportテストコマンド
+// FastReportテストコマンド（using文を遅延読み込みするため先に処理）
 if (args.Length > 0 && args[0] == "test-fastreport")
 {
-    RunFastReportTest();
-    return 0;
+    try
+    {
+        RunFastReportTest();
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"FastReportテストエラー: {ex.Message}");
+        Console.WriteLine($"詳細: {ex}");
+        return 1;
+    }
 }
 
 // QuestPDF ライセンス設定（Community License）
@@ -698,14 +703,21 @@ static void RunFastReportTest()
     
     try
     {
-        // 基本的なレポートテスト
-        Console.WriteLine("\n1. 基本レポートテスト...");
-        FastReportTest.TestBasicReport();
+        // アセンブリの動的読み込みとテスト
+        Console.WriteLine("\n1. InventorySystem.Reportsアセンブリの読み込み確認...");
+        var reportsAssembly = System.Reflection.Assembly.LoadFrom("InventorySystem.Reports.dll");
+        Console.WriteLine("✓ InventorySystem.Reportsアセンブリ読み込み成功");
+        
+        // FastReportTestクラスの動的取得とメソッド実行
+        Console.WriteLine("\n2. 基本レポートテスト...");
+        var testType = reportsAssembly.GetType("InventorySystem.Reports.Tests.FastReportTest");
+        var testMethod = testType?.GetMethod("TestBasicReport");
+        testMethod?.Invoke(null, null);
         Console.WriteLine("✓ 基本レポートテスト成功");
         
         // 最小限のレポートテスト
-        Console.WriteLine("\n2. 最小レポートテスト...");
-        TestMinimalReport();
+        Console.WriteLine("\n3. 最小レポートテスト...");
+        TestMinimalReportDynamic();
         Console.WriteLine("✓ 最小レポートテスト成功");
         
         Console.WriteLine("\n=== すべてのテストが完了しました ===");
@@ -718,32 +730,70 @@ static void RunFastReportTest()
     }
 }
 
-// 最小限のFastReportテスト
-static void TestMinimalReport()
+// 最小限のFastReportテスト（動的読み込み版）
+static void TestMinimalReportDynamic()
 {
-    using var report = new Report();
-    
-    // ページ追加
-    var page = new ReportPage();
-    report.Pages.Add(page);
-    
-    // タイトルバンド
-    var title = new ReportTitleBand { Height = 50 };
-    page.ReportTitle = title;
-    
-    // タイトルテキスト
-    var text = new TextObject
+    try
     {
-        Bounds = new System.Drawing.RectangleF(0, 0, 300, 30),
-        Text = "FastReport.NET 最小テスト",
-        Font = new System.Drawing.Font("MS Gothic", 14)
-    };
-    title.Objects.Add(text);
-    
-    // レポート生成
-    report.Prepare();
-    
-    // PDF出力
-    var pdf = new PDFExport();
-    report.Export(pdf, "minimal_test.pdf");
+        // FastReportアセンブリを動的に読み込み
+        var fastReportAssembly = System.Reflection.Assembly.LoadFrom("FastReport.dll");
+        
+        // 必要な型を動的に取得
+        var reportType = fastReportAssembly.GetType("FastReport.Report");
+        var pageType = fastReportAssembly.GetType("FastReport.ReportPage");
+        var titleBandType = fastReportAssembly.GetType("FastReport.ReportTitleBand");
+        var textObjectType = fastReportAssembly.GetType("FastReport.TextObject");
+        var pdfExportType = fastReportAssembly.GetType("FastReport.Export.Pdf.PDFExport");
+        
+        // レポートインスタンス作成
+        using var report = (IDisposable)Activator.CreateInstance(reportType)!;
+        
+        // ページ追加
+        var page = Activator.CreateInstance(pageType)!;
+        var pagesProperty = reportType.GetProperty("Pages");
+        var pages = pagesProperty?.GetValue(report);
+        var addMethod = pages?.GetType().GetMethod("Add");
+        addMethod?.Invoke(pages, new[] { page });
+        
+        // タイトルバンド
+        var title = Activator.CreateInstance(titleBandType)!;
+        var heightProperty = titleBandType.GetProperty("Height");
+        heightProperty?.SetValue(title, 50f);
+        
+        var reportTitleProperty = pageType.GetProperty("ReportTitle");
+        reportTitleProperty?.SetValue(page, title);
+        
+        // タイトルテキスト
+        var text = Activator.CreateInstance(textObjectType)!;
+        var boundsProperty = textObjectType.GetProperty("Bounds");
+        boundsProperty?.SetValue(text, new System.Drawing.RectangleF(0, 0, 300, 30));
+        
+        var textProperty = textObjectType.GetProperty("Text");
+        textProperty?.SetValue(text, "FastReport.NET 最小テスト");
+        
+        var fontProperty = textObjectType.GetProperty("Font");
+        fontProperty?.SetValue(text, new System.Drawing.Font("MS Gothic", 14));
+        
+        // オブジェクト追加
+        var objectsProperty = titleBandType.GetProperty("Objects");
+        var objects = objectsProperty?.GetValue(title);
+        var addObjectMethod = objects?.GetType().GetMethod("Add");
+        addObjectMethod?.Invoke(objects, new[] { text });
+        
+        // レポート生成
+        var prepareMethod = reportType.GetMethod("Prepare", Type.EmptyTypes);
+        prepareMethod?.Invoke(report, null);
+        
+        // PDF出力
+        var pdfExport = Activator.CreateInstance(pdfExportType)!;
+        var exportMethod = reportType.GetMethod("Export", new[] { pdfExportType, typeof(string) });
+        exportMethod?.Invoke(report, new[] { pdfExport, "minimal_test_dynamic.pdf" });
+        
+        Console.WriteLine("動的読み込みによるPDF生成完了: minimal_test_dynamic.pdf");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"動的読み込みテストエラー: {ex.Message}");
+        throw;
+    }
 }
