@@ -5,17 +5,14 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <NoWarn>MSB3245</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- FastReport.NET Trial DLL参照 -->
     <Reference Include="FastReport">
       <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
-    <Reference Include="FastReport.Export.Pdf">
-      <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.Export.Pdf.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>

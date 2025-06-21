@@ -11,6 +11,8 @@ using InventorySystem.Reports.Tests;
 using InventorySystem.Reports.FastReport.Services;
 using System.Diagnostics;
 using QuestPDF.Infrastructure;
+using FastReport;
+using FastReport.Export.Pdf;
 
 // FastReportテストコマンド
 if (args.Length > 0 && args[0] == "test-fastreport")
@@ -719,18 +721,18 @@ static void RunFastReportTest()
 // 最小限のFastReportテスト
 static void TestMinimalReport()
 {
-    using var report = new FastReport.Report();
+    using var report = new Report();
     
     // ページ追加
-    var page = new FastReport.ReportPage();
+    var page = new ReportPage();
     report.Pages.Add(page);
     
     // タイトルバンド
-    var title = new FastReport.ReportTitleBand { Height = 50 };
+    var title = new ReportTitleBand { Height = 50 };
     page.ReportTitle = title;
     
     // タイトルテキスト
-    var text = new FastReport.TextObject
+    var text = new TextObject
     {
         Bounds = new System.Drawing.RectangleF(0, 0, 300, 30),
         Text = "FastReport.NET 最小テスト",
@@ -742,6 +744,6 @@ static void TestMinimalReport()
     report.Prepare();
     
     // PDF出力
-    var pdf = new FastReport.Export.Pdf.PDFExport();
+    var pdf = new PDFExport();
     report.Export(pdf, "minimal_test.pdf");
 }
