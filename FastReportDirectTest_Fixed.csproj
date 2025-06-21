@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <Reference Include="FastReport">
+      <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+    <PackageReference Include="System.Windows.Forms" Version="1.0.0" />
+  </ItemGroup>
+</Project>
