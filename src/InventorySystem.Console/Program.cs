@@ -6,6 +6,7 @@ using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Services;
 using InventorySystem.Data.Repositories;
 using InventorySystem.Import.Services;
+using InventorySystem.Reports.Services;
 using System.Diagnostics;
 using QuestPDF.Infrastructure;
 
@@ -703,9 +704,25 @@ static void RunFastReportTest()
     
     try
     {
+        // プラットフォーム確認
+        if (!OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("\n✓ Linux環境での実行を確認");
+            Console.WriteLine("FastReport.NET は Windows専用のため、実際のレポート生成はスキップされます。");
+            Console.WriteLine("Windows環境では以下のテストが実行されます：");
+            Console.WriteLine("  1. FastReportアセンブリの読み込み");
+            Console.WriteLine("  2. 基本レポートテスト（PDF生成）");
+            Console.WriteLine("  3. 最小レポートテスト（PDF生成）");
+            Console.WriteLine("\n=== クロスプラットフォームテスト完了 ===");
+            return;
+        }
+        
+        // Windows環境でのテスト実行
         // アセンブリの動的読み込みとテスト
         Console.WriteLine("\n1. InventorySystem.Reportsアセンブリの読み込み確認...");
-        var reportsAssembly = System.Reflection.Assembly.LoadFrom("InventorySystem.Reports.dll");
+        var currentDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".";
+        var reportsAssemblyPath = System.IO.Path.Combine(currentDir, "InventorySystem.Reports.dll");
+        var reportsAssembly = System.Reflection.Assembly.LoadFrom(reportsAssemblyPath);
         Console.WriteLine("✓ InventorySystem.Reportsアセンブリ読み込み成功");
         
         // FastReportTestクラスの動的取得とメソッド実行
@@ -736,7 +753,9 @@ static void TestMinimalReportDynamic()
     try
     {
         // FastReportアセンブリを動的に読み込み
-        var fastReportAssembly = System.Reflection.Assembly.LoadFrom("FastReport.dll");
+        var currentDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".";
+        var fastReportAssemblyPath = System.IO.Path.Combine(currentDir, "FastReport.dll");
+        var fastReportAssembly = System.Reflection.Assembly.LoadFrom(fastReportAssemblyPath);
         
         // 必要な型を動的に取得
         var reportType = fastReportAssembly.GetType("FastReport.Report");

@@ -1,4 +1,5 @@
 #pragma warning disable CA1416
+#if WINDOWS
 using System;
 using System.Data;
 using System.Drawing;
@@ -6,6 +7,11 @@ using FastReport;
 using FastReport.Export.Pdf;
 using FastReport.Format;
 using InventorySystem.Core.Entities;
+#else
+using System;
+using System.Data;
+using InventorySystem.Core.Entities;
+#endif
 
 namespace InventorySystem.Reports.FastReport.Services
 {
@@ -17,6 +23,7 @@ namespace InventorySystem.Reports.FastReport.Services
             DailyReportTotal total,
             DateTime reportDate)
         {
+#if WINDOWS
             using var report = new Report();
             
             // A3横設定
@@ -64,8 +71,12 @@ namespace InventorySystem.Reports.FastReport.Services
             report.Export(pdfExport, stream);
             
             return stream.ToArray();
+#else
+            throw new PlatformNotSupportedException("FastReport機能は Windows でのみ利用可能です");
+#endif
         }
         
+#if WINDOWS
         private void CreateReportTitle(ReportPage page, DateTime reportDate)
         {
             var titleBand = new ReportTitleBand
@@ -318,5 +329,6 @@ namespace InventorySystem.Reports.FastReport.Services
             };
             summaryBand.Objects.Add(totalSales);
         }
+#endif
     }
 }

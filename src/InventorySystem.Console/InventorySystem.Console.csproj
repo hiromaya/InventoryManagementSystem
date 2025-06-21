@@ -11,8 +11,12 @@
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!-- FastReport.NET Trial DLL参照 -->
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <DefineConstants>WINDOWS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <!-- FastReport.NET Trial DLL参照 (Windows のみ) -->
     <Reference Include="FastReport">
       <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.dll</HintPath>
       <Private>true</Private>

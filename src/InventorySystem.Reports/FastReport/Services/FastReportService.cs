@@ -1,3 +1,4 @@
+#if WINDOWS
 using System;
 using System.Data;
 using System.Drawing;
@@ -5,6 +6,11 @@ using System.IO;
 using FastReport;
 using FastReport.Export.Pdf;
 using Microsoft.Extensions.Logging;
+#else
+using System;
+using System.Data;
+using Microsoft.Extensions.Logging;
+#endif
 
 namespace InventorySystem.Reports.FastReport.Services
 {
@@ -19,6 +25,7 @@ namespace InventorySystem.Reports.FastReport.Services
         
         public byte[] GenerateReportFromTemplate(string templatePath, DataSet dataSet, Dictionary<string, object> parameters)
         {
+#if WINDOWS
             try
             {
                 using var report = new Report();
@@ -62,6 +69,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogError(ex, "レポート生成エラー");
                 throw;
             }
+#else
+            throw new PlatformNotSupportedException("FastReport機能は Windows でのみ利用可能です");
+#endif
         }
     }
 }

@@ -1,7 +1,9 @@
+#if WINDOWS
 using System;
 using System.Data;
 using FastReport;
 using FastReport.Export.Pdf;
+#endif
 
 namespace InventorySystem.Reports.Tests
 {
@@ -9,6 +11,7 @@ namespace InventorySystem.Reports.Tests
     {
         public static void TestBasicReport()
         {
+#if WINDOWS
             Console.WriteLine("FastReport.NET Trial 動作テスト");
             
             try
@@ -42,10 +45,14 @@ namespace InventorySystem.Reports.Tests
             {
                 Console.WriteLine($"エラー: {ex.Message}");
             }
+#else
+            Console.WriteLine("FastReport機能は Windows でのみ利用可能です");
+#endif
         }
         
         public static void TestMinimalReport()
         {
+#if WINDOWS
             try
             {
                 using var report = new Report();
@@ -80,6 +87,9 @@ namespace InventorySystem.Reports.Tests
             {
                 Console.WriteLine($"エラー: {ex.Message}");
             }
+#else
+            Console.WriteLine("FastReport機能は Windows でのみ利用可能です");
+#endif
         }
     }
 }
