@@ -5,7 +5,6 @@ using Microsoft.Extensions.Configuration;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Services;
 using InventorySystem.Data.Repositories;
-using InventorySystem.Reports.Services;
 using InventorySystem.Import.Services;
 using System.Diagnostics;
 using QuestPDF.Infrastructure;
@@ -65,16 +64,17 @@ builder.Services.AddScoped<PurchaseVoucherCsvRepository>(provider =>
 builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<IDailyReportService, DailyReportService>();
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
-builder.Services.AddScoped<UnmatchListReportService>();
-builder.Services.AddScoped<InventorySystem.Reports.Services.DailyReportPdfService>();
-builder.Services.AddScoped<InventoryListReportService>();
+// FastReportテスト時はReportsサービスをコメントアウト
+// builder.Services.AddScoped<UnmatchListReportService>();
+// builder.Services.AddScoped<InventorySystem.Reports.Services.DailyReportPdfService>();
+// builder.Services.AddScoped<InventoryListReportService>();
 builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
 builder.Services.AddScoped<InventoryAdjustmentImportService>();
 
-// FastReportサービスの登録
-builder.Services.AddScoped<InventorySystem.Reports.FastReport.Services.FastReportService>();
-builder.Services.AddScoped<InventorySystem.Reports.FastReport.Services.DailyReportFastReportService>();
+// FastReportサービスの登録（FastReportテスト時はコメントアウト）
+// builder.Services.AddScoped<InventorySystem.Reports.FastReport.Services.FastReportService>();
+// builder.Services.AddScoped<InventorySystem.Reports.FastReport.Services.DailyReportFastReportService>();
 
 var host = builder.Build();
 
@@ -744,6 +744,12 @@ static void TestMinimalReportDynamic()
         var titleBandType = fastReportAssembly.GetType("FastReport.ReportTitleBand");
         var textObjectType = fastReportAssembly.GetType("FastReport.TextObject");
         var pdfExportType = fastReportAssembly.GetType("FastReport.Export.Pdf.PDFExport");
+        
+        // Null チェック
+        if (reportType == null || pageType == null || titleBandType == null || textObjectType == null || pdfExportType == null)
+        {
+            throw new InvalidOperationException("FastReport の必要な型が見つかりません");
+        }
         
         // レポートインスタンス作成
         using var report = (IDisposable)Activator.CreateInstance(reportType)!;
