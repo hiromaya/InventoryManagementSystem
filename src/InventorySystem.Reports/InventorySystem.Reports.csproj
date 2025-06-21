@@ -1,20 +1,51 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="QuestPDF" Version="2024.12.5" />
+    <!-- FastReport.NET Trial DLL参照 -->
+    <Reference Include="FastReport">
+      <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="FastReport.Bars">
+      <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.Bars.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="FastReport.Editor">
+      <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.Editor.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="FastReport.DataVisualization">
+      <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.DataVisualization.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    
+    <!-- 通常のNuGetパッケージ（nuget.orgから） -->
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
     <PackageReference Include="Serilog" Version="4.1.0" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="QuestPDF" Version="2025.1.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../InventorySystem.Core/InventorySystem.Core.csproj" />
     <ProjectReference Include="../InventorySystem.Data/InventorySystem.Data.csproj" />
   </ItemGroup>
+
+  <!-- ビルド後にFastReport DLLをコピー -->
+  <Target Name="CopyFastReportFiles" AfterTargets="Build">
+    <ItemGroup>
+      <FastReportFiles Include="C:\Program Files (x86)\FastReports\FastReport .NET Trial\*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(FastReportFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

@@ -66,10 +66,12 @@ public class DailyReportPdfService
         var pageSize = PageSizes.A3.Landscape();
         Console.WriteLine($"Page Width: {pageSize.Width}, Page Height: {pageSize.Height}");
         
-        // 列幅の合計を確認
+        // 列幅の合計を確認（17列構成に戻す）
         var columnWidths = new[] { 60, 18, 22, 18, 18, 16, 16, 16, 20, 16, 20, 16, 22, 20, 16, 20, 16 };
         var totalWidth = columnWidths.Sum();
         Console.WriteLine($"Total column width: {totalWidth}mm");
+        Console.WriteLine($"Column layout: 1 product + 11 daily + 5 monthly = 17 columns");
+        Console.WriteLine($"Header-based section separation (not column-based)");
         Console.WriteLine($"Available width: ~400mm");
         Console.WriteLine($"Margin: {400 - totalWidth}mm");
         
@@ -94,41 +96,45 @@ public class DailyReportPdfService
                 }
 
                 page.Header().Element(header => ComposeHeader(header, reportDate));
-                page.Content().Element(content => ComposeContent(content, reportItems, subtotals, total));
-                page.Footer().Element(ComposeFooter);
+                page.Content().Element(content => ComposeContent(content, reportItems, subtotals, total, reportDate));
             });
         }).GeneratePdf();
     }
 
     private void ComposeHeader(IContainer container, DateTime reportDate)
     {
-        container.Row(row =>
+        container.Column(column =>
         {
-            row.ConstantItem(200).Column(column =>
+            column.Spacing(2);
+
+            // 1行目: 作成日とページ番号を同じ行に配置
+            column.Item().Height(15).Row(row =>
             {
-                column.Item().Text($"作成日：{DateTime.Now:yyyy年MM月dd日HH時mm分ss秒}")
+                // 左側：作成日
+                row.ConstantItem(200).AlignLeft()
+                    .Text($"作成日：{DateTime.Now:yyyy年MM月dd日HH時mm分ss秒}")
                     .FontSize(8);
+                
+                // 中央：スペーサー
+                row.RelativeItem();
+                
+                // 右側：ページ番号
+                row.ConstantItem(50).AlignRight()
+                    .Text(text =>
+                    {
+                        text.Span("ページ: ");
+                        text.CurrentPageNumber();
+                        text.Span(" 頁");
+                    });
             });
             
-            row.RelativeItem().Column(column =>
-            {
-                column.Item().AlignCenter().Text($"※　{reportDate:yyyy年MM月dd日}　商　品　日　報　※")
-                    .FontSize(10).Bold();
-            });
-            
-            row.ConstantItem(80).Column(column =>
-            {
-                column.Item().AlignRight().Text(text =>
-                {
-                    text.CurrentPageNumber();
-                    text.Span(" 頁").FontSize(10);
-                });
-            });
+            // タイトルと区分線はテーブルヘッダーに移動するため、ここでは処理しない
+            column.Item().PaddingTop(5);
         });
     }
 
     private void ComposeContent(IContainer container, List<DailyReportItem> reportItems,
-        List<DailyReportSubtotal> subtotals, DailyReportTotal total)
+        List<DailyReportSubtotal> subtotals, DailyReportTotal total, DateTime reportDate)
     {
         if (!reportItems.Any())
         {
@@ -158,72 +164,62 @@ public class DailyReportPdfService
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    // 合計を340mm以内に収める（マージン考慮）
-                    columns.ConstantColumn(60, Unit.Millimetre);  // 商品名（80→60に縮小）
-                    
-                    // === 日計セクション（11列）===
-                    columns.ConstantColumn(18, Unit.Millimetre);  // 売上数量（20→18）
-                    columns.ConstantColumn(22, Unit.Millimetre);  // 売上金額（25→22）
-                    columns.ConstantColumn(18, Unit.Millimetre);  // 仕入値引（20→18）
-                    columns.ConstantColumn(18, Unit.Millimetre);  // 在庫調整（20→18）
-                    columns.ConstantColumn(16, Unit.Millimetre);  // 加工費（18→16）
-                    columns.ConstantColumn(16, Unit.Millimetre);  // 振替（18→16）
-                    columns.ConstantColumn(16, Unit.Millimetre);  // 奨励金（18→16）
-                    columns.ConstantColumn(20, Unit.Millimetre);  // １粗利益（22→20）
-                    columns.ConstantColumn(16, Unit.Millimetre);  // １粗利率（18→16）
-                    columns.ConstantColumn(20, Unit.Millimetre);  // ２粗利益（22→20）
-                    columns.ConstantColumn(16, Unit.Millimetre);  // ２粗利率（18→16）
-                    
-                    // === 月計セクション（5列）===
-                    columns.ConstantColumn(22, Unit.Millimetre);  // 売上金額（25→22）
-                    columns.ConstantColumn(20, Unit.Millimetre);  // １粗利益（22→20）
-                    columns.ConstantColumn(16, Unit.Millimetre);  // １粗利率（18→16）
-                    columns.ConstantColumn(20, Unit.Millimetre);  // ２粗利益（22→20）
-                    columns.ConstantColumn(16, Unit.Millimetre);  // ２粗利率（18→16）
-                    
-                    // 合計: 60 + 186 + 94 = 340mm（安全マージン考慮）
+                    // 17列構成：各列23.5mm（合計400mm）
+                    for (int i = 0; i < 17; i++)
+                    {
+                        columns.ConstantColumn(23.5f, Unit.Millimetre);
+                    }
                 });
 
-                // 2階層ヘッダー構造の実装（RowSpan問題を解決）
+                // テーブルヘッダー
                 table.Header(header =>
                 {
-                    // 第1階層：セクションヘッダー
-                    header.Cell().Text("").FontSize(7); // 商品名列（空白セル）
+                    // 1行目：タイトル行（全列結合）
+                    header.Cell().ColumnSpan(17)
+                        .Element(container => container
+                            .PaddingVertical(5)
+                            .AlignCenter()
+                            .Text($"※ {reportDate:yyyy年MM月dd日} 商品日報 ※")
+                            .FontSize(12).Bold()
+                        );
                     
-                    // 日計セクション（11列を結合）
-                    header.Cell().ColumnSpan(11).AlignCenter()
-                        .Padding(1)
-                        .Text("日　　　　　　計").FontSize(8).Bold();
+                    // 2行目：区分線行
+                    header.Cell().Text("");  // 商品名列は空白
                     
-                    // 月計セクション（5列を結合）
-                    header.Cell().ColumnSpan(5).AlignCenter()
-                        .Padding(1)
-                        .Text("月　　　　計").FontSize(8).Bold();
+                    // 日計区分線（11列結合）
+                    header.Cell().ColumnSpan(11)
+                        .Element(container => container
+                            .AlignCenter()
+                            .Text("<- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 日　　　　　　計 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ->")
+                            .FontSize(8)
+                        );
                     
-                    // 第2階層：項目ヘッダー
+                    // 月計区分線（5列結合）
+                    header.Cell().ColumnSpan(5)
+                        .Element(container => container
+                            .AlignCenter()
+                            .Text("<- - - - - - - - - - - - - - - - - - - - 月　　　　計 - - - - - - - - - - - - - - - - - - ->")
+                            .FontSize(8)
+                        );
                     
-                    // 商品名
-                    header.Cell().Text("商　品　名").FontSize(7).AlignCenter().Bold();
-                    
-                    // 日計の項目（11列）
-                    header.Cell().Text("売上数量").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("売上金額").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("仕入値引").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("在庫調整").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("加工費").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("振替").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("奨励金").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("１粗利益").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("１粗利率").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("２粗利益").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("２粗利率").FontSize(7).AlignCenter().Bold();
-                    
-                    // 月計の項目（5列）
-                    header.Cell().Text("売上金額").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("１粗利益").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("１粗利率").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("２粗利益").FontSize(7).AlignCenter().Bold();
-                    header.Cell().Text("２粗利率").FontSize(7).AlignCenter().Bold();
+                    // 3行目：項目名行
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignLeft().Text("商　品　名").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("売上数量").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("売上金額").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("仕入値引").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("在庫調整").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("加工費").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("振替").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("奨励金").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("１粗利益").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("１粗利率").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("２粗利益").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("２粗利率").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("売上金額").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("１粗利益").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("１粗利率").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("２粗利益").FontSize(8).Bold());
+                    header.Cell().Element(container => container.PaddingVertical(3).AlignCenter().Text("２粗利率").FontSize(8).Bold());
                 });
 
                 // データ行
@@ -262,84 +258,78 @@ public class DailyReportPdfService
 
     private void AddDataRow(TableDescriptor table, DailyReportItem item)
     {
-        // 商品名列のみ（左寄せ、商品コード列は削除）
-        table.Cell().Padding(1).AlignLeft().Text(TruncateText(item.ProductName, 25)).FontSize(7);
-        // 数値列（右寄せ）
-        table.Cell().Padding(1).AlignRight().Text(FormatQuantity(item.DailySalesQuantity)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(item.DailySalesAmount)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(item.DailyPurchaseDiscount)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(item.DailyInventoryAdjustment)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatProcessingAmount(item.DailyProcessingCost)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatProcessingAmount(item.DailyTransfer)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatProcessingAmount(item.DailyIncentive)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(item.DailyGrossProfit1)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatPercentage(item.DailyGrossProfitRate1)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(item.DailyGrossProfit2)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatPercentage(item.DailyGrossProfitRate2)).FontSize(7);
+        // 商品名列（左寄せ）
+        table.Cell().Element(container => container.Padding(1).AlignLeft().Text(TruncateText(item.ProductName, 25)).FontSize(7));
+        
+        // 数値列（右寄せ）- Element()でラップ
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatQuantity(item.DailySalesQuantity)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(item.DailySalesAmount)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(item.DailyPurchaseDiscount)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(item.DailyInventoryAdjustment)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatProcessingAmount(item.DailyProcessingCost)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatProcessingAmount(item.DailyTransfer)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatProcessingAmount(item.DailyIncentive)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(item.DailyGrossProfit1)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatPercentage(item.DailyGrossProfitRate1)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(item.DailyGrossProfit2)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatPercentage(item.DailyGrossProfitRate2)).FontSize(7));
         
         // 月計
-        table.Cell().Padding(1).AlignRight().Text(FormatMonthlyAmount(item.MonthlySalesAmount)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(item.MonthlyGrossProfit1)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatPercentage(item.MonthlyGrossProfitRate1)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(item.MonthlyGrossProfit2)).FontSize(7);
-        table.Cell().Padding(1).AlignRight().Text(FormatPercentage(item.MonthlyGrossProfitRate2)).FontSize(7);
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatMonthlyAmount(item.MonthlySalesAmount)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(item.MonthlyGrossProfit1)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatPercentage(item.MonthlyGrossProfitRate1)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(item.MonthlyGrossProfit2)).FontSize(7));
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatPercentage(item.MonthlyGrossProfitRate2)).FontSize(7));
     }
 
     private void AddSubtotalRow(TableDescriptor table, DailyReportSubtotal subtotal)
     {
-        // 商品名列のみ（商品コード列削除）
-        table.Cell().Padding(1).Text(subtotal.SubtotalName).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatQuantity(subtotal.TotalDailySalesQuantity)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalDailySalesAmount)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalDailyPurchaseDiscount)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalDailyInventoryAdjustment)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatProcessingAmount(subtotal.TotalDailyProcessingCost)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatProcessingAmount(subtotal.TotalDailyTransfer)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatProcessingAmount(subtotal.TotalDailyIncentive)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalDailyGrossProfit1)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatPercentage(subtotal.TotalDailyGrossProfitRate1)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalDailyGrossProfit2)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatPercentage(subtotal.TotalDailyGrossProfitRate2)).FontSize(7).Bold();
+        // 商品名列（左寄せ）
+        table.Cell().Element(container => container.Padding(1).AlignLeft().Text(subtotal.SubtotalName).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatQuantity(subtotal.TotalDailySalesQuantity)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalDailySalesAmount)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalDailyPurchaseDiscount)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalDailyInventoryAdjustment)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatProcessingAmount(subtotal.TotalDailyProcessingCost)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatProcessingAmount(subtotal.TotalDailyTransfer)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatProcessingAmount(subtotal.TotalDailyIncentive)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalDailyGrossProfit1)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatPercentage(subtotal.TotalDailyGrossProfitRate1)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalDailyGrossProfit2)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatPercentage(subtotal.TotalDailyGrossProfitRate2)).FontSize(7).Bold());
         
-        // 月計
-        table.Cell().Padding(1).AlignRight().Text(FormatMonthlyAmount(subtotal.TotalMonthlySalesAmount)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalMonthlyGrossProfit1)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatPercentage(subtotal.TotalMonthlyGrossProfitRate1)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalMonthlyGrossProfit2)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatPercentage(subtotal.TotalMonthlyGrossProfitRate2)).FontSize(7).Bold();
+        // 月計（破線列削除）
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatMonthlyAmount(subtotal.TotalMonthlySalesAmount)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalMonthlyGrossProfit1)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatPercentage(subtotal.TotalMonthlyGrossProfitRate1)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(subtotal.TotalMonthlyGrossProfit2)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatPercentage(subtotal.TotalMonthlyGrossProfitRate2)).FontSize(7).Bold());
     }
 
     private void AddTotalRow(TableDescriptor table, DailyReportTotal total)
     {
-        // 商品名列のみ（商品コード列削除）
-        table.Cell().Padding(1).Text(total.TotalName).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatQuantity(total.GrandTotalDailySalesQuantity)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalDailySalesAmount)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalDailyPurchaseDiscount)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalDailyInventoryAdjustment)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatProcessingAmount(total.GrandTotalDailyProcessingCost)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatProcessingAmount(total.GrandTotalDailyTransfer)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatProcessingAmount(total.GrandTotalDailyIncentive)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalDailyGrossProfit1)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatPercentage(total.GrandTotalDailyGrossProfitRate1)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalDailyGrossProfit2)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatPercentage(total.GrandTotalDailyGrossProfitRate2)).FontSize(7).Bold();
+        // 合計ラベル（左寄せ）
+        table.Cell().Element(container => container.Padding(1).AlignLeft().Text("※ 合 計 ※").FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatQuantity(total.GrandTotalDailySalesQuantity)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalDailySalesAmount)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalDailyPurchaseDiscount)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalDailyInventoryAdjustment)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatProcessingAmount(total.GrandTotalDailyProcessingCost)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatProcessingAmount(total.GrandTotalDailyTransfer)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatProcessingAmount(total.GrandTotalDailyIncentive)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalDailyGrossProfit1)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatPercentage(total.GrandTotalDailyGrossProfitRate1)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalDailyGrossProfit2)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatPercentage(total.GrandTotalDailyGrossProfitRate2)).FontSize(7).Bold());
         
-        // 月計
-        table.Cell().Padding(1).AlignRight().Text(FormatMonthlyAmount(total.GrandTotalMonthlySalesAmount)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalMonthlyGrossProfit1)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatPercentage(total.GrandTotalMonthlyGrossProfitRate1)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalMonthlyGrossProfit2)).FontSize(7).Bold();
-        table.Cell().Padding(1).AlignRight().Text(FormatPercentage(total.GrandTotalMonthlyGrossProfitRate2)).FontSize(7).Bold();
+        // 月計（破線列削除）
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatMonthlyAmount(total.GrandTotalMonthlySalesAmount)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalMonthlyGrossProfit1)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatPercentage(total.GrandTotalMonthlyGrossProfitRate1)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatAmount(total.GrandTotalMonthlyGrossProfit2)).FontSize(7).Bold());
+        table.Cell().Element(c => c.Padding(1).AlignRight().Text(FormatPercentage(total.GrandTotalMonthlyGrossProfitRate2)).FontSize(7).Bold());
     }
 
-    private void ComposeFooter(IContainer container)
-    {
-        container.AlignCenter().Text(text =>
-        {
-            text.CurrentPageNumber().FontSize(10);
-        });
-    }
 
     // フォーマット用メソッド
     private string FormatCode(string code, int width)

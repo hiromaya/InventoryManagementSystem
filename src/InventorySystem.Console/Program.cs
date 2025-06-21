@@ -56,6 +56,10 @@ builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
 builder.Services.AddScoped<InventoryAdjustmentImportService>();
 
+// FastReportサービスの登録
+builder.Services.AddScoped<InventorySystem.Reports.FastReport.Services.FastReportService>();
+builder.Services.AddScoped<InventorySystem.Reports.FastReport.Services.DailyReportFastReportService>();
+
 var host = builder.Build();
 
 // Parse command line arguments
