@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using FastReport;
+using FastReport.Export.Pdf;
 
 namespace InventorySystem.Reports.Tests
 {
@@ -32,7 +33,7 @@ namespace InventorySystem.Reports.Tests
                 report.Prepare();
                 
                 // PDF出力
-                var pdfExport = new FastReport.Export.Pdf.PDFExport();
+                var pdfExport = new PDFExport();
                 report.Export(pdfExport, "test.pdf");
                 
                 Console.WriteLine("テストレポートを生成しました: test.pdf");
@@ -70,7 +71,7 @@ namespace InventorySystem.Reports.Tests
                 report.Prepare();
                 
                 // PDF出力
-                var pdf = new FastReport.Export.Pdf.PDFExport();
+                var pdf = new PDFExport();
                 report.Export(pdf, "minimal_test.pdf");
                 
                 Console.WriteLine("成功: minimal_test.pdf");
