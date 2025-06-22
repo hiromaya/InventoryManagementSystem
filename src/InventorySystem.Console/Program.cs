@@ -7,7 +7,7 @@ using InventorySystem.Core.Services;
 using InventorySystem.Data.Repositories;
 using InventorySystem.Import.Services;
 #if WINDOWS
-using InventorySystem.Reports.FastReport.Interfaces;
+using InventorySystem.Reports.Interfaces;
 using InventorySystem.Reports.FastReport.Services;
 #endif
 using System.Diagnostics;
@@ -86,7 +86,7 @@ builder.Services.AddScoped<IInventoryListService, InventoryListService>();
 #if WINDOWS
 // FastReportサービスの登録（Windows環境のみ）
 builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
-builder.Services.AddScoped<InventorySystem.Reports.FastReport.Interfaces.IDailyReportService, DailyReportFastReportService>();
+builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, DailyReportFastReportService>();
 #endif
 builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
@@ -455,7 +455,7 @@ static async Task ExecuteDailyReportAsync(IServiceProvider services, string[] ar
     var logger = services.GetRequiredService<ILogger<Program>>();
     var dailyReportService = services.GetRequiredService<InventorySystem.Core.Interfaces.IDailyReportService>();
 #if WINDOWS
-    var reportService = services.GetRequiredService<InventorySystem.Reports.FastReport.Interfaces.IDailyReportService>();
+    var reportService = services.GetRequiredService<InventorySystem.Reports.Interfaces.IDailyReportService>();
 #endif
     
     // ジョブ日付を取得（引数から、またはデフォルト値）

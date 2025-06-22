@@ -10,16 +10,8 @@ using FastReport;
 using FastReport.Export.Pdf;
 using FastReport.Data;
 using InventorySystem.Core.Entities;
-using InventorySystem.Reports.FastReport.Interfaces;
+using InventorySystem.Reports.Interfaces;
 using Microsoft.Extensions.Logging;
-#else
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using InventorySystem.Core.Entities;
-using InventorySystem.Reports.FastReport.Interfaces;
-using Microsoft.Extensions.Logging;
-#endif
 
 namespace InventorySystem.Reports.FastReport.Services
 {
@@ -34,7 +26,6 @@ namespace InventorySystem.Reports.FastReport.Services
         
         public byte[] GenerateUnmatchListReport(IEnumerable<UnmatchItem> unmatchItems, DateTime jobDate)
         {
-#if WINDOWS
             try
             {
                 using var report = new Report();
@@ -91,12 +82,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogError(ex, "アンマッチリストの生成中にエラーが発生しました");
                 throw;
             }
-#else
-            throw new PlatformNotSupportedException("FastReport機能はWindows環境でのみ利用可能です。");
-#endif
         }
         
-#if WINDOWS
         private void CreateReportTitle(ReportPage page, DateTime jobDate)
         {
             var titleBand = new ReportTitleBand { Height = 50 };
@@ -198,14 +185,14 @@ namespace InventorySystem.Reports.FastReport.Services
             // データ列の定義（ヘッダーと同じ位置）
             var columns = new[]
             {
-                new { Field = "[UnmatchData.Category]", X = 0f, Width = 40f },
-                new { Field = "[UnmatchData.CustomerCode]", X = 40f, Width = 60f },
-                new { Field = "[UnmatchData.CustomerName]", X = 100f, Width = 80f },
-                new { Field = "[UnmatchData.ProductCode]", X = 180f, Width = 50f },
-                new { Field = "[UnmatchData.ProductName]", X = 230f, Width = 80f },
-                new { Field = "[UnmatchData.Quantity]", X = 310f, Width = 40f },
-                new { Field = "[UnmatchData.VoucherNumber]", X = 350f, Width = 50f },
-                new { Field = "[UnmatchData.AlertType]", X = 400f, Width = 40f }
+                new { Field = "[UnmatchData.Category]", X = 0f, Width = 40f, Align = HorzAlign.Left },
+                new { Field = "[UnmatchData.CustomerCode]", X = 40f, Width = 60f, Align = HorzAlign.Left },
+                new { Field = "[UnmatchData.CustomerName]", X = 100f, Width = 80f, Align = HorzAlign.Left },
+                new { Field = "[UnmatchData.ProductCode]", X = 180f, Width = 50f, Align = HorzAlign.Center },
+                new { Field = "[UnmatchData.ProductName]", X = 230f, Width = 80f, Align = HorzAlign.Left },
+                new { Field = "[UnmatchData.Quantity]", X = 310f, Width = 40f, Align = HorzAlign.Right },
+                new { Field = "[UnmatchData.VoucherNumber]", X = 350f, Width = 50f, Align = HorzAlign.Center },
+                new { Field = "[UnmatchData.AlertType]", X = 400f, Width = 40f, Align = HorzAlign.Center }
             };
             
             foreach (var col in columns)
@@ -215,10 +202,11 @@ namespace InventorySystem.Reports.FastReport.Services
                     Bounds = new RectangleF(col.X, 0, col.Width, 20),
                     Text = col.Field,
                     Font = new Font("MS Gothic", 9),
-                    HorzAlign = col.Field.Contains("Quantity") ? HorzAlign.Right : HorzAlign.Left,
+                    HorzAlign = col.Align,
                     Border = new Border { Lines = BorderLines.All }
                 };
                 
+                // 数量フィールドの場合はフォーマットを設定
                 if (col.Field.Contains("Quantity"))
                 {
                     text.Text = $"[Format([UnmatchData.Quantity], \"N2\")]";
@@ -235,15 +223,25 @@ namespace InventorySystem.Reports.FastReport.Services
             
             var summaryText = new TextObject
             {
-                Bounds = new RectangleF(0, 5, 400, 20),
+                Bounds = new RectangleF(0, 5, 440, 20),
                 Text = totalCount > 0 
                     ? $"アンマッチ件数: {totalCount} 件" 
                     : "アンマッチデータなし",
                 Font = new Font("MS Gothic", 12, FontStyle.Bold),
-                HorzAlign = HorzAlign.Center
+                HorzAlign = HorzAlign.Center,
+                Border = new Border { Lines = BorderLines.All }
             };
             summaryBand.Objects.Add(summaryText);
         }
-#endif
     }
 }
+#else
+namespace InventorySystem.Reports.FastReport.Services
+{
+    // Linux環境用のプレースホルダークラス
+    public class UnmatchListFastReportService
+    {
+        public UnmatchListFastReportService(object logger) { }
+    }
+}
+#endif

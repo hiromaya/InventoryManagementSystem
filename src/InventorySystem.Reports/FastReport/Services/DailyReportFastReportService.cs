@@ -10,16 +10,8 @@ using FastReport;
 using FastReport.Export.Pdf;
 using FastReport.Data;
 using InventorySystem.Core.Entities;
-using InventorySystem.Reports.FastReport.Interfaces;
+using InventorySystem.Reports.Interfaces;
 using Microsoft.Extensions.Logging;
-#else
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using InventorySystem.Core.Entities;
-using InventorySystem.Reports.FastReport.Interfaces;
-using Microsoft.Extensions.Logging;
-#endif
 
 namespace InventorySystem.Reports.FastReport.Services
 {
@@ -38,7 +30,6 @@ namespace InventorySystem.Reports.FastReport.Services
             DailyReportTotal total,
             DateTime reportDate)
         {
-#if WINDOWS
             try
             {
                 using var report = new Report();
@@ -88,12 +79,14 @@ namespace InventorySystem.Reports.FastReport.Services
             report.Export(pdfExport, stream);
             
             return stream.ToArray();
-#else
-            throw new PlatformNotSupportedException("FastReport機能は Windows でのみ利用可能です");
-#endif
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "商品日報の生成中にエラーが発生しました");
+                throw;
+            }
         }
         
-#if WINDOWS
         private void CreateReportTitle(ReportPage page, DateTime reportDate)
         {
             var titleBand = new ReportTitleBand
@@ -101,7 +94,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 Name = "ReportTitle",
                 Height = 60f
             };
-            page.Bands.Add(titleBand);
+            page.ReportTitle = titleBand;
             
             var titleText = new TextObject
             {
@@ -346,6 +339,15 @@ namespace InventorySystem.Reports.FastReport.Services
             };
             summaryBand.Objects.Add(totalSales);
         }
-#endif
     }
 }
+#else
+namespace InventorySystem.Reports.FastReport.Services
+{
+    // Linux環境用のプレースホルダークラス
+    public class DailyReportFastReportService
+    {
+        public DailyReportFastReportService(object logger) { }
+    }
+}
+#endif
