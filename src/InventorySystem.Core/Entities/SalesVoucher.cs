@@ -95,6 +95,24 @@ public class SalesVoucher
     /// 金額
     /// </summary>
     public decimal Amount { get; set; }
+    
+    /// <summary>
+    /// 売上単価（UnitPriceのエイリアス）
+    /// </summary>
+    public decimal SalesUnitPrice 
+    { 
+        get => UnitPrice; 
+        set => UnitPrice = value; 
+    }
+    
+    /// <summary>
+    /// 売上金額（Amountのエイリアス）
+    /// </summary>
+    public decimal SalesAmount 
+    { 
+        get => Amount; 
+        set => Amount = value; 
+    }
 
     /// <summary>
     /// 商品分類1（担当者コード）

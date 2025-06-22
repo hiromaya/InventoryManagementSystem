@@ -16,25 +16,25 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
     {
         const string sql = @"
             SELECT 
-                伝票番号 as VoucherId,
-                伝票日付 as VoucherDate,
-                伝票区分 as VoucherType,
-                得意先コード as CustomerCode,
-                商品コード as ProductCode,
-                等級コード as GradeCode,
-                階級コード as ClassCode,
-                荷印コード as ShippingMarkCode,
-                荷印名 as ShippingMarkName,
-                数量 as Quantity,
-                単価 as SalesUnitPrice,
-                金額 as SalesAmount,
-                ジョブデート as JobDate,
-                明細種 as DetailType,
-                明細行 as LineNumber,
-                データセットID as DataSetId
+                Id,
+                VoucherNumber as VoucherId,
+                VoucherDate,
+                VoucherType,
+                CustomerCode,
+                ProductCode,
+                GradeCode,
+                ClassCode,
+                ShippingMarkCode,
+                ShippingMarkName,
+                Quantity,
+                UnitPrice as SalesUnitPrice,
+                Amount as SalesAmount,
+                JobDate,
+                DetailType,
+                DataSetId
             FROM SalesVouchers
-            WHERE ジョブデート = @jobDate
-            ORDER BY VoucherId, LineNumber";
+            WHERE JobDate = @jobDate
+            ORDER BY VoucherNumber, Id";
 
         try
         {
@@ -54,14 +54,14 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
     {
         const string sql = @"
             INSERT INTO SalesVouchers (
-                伝票番号, 明細行, 伝票日付, ジョブデート,
-                商品コード, 等級コード, 階級コード, 荷印コード, 荷印名,
-                数量, 単価, 金額, データセットID, 伝票区分,
-                得意先コード, 明細種
+                VoucherNumber, VoucherDate, JobDate,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                Quantity, UnitPrice, Amount, DataSetId, VoucherType,
+                CustomerCode, DetailType
             ) VALUES (
-                @VoucherId, @LineNumber, @VoucherDate, @JobDate,
+                @VoucherNumber, @VoucherDate, @JobDate,
                 @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
-                @Quantity, @SalesUnitPrice, @SalesAmount, @DataSetId, @VoucherType,
+                @Quantity, @UnitPrice, @Amount, @DataSetId, @VoucherType,
                 @CustomerCode, @DetailType
             )";
 
@@ -70,7 +70,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
             using var connection = CreateConnection();
             var result = await connection.ExecuteAsync(sql, MapFromSalesVoucher(voucher));
             
-            LogInfo($"Created sales voucher record", new { voucher.VoucherId, voucher.LineNumber });
+            LogInfo($"Created sales voucher record", new { voucher.VoucherId });
             return result;
         }
         catch (Exception ex)
@@ -84,14 +84,14 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
     {
         const string sql = @"
             INSERT INTO SalesVouchers (
-                伝票番号, 明細行, 伝票日付, ジョブデート,
-                商品コード, 等級コード, 階級コード, 荷印コード, 荷印名,
-                数量, 単価, 金額, データセットID, 伝票区分,
-                得意先コード, 明細種
+                VoucherNumber, VoucherDate, JobDate,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                Quantity, UnitPrice, Amount, DataSetId, VoucherType,
+                CustomerCode, DetailType
             ) VALUES (
-                @VoucherId, @LineNumber, @VoucherDate, @JobDate,
+                @VoucherNumber, @VoucherDate, @JobDate,
                 @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
-                @Quantity, @SalesUnitPrice, @SalesAmount, @DataSetId, @VoucherType,
+                @Quantity, @UnitPrice, @Amount, @DataSetId, @VoucherType,
                 @CustomerCode, @DetailType
             )";
 
@@ -115,9 +115,9 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
     {
         return new SalesVoucher
         {
+            Id = row.Id ?? 0,
             VoucherId = row.VoucherId?.ToString() ?? string.Empty,
             VoucherNumber = row.VoucherId?.ToString() ?? string.Empty,
-            LineNumber = row.LineNumber ?? 0,
             VoucherDate = row.VoucherDate,
             JobDate = row.JobDate,
             VoucherType = row.VoucherType?.ToString() ?? string.Empty,
@@ -139,18 +139,17 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
     {
         return new
         {
-            voucher.VoucherId,
-            voucher.LineNumber,
+            VoucherNumber = voucher.VoucherId,
             voucher.VoucherDate,
             voucher.JobDate,
-            ProductCode = voucher.ProductCode,
-            GradeCode = voucher.GradeCode,
-            ClassCode = voucher.ClassCode,
-            ShippingMarkCode = voucher.ShippingMarkCode,
-            ShippingMarkName = voucher.ShippingMarkName,
+            voucher.ProductCode,
+            voucher.GradeCode,
+            voucher.ClassCode,
+            voucher.ShippingMarkCode,
+            voucher.ShippingMarkName,
             voucher.Quantity,
-            SalesUnitPrice = voucher.UnitPrice,
-            SalesAmount = voucher.Amount,
+            UnitPrice = voucher.UnitPrice,
+            Amount = voucher.Amount,
             voucher.DataSetId,
             voucher.VoucherType,
             voucher.CustomerCode,
