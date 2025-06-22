@@ -1,22 +1,37 @@
 #pragma warning disable CA1416
 #if WINDOWS
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.IO;
+using System.Linq;
 using FastReport;
 using FastReport.Export.Pdf;
-using FastReport.Format;
+using FastReport.Data;
 using InventorySystem.Core.Entities;
+using InventorySystem.Reports.FastReport.Interfaces;
+using Microsoft.Extensions.Logging;
 #else
 using System;
-using System.Data;
+using System.Collections.Generic;
+using System.Linq;
 using InventorySystem.Core.Entities;
+using InventorySystem.Reports.FastReport.Interfaces;
+using Microsoft.Extensions.Logging;
 #endif
 
 namespace InventorySystem.Reports.FastReport.Services
 {
-    public class DailyReportFastReportService
+    public class DailyReportFastReportService : IDailyReportService
     {
+        private readonly ILogger<DailyReportFastReportService> _logger;
+        
+        public DailyReportFastReportService(ILogger<DailyReportFastReportService> logger)
+        {
+            _logger = logger;
+        }
+        
         public byte[] GenerateDailyReport(
             List<DailyReportItem> items,
             List<DailyReportSubtotal> subtotals,
@@ -24,7 +39,9 @@ namespace InventorySystem.Reports.FastReport.Services
             DateTime reportDate)
         {
 #if WINDOWS
-            using var report = new Report();
+            try
+            {
+                using var report = new Report();
             
             // A3横設定
             var page = new ReportPage

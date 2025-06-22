@@ -7,12 +7,15 @@
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
 
+  <!-- Windows環境の場合の設定 -->
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
     <DefineConstants>WINDOWS</DefineConstants>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
+  <!-- FastReport.NET Trial DLL参照 (Windows のみ) -->
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
-    <!-- FastReport.NET Trial DLL参照 (Windows のみ) -->
     <Reference Include="FastReport">
       <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.dll</HintPath>
       <Private>true</Private>
@@ -32,13 +35,13 @@
   </ItemGroup>
     
   <ItemGroup>
-    <!-- 通常のNuGetパッケージ（nuget.orgから） -->
+    <!-- 共通パッケージ -->
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
     <PackageReference Include="Serilog" Version="4.1.0" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
-    <PackageReference Include="QuestPDF" Version="2025.1.0" />
   </ItemGroup>
 
   <ItemGroup>
