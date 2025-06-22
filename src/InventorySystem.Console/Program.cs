@@ -13,19 +13,22 @@ using InventorySystem.Reports.FastReport.Services;
 using System.Diagnostics;
 using System.Reflection;
 
-// アセンブリ読み込みのデバッグ
+#if WINDOWS
+// アセンブリ読み込みのデバッグ（Windows環境のみ）
 AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
 {
     Console.WriteLine($"アセンブリ解決要求: {args.Name}");
     return null;
 };
+#endif
 
 // 実行環境情報の表示
 Console.WriteLine($"実行環境: {Environment.OSVersion}");
 Console.WriteLine($".NET Runtime: {Environment.Version}");
 Console.WriteLine($"実行ディレクトリ: {Environment.CurrentDirectory}");
 
-// FastReport関連アセンブリの事前読み込み
+#if WINDOWS
+// FastReport関連アセンブリの事前読み込み（Windows環境のみ）
 if (OperatingSystem.IsWindows())
 {
     try
@@ -43,6 +46,7 @@ if (OperatingSystem.IsWindows())
         Console.WriteLine($"Reports DLL の読み込みに失敗: {ex.Message}");
     }
 }
+#endif
 
 // FastReportテストコマンドの早期処理
 if (args.Length > 0 && args[0] == "test-fastreport")

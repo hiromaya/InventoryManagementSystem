@@ -36,7 +36,16 @@
     <ProjectReference Include="../InventorySystem.Core/InventorySystem.Core.csproj" />
     <ProjectReference Include="../InventorySystem.Data/InventorySystem.Data.csproj" />
     <ProjectReference Include="../InventorySystem.Import/InventorySystem.Import.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
     <ProjectReference Include="../InventorySystem.Reports/InventorySystem.Reports.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
