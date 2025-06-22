@@ -160,11 +160,6 @@ public class SalesVoucher
     /// 行番号（リポジトリで使用）
     /// </summary>
     public int LineNumber { get; set; }
-    
-    /// <summary>
-    /// 在庫単価（リポジトリで使用）
-    /// </summary>
-    public decimal InventoryUnitPrice { get; set; }
 
     /// <summary>
     /// 在庫キーを取得
