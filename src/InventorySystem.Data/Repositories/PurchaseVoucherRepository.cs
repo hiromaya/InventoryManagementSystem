@@ -16,12 +16,25 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
     {
         const string sql = @"
             SELECT 
-                VoucherId, LineNumber, VoucherDate, JobDate,
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                Quantity, PurchaseUnitPrice, PurchaseAmount, DataSetId
+                Id,
+                VoucherNumber as VoucherId,
+                VoucherDate,
+                VoucherType,
+                SupplierCode,
+                ProductCode,
+                GradeCode,
+                ClassCode,
+                ShippingMarkCode,
+                ShippingMarkName,
+                Quantity,
+                UnitPrice as PurchaseUnitPrice,
+                Amount as PurchaseAmount,
+                JobDate,
+                DetailType,
+                DataSetId
             FROM PurchaseVouchers 
             WHERE JobDate = @JobDate
-            ORDER BY VoucherId, LineNumber";
+            ORDER BY VoucherNumber";
 
         try
         {
@@ -41,13 +54,15 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
     {
         const string sql = @"
             INSERT INTO PurchaseVouchers (
-                VoucherId, LineNumber, VoucherDate, JobDate,
+                VoucherNumber, VoucherDate, JobDate,
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                Quantity, PurchaseUnitPrice, PurchaseAmount, DataSetId
+                Quantity, UnitPrice, Amount, DataSetId, VoucherType,
+                SupplierCode, DetailType
             ) VALUES (
-                @VoucherId, @LineNumber, @VoucherDate, @JobDate,
+                @VoucherNumber, @VoucherDate, @JobDate,
                 @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
-                @Quantity, @PurchaseUnitPrice, @PurchaseAmount, @DataSetId
+                @Quantity, @UnitPrice, @Amount, @DataSetId, @VoucherType,
+                @SupplierCode, @DetailType
             )";
 
         try
@@ -55,7 +70,7 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
             using var connection = CreateConnection();
             var result = await connection.ExecuteAsync(sql, MapFromPurchaseVoucher(voucher));
             
-            LogInfo($"Created purchase voucher record", new { voucher.VoucherId, voucher.LineNumber });
+            LogInfo($"Created purchase voucher record", new { voucher.VoucherId });
             return result;
         }
         catch (Exception ex)
@@ -69,13 +84,15 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
     {
         const string sql = @"
             INSERT INTO PurchaseVouchers (
-                VoucherId, LineNumber, VoucherDate, JobDate,
+                VoucherNumber, VoucherDate, JobDate,
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                Quantity, PurchaseUnitPrice, PurchaseAmount, DataSetId
+                Quantity, UnitPrice, Amount, DataSetId, VoucherType,
+                SupplierCode, DetailType
             ) VALUES (
-                @VoucherId, @LineNumber, @VoucherDate, @JobDate,
+                @VoucherNumber, @VoucherDate, @JobDate,
                 @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
-                @Quantity, @PurchaseUnitPrice, @PurchaseAmount, @DataSetId
+                @Quantity, @UnitPrice, @Amount, @DataSetId, @VoucherType,
+                @SupplierCode, @DetailType
             )";
 
         try
@@ -98,22 +115,23 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
     {
         return new PurchaseVoucher
         {
-            VoucherId = row.VoucherId,
-            LineNumber = row.LineNumber,
+            Id = row.Id ?? 0,
+            VoucherId = row.VoucherId?.ToString() ?? string.Empty,
+            VoucherNumber = row.VoucherId?.ToString() ?? string.Empty,
             VoucherDate = row.VoucherDate,
             JobDate = row.JobDate,
-            InventoryKey = new InventoryKey
-            {
-                ProductCode = row.ProductCode,
-                GradeCode = row.GradeCode,
-                ClassCode = row.ClassCode,
-                ShippingMarkCode = row.ShippingMarkCode,
-                ShippingMarkName = row.ShippingMarkName
-            },
-            Quantity = row.Quantity,
-            UnitPrice = row.UnitPrice,
-            Amount = row.Amount,
-            DataSetId = row.DataSetId
+            VoucherType = row.VoucherType?.ToString() ?? string.Empty,
+            DetailType = row.DetailType?.ToString() ?? string.Empty,
+            SupplierCode = row.SupplierCode?.ToString(),
+            ProductCode = row.ProductCode?.ToString() ?? string.Empty,
+            GradeCode = row.GradeCode?.ToString() ?? string.Empty,
+            ClassCode = row.ClassCode?.ToString() ?? string.Empty,
+            ShippingMarkCode = row.ShippingMarkCode?.ToString() ?? string.Empty,
+            ShippingMarkName = row.ShippingMarkName?.ToString() ?? string.Empty,
+            Quantity = row.Quantity ?? 0m,
+            UnitPrice = row.PurchaseUnitPrice ?? 0m,
+            Amount = row.PurchaseAmount ?? 0m,
+            DataSetId = row.DataSetId?.ToString() ?? string.Empty
         };
     }
 
@@ -125,15 +143,21 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
             voucher.LineNumber,
             voucher.VoucherDate,
             voucher.JobDate,
-            ProductCode = voucher.InventoryKey.ProductCode,
-            GradeCode = voucher.InventoryKey.GradeCode,
-            ClassCode = voucher.InventoryKey.ClassCode,
-            ShippingMarkCode = voucher.InventoryKey.ShippingMarkCode,
-            ShippingMarkName = voucher.InventoryKey.ShippingMarkName,
+            VoucherNumber = voucher.VoucherId,
+            voucher.VoucherDate,
+            voucher.JobDate,
+            voucher.ProductCode,
+            voucher.GradeCode,
+            voucher.ClassCode,
+            voucher.ShippingMarkCode,
+            voucher.ShippingMarkName,
             voucher.Quantity,
-            voucher.UnitPrice,
-            voucher.Amount,
-            voucher.DataSetId
+            UnitPrice = voucher.UnitPrice,
+            Amount = voucher.Amount,
+            voucher.DataSetId,
+            voucher.VoucherType,
+            voucher.SupplierCode,
+            voucher.DetailType
         };
     }
 }

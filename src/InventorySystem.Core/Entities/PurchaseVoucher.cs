@@ -100,6 +100,24 @@ public class PurchaseVoucher
     /// 金額
     /// </summary>
     public decimal Amount { get; set; }
+    
+    /// <summary>
+    /// 仕入単価（UnitPriceのエイリアス）
+    /// </summary>
+    public decimal PurchaseUnitPrice 
+    { 
+        get => UnitPrice; 
+        set => UnitPrice = value; 
+    }
+    
+    /// <summary>
+    /// 仕入金額（Amountのエイリアス）
+    /// </summary>
+    public decimal PurchaseAmount 
+    { 
+        get => Amount; 
+        set => Amount = value; 
+    }
 
     /// <summary>
     /// 商品分類1（担当者コード）
