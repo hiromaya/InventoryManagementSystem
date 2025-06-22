@@ -11,6 +11,38 @@ using InventorySystem.Reports.Interfaces;
 using InventorySystem.Reports.FastReport.Services;
 #endif
 using System.Diagnostics;
+using System.Reflection;
+
+// アセンブリ読み込みのデバッグ
+AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
+{
+    Console.WriteLine($"アセンブリ解決要求: {args.Name}");
+    return null;
+};
+
+// 実行環境情報の表示
+Console.WriteLine($"実行環境: {Environment.OSVersion}");
+Console.WriteLine($".NET Runtime: {Environment.Version}");
+Console.WriteLine($"実行ディレクトリ: {Environment.CurrentDirectory}");
+
+// FastReport関連アセンブリの事前読み込み
+if (OperatingSystem.IsWindows())
+{
+    try
+    {
+        var currentDir = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+        var reportsPath = Path.Combine(currentDir!, "InventorySystem.Reports.dll");
+        if (File.Exists(reportsPath))
+        {
+            Assembly.LoadFrom(reportsPath);
+            Console.WriteLine("InventorySystem.Reports.dll を読み込みました");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Reports DLL の読み込みに失敗: {ex.Message}");
+    }
+}
 
 // FastReportテストコマンドの早期処理
 if (args.Length > 0 && args[0] == "test-fastreport")
@@ -173,9 +205,6 @@ static async Task ExecuteUnmatchListAsync(IServiceProvider services, string[] ar
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var unmatchListService = services.GetRequiredService<IUnmatchListService>();
-#if WINDOWS
-    var reportService = services.GetRequiredService<IUnmatchListReportService>();
-#endif
     
     // ジョブ日付を取得（引数から、またはデフォルト値）
     DateTime jobDate;
@@ -225,31 +254,36 @@ static async Task ExecuteUnmatchListAsync(IServiceProvider services, string[] ar
         
         // PDF出力
 #if WINDOWS
-        try
+        if (OperatingSystem.IsWindows())
         {
-            Console.WriteLine("PDF生成中...");
-            var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, jobDate);
-            
-            var outputPath = Path.Combine(Environment.CurrentDirectory, 
-                $"unmatch_list_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
-            
-            await File.WriteAllBytesAsync(outputPath, pdfBytes);
-            Console.WriteLine($"PDF出力完了: {outputPath}");
-            
-            // PDFを開く（Windows）
-            if (OperatingSystem.IsWindows())
+            try
             {
+                var reportService = services.GetRequiredService<IUnmatchListReportService>();
+                Console.WriteLine("PDF生成中...");
+                var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, jobDate);
+                
+                var outputPath = Path.Combine(Environment.CurrentDirectory, 
+                    $"unmatch_list_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
+                
+                await File.WriteAllBytesAsync(outputPath, pdfBytes);
+                Console.WriteLine($"PDF出力完了: {outputPath}");
+                
+                // PDFを開く
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = outputPath,
                     UseShellExecute = true
                 });
             }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "PDF生成でエラーが発生しました");
+                Console.WriteLine($"PDF生成エラー: {ex.Message}");
+            }
         }
-        catch (Exception ex)
+        else
         {
-            logger.LogError(ex, "PDF生成でエラーが発生しました");
-            Console.WriteLine($"PDF生成エラー: {ex.Message}");
+            Console.WriteLine("PDF生成機能はWindows環境でのみ利用可能です。");
         }
 #else
         Console.WriteLine("PDF生成機能はWindows環境でのみ利用可能です。");
@@ -454,9 +488,6 @@ static async Task ExecuteDailyReportAsync(IServiceProvider services, string[] ar
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var dailyReportService = services.GetRequiredService<InventorySystem.Core.Interfaces.IDailyReportService>();
-#if WINDOWS
-    var reportService = services.GetRequiredService<InventorySystem.Reports.Interfaces.IDailyReportService>();
-#endif
     
     // ジョブ日付を取得（引数から、またはデフォルト値）
     DateTime jobDate;
@@ -522,31 +553,36 @@ static async Task ExecuteDailyReportAsync(IServiceProvider services, string[] ar
         
         // PDF出力
 #if WINDOWS
-        try
+        if (OperatingSystem.IsWindows())
         {
-            Console.WriteLine("PDF生成中...");
-            var pdfBytes = reportService.GenerateDailyReport(result.ReportItems, result.Subtotals, result.Total, jobDate);
-            
-            var outputPath = Path.Combine(Environment.CurrentDirectory, 
-                $"daily_report_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
-            
-            await File.WriteAllBytesAsync(outputPath, pdfBytes);
-            Console.WriteLine($"PDF出力完了: {outputPath}");
-            
-            // PDFを開く（Windows）
-            if (OperatingSystem.IsWindows())
+            try
             {
+                var reportService = services.GetRequiredService<InventorySystem.Reports.Interfaces.IDailyReportService>();
+                Console.WriteLine("PDF生成中...");
+                var pdfBytes = reportService.GenerateDailyReport(result.ReportItems, result.Subtotals, result.Total, jobDate);
+                
+                var outputPath = Path.Combine(Environment.CurrentDirectory, 
+                    $"daily_report_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
+                
+                await File.WriteAllBytesAsync(outputPath, pdfBytes);
+                Console.WriteLine($"PDF出力完了: {outputPath}");
+                
+                // PDFを開く
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = outputPath,
                     UseShellExecute = true
                 });
             }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "PDF生成でエラーが発生しました");
+                Console.WriteLine($"PDF生成エラー: {ex.Message}");
+            }
         }
-        catch (Exception ex)
+        else
         {
-            logger.LogError(ex, "PDF生成でエラーが発生しました");
-            Console.WriteLine($"PDF生成エラー: {ex.Message}");
+            Console.WriteLine("PDF生成機能はWindows環境でのみ利用可能です。");
         }
 #else
         Console.WriteLine("PDF生成機能はWindows環境でのみ利用可能です。");
