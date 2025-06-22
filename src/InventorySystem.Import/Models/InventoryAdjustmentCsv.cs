@@ -77,7 +77,7 @@ public class InventoryAdjustmentCsv
             JobDate = ParseDate(JobDate),
             VoucherType = VoucherType?.Trim() ?? string.Empty,
             DetailType = DetailType?.Trim() ?? string.Empty,
-            UnitCode = UnitCode?.Trim(),
+            UnitCode = UnitCode?.Trim() ?? string.Empty,
             ProductCode = ProductCode?.Trim() ?? string.Empty,
             ProductName = ProductName?.Trim(),
             GradeCode = GradeCode?.Trim() ?? string.Empty,

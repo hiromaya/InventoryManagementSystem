@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using InventorySystem.Core.Entities;
 
-namespace InventorySystem.Reports.FastReport.Interfaces
+namespace InventorySystem.Reports.Interfaces
 {
     public interface IUnmatchListReportService
     {

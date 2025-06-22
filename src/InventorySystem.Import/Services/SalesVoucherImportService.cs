@@ -156,7 +156,7 @@ public class SalesVoucherImportService
             MissingFieldFound = null, // 不足フィールドのエラーを無効化
             BadDataFound = context => 
             {
-                _logger.LogWarning($"不正なデータ: 行 {context.Context.Parser.Row}, フィールド {context.Field}");
+                _logger.LogWarning($"不正なデータ: 行 {context.Context?.Parser?.Row ?? 0}, フィールド {context.Field}");
             },
             IgnoreBlankLines = true,
             TrimOptions = TrimOptions.Trim
