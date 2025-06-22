@@ -61,6 +61,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 CreateSummary(page, unmatchItems.Count());
                 
                 // レポート生成
+                // スクリプトのコンパイルを無効化（.NET 8.0対応）
+                report.ScriptLanguage = FastReport.ScriptLanguage.None;
                 report.Prepare();
                 
                 // PDF出力
