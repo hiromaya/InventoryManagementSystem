@@ -139,10 +139,6 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
     {
         return new
         {
-            voucher.VoucherId,
-            voucher.LineNumber,
-            voucher.VoucherDate,
-            voucher.JobDate,
             VoucherNumber = voucher.VoucherId,
             voucher.VoucherDate,
             voucher.JobDate,
