@@ -332,4 +332,6 @@ logs/
 ImportData/
 Reports/
 *.csv
-*.pdf
+*.pdf*:Zone.Identifier
+*:com.dropbox.attrs
+*.dropbox.attrs
