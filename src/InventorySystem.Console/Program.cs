@@ -9,44 +9,17 @@ using InventorySystem.Import.Services;
 #if WINDOWS
 using InventorySystem.Reports.Interfaces;
 using InventorySystem.Reports.FastReport.Services;
+#else
+using InventorySystem.Reports.Interfaces;
+using InventorySystem.Reports.Services;
 #endif
 using System.Diagnostics;
 using System.Reflection;
-
-#if WINDOWS
-// アセンブリ読み込みのデバッグ（Windows環境のみ）
-AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
-{
-    Console.WriteLine($"アセンブリ解決要求: {args.Name}");
-    return null;
-};
-#endif
 
 // 実行環境情報の表示
 Console.WriteLine($"実行環境: {Environment.OSVersion}");
 Console.WriteLine($".NET Runtime: {Environment.Version}");
 Console.WriteLine($"実行ディレクトリ: {Environment.CurrentDirectory}");
-
-#if WINDOWS
-// FastReport関連アセンブリの事前読み込み（Windows環境のみ）
-if (OperatingSystem.IsWindows())
-{
-    try
-    {
-        var currentDir = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-        var reportsPath = Path.Combine(currentDir!, "InventorySystem.Reports.dll");
-        if (File.Exists(reportsPath))
-        {
-            Assembly.LoadFrom(reportsPath);
-            Console.WriteLine("InventorySystem.Reports.dll を読み込みました");
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Reports DLL の読み込みに失敗: {ex.Message}");
-    }
-}
-#endif
 
 // FastReportテストコマンドの早期処理
 if (args.Length > 0 && args[0] == "test-fastreport")
@@ -119,10 +92,24 @@ builder.Services.AddScoped<PurchaseVoucherCsvRepository>(provider =>
 builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
+// Report Services
 #if WINDOWS
-// FastReportサービスの登録（Windows環境のみ）
-builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
-builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, DailyReportFastReportService>();
+if (OperatingSystem.IsWindows())
+{
+    // Windows環境：FastReport実装を使用
+    builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
+    builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, DailyReportFastReportService>();
+}
+else
+{
+    // Windowsではない場合（念のため）
+    builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
+    builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, PlaceholderDailyReportService>();
+}
+#else
+// Linux環境：プレースホルダー実装を使用
+builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
+builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, PlaceholderDailyReportService>();
 #endif
 builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
@@ -257,41 +244,33 @@ static async Task ExecuteUnmatchListAsync(IServiceProvider services, string[] ar
         }
         
         // PDF出力
-#if WINDOWS
-        if (OperatingSystem.IsWindows())
+        try
         {
-            try
+            var reportService = services.GetRequiredService<IUnmatchListReportService>();
+            Console.WriteLine("PDF生成中...");
+            var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, jobDate);
+            
+            var outputPath = Path.Combine(Environment.CurrentDirectory, 
+                $"unmatch_list_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
+            
+            await File.WriteAllBytesAsync(outputPath, pdfBytes);
+            Console.WriteLine($"PDF出力完了: {outputPath}");
+            
+            // PDFを開く（Windows環境のみ）
+            if (OperatingSystem.IsWindows())
             {
-                var reportService = services.GetRequiredService<IUnmatchListReportService>();
-                Console.WriteLine("PDF生成中...");
-                var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, jobDate);
-                
-                var outputPath = Path.Combine(Environment.CurrentDirectory, 
-                    $"unmatch_list_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
-                
-                await File.WriteAllBytesAsync(outputPath, pdfBytes);
-                Console.WriteLine($"PDF出力完了: {outputPath}");
-                
-                // PDFを開く
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = outputPath,
                     UseShellExecute = true
                 });
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "PDF生成でエラーが発生しました");
-                Console.WriteLine($"PDF生成エラー: {ex.Message}");
-            }
         }
-        else
+        catch (Exception ex)
         {
-            Console.WriteLine("PDF生成機能はWindows環境でのみ利用可能です。");
+            logger.LogError(ex, "PDF生成でエラーが発生しました");
+            Console.WriteLine($"PDF生成エラー: {ex.Message}");
         }
-#else
-        Console.WriteLine("PDF生成機能はWindows環境でのみ利用可能です。");
-#endif
         
         Console.WriteLine("=== アンマッチリスト処理完了 ===");
     }
@@ -556,41 +535,33 @@ static async Task ExecuteDailyReportAsync(IServiceProvider services, string[] ar
         }
         
         // PDF出力
-#if WINDOWS
-        if (OperatingSystem.IsWindows())
+        try
         {
-            try
+            var reportService = services.GetRequiredService<InventorySystem.Reports.Interfaces.IDailyReportService>();
+            Console.WriteLine("PDF生成中...");
+            var pdfBytes = reportService.GenerateDailyReport(result.ReportItems, result.Subtotals.Values.ToList(), result.Total, jobDate);
+            
+            var outputPath = Path.Combine(Environment.CurrentDirectory, 
+                $"daily_report_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
+            
+            await File.WriteAllBytesAsync(outputPath, pdfBytes);
+            Console.WriteLine($"PDF出力完了: {outputPath}");
+            
+            // PDFを開く（Windows環境のみ）
+            if (OperatingSystem.IsWindows())
             {
-                var reportService = services.GetRequiredService<InventorySystem.Reports.Interfaces.IDailyReportService>();
-                Console.WriteLine("PDF生成中...");
-                var pdfBytes = reportService.GenerateDailyReport(result.ReportItems, result.Subtotals, result.Total, jobDate);
-                
-                var outputPath = Path.Combine(Environment.CurrentDirectory, 
-                    $"daily_report_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
-                
-                await File.WriteAllBytesAsync(outputPath, pdfBytes);
-                Console.WriteLine($"PDF出力完了: {outputPath}");
-                
-                // PDFを開く
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = outputPath,
                     UseShellExecute = true
                 });
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "PDF生成でエラーが発生しました");
-                Console.WriteLine($"PDF生成エラー: {ex.Message}");
-            }
         }
-        else
+        catch (Exception ex)
         {
-            Console.WriteLine("PDF生成機能はWindows環境でのみ利用可能です。");
+            logger.LogError(ex, "PDF生成でエラーが発生しました");
+            Console.WriteLine($"PDF生成エラー: {ex.Message}");
         }
-#else
-        Console.WriteLine("PDF生成機能はWindows環境でのみ利用可能です。");
-#endif
         
         Console.WriteLine("=== 商品日報処理完了 ===");
     }

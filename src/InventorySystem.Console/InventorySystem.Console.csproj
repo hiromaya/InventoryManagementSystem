@@ -15,14 +15,6 @@
     <DefineConstants>WINDOWS</DefineConstants>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
-    <!-- FastReport.NET Trial DLL参照 (Windows のみ) -->
-    <Reference Include="FastReport">
-      <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
-  </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
@@ -36,9 +28,7 @@
     <ProjectReference Include="../InventorySystem.Core/InventorySystem.Core.csproj" />
     <ProjectReference Include="../InventorySystem.Data/InventorySystem.Data.csproj" />
     <ProjectReference Include="../InventorySystem.Import/InventorySystem.Import.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <!-- InventorySystem.Reportsは常に参照（Reports内で条件分岐） -->
     <ProjectReference Include="../InventorySystem.Reports/InventorySystem.Reports.csproj" />
   </ItemGroup>
 
