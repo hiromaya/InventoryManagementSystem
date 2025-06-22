@@ -9,6 +9,7 @@ using InventorySystem.Import.Services;
 #if WINDOWS
 using InventorySystem.Reports.Interfaces;
 using InventorySystem.Reports.FastReport.Services;
+using InventorySystem.Reports.Services; // Placeholderサービス用に追加
 #else
 using InventorySystem.Reports.Interfaces;
 using InventorySystem.Reports.Services;
@@ -539,7 +540,7 @@ static async Task ExecuteDailyReportAsync(IServiceProvider services, string[] ar
         {
             var reportService = services.GetRequiredService<InventorySystem.Reports.Interfaces.IDailyReportService>();
             Console.WriteLine("PDF生成中...");
-            var pdfBytes = reportService.GenerateDailyReport(result.ReportItems, result.Subtotals.Values.ToList(), result.Total, jobDate);
+            var pdfBytes = reportService.GenerateDailyReport(result.ReportItems, result.Subtotals, result.Total, jobDate);
             
             var outputPath = Path.Combine(Environment.CurrentDirectory, 
                 $"daily_report_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
@@ -581,96 +582,7 @@ static async Task ExecuteInventoryListAsync(IServiceProvider services, string[] 
     var inventoryListService = services.GetRequiredService<IInventoryListService>();
     // TODO: Implement FastReport version for inventory list
     Console.WriteLine("在庫表のFastReport対応は未実装です。QuestPDFからの移行が必要です。");
-    return;
-    
-    // ジョブ日付を取得（引数から、またはデフォルト値）
-    DateTime jobDate;
-    if (args.Length >= 3 && DateTime.TryParse(args[2], out jobDate))
-    {
-        logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
-    }
-    else
-    {
-        jobDate = DateTime.Today;
-        logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
-    }
-    
-    var stopwatch = Stopwatch.StartNew();
-    
-    Console.WriteLine("=== 在庫表処理開始 ===");
-    Console.WriteLine($"レポート日付: {jobDate:yyyy-MM-dd}");
-    Console.WriteLine();
-    
-    // 在庫表処理実行
-    var result = await inventoryListService.ProcessInventoryListAsync(jobDate);
-    
-    stopwatch.Stop();
-    
-    if (result.Success)
-    {
-        Console.WriteLine("=== 処理結果 ===");
-        Console.WriteLine($"データセットID: {result.DataSetId}");
-        Console.WriteLine($"データ件数: {result.ProcessedCount}");
-        Console.WriteLine($"担当者数: {result.StaffInventories.Count}");
-        Console.WriteLine($"処理時間: {result.ProcessingTime.TotalSeconds:F2}秒");
-        Console.WriteLine();
-        
-        if (result.StaffInventories.Any())
-        {
-            Console.WriteLine("=== 担当者別集計結果 ===");
-            foreach (var staff in result.StaffInventories.Take(3))
-            {
-                Console.WriteLine($"担当者: {staff.StaffName} | 商品数: {staff.Items.Count} | 合計金額: {staff.Total.GrandTotalAmount:N0}円");
-            }
-            
-            if (result.StaffInventories.Count > 3)
-            {
-                Console.WriteLine($"... 他 {result.StaffInventories.Count - 3} 名");
-            }
-            Console.WriteLine($"全体合計: {result.GrandTotal.GrandTotalAmount:N0}円");
-            Console.WriteLine();
-        }
-        
-        // PDF出力 - 未実装
-        /*
-        try
-        {
-            Console.WriteLine("PDF生成中...");
-            var pdfBytes = reportService.GenerateInventoryList(result.StaffInventories, result.GrandTotal, jobDate);
-            
-            var outputPath = Path.Combine(Environment.CurrentDirectory, 
-                $"inventory_list_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
-            
-            await File.WriteAllBytesAsync(outputPath, pdfBytes);
-            Console.WriteLine($"PDF出力完了: {outputPath}");
-            
-            // PDFを開く（Windows）
-            if (OperatingSystem.IsWindows())
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = outputPath,
-                    UseShellExecute = true
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "PDF生成でエラーが発生しました");
-            Console.WriteLine($"PDF生成エラー: {ex.Message}");
-        }
-        */
-        
-        Console.WriteLine("=== 在庫表処理完了 ===");
-    }
-    else
-    {
-        Console.WriteLine("=== 処理失敗 ===");
-        Console.WriteLine($"エラーメッセージ: {result.ErrorMessage}");
-        Console.WriteLine($"処理時間: {result.ProcessingTime.TotalSeconds:F2}秒");
-        
-        logger.LogError("在庫表処理が失敗しました: {ErrorMessage}", result.ErrorMessage);
-    }
+    await Task.CompletedTask; // 警告を回避
 }
 
 static async Task TestDatabaseConnectionAsync(IServiceProvider services)

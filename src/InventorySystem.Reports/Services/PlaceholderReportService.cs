@@ -1,4 +1,3 @@
-#if !WINDOWS
 using InventorySystem.Core.Entities;
 using InventorySystem.Reports.Interfaces;
 using System;
@@ -29,4 +28,3 @@ namespace InventorySystem.Reports.Services
         }
     }
 }
-#endif

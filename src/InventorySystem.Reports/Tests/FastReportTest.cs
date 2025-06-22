@@ -29,7 +29,9 @@ namespace InventorySystem.Reports.Tests
                 {
                     Bounds = new System.Drawing.RectangleF(0, 0, 300, 30),
                     Text = "テストレポート",
+#pragma warning disable CA1416 // プラットフォーム互換性
                     Font = new System.Drawing.Font("MS Gothic", 14)
+#pragma warning restore CA1416
                 };
                 band.Objects.Add(text);
                 
@@ -70,7 +72,9 @@ namespace InventorySystem.Reports.Tests
                 {
                     Bounds = new System.Drawing.RectangleF(0, 0, 300, 30),
                     Text = "テストレポート",
+#pragma warning disable CA1416 // プラットフォーム互換性
                     Font = new System.Drawing.Font("MS Gothic", 14)
+#pragma warning restore CA1416
                 };
                 title.Objects.Add(text);
                 
