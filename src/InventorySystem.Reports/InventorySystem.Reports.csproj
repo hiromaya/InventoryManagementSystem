@@ -12,6 +12,9 @@
   <!-- Windows環境の場合の設定 -->
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
     <DefineConstants>WINDOWS</DefineConstants>
+    <!-- Windows Formsサポートを追加 -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <TargetFramework>net8.0-windows</TargetFramework>
   </PropertyGroup>
 
   <!-- FastReport.NET Trial DLL参照 (Windows のみ) -->
