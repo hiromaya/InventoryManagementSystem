@@ -100,6 +100,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 dataTable.Columns.Add("Amount", typeof(decimal));
                 dataTable.Columns.Add("VoucherNumber", typeof(string));
                 dataTable.Columns.Add("AlertType", typeof(string));
+                dataTable.Columns.Add("AlertType2", typeof(string));
                 
                 // データを追加
                 foreach (var item in unmatchList)
@@ -121,7 +122,8 @@ namespace InventorySystem.Reports.FastReport.Services
                         item.UnitPrice,
                         item.Amount,
                         item.VoucherNumber ?? "",
-                        item.AlertType ?? ""
+                        item.AlertType ?? "",
+                        item.AlertType2 ?? ""
                     );
                 }
                 

@@ -14,6 +14,7 @@ public class UnmatchItem
     public decimal Amount { get; set; }                          // 金額
     public string VoucherNumber { get; set; } = string.Empty;    // 伝票番号
     public string AlertType { get; set; } = string.Empty;        // アラート種別（在庫0、該当無）
+    public string AlertType2 { get; set; } = string.Empty;       // アラート種別2（該当無）
     
     // ソート用（商品分類1、商品コード、荷印コード、荷印名、等級コード、階級コード）
     public string ProductCategory1 { get; set; } = string.Empty;

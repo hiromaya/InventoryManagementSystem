@@ -162,11 +162,12 @@ public class UnmatchListService : IUnmatchListService
                 var productInfo = await GetProductInfoFromInventoryMasterAsync(
                     sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode, jobDate);
                 
-                var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "該当無",
+                var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "",
                     productName: productInfo.productName,
                     gradeName: GetGradeName(sales.GradeCode),
                     className: GetClassName(sales.ClassCode),
                     productCategory1: productInfo.productCategory1);
+                unmatchItem.AlertType2 = "該当無";
                 unmatchItems.Add(unmatchItem);
             }
             else if (cpInventory.PreviousDayStock >= 0 && cpInventory.DailyStock == 0)
@@ -216,11 +217,12 @@ public class UnmatchListService : IUnmatchListService
                 var productInfo = await GetProductInfoFromInventoryMasterAsync(
                     purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode, jobDate);
                 
-                var unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "該当無",
+                var unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "",
                     productName: productInfo.productName,
                     gradeName: GetGradeName(purchase.GradeCode),
                     className: GetClassName(purchase.ClassCode),
                     productCategory1: productInfo.productCategory1);
+                unmatchItem.AlertType2 = "該当無";
                 unmatchItems.Add(unmatchItem);
             }
             else if (cpInventory.DailyStock == 0)
@@ -339,12 +341,13 @@ public class UnmatchListService : IUnmatchListService
                     adjustment.UnitPrice,
                     adjustment.Amount,
                     adjustment.VoucherNumber,
-                    "該当無",
+                    "",
                     productName: productInfo.productName,
                     gradeName: GetGradeName(adjustment.GradeCode),
                     className: GetClassName(adjustment.ClassCode),
                     productCategory1: productInfo.productCategory1
                 );
+                unmatchItem.AlertType2 = "該当無";
                 unmatchItems.Add(unmatchItem);
             }
             else if (cpInventory.DailyStock == 0)
