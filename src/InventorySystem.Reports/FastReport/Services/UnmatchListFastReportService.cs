@@ -9,7 +9,6 @@ using System.Linq;
 using FastReport;
 using FastReport.Export.Pdf;
 using FastReport.Data;
-using FastReport.Utils;
 using InventorySystem.Core.Entities;
 using InventorySystem.Reports.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -64,7 +63,6 @@ namespace InventorySystem.Reports.FastReport.Services
                 // レポート生成
                 // スクリプトを無効化（.NET 8.0対応）
                 report.ScriptText = ""; // スクリプトを空にする
-                report.ScriptRestrictions = ScriptSecurityLevel.None; // スクリプトの実行を制限
                 report.Prepare();
                 
                 // PDF出力
