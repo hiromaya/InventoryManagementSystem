@@ -46,6 +46,32 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogInformation("レポートテンプレートを読み込んでいます...");
                 report.Load(_templatePath);
                 
+                // .NET 8対応: ScriptLanguageを強制的にNoneに設定
+                try
+                {
+                    // リフレクションを使用してScriptLanguageプロパティを取得
+                    var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                    if (scriptLanguageProperty != null)
+                    {
+                        var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                        if (scriptLanguageType.IsEnum)
+                        {
+                            // FastReport.ScriptLanguage.None を設定
+                            var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
+                            if (noneValue != null)
+                            {
+                                scriptLanguageProperty.SetValue(report, noneValue);
+                                _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+                    // エラーが発生しても処理を継続
+                }
+                
                 // データソースの準備
                 var unmatchList = unmatchItems.ToList();
                 
