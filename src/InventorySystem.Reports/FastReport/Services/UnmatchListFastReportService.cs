@@ -61,28 +61,26 @@ namespace InventorySystem.Reports.FastReport.Services
                 CreateSummary(page, unmatchItems.Count());
                 
                 // レポート生成
-                // 最小限のスクリプトを設定（.NET 8.0対応）
-                report.ScriptText = @"
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Windows.Forms;
-using FastReport;
-using FastReport.Data;
-using FastReport.Dialog;
-using FastReport.Barcode;
-using FastReport.Table;
-using FastReport.Utils;
+                // .NET 8.0対応：スクリプトコンパイルを無効化
+                if (FastReport.Utils.Config.CompilerSettings != null)
+                {
+                    // ReflectionEmitCompilerを有効化（.NET Core/.NET対応）
+                    FastReport.Utils.Config.CompilerSettings.ReflectionEmitCompiler = true;
+                }
 
+                // 空のReportScriptクラスを設定（エラー回避用）
+                report.ScriptText = @"
 namespace FastReport
 {
     public class ReportScript
     {
     }
 }";
+
+                // スクリプトの自動コンパイルを無効化
+                report.ScriptCompiled = true;
+
+                // レポート準備
                 report.Prepare();
                 
                 // PDF出力
