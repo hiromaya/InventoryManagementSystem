@@ -11,6 +11,7 @@ public class UnmatchListService : IUnmatchListService
     private readonly ISalesVoucherRepository _salesVoucherRepository;
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
+    private readonly IInventoryRepository _inventoryRepository;
     private readonly ILogger<UnmatchListService> _logger;
 
     public UnmatchListService(
@@ -18,12 +19,14 @@ public class UnmatchListService : IUnmatchListService
         ISalesVoucherRepository salesVoucherRepository,
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
+        IInventoryRepository inventoryRepository,
         ILogger<UnmatchListService> logger)
     {
         _cpInventoryRepository = cpInventoryRepository;
         _salesVoucherRepository = salesVoucherRepository;
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
+        _inventoryRepository = inventoryRepository;
         _logger = logger;
     }
 
@@ -155,9 +158,15 @@ public class UnmatchListService : IUnmatchListService
 
             if (cpInventory == null)
             {
-                // 該当無エラー
-                var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "該当無", 
-                    productCategory1: GetProductCategory1FromSales(sales));
+                // 該当無エラー - 在庫マスタから商品情報を取得
+                var productInfo = await GetProductInfoFromInventoryMasterAsync(
+                    sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode, jobDate);
+                
+                var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "該当無",
+                    productName: productInfo.productName,
+                    gradeName: GetGradeName(sales.GradeCode),
+                    className: GetClassName(sales.ClassCode),
+                    productCategory1: productInfo.productCategory1);
                 unmatchItems.Add(unmatchItem);
             }
             else if (cpInventory.PreviousDayStock >= 0 && cpInventory.DailyStock == 0)
@@ -203,9 +212,15 @@ public class UnmatchListService : IUnmatchListService
 
             if (cpInventory == null)
             {
-                // 該当無エラー
+                // 該当無エラー - 在庫マスタから商品情報を取得
+                var productInfo = await GetProductInfoFromInventoryMasterAsync(
+                    purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode, jobDate);
+                
                 var unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "該当無",
-                    productCategory1: GetProductCategory1FromPurchase(purchase));
+                    productName: productInfo.productName,
+                    gradeName: GetGradeName(purchase.GradeCode),
+                    className: GetClassName(purchase.ClassCode),
+                    productCategory1: productInfo.productCategory1);
                 unmatchItems.Add(unmatchItem);
             }
             else if (cpInventory.DailyStock == 0)
@@ -223,31 +238,59 @@ public class UnmatchListService : IUnmatchListService
         return unmatchItems;
     }
 
+    private async Task<(string productName, string productCategory1)> GetProductInfoFromInventoryMasterAsync(
+        string productCode, string gradeCode, string classCode, string shippingMarkCode, DateTime jobDate)
+    {
+        // 商品コードだけでなく、全てのキー項目で在庫マスタを検索
+        var inventoryKey = new InventoryKey
+        {
+            ProductCode = productCode,
+            GradeCode = gradeCode,
+            ClassCode = classCode,
+            ShippingMarkCode = shippingMarkCode,
+            ShippingMarkName = string.Empty // 荷印名は検索キーに含めない
+        };
+
+        var inventory = await _inventoryRepository.GetByKeyAsync(inventoryKey, jobDate);
+        
+        if (inventory != null)
+        {
+            return (inventory.ProductName, inventory.ProductCategory1);
+        }
+
+        // 見つからない場合は空文字を返す
+        return (string.Empty, string.Empty);
+    }
+
     private string GetProductCategory1FromSales(SalesVoucher sales)
     {
-        // 商品分類1を取得するロジック（商品マスタから取得する必要があります）
-        // 現時点では空文字を返す
-        return string.Empty;
+        // 非同期メソッドを同期的に呼び出す（理想的ではないが、既存のインターフェースを維持するため）
+        var task = GetProductInfoFromInventoryMasterAsync(
+            sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode, sales.JobDate);
+        task.Wait();
+        return task.Result.productCategory1;
     }
 
     private string GetProductCategory1FromPurchase(PurchaseVoucher purchase)
     {
-        // 商品分類1を取得するロジック（商品マスタから取得する必要があります）
-        // 現時点では空文字を返す
-        return string.Empty;
+        // 非同期メソッドを同期的に呼び出す（理想的ではないが、既存のインターフェースを維持するため）
+        var task = GetProductInfoFromInventoryMasterAsync(
+            purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode, purchase.JobDate);
+        task.Wait();
+        return task.Result.productCategory1;
     }
 
     private string GetGradeName(string gradeCode)
     {
-        // 等級名を取得するロジック（等級マスタから取得する必要があります）
-        // 現時点ではコードをそのまま返す
+        // 等級マスタが存在しないため、コードをそのまま返す
+        // 将来的に等級マスタが追加された場合はここを修正
         return gradeCode;
     }
 
     private string GetClassName(string classCode)
     {
-        // 階級名を取得するロジック（階級マスタから取得する必要があります）
-        // 現時点ではコードをそのまま返す
+        // 階級マスタが存在しないため、コードをそのまま返す
+        // 将来的に階級マスタが追加された場合はここを修正
         return classCode;
     }
 
@@ -281,7 +324,11 @@ public class UnmatchListService : IUnmatchListService
 
             if (cpInventory == null)
             {
-                // 該当無エラー
+                // 該当無エラー - 在庫マスタから商品情報を取得
+                var productInfo = await GetProductInfoFromInventoryMasterAsync(
+                    adjustment.ProductCode, adjustment.GradeCode, adjustment.ClassCode, 
+                    adjustment.ShippingMarkCode, jobDate);
+                
                 var unmatchItem = UnmatchItem.FromInventoryAdjustment(
                     adjustment.VoucherType,
                     adjustment.CategoryCode.GetValueOrDefault(),
@@ -293,7 +340,10 @@ public class UnmatchListService : IUnmatchListService
                     adjustment.Amount,
                     adjustment.VoucherNumber,
                     "該当無",
-                    productCategory1: GetProductCategory1FromAdjustment(adjustment)
+                    productName: productInfo.productName,
+                    gradeName: GetGradeName(adjustment.GradeCode),
+                    className: GetClassName(adjustment.ClassCode),
+                    productCategory1: productInfo.productCategory1
                 );
                 unmatchItems.Add(unmatchItem);
             }
@@ -325,8 +375,11 @@ public class UnmatchListService : IUnmatchListService
 
     private string GetProductCategory1FromAdjustment(InventoryAdjustment adjustment)
     {
-        // 商品分類1を取得するロジック（商品マスタから取得する必要があります）
-        // 現時点では空文字を返す
-        return string.Empty;
+        // 非同期メソッドを同期的に呼び出す（理想的ではないが、既存のインターフェースを維持するため）
+        var task = GetProductInfoFromInventoryMasterAsync(
+            adjustment.ProductCode, adjustment.GradeCode, adjustment.ClassCode, 
+            adjustment.ShippingMarkCode, adjustment.JobDate);
+        task.Wait();
+        return task.Result.productCategory1;
     }
 }
