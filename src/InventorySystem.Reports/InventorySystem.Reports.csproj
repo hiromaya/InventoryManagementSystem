@@ -65,4 +65,11 @@
     <Copy SourceFiles="@(FastReportFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
   </Target>
 
+  <!-- FastReportテンプレートファイルをビルド時にコピー -->
+  <ItemGroup>
+    <None Update="FastReport\Templates\*.frx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
