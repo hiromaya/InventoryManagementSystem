@@ -61,57 +61,51 @@ namespace InventorySystem.Reports.FastReport.Services
                 CreateSummary(page, unmatchItems.Count());
                 
                 // レポート生成
-                // .NET 8.0対応: ReflectionEmitCompilerを有効化
+                // スクリプトコンパイルを完全に無効化
                 try
                 {
-                    // FastReportのコンパイラ設定を.NET Core/.NET用に調整
-                    if (FastReport.Utils.Config.CompilerSettings != null)
-                    {
-                        FastReport.Utils.Config.CompilerSettings.ReflectionEmitCompiler = true;
-                    }
+                    // スクリプトを空に設定
+                    report.ScriptText = "";
                     
-                    // 最小限のスクリプトを設定（ReportScriptクラスのみ）
-                    report.ScriptText = @"
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Windows.Forms;
-using System.Drawing;
-using System.Data;
-using FastReport;
-using FastReport.Data;
-using FastReport.Dialog;
-using FastReport.Barcode;
-using FastReport.Table;
-using FastReport.Utils;
-
-namespace FastReport
-{
-    public class ReportScript
-    {
-    }
-}";
+                    // ScriptLanguageプロパティが存在する場合はNoneに設定
+                    var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                    if (scriptLanguageProperty != null)
+                    {
+                        // FastReport.ScriptLanguage.None が存在する場合
+                        var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                        if (scriptLanguageType.IsEnum)
+                        {
+                            var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
+                            if (noneValue != null)
+                            {
+                                scriptLanguageProperty.SetValue(report, noneValue);
+                            }
+                        }
+                    }
                     
                     // レポート準備
                     report.Prepare();
                 }
-                catch (PlatformNotSupportedException ex)
+                catch (Exception ex)
                 {
-                    _logger.LogWarning($"スクリプトコンパイルエラーを回避: {ex.Message}");
+                    _logger.LogWarning($"レポート生成でエラーが発生しました。スクリプトなしで再試行します: {ex.Message}");
                     
-                    // スクリプトなしで再試行
-                    report.ScriptText = "";
-                    
-                    // 内部的にスクリプトコンパイルをスキップ
-                    var reportType = report.GetType();
-                    var scriptProperty = reportType.GetProperty("Script", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    if (scriptProperty != null)
+                    // エラーが発生した場合、Scriptプロパティを直接nullに設定
+                    try
                     {
-                        scriptProperty.SetValue(report, null);
+                        var scriptProperty = report.GetType().GetProperty("Script", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        if (scriptProperty != null)
+                        {
+                            scriptProperty.SetValue(report, null);
+                        }
+                        
+                        report.Prepare();
                     }
-                    
-                    report.Prepare();
+                    catch
+                    {
+                        // それでも失敗する場合は、スクリプトなしで再度試行
+                        report.Prepare();
+                    }
                 }
                 
                 // PDF出力
