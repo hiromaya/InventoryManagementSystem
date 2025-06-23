@@ -260,6 +260,9 @@ BEGIN
         Amount DECIMAL(18,4) NOT NULL,
         UnitCode NVARCHAR(10) NOT NULL,         -- 単位コード
         ReasonCode NVARCHAR(10) NOT NULL,       -- 理由コード
+        CategoryCode INT NULL,                   -- 区分コード
+        CustomerCode NVARCHAR(20) NULL,          -- 得意先コード
+        CustomerName NVARCHAR(100) NULL,         -- 得意先名
         
         DataSetId NVARCHAR(50) NOT NULL DEFAULT '',
         
