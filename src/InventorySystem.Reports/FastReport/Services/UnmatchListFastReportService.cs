@@ -59,7 +59,6 @@ namespace InventorySystem.Reports.FastReport.Services
                     ProductName = item.ProductName ?? "",
                     ShippingMarkCode = item.Key.ShippingMarkCode ?? "",
                     ShippingMarkName = item.Key.ShippingMarkName ?? "",
-                    ShippingMarkManual = item.ShippingMarkManual ?? "",
                     GradeCode = item.Key.GradeCode ?? "",
                     GradeName = item.GradeName ?? "",
                     ClassCode = item.Key.ClassCode ?? "",
