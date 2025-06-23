@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report TextQuality="Regular" ReportInfo.Description="アンマッチリスト - 明らかな伝票入力ミスを検索してリストにする" ReportInfo.Created="2025-01-01" ReportInfo.Modified="06/23/2025 14:32:59" ReportInfo.CreatorVersion="2024.1.3.0">
+<Report ScriptLanguage="CSharp" TextQuality="Regular" ReportInfo.Description="アンマッチリスト - 明らかな伝票入力ミスを検索してリストにする" ReportInfo.Created="2025-01-01" ReportInfo.Modified="06/23/2025 14:32:59" ReportInfo.CreatorVersion="2024.1.3.0">
  <ScriptText>
 using System;
 using FastReport;
@@ -30,7 +30,7 @@ namespace FastReport
       <Column Name="VoucherNumber" DataType="System.String"/>
       <Column Name="AlertType" DataType="System.String"/>
     </TableDataSource>
-    <Parameter DataType="System.String" AsString=""/>
+    <Parameter Name="JobDate" DataType="System.DateTime"/>
   </Dictionary>
   <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" Watermark.Font="Arial, 60pt">
     <PageHeaderBand Name="PageHeader1" Width="1512" Height="80">
