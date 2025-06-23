@@ -65,6 +65,14 @@ namespace InventorySystem.Reports.FastReport.Services
                             }
                         }
                     }
+                    
+                    // ScriptTextプロパティも空にする
+                    var scriptTextProperty = report.GetType().GetProperty("ScriptText");
+                    if (scriptTextProperty != null)
+                    {
+                        scriptTextProperty.SetValue(report, string.Empty);
+                        _logger.LogInformation("ScriptTextをクリアしました");
+                    }
                 }
                 catch (Exception ex)
                 {
