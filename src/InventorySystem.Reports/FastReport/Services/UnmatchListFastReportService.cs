@@ -192,14 +192,14 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private void UpdateTextObject(FR.ReportPage page, string objectName, string newText)
         {
-            // AllObjectsを使用してオブジェクトを検索
-            foreach (var obj in page.AllObjects)
+            var textObject = page.FindObject(objectName) as FR.TextObject;
+            if (textObject != null)
             {
-                if (obj.Name == objectName && obj is FR.TextObject textObject)
-                {
-                    textObject.Text = newText;
-                    break;
-                }
+                textObject.Text = newText;
+            }
+            else
+            {
+                _logger.LogWarning($"TextObject '{objectName}' が見つかりません");
             }
         }
         
