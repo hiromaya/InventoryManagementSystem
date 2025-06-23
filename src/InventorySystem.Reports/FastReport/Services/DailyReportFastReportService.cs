@@ -64,38 +64,40 @@ namespace InventorySystem.Reports.FastReport.Services
             CreateTotalSection(page, total);
             
             // レポート生成
-            // スクリプトコンパイルを完全に無効化
+            // 【重要】スクリプトを完全に無効化
             try
             {
-                // スクリプトを空に設定
-                report.ScriptText = "";
-                
-                // ScriptLanguageプロパティが存在する場合はNoneに設定
+                // ScriptLanguageプロパティをリフレクションで探す
                 var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
                 if (scriptLanguageProperty != null)
                 {
-                    // FastReport.ScriptLanguage.None が存在する場合
                     var scriptLanguageType = scriptLanguageProperty.PropertyType;
                     if (scriptLanguageType.IsEnum)
                     {
+                        // FastReport.ScriptLanguage.None を設定
                         var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
                         if (noneValue != null)
                         {
                             scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
                         }
                     }
                 }
                 
-                // レポート準備
+                // ScriptTextは設定しない（完全に削除）
+                // report.ScriptText を設定している行をすべて削除
+                
+                // Prepareを直接呼び出す
                 report.Prepare();
             }
             catch (Exception ex)
             {
-                _logger.LogWarning($"レポート生成でエラーが発生しました。スクリプトなしで再試行します: {ex.Message}");
+                _logger.LogWarning($"レポート生成でエラーが発生しました: {ex.Message}");
                 
-                // エラーが発生した場合、Scriptプロパティを直接nullに設定
+                // エラーが発生した場合の最小限のフォールバック
                 try
                 {
+                    // 内部のScriptプロパティをnullに設定
                     var scriptProperty = report.GetType().GetProperty("Script", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                     if (scriptProperty != null)
                     {
@@ -104,10 +106,10 @@ namespace InventorySystem.Reports.FastReport.Services
                     
                     report.Prepare();
                 }
-                catch
+                catch (Exception fallbackEx)
                 {
-                    // それでも失敗する場合は、スクリプトなしで再度試行
-                    report.Prepare();
+                    _logger.LogError(fallbackEx, "フォールバック処理も失敗しました");
+                    throw;
                 }
             }
             
