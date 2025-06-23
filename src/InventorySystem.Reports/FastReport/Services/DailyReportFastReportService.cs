@@ -65,7 +65,7 @@ namespace InventorySystem.Reports.FastReport.Services
             
             // レポート生成
             // スクリプトのコンパイルを無効化（.NET 8.0対応）
-            report.ScriptLanguage = FastReport.ScriptLanguage.None;
+            report.ScriptLanguage = global::FastReport.ScriptLanguage.None;
             report.Prepare();
             
             // PDF出力
