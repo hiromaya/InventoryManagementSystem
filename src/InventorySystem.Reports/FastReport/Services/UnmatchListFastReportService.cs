@@ -43,6 +43,10 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 using var report = new FR.Report();
                 
+                // FastReportの設定
+                report.ReportResourceString = "";  // リソース文字列をクリア
+                report.FileName = _templatePath;   // ファイル名を設定
+                
                 // テンプレートファイルを読み込む
                 _logger.LogInformation("レポートテンプレートを読み込んでいます...");
                 report.Load(_templatePath);
@@ -101,6 +105,18 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // データソースを登録
                 report.RegisterData(reportData, "UnmatchItems");
+                
+                // データソースを明示的に取得して設定
+                var dataSource = report.GetDataSource("UnmatchItems");
+                if (dataSource != null)
+                {
+                    dataSource.Enabled = true;
+                    _logger.LogInformation("データソースを有効化しました");
+                }
+                else
+                {
+                    _logger.LogWarning("データソース 'UnmatchItems' が見つかりません");
+                }
                 
                 // レポートを準備（スクリプトは使用しない）
                 _logger.LogInformation("レポートを生成しています...");
