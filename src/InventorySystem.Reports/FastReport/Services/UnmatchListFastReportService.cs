@@ -2,6 +2,7 @@
 #if WINDOWS
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using FastReport;
@@ -80,31 +81,52 @@ namespace InventorySystem.Reports.FastReport.Services
                 // データソースの準備
                 var unmatchList = unmatchItems.ToList();
                 
-                // データを適切な形式に変換（UnmatchItemをそのまま使用）
-                var reportData = unmatchList.Select(item => new
+                // DataTableを作成
+                var dataTable = new DataTable("UnmatchItems");
+                dataTable.Columns.Add("Category", typeof(string));
+                dataTable.Columns.Add("CustomerCode", typeof(string));
+                dataTable.Columns.Add("CustomerName", typeof(string));
+                dataTable.Columns.Add("ProductCode", typeof(string));
+                dataTable.Columns.Add("ProductName", typeof(string));
+                dataTable.Columns.Add("ShippingMarkCode", typeof(string));
+                dataTable.Columns.Add("ShippingMarkName", typeof(string));
+                dataTable.Columns.Add("GradeCode", typeof(string));
+                dataTable.Columns.Add("GradeName", typeof(string));
+                dataTable.Columns.Add("ClassCode", typeof(string));
+                dataTable.Columns.Add("ClassName", typeof(string));
+                dataTable.Columns.Add("Quantity", typeof(decimal));
+                dataTable.Columns.Add("UnitPrice", typeof(decimal));
+                dataTable.Columns.Add("Amount", typeof(decimal));
+                dataTable.Columns.Add("VoucherNumber", typeof(string));
+                dataTable.Columns.Add("AlertType", typeof(string));
+                
+                // データを追加
+                foreach (var item in unmatchList)
                 {
-                    Category = GetCategoryName(item.Category),
-                    CustomerCode = item.CustomerCode ?? "",
-                    CustomerName = item.CustomerName ?? "",
-                    ProductCode = item.Key.ProductCode ?? "",
-                    ProductName = item.ProductName ?? "",
-                    ShippingMarkCode = item.Key.ShippingMarkCode ?? "",
-                    ShippingMarkName = item.Key.ShippingMarkName ?? "",
-                    GradeCode = item.Key.GradeCode ?? "",
-                    GradeName = item.GradeName ?? "",
-                    ClassCode = item.Key.ClassCode ?? "",
-                    ClassName = item.ClassName ?? "",
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    Amount = item.Amount,
-                    VoucherNumber = item.VoucherNumber ?? "",
-                    AlertType = item.AlertType ?? ""
-                }).ToList();
+                    dataTable.Rows.Add(
+                        GetCategoryName(item.Category),
+                        item.CustomerCode ?? "",
+                        item.CustomerName ?? "",
+                        item.Key.ProductCode ?? "",
+                        item.ProductName ?? "",
+                        item.Key.ShippingMarkCode ?? "",
+                        item.Key.ShippingMarkName ?? "",
+                        item.Key.GradeCode ?? "",
+                        item.GradeName ?? "",
+                        item.Key.ClassCode ?? "",
+                        item.ClassName ?? "",
+                        item.Quantity,
+                        item.UnitPrice,
+                        item.Amount,
+                        item.VoucherNumber ?? "",
+                        item.AlertType ?? ""
+                    );
+                }
                 
-                _logger.LogInformation("データソースを登録しています。件数: {Count}", reportData.Count);
+                _logger.LogInformation("データソースを登録しています。件数: {Count}", dataTable.Rows.Count);
                 
-                // データソースを登録
-                report.RegisterData(reportData, "UnmatchItems");
+                // DataTableとして登録
+                report.RegisterData(dataTable, "UnmatchItems");
                 
                 // データソースを明示的に取得して設定
                 var dataSource = report.GetDataSource("UnmatchItems");
