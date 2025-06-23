@@ -90,6 +90,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 dataTable.Columns.Add("ProductName", typeof(string));
                 dataTable.Columns.Add("ShippingMarkCode", typeof(string));
                 dataTable.Columns.Add("ShippingMarkName", typeof(string));
+                dataTable.Columns.Add("ManualInput", typeof(string));
                 dataTable.Columns.Add("GradeCode", typeof(string));
                 dataTable.Columns.Add("GradeName", typeof(string));
                 dataTable.Columns.Add("ClassCode", typeof(string));
@@ -111,6 +112,7 @@ namespace InventorySystem.Reports.FastReport.Services
                         item.ProductName ?? "",
                         item.Key.ShippingMarkCode ?? "",
                         item.Key.ShippingMarkName ?? "",
+                        item.Key.ShippingMarkName ?? "",  // ManualInput - 荷印名と同じ値
                         item.Key.GradeCode ?? "",
                         item.GradeName ?? "",
                         item.Key.ClassCode ?? "",
