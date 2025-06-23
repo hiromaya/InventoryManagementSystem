@@ -335,3 +335,7 @@ Reports/
 *.pdf*:Zone.Identifier
 *:com.dropbox.attrs
 *.dropbox.attrs
+
+# サンプルCSVファイルは除外しない
+!大臣出力ファイル/
+!大臣出力ファイル/**/*.csv
