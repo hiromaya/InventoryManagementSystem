@@ -101,12 +101,13 @@ namespace InventorySystem.Reports.FastReport.Services
                 // データソースを登録
                 report.RegisterData(reportData, "UnmatchItems");
                 
-                // パラメータを設定
-                report.SetParameterValue("JobDate", jobDate);
-                
                 // レポートを準備（スクリプトは使用しない）
                 _logger.LogInformation("レポートを生成しています...");
                 report.Prepare();
+                
+                // 準備後にプレースホルダーを更新
+                _logger.LogInformation("レポート情報を更新しています...");
+                UpdateReportPlaceholders(report, jobDate, reportData.Count);
                 
                 // PDF出力設定
                 using var pdfExport = new PDFExport
@@ -148,6 +149,55 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 _logger.LogError(ex, "アンマッチリストの生成中にエラーが発生しました");
                 throw new InvalidOperationException("アンマッチリストPDFの生成に失敗しました", ex);
+            }
+        }
+        
+        /// <summary>
+        /// レポートのプレースホルダーを実際の値に置換
+        /// </summary>
+        private void UpdateReportPlaceholders(Report report, DateTime jobDate, int totalCount)
+        {
+            var createDateText = DateTime.Now.ToString("yyyy年MM月dd日HH時mm分ss秒");
+            var jobDateText = jobDate.ToString("yyyy年MM月dd日");
+            var totalCountText = totalCount.ToString("0000");
+            
+            // 準備されたページを処理
+            int pageCount = report.PreparedPages.Count;
+            
+            for (int i = 0; i < pageCount; i++)
+            {
+                // PreparedPagesからページを取得
+                if (!(report.PreparedPages.GetPage(i) is FastReport.ReportPage page)) continue;
+                
+                // ページ番号テキスト
+                var pageNumberText = $"{(i + 1):0000} / {pageCount:0000} 頁";
+                
+                // 各TextObjectを検索して更新
+                UpdateTextObject(page, "CreateDate", $"作成日：{createDateText}");
+                UpdateTextObject(page, "PageNumber", pageNumberText);
+                UpdateTextObject(page, "Title", $"※　{jobDateText}　アンマッチリスト　※");
+                
+                // 最終ページのみサマリーを更新
+                if (i == pageCount - 1)
+                {
+                    UpdateTextObject(page, "SummaryText", $"アンマッチ件数＝{totalCountText}");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// TextObjectのテキストを更新
+        /// </summary>
+        private void UpdateTextObject(ReportPage page, string objectName, string newText)
+        {
+            // AllObjectsを使用してオブジェクトを検索
+            foreach (var obj in page.AllObjects)
+            {
+                if (obj.Name == objectName && obj is FastReport.TextObject textObject)
+                {
+                    textObject.Text = newText;
+                    break;
+                }
             }
         }
         
