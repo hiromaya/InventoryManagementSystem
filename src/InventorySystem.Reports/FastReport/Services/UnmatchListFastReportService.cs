@@ -140,13 +140,15 @@ namespace InventorySystem.Reports.FastReport.Services
                     _logger.LogWarning("データソース 'UnmatchItems' が見つかりません");
                 }
                 
+                // レポートパラメータを設定
+                _logger.LogInformation("レポートパラメータを設定しています...");
+                report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日HH時mm分ss秒"));
+                report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
+                report.SetParameterValue("TotalCount", dataTable.Rows.Count.ToString("0000"));
+                
                 // レポートを準備（スクリプトは使用しない）
                 _logger.LogInformation("レポートを生成しています...");
                 report.Prepare();
-                
-                // 準備後にプレースホルダーを更新
-                _logger.LogInformation("レポート情報を更新しています...");
-                UpdateReportPlaceholders(report, jobDate, dataTable.Rows.Count);
                 
                 // PDF出力設定
                 using var pdfExport = new PDFExport
@@ -191,55 +193,6 @@ namespace InventorySystem.Reports.FastReport.Services
             }
         }
         
-        /// <summary>
-        /// レポートのプレースホルダーを実際の値に置換
-        /// </summary>
-        private void UpdateReportPlaceholders(FR.Report report, DateTime jobDate, int totalCount)
-        {
-            var createDateText = DateTime.Now.ToString("yyyy年MM月dd日HH時mm分ss秒");
-            var jobDateText = jobDate.ToString("yyyy年MM月dd日");
-            var totalCountText = totalCount.ToString("0000");
-            
-            // 準備されたページを処理
-            int pageCount = report.PreparedPages.Count;
-            
-            for (int i = 0; i < pageCount; i++)
-            {
-                // PreparedPagesからページを取得
-                var pageObject = report.PreparedPages.GetPage(i);
-                if (!(pageObject is FR.ReportPage page)) continue;
-                
-                // ページ番号テキスト
-                var pageNumberText = $"{(i + 1):0000} / {pageCount:0000} 頁";
-                
-                // 各TextObjectを検索して更新
-                UpdateTextObject(page, "CreateDate", $"作成日：{createDateText}");
-                UpdateTextObject(page, "PageNumber", pageNumberText);
-                UpdateTextObject(page, "Title", $"※　{jobDateText}　アンマッチリスト　※");
-                
-                // 最終ページのみサマリーを更新
-                if (i == pageCount - 1)
-                {
-                    UpdateTextObject(page, "SummaryText", $"アンマッチ件数＝{totalCountText}");
-                }
-            }
-        }
-        
-        /// <summary>
-        /// TextObjectのテキストを更新
-        /// </summary>
-        private void UpdateTextObject(FR.ReportPage page, string objectName, string newText)
-        {
-            var textObject = page.FindObject(objectName) as FR.TextObject;
-            if (textObject != null)
-            {
-                textObject.Text = newText;
-            }
-            else
-            {
-                _logger.LogWarning($"TextObject '{objectName}' が見つかりません");
-            }
-        }
         
         /// <summary>
         /// カテゴリコードを日本語名に変換
