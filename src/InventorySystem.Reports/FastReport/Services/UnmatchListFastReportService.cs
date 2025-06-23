@@ -61,27 +61,58 @@ namespace InventorySystem.Reports.FastReport.Services
                 CreateSummary(page, unmatchItems.Count());
                 
                 // レポート生成
-                // .NET 8.0対応：スクリプトコンパイルを無効化
-                if (FastReport.Utils.Config.CompilerSettings != null)
+                // .NET 8.0対応: ReflectionEmitCompilerを有効化
+                try
                 {
-                    // ReflectionEmitCompilerを有効化（.NET Core/.NET対応）
-                    FastReport.Utils.Config.CompilerSettings.ReflectionEmitCompiler = true;
-                }
+                    // FastReportのコンパイラ設定を.NET Core/.NET用に調整
+                    if (FastReport.Utils.Config.CompilerSettings != null)
+                    {
+                        FastReport.Utils.Config.CompilerSettings.ReflectionEmitCompiler = true;
+                    }
+                    
+                    // 最小限のスクリプトを設定（ReportScriptクラスのみ）
+                    report.ScriptText = @"
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Windows.Forms;
+using System.Drawing;
+using System.Data;
+using FastReport;
+using FastReport.Data;
+using FastReport.Dialog;
+using FastReport.Barcode;
+using FastReport.Table;
+using FastReport.Utils;
 
-                // 空のReportScriptクラスを設定（エラー回避用）
-                report.ScriptText = @"
 namespace FastReport
 {
     public class ReportScript
     {
     }
 }";
-
-                // スクリプトの自動コンパイルを無効化
-                report.ScriptCompiled = true;
-
-                // レポート準備
-                report.Prepare();
+                    
+                    // レポート準備
+                    report.Prepare();
+                }
+                catch (PlatformNotSupportedException ex)
+                {
+                    _logger.LogWarning($"スクリプトコンパイルエラーを回避: {ex.Message}");
+                    
+                    // スクリプトなしで再試行
+                    report.ScriptText = "";
+                    
+                    // 内部的にスクリプトコンパイルをスキップ
+                    var reportType = report.GetType();
+                    var scriptProperty = reportType.GetProperty("Script", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (scriptProperty != null)
+                    {
+                        scriptProperty.SetValue(report, null);
+                    }
+                    
+                    report.Prepare();
+                }
                 
                 // PDF出力
                 using var pdfExport = new PDFExport

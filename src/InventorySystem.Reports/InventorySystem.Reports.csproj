@@ -47,6 +47,9 @@
     <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
     <!-- FastReportのコード生成サポート -->
     <PackageReference Include="System.CodeDom" Version="8.0.0" />
+    <!-- Roslynコンパイラ（.NET 8.0対応） -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.8.0" />
   </ItemGroup>
 
   <ItemGroup>
