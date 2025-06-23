@@ -84,8 +84,23 @@ namespace InventorySystem.Reports.FastReport.Services
                     }
                 }
                 
-                // ScriptTextは設定しない（完全に削除）
-                // report.ScriptText を設定している行をすべて削除
+                // ScriptTextに最小限のReportScriptクラスを設定
+                var scriptTextProperty = report.GetType().GetProperty("ScriptText");
+                if (scriptTextProperty != null)
+                {
+                    var minimalScript = @"
+using System;
+using FastReport;
+
+namespace FastReport
+{
+    public class ReportScript
+    {
+    }
+}";
+                    scriptTextProperty.SetValue(report, minimalScript);
+                    _logger.LogInformation("最小限のReportScriptを設定しました");
+                }
                 
                 // Prepareを直接呼び出す
                 report.Prepare();

@@ -66,12 +66,22 @@ namespace InventorySystem.Reports.FastReport.Services
                         }
                     }
                     
-                    // ScriptTextプロパティも空にする
+                    // ScriptTextに最小限のReportScriptクラスを設定
                     var scriptTextProperty = report.GetType().GetProperty("ScriptText");
                     if (scriptTextProperty != null)
                     {
-                        scriptTextProperty.SetValue(report, string.Empty);
-                        _logger.LogInformation("ScriptTextをクリアしました");
+                        var minimalScript = @"
+using System;
+using FastReport;
+
+namespace FastReport
+{
+    public class ReportScript
+    {
+    }
+}";
+                        scriptTextProperty.SetValue(report, minimalScript);
+                        _logger.LogInformation("最小限のReportScriptを設定しました");
                     }
                 }
                 catch (Exception ex)
