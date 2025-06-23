@@ -9,6 +9,7 @@ using FastReport.Export.Pdf;
 using InventorySystem.Core.Entities;
 using InventorySystem.Reports.Interfaces;
 using Microsoft.Extensions.Logging;
+using FR = global::FastReport;
 
 namespace InventorySystem.Reports.FastReport.Services
 {
@@ -40,7 +41,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     throw new FileNotFoundException(errorMessage, _templatePath);
                 }
                 
-                using var report = new Report();
+                using var report = new FR.Report();
                 
                 // テンプレートファイルを読み込む
                 _logger.LogInformation("レポートテンプレートを読み込んでいます...");
@@ -155,7 +156,7 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// レポートのプレースホルダーを実際の値に置換
         /// </summary>
-        private void UpdateReportPlaceholders(Report report, DateTime jobDate, int totalCount)
+        private void UpdateReportPlaceholders(FR.Report report, DateTime jobDate, int totalCount)
         {
             var createDateText = DateTime.Now.ToString("yyyy年MM月dd日HH時mm分ss秒");
             var jobDateText = jobDate.ToString("yyyy年MM月dd日");
@@ -168,7 +169,7 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 // PreparedPagesからページを取得
                 var pageObject = report.PreparedPages.GetPage(i);
-                if (!(pageObject is ReportPage page)) continue;
+                if (!(pageObject is FR.ReportPage page)) continue;
                 
                 // ページ番号テキスト
                 var pageNumberText = $"{(i + 1):0000} / {pageCount:0000} 頁";
@@ -189,12 +190,12 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// TextObjectのテキストを更新
         /// </summary>
-        private void UpdateTextObject(FastReport.ReportPage page, string objectName, string newText)
+        private void UpdateTextObject(FR.ReportPage page, string objectName, string newText)
         {
             // AllObjectsを使用してオブジェクトを検索
             foreach (var obj in page.AllObjects)
             {
-                if (obj.Name == objectName && obj is TextObject textObject)
+                if (obj.Name == objectName && obj is FR.TextObject textObject)
                 {
                     textObject.Text = newText;
                     break;
