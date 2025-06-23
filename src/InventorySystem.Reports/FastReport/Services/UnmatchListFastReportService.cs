@@ -167,7 +167,8 @@ namespace InventorySystem.Reports.FastReport.Services
             for (int i = 0; i < pageCount; i++)
             {
                 // PreparedPagesからページを取得
-                if (!(report.PreparedPages.GetPage(i) is FastReport.ReportPage page)) continue;
+                var pageObject = report.PreparedPages.GetPage(i);
+                if (!(pageObject is ReportPage page)) continue;
                 
                 // ページ番号テキスト
                 var pageNumberText = $"{(i + 1):0000} / {pageCount:0000} 頁";
@@ -188,12 +189,12 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// TextObjectのテキストを更新
         /// </summary>
-        private void UpdateTextObject(ReportPage page, string objectName, string newText)
+        private void UpdateTextObject(FastReport.ReportPage page, string objectName, string newText)
         {
             // AllObjectsを使用してオブジェクトを検索
             foreach (var obj in page.AllObjects)
             {
-                if (obj.Name == objectName && obj is FastReport.TextObject textObject)
+                if (obj.Name == objectName && obj is TextObject textObject)
                 {
                     textObject.Text = newText;
                     break;
