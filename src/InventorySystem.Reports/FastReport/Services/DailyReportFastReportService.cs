@@ -64,8 +64,28 @@ namespace InventorySystem.Reports.FastReport.Services
             CreateTotalSection(page, total);
             
             // レポート生成
-            // スクリプトを無効化（.NET 8.0対応）
-            report.ScriptText = ""; // スクリプトを空にする
+            // 最小限のスクリプトを設定（.NET 8.0対応）
+            report.ScriptText = @"
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Windows.Forms;
+using FastReport;
+using FastReport.Data;
+using FastReport.Dialog;
+using FastReport.Barcode;
+using FastReport.Table;
+using FastReport.Utils;
+
+namespace FastReport
+{
+    public class ReportScript
+    {
+    }
+}";
             report.Prepare();
             
             // PDF出力
