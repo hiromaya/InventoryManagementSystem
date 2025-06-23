@@ -146,7 +146,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // 準備後にプレースホルダーを更新
                 _logger.LogInformation("レポート情報を更新しています...");
-                UpdateReportPlaceholders(report, jobDate, reportData.Count);
+                UpdateReportPlaceholders(report, jobDate, dataTable.Rows.Count);
                 
                 // PDF出力設定
                 using var pdfExport = new PDFExport
