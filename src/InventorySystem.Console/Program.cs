@@ -16,7 +16,12 @@ using InventorySystem.Reports.FastReport.Services;
 using System.Diagnostics;
 using System.Reflection;
 
-// 実行環境情報の表示
+// Program クラスの定義
+public class Program
+{
+    public static async Task<int> Main(string[] args)
+    {
+        // 実行環境情報の表示
 Console.WriteLine($"実行環境: {Environment.OSVersion}");
 Console.WriteLine($".NET Runtime: {Environment.Version}");
 Console.WriteLine($"実行ディレクトリ: {Environment.CurrentDirectory}");
@@ -207,15 +212,16 @@ try
             return 1;
     }
     
-    return 0;
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"エラーが発生しました: {ex.Message}");
-    return 1;
-}
+            return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"エラーが発生しました: {ex.Message}");
+        return 1;
+    }
+    }
 
-static async Task ExecuteUnmatchListAsync(IServiceProvider services, string[] args)
+    static async Task ExecuteUnmatchListAsync(IServiceProvider services, string[] args)
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var unmatchListService = services.GetRequiredService<IUnmatchListService>();
@@ -304,7 +310,7 @@ static async Task ExecuteUnmatchListAsync(IServiceProvider services, string[] ar
     }
 }
 
-static async Task ExecuteImportSalesAsync(IServiceProvider services, string[] args)
+    static async Task ExecuteImportSalesAsync(IServiceProvider services, string[] args)
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var importService = services.GetRequiredService<SalesVoucherImportService>();
@@ -365,7 +371,7 @@ static async Task ExecuteImportSalesAsync(IServiceProvider services, string[] ar
     }
 }
 
-static async Task ExecuteImportPurchaseAsync(IServiceProvider services, string[] args)
+    static async Task ExecuteImportPurchaseAsync(IServiceProvider services, string[] args)
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var importService = services.GetRequiredService<PurchaseVoucherImportService>();
@@ -426,7 +432,7 @@ static async Task ExecuteImportPurchaseAsync(IServiceProvider services, string[]
     }
 }
 
-static async Task ExecuteImportAdjustmentAsync(IServiceProvider services, string[] args)
+    static async Task ExecuteImportAdjustmentAsync(IServiceProvider services, string[] args)
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var importService = services.GetRequiredService<InventoryAdjustmentImportService>();
@@ -487,7 +493,7 @@ static async Task ExecuteImportAdjustmentAsync(IServiceProvider services, string
     }
 }
 
-static async Task ExecuteDailyReportAsync(IServiceProvider services, string[] args)
+    static async Task ExecuteDailyReportAsync(IServiceProvider services, string[] args)
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var dailyReportService = services.GetRequiredService<InventorySystem.Core.Interfaces.IDailyReportService>();
@@ -592,7 +598,7 @@ static async Task ExecuteDailyReportAsync(IServiceProvider services, string[] ar
     }
 }
 
-static async Task ExecuteInventoryListAsync(IServiceProvider services, string[] args)
+    static async Task ExecuteInventoryListAsync(IServiceProvider services, string[] args)
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var inventoryListService = services.GetRequiredService<IInventoryListService>();
@@ -601,7 +607,7 @@ static async Task ExecuteInventoryListAsync(IServiceProvider services, string[] 
     await Task.CompletedTask; // 警告を回避
 }
 
-static async Task DebugCsvStructureAsync(string[] args)
+    static async Task DebugCsvStructureAsync(string[] args)
 {
     if (args.Length < 2)
     {
@@ -695,7 +701,7 @@ static async Task DebugCsvStructureAsync(string[] args)
     }
 }
 
-static async Task TestDatabaseConnectionAsync(IServiceProvider services)
+    static async Task TestDatabaseConnectionAsync(IServiceProvider services)
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var configuration = services.GetRequiredService<IConfiguration>();
@@ -761,7 +767,7 @@ static async Task TestDatabaseConnectionAsync(IServiceProvider services)
     }
 }
 
-static async Task ExecuteImportCustomersAsync(IServiceProvider services, string[] args)
+    static async Task ExecuteImportCustomersAsync(IServiceProvider services, string[] args)
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var importService = services.GetRequiredService<CustomerMasterImportService>();
@@ -809,7 +815,7 @@ static async Task ExecuteImportCustomersAsync(IServiceProvider services, string[
     }
 }
 
-static async Task ExecuteImportProductsAsync(IServiceProvider services, string[] args)
+    static async Task ExecuteImportProductsAsync(IServiceProvider services, string[] args)
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var importService = services.GetRequiredService<ProductMasterImportService>();
@@ -857,7 +863,7 @@ static async Task ExecuteImportProductsAsync(IServiceProvider services, string[]
     }
 }
 
-static async Task ExecuteImportSuppliersAsync(IServiceProvider services, string[] args)
+    static async Task ExecuteImportSuppliersAsync(IServiceProvider services, string[] args)
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
     var importService = services.GetRequiredService<SupplierMasterImportService>();
@@ -904,5 +910,6 @@ static async Task ExecuteImportSuppliersAsync(IServiceProvider services, string[
         logger.LogError(ex, "仕入先マスタCSV取込処理でエラーが発生しました");
     }
 }
+} // Program クラスの終了
 
 
