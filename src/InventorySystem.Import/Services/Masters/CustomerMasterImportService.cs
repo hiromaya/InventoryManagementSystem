@@ -142,7 +142,10 @@ public class CustomerMasterImportService
     /// </summary>
     private async Task<List<CustomerMasterCsv>> ReadCsvFileAsync(string filePath)
     {
-        using var reader = new StreamReader(filePath, Encoding.GetEncoding("Shift_JIS"));
+        var encoding = DetectFileEncoding(filePath);
+        _logger.LogInformation("CSVファイル読み込み開始: {FilePath}, エンコーディング: {Encoding}", filePath, encoding.EncodingName);
+        
+        using var reader = new StreamReader(filePath, encoding);
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HasHeaderRecord = true,
@@ -160,16 +163,32 @@ public class CustomerMasterImportService
         
         await csv.ReadAsync();
         csv.ReadHeader();
+        _logger.LogInformation("ヘッダー読み込み完了");
+        _logger.LogInformation("データ読み込み開始");
         
+        var rowNumber = 0;
         while (await csv.ReadAsync())
         {
+            rowNumber++;
             try
             {
                 var record = csv.GetRecord<CustomerMasterCsv>();
                 if (record != null)
                 {
+                    // 最初の数件のみ詳細ログ
+                    if (rowNumber <= 5)
+                    {
+                        _logger.LogDebug("行{Row}: コード={Code}, 名称={Name}", 
+                            rowNumber, record.CustomerCode, record.CustomerName);
+                    }
                     records.Add(record);
                 }
+            }
+            catch (CsvHelper.TypeConversion.TypeConverterException ex)
+            {
+                _logger.LogError($"データ型変換エラー - 行: {csv.Context.Parser?.Row ?? 0}");
+                _logger.LogError($"値: '{ex.Text}' を変換できません");
+                continue;
             }
             catch (Exception ex)
             {
@@ -179,6 +198,29 @@ public class CustomerMasterImportService
         }
         
         return records;
+    }
+
+    /// <summary>
+    /// ファイルのエンコーディングを自動判定
+    /// </summary>
+    private static Encoding DetectFileEncoding(string filePath)
+    {
+        var bytes = File.ReadAllBytes(filePath);
+        
+        // BOM付きUTF-8
+        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
+            return Encoding.UTF8;
+        
+        // BOM付きUTF-16 LE
+        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
+            return Encoding.Unicode;
+        
+        // BOM付きUTF-16 BE
+        if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF)
+            return Encoding.BigEndianUnicode;
+        
+        // BOMなしの場合、Shift-JISとして扱う（日本語Windows環境のデフォルト）
+        return Encoding.GetEncoding("Shift_JIS");
     }
 
     /// <summary>

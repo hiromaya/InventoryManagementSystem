@@ -93,7 +93,7 @@ public class ProductMasterCsv
 
     [Name("在庫管理フラグ")]
     [Index(70)]
-    public int StockManagedFlag { get; set; } = 1;
+    public int? StockManagedFlag { get; set; }
 
     [Name("消費税区分")]
     [Index(71)]
@@ -102,7 +102,7 @@ public class ProductMasterCsv
     /// <summary>
     /// 在庫管理フラグをboolに変換
     /// </summary>
-    public bool IsStockManaged => StockManagedFlag == 1;
+    public bool IsStockManaged => StockManagedFlag.HasValue && StockManagedFlag.Value == 1;
 
     /// <summary>
     /// 消費税率を取得（簡易実装）

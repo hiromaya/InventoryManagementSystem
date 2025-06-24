@@ -12,26 +12,26 @@ using System.Text;
 namespace InventorySystem.Import.Services.Masters;
 
 /// <summary>
-/// 商品マスタCSV取込サービス
+/// 仕入先マスタCSV取込サービス
 /// </summary>
-public class ProductMasterImportService
+public class SupplierMasterImportService
 {
-    private readonly IProductMasterRepository _productMasterRepository;
+    private readonly ISupplierMasterRepository _supplierMasterRepository;
     private readonly IDataSetRepository _dataSetRepository;
-    private readonly ILogger<ProductMasterImportService> _logger;
+    private readonly ILogger<SupplierMasterImportService> _logger;
 
-    public ProductMasterImportService(
-        IProductMasterRepository productMasterRepository,
+    public SupplierMasterImportService(
+        ISupplierMasterRepository supplierMasterRepository,
         IDataSetRepository dataSetRepository,
-        ILogger<ProductMasterImportService> logger)
+        ILogger<SupplierMasterImportService> logger)
     {
-        _productMasterRepository = productMasterRepository;
+        _supplierMasterRepository = supplierMasterRepository;
         _dataSetRepository = dataSetRepository;
         _logger = logger;
     }
 
     /// <summary>
-    /// CSVファイルから商品マスタデータを取込む
+    /// CSVファイルから仕入先マスタデータを取込む
     /// </summary>
     public async Task<ImportResult> ImportFromCsvAsync(string filePath, DateTime importDate)
     {
@@ -44,7 +44,7 @@ public class ProductMasterImportService
         var importedCount = 0;
         var errorMessages = new List<string>();
 
-        _logger.LogInformation("商品マスタCSV取込開始: {FilePath}, DataSetId: {DataSetId}", 
+        _logger.LogInformation("仕入先マスタCSV取込開始: {FilePath}, DataSetId: {DataSetId}", 
             filePath, dataSetId);
 
         try
@@ -53,7 +53,7 @@ public class ProductMasterImportService
             var dataSet = new DataSet
             {
                 Id = dataSetId,
-                DataSetType = "ProductMaster",
+                DataSetType = "SupplierMaster",
                 ImportedAt = DateTime.Now,
                 RecordCount = 0,
                 Status = DataSetStatus.Processing,
@@ -64,28 +64,28 @@ public class ProductMasterImportService
             await _dataSetRepository.CreateAsync(dataSet);
 
             // CSV読み込み処理
-            var products = new List<ProductMaster>();
+            var suppliers = new List<SupplierMaster>();
             var records = await ReadCsvFileAsync(filePath);
             _logger.LogInformation("CSVレコード読み込み完了: {Count}件", records.Count);
 
             // 既存データをクリア（全件入れ替え）
-            await _productMasterRepository.DeleteAllAsync();
+            await _supplierMasterRepository.DeleteAllAsync();
 
             // バリデーションと変換
             foreach (var (record, index) in records.Select((r, i) => (r, i + 1)))
             {
                 try
                 {
-                    if (string.IsNullOrWhiteSpace(record.ProductCode))
+                    if (string.IsNullOrWhiteSpace(record.SupplierCode))
                     {
-                        var error = $"行{index}: 商品コードが空です";
+                        var error = $"行{index}: 仕入先コードが空です";
                         errorMessages.Add(error);
                         _logger.LogWarning(error);
                         continue;
                     }
 
-                    var product = ConvertToEntity(record);
-                    products.Add(product);
+                    var supplier = ConvertToEntity(record);
+                    suppliers.Add(supplier);
                     importedCount++;
                 }
                 catch (Exception ex)
@@ -97,10 +97,10 @@ public class ProductMasterImportService
             }
 
             // バッチ処理でデータベースに保存
-            if (products.Any())
+            if (suppliers.Any())
             {
-                await _productMasterRepository.InsertBulkAsync(products);
-                _logger.LogInformation("商品マスタ保存完了: {Count}件", products.Count);
+                await _supplierMasterRepository.InsertBulkAsync(suppliers);
+                _logger.LogInformation("仕入先マスタ保存完了: {Count}件", suppliers.Count);
             }
 
             // データセットステータス更新
@@ -110,13 +110,13 @@ public class ProductMasterImportService
             {
                 var errorMessage = string.Join("\n", errorMessages);
                 await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.PartialSuccess, errorMessage);
-                _logger.LogWarning("商品マスタCSV取込部分成功: 成功{Success}件, エラー{Error}件", 
+                _logger.LogWarning("仕入先マスタCSV取込部分成功: 成功{Success}件, エラー{Error}件", 
                     importedCount, errorMessages.Count);
             }
             else
             {
                 await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Completed);
-                _logger.LogInformation("商品マスタCSV取込完了: {Count}件", importedCount);
+                _logger.LogInformation("仕入先マスタCSV取込完了: {Count}件", importedCount);
             }
 
             return new ImportResult
@@ -132,7 +132,7 @@ public class ProductMasterImportService
         catch (Exception ex)
         {
             await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
-            _logger.LogError(ex, "商品マスタCSV取込エラー: {FilePath}", filePath);
+            _logger.LogError(ex, "仕入先マスタCSV取込エラー: {FilePath}", filePath);
             throw;
         }
     }
@@ -140,7 +140,7 @@ public class ProductMasterImportService
     /// <summary>
     /// CSVファイルを読み込む
     /// </summary>
-    private async Task<List<ProductMasterCsv>> ReadCsvFileAsync(string filePath)
+    private async Task<List<SupplierMasterCsv>> ReadCsvFileAsync(string filePath)
     {
         var encoding = DetectFileEncoding(filePath);
         _logger.LogInformation("CSVファイル読み込み開始: {FilePath}, エンコーディング: {Encoding}", filePath, encoding.EncodingName);
@@ -159,7 +159,7 @@ public class ProductMasterImportService
             TrimOptions = TrimOptions.Trim
         });
 
-        var records = new List<ProductMasterCsv>();
+        var records = new List<SupplierMasterCsv>();
         
         await csv.ReadAsync();
         csv.ReadHeader();
@@ -172,14 +172,14 @@ public class ProductMasterImportService
             rowNumber++;
             try
             {
-                var record = csv.GetRecord<ProductMasterCsv>();
+                var record = csv.GetRecord<SupplierMasterCsv>();
                 if (record != null)
                 {
                     // 最初の数件のみ詳細ログ
                     if (rowNumber <= 5)
                     {
                         _logger.LogDebug("行{Row}: コード={Code}, 名称={Name}", 
-                            rowNumber, record.ProductCode, record.ProductName);
+                            rowNumber, record.SupplierCode, record.SupplierName);
                     }
                     records.Add(record);
                 }
@@ -226,33 +226,26 @@ public class ProductMasterImportService
     /// <summary>
     /// CSVレコードをEntityに変換
     /// </summary>
-    private ProductMaster ConvertToEntity(ProductMasterCsv csv)
+    private SupplierMaster ConvertToEntity(SupplierMasterCsv csv)
     {
-        return new ProductMaster
+        return new SupplierMaster
         {
-            ProductCode = csv.ProductCode?.Trim() ?? string.Empty,
-            ProductName = csv.ProductName?.Trim() ?? string.Empty,
-            ProductName2 = csv.ProductName2?.Trim(),
-            ProductName3 = csv.ProductName3?.Trim(),
-            ProductName4 = csv.ProductName4?.Trim(),
-            ProductName5 = csv.ProductName5?.Trim(),
+            SupplierCode = csv.SupplierCode?.Trim() ?? string.Empty,
+            SupplierName = csv.SupplierName?.Trim() ?? string.Empty,
+            SupplierName2 = csv.SupplierName2?.Trim(),
             SearchKana = csv.SearchKana?.Trim(),
             ShortName = csv.ShortName?.Trim(),
-            PrintCode = csv.PrintCode?.Trim(),
-            ProductCategory1 = csv.ProductCategory1?.Trim(),
-            ProductCategory2 = csv.ProductCategory2?.Trim(),
-            ProductCategory3 = csv.ProductCategory3?.Trim(),
-            ProductCategory4 = csv.ProductCategory4?.Trim(),
-            ProductCategory5 = csv.ProductCategory5?.Trim(),
-            UnitCode = csv.UnitCode?.Trim(),
-            CaseUnitCode = csv.CaseUnitCode?.Trim(),
-            Case2UnitCode = csv.Case2UnitCode?.Trim(),
-            CaseQuantity = csv.CaseQuantity,
-            Case2Quantity = csv.Case2Quantity,
-            StandardPrice = csv.StandardPrice,
-            CaseStandardPrice = csv.CaseStandardPrice,
-            IsStockManaged = csv.IsStockManaged,
-            TaxRate = csv.GetTaxRate(),
+            PostalCode = csv.PostalCode?.Trim(),
+            Address1 = csv.Address1?.Trim(),
+            Address2 = csv.Address2?.Trim(),
+            Address3 = csv.Address3?.Trim(),
+            PhoneNumber = csv.PhoneNumber?.Trim(),
+            FaxNumber = csv.FaxNumber?.Trim(),
+            SupplierCategory1 = csv.SupplierCategory1?.Trim(),
+            SupplierCategory2 = csv.SupplierCategory2?.Trim(),
+            SupplierCategory3 = csv.SupplierCategory3?.Trim(),
+            PaymentCode = csv.PaymentCode?.Trim(),
+            IsActive = csv.IsActive,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
@@ -263,7 +256,7 @@ public class ProductMasterImportService
     /// </summary>
     private static string GenerateDataSetId()
     {
-        return $"PRODMST_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}";
+        return $"SUPMST_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}";
     }
 
     /// <summary>

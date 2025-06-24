@@ -109,6 +109,7 @@ builder.Services.AddScoped<ISupplierMasterRepository>(provider =>
 // Master import services
 builder.Services.AddScoped<CustomerMasterImportService>();
 builder.Services.AddScoped<ProductMasterImportService>();
+builder.Services.AddScoped<SupplierMasterImportService>();
 
 builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();
@@ -883,9 +884,50 @@ static async Task ExecuteImportProductsAsync(IServiceProvider services, string[]
 
 static async Task ExecuteImportSuppliersAsync(IServiceProvider services, string[] args)
 {
-    // TODO: 仕入先マスタ取込処理の実装
-    Console.WriteLine("仕入先マスタ取込機能は実装中です。");
-    await Task.CompletedTask;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var importService = services.GetRequiredService<SupplierMasterImportService>();
+    
+    if (args.Length < 3)
+    {
+        Console.WriteLine("エラー: CSVファイルパスが指定されていません");
+        Console.WriteLine("使用方法: dotnet run import-suppliers <file>");
+        return;
+    }
+    
+    var filePath = args[2];
+    var importDate = DateTime.Today;
+    
+    var stopwatch = Stopwatch.StartNew();
+    
+    Console.WriteLine("=== 仕入先マスタCSV取込処理開始 ===");
+    Console.WriteLine($"ファイル: {filePath}");
+    Console.WriteLine();
+    
+    try
+    {
+        var result = await importService.ImportFromCsvAsync(filePath, importDate);
+        
+        stopwatch.Stop();
+        
+        Console.WriteLine("=== 取込結果 ===");
+        Console.WriteLine($"データセットID: {result.DataSetId}");
+        Console.WriteLine($"ステータス: {result.Status}");
+        Console.WriteLine($"取込件数: {result.ImportedCount}");
+        Console.WriteLine($"処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
+        
+        if (!string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            Console.WriteLine($"エラー情報: {result.ErrorMessage}");
+        }
+        
+        Console.WriteLine("=== 仕入先マスタCSV取込処理完了 ===");
+    }
+    catch (Exception ex)
+    {
+        stopwatch.Stop();
+        Console.WriteLine($"エラー: {ex.Message}");
+        logger.LogError(ex, "仕入先マスタCSV取込処理でエラーが発生しました");
+    }
 }
 
 
