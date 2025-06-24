@@ -36,7 +36,7 @@ public class SalesVoucherDaijinCsv
     public string CustomerCode { get; set; } = string.Empty;
     
     [Name("得意先名１")]
-    [Index(4)]
+    [Index(8)]  // 実際のCSVでは9列目
     public string CustomerName { get; set; } = string.Empty;
     
     [Name("商品コード")]

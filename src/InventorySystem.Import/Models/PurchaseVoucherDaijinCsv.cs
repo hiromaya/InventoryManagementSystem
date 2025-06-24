@@ -11,76 +11,76 @@ namespace InventorySystem.Import.Models;
 /// </summary>
 public class PurchaseVoucherDaijinCsv
 {
-    [Name("伝票番号(自動採番)")]
+    [Name("伝票番号")]
     [Index(0)]
     public string VoucherNumber { get; set; } = string.Empty;
     
-    [Name("伝票日付(西暦4桁YYYYMMDD)")]
+    [Name("伝票日付")]
     [Index(1)]
     public string VoucherDate { get; set; } = string.Empty;
     
     [Name("ジョブデート")]
-    [Index(47)]  // 48列目
+    [Index(42)]  // 43列目
     public string JobDate { get; set; } = string.Empty;
     
-    [Name("伝票区分(61:掛仕入,62:現仕入)")]
+    [Name("伝票区分(11:掛仕入,12:現金仕入)")]
     [Index(2)]
     public string VoucherType { get; set; } = string.Empty;
     
-    [Name("明細種(1:仕入,2:返品,4:値引)")]
-    [Index(80)]  // 81列目
+    [Name("明細種")]
+    [Index(75)]  // 76列目
     public string DetailType { get; set; } = string.Empty;
     
     [Name("仕入先コード")]
     [Index(3)]
     public string SupplierCode { get; set; } = string.Empty;
     
-    [Name("仕入先名１")]
-    [Index(4)]
+    [Name("仕入先名")]
+    [Index(8)]
     public string SupplierName { get; set; } = string.Empty;
     
     [Name("商品コード")]
-    [Index(88)]  // 89列目
+    [Index(83)]  // 84列目
     public string ProductCode { get; set; } = string.Empty;
     
     [Name("商品名")]
-    [Index(142)]  // 143列目
+    [Index(139)]  // 140列目
     public string ProductName { get; set; } = string.Empty;
     
     [Name("等級コード")]
-    [Index(82)]  // 83列目
+    [Index(77)]  // 78列目
     public string GradeCode { get; set; } = string.Empty;
     
     [Name("等級名")]
-    [Index(136)]  // 137列目
+    [Index(131)]  // 132列目
     public string GradeName { get; set; } = string.Empty;
     
     [Name("階級コード")]
-    [Index(83)]  // 84列目
+    [Index(78)]  // 79列目
     public string ClassCode { get; set; } = string.Empty;
     
     [Name("階級名")]
-    [Index(137)]  // 138列目
+    [Index(132)]  // 133列目
     public string ClassName { get; set; } = string.Empty;
     
     [Name("荷印コード")]
-    [Index(84)]  // 85列目
+    [Index(79)]  // 80列目
     public string ShippingMarkCode { get; set; } = string.Empty;
     
     [Name("荷印名")]
-    [Index(138)]  // 139列目
+    [Index(133)]  // 134列目
     public string ShippingMarkName { get; set; } = string.Empty;
     
     [Name("数量")]
-    [Index(93)]  // 94列目
+    [Index(88)]  // 89列目
     public decimal Quantity { get; set; }
     
     [Name("単価")]
-    [Index(95)]  // 96列目
+    [Index(90)]  // 91列目
     public decimal UnitPrice { get; set; }
     
     [Name("金額")]
-    [Index(96)]  // 97列目
+    [Index(91)]  // 92列目
     public decimal Amount { get; set; }
     
     // 商品分類は販売大臣のCSVに含まれない可能性があるため、デフォルト値を設定
@@ -152,8 +152,8 @@ public class PurchaseVoucherDaijinCsv
     /// </summary>
     public bool IsValidPurchaseVoucher()
     {
-        // 伝票種別チェック（61:掛仕入, 62:現金仕入）
-        if (VoucherType != "61" && VoucherType != "62")
+        // 伝票種別チェック（11:掛仕入, 12:現金仕入）
+        if (VoucherType != "11" && VoucherType != "12")
         {
             return false;
         }
@@ -217,8 +217,8 @@ public class PurchaseVoucherDaijinCsv
     {
         return voucherType switch
         {
-            "61" => PurchaseVoucherTypes.Credit,  // 掛仕入
-            "62" => PurchaseVoucherTypes.Cash,    // 現金仕入
+            "11" => PurchaseVoucherTypes.Credit,  // 掛仕入
+            "12" => PurchaseVoucherTypes.Cash,    // 現金仕入
             _ => voucherType
         };
     }
