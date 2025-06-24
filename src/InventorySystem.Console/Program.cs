@@ -67,6 +67,9 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
+// Add Memory Cache for master data repositories
+builder.Services.AddMemoryCache();
+
 // Services
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -89,6 +92,10 @@ builder.Services.AddScoped<SalesVoucherCsvRepository>(provider =>
     new SalesVoucherCsvRepository(connectionString, provider.GetRequiredService<ILogger<SalesVoucherCsvRepository>>()));
 builder.Services.AddScoped<PurchaseVoucherCsvRepository>(provider => 
     new PurchaseVoucherCsvRepository(connectionString, provider.GetRequiredService<ILogger<PurchaseVoucherCsvRepository>>()));
+
+// Master data repositories
+builder.Services.AddScoped<IGradeMasterRepository, GradeMasterRepository>();
+builder.Services.AddScoped<IClassMasterRepository, ClassMasterRepository>();
 
 builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();

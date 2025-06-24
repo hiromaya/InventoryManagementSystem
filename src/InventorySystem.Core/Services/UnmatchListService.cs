@@ -12,6 +12,8 @@ public class UnmatchListService : IUnmatchListService
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
     private readonly IInventoryRepository _inventoryRepository;
+    private readonly IGradeMasterRepository _gradeMasterRepository;
+    private readonly IClassMasterRepository _classMasterRepository;
     private readonly ILogger<UnmatchListService> _logger;
 
     public UnmatchListService(
@@ -20,6 +22,8 @@ public class UnmatchListService : IUnmatchListService
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
         IInventoryRepository inventoryRepository,
+        IGradeMasterRepository gradeMasterRepository,
+        IClassMasterRepository classMasterRepository,
         ILogger<UnmatchListService> logger)
     {
         _cpInventoryRepository = cpInventoryRepository;
@@ -27,6 +31,8 @@ public class UnmatchListService : IUnmatchListService
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
         _inventoryRepository = inventoryRepository;
+        _gradeMasterRepository = gradeMasterRepository;
+        _classMasterRepository = classMasterRepository;
         _logger = logger;
     }
 
@@ -276,18 +282,18 @@ public class UnmatchListService : IUnmatchListService
         return task.Result;
     }
 
-    private string GetGradeName(string gradeCode)
+    private async Task<string> GetGradeNameAsync(string gradeCode)
     {
-        // 等級マスタが存在しないため、コードをそのまま返す
-        // 将来的に等級マスタが追加された場合はここを修正
-        return gradeCode;
+        if (string.IsNullOrEmpty(gradeCode)) return string.Empty;
+        var gradeName = await _gradeMasterRepository.GetGradeNameAsync(gradeCode);
+        return gradeName ?? $"等{gradeCode}";
     }
 
-    private string GetClassName(string classCode)
+    private async Task<string> GetClassNameAsync(string classCode)
     {
-        // 階級マスタが存在しないため、コードをそのまま返す
-        // 将来的に階級マスタが追加された場合はここを修正
-        return classCode;
+        if (string.IsNullOrEmpty(classCode)) return string.Empty;
+        var className = await _classMasterRepository.GetClassNameAsync(classCode);
+        return className ?? $"階{classCode}";
     }
 
     private async Task<IEnumerable<UnmatchItem>> CheckInventoryAdjustmentUnmatchAsync(string dataSetId, DateTime jobDate)
@@ -353,6 +359,10 @@ public class UnmatchListService : IUnmatchListService
 
     private async Task<UnmatchItem> EnrichWithMasterData(UnmatchItem item)
     {
+        // 等級名と階級名を取得して設定
+        item.GradeName = await GetGradeNameAsync(item.Key.GradeCode);
+        item.ClassName = await GetClassNameAsync(item.Key.ClassCode);
+        
         // 得意先名が空の場合、得意先マスタから取得を試みる
         if (string.IsNullOrEmpty(item.CustomerName) && !string.IsNullOrEmpty(item.CustomerCode))
         {
