@@ -23,7 +23,6 @@ public class UnmatchItem
     public int? CategoryCode { get; set; }
     
     public static UnmatchItem FromSalesVoucher(SalesVoucher sales, string alertType, 
-        string productName = "", string gradeName = "", string className = "", 
         string productCategory1 = "")
     {
         var category = GetTransactionTypeName(sales.VoucherType);
@@ -41,9 +40,9 @@ public class UnmatchItem
                 ShippingMarkCode = sales.ShippingMarkCode,
                 ShippingMarkName = sales.ShippingMarkName
             },
-            ProductName = productName,
-            GradeName = gradeName,
-            ClassName = className,
+            ProductName = sales.ProductName ?? string.Empty,
+            GradeName = string.Empty,  // CSVに含まれていないため空文字
+            ClassName = string.Empty,  // CSVに含まれていないため空文字
             Quantity = sales.Quantity,
             UnitPrice = sales.UnitPrice,
             Amount = sales.Amount,
@@ -54,7 +53,6 @@ public class UnmatchItem
     }
     
     public static UnmatchItem FromPurchaseVoucher(PurchaseVoucher purchase, string alertType,
-        string productName = "", string gradeName = "", string className = "", 
         string productCategory1 = "")
     {
         var category = GetTransactionTypeName(purchase.VoucherType);
@@ -72,9 +70,9 @@ public class UnmatchItem
                 ShippingMarkCode = purchase.ShippingMarkCode,
                 ShippingMarkName = purchase.ShippingMarkName
             },
-            ProductName = productName,
-            GradeName = gradeName,
-            ClassName = className,
+            ProductName = purchase.ProductName ?? string.Empty,
+            GradeName = string.Empty,  // CSVに含まれていないため空文字
+            ClassName = string.Empty,  // CSVに含まれていないため空文字
             Quantity = purchase.Quantity,
             UnitPrice = purchase.UnitPrice,
             Amount = purchase.Amount,
@@ -87,30 +85,27 @@ public class UnmatchItem
     /// <summary>
     /// 在庫調整（受注伝票）からUnmatchItemを作成
     /// </summary>
-    public static UnmatchItem FromInventoryAdjustment(string voucherType, int categoryCode,
-        string customerCode, string customerName, InventoryKey inventoryKey,
-        decimal quantity, decimal unitPrice, decimal amount, string voucherNumber,
-        string alertType, string productName = "", string gradeName = "", 
-        string className = "", string productCategory1 = "")
+    public static UnmatchItem FromInventoryAdjustment(InventoryAdjustment adjustment,
+        string alertType, string productCategory1 = "")
     {
-        var category = GetTransactionTypeName(voucherType, categoryCode);
+        var category = GetTransactionTypeName(adjustment.VoucherType, adjustment.CategoryCode);
         
         return new UnmatchItem
         {
             Category = category,
-            CustomerCode = customerCode,
-            CustomerName = customerName,
-            Key = inventoryKey,
-            ProductName = productName,
-            GradeName = gradeName,
-            ClassName = className,
-            Quantity = quantity,
-            UnitPrice = unitPrice,
-            Amount = amount,
-            VoucherNumber = voucherNumber,
+            CustomerCode = adjustment.CustomerCode ?? string.Empty,
+            CustomerName = adjustment.CustomerName ?? string.Empty,
+            Key = adjustment.GetInventoryKey(),
+            ProductName = adjustment.ProductName ?? string.Empty,
+            GradeName = string.Empty,  // CSVに含まれていないため空文字
+            ClassName = string.Empty,  // CSVに含まれていないため空文字
+            Quantity = adjustment.Quantity,
+            UnitPrice = adjustment.UnitPrice,
+            Amount = adjustment.Amount,
+            VoucherNumber = adjustment.VoucherNumber,
             AlertType = alertType,
             ProductCategory1 = productCategory1,
-            CategoryCode = categoryCode
+            CategoryCode = adjustment.CategoryCode
         };
     }
     
