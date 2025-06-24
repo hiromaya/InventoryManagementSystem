@@ -1,21 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <PreserveCompilationContext>true</PreserveCompilationContext>
-    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
     <DefineConstants>WINDOWS</DefineConstants>
-    <!-- Windows Formsサポートを追加 -->
-    <UseWindowsForms>true</UseWindowsForms>
-    <TargetFramework>net8.0-windows</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,12 +24,17 @@
     <ProjectReference Include="../InventorySystem.Core/InventorySystem.Core.csproj" />
     <ProjectReference Include="../InventorySystem.Data/InventorySystem.Data.csproj" />
     <ProjectReference Include="../InventorySystem.Import/InventorySystem.Import.csproj" />
-    <!-- InventorySystem.Reportsは常に参照（Reports内で条件分岐） -->
     <ProjectReference Include="../InventorySystem.Reports/InventorySystem.Reports.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.Production.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

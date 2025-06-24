@@ -7,6 +7,9 @@ using InventorySystem.Data.Repositories;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text;
+using InventorySystem.Core.Configuration;
+using InventorySystem.Core.Services;
+using Microsoft.Extensions.Options;
 
 namespace InventorySystem.Import.Services;
 
@@ -18,15 +21,21 @@ public class SalesVoucherImportService
     private readonly SalesVoucherCsvRepository _salesVoucherRepository;
     private readonly IDataSetRepository _dataSetRepository;
     private readonly ILogger<SalesVoucherImportService> _logger;
+    private readonly DepartmentSettings _departmentSettings;
+    private readonly ICsvFileProcessor _csvProcessor;
     
     public SalesVoucherImportService(
         SalesVoucherCsvRepository salesVoucherRepository,
         IDataSetRepository dataSetRepository,
-        ILogger<SalesVoucherImportService> logger)
+        ILogger<SalesVoucherImportService> logger,
+        IOptions<DepartmentSettings> departmentOptions,
+        ICsvFileProcessor csvProcessor)
     {
         _salesVoucherRepository = salesVoucherRepository;
         _dataSetRepository = dataSetRepository;
         _logger = logger;
+        _departmentSettings = departmentOptions.Value;
+        _csvProcessor = csvProcessor;
     }
 
     /// <summary>
@@ -34,20 +43,25 @@ public class SalesVoucherImportService
     /// </summary>
     /// <param name="filePath">取込対象CSVファイルパス</param>
     /// <param name="jobDate">ジョブ日付</param>
+    /// <param name="departmentCode">部門コード（省略時はデフォルト部門）</param>
     /// <returns>データセットID</returns>
-    public async Task<string> ImportAsync(string filePath, DateTime jobDate)
+    public async Task<string> ImportAsync(string filePath, DateTime jobDate, string? departmentCode = null)
     {
         if (!File.Exists(filePath))
         {
             throw new FileNotFoundException($"CSVファイルが見つかりません: {filePath}");
         }
 
+        // 部門コードの設定（省略時はデフォルト部門を使用）
+        departmentCode ??= _departmentSettings.DefaultDepartment;
+        var department = _departmentSettings.GetDepartment(departmentCode);
+        
         var dataSetId = GenerateDataSetId();
         var importedCount = 0;
         var errorMessages = new List<string>();
 
-        _logger.LogInformation("売上伝票CSV取込開始: {FilePath}, DataSetId: {DataSetId}", 
-            filePath, dataSetId);
+        _logger.LogInformation("売上伝票CSV取込開始: {FilePath}, DataSetId: {DataSetId}, Department: {DepartmentCode}", 
+            filePath, dataSetId, departmentCode);
 
         try
         {
@@ -60,7 +74,8 @@ public class SalesVoucherImportService
                 RecordCount = 0,
                 Status = DataSetStatus.Processing,
                 FilePath = filePath,
-                JobDate = jobDate
+                JobDate = jobDate,
+                DepartmentCode = departmentCode
             };
             
             await _dataSetRepository.CreateAsync(dataSet);
@@ -84,6 +99,7 @@ public class SalesVoucherImportService
                     }
 
                     var salesVoucher = record.ToEntity(dataSetId);
+                    salesVoucher.DepartmentCode = departmentCode;
                     salesVouchers.Add(salesVoucher);
                     importedCount++;
                 }
@@ -125,12 +141,26 @@ public class SalesVoucherImportService
                 _logger.LogInformation("売上伝票CSV取込完了: {Count}件", importedCount);
             }
 
+            // CSV処理成功時、ファイルをProcessedフォルダへ移動
+            await _csvProcessor.MoveToProcessedAsync(filePath, departmentCode);
+
             return dataSetId;
         }
         catch (Exception ex)
         {
             await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
             _logger.LogError(ex, "売上伝票CSV取込エラー: {FilePath}", filePath);
+            
+            // エラー時、ファイルをErrorフォルダへ移動
+            try
+            {
+                await _csvProcessor.MoveToErrorAsync(filePath, departmentCode, ex);
+            }
+            catch (Exception moveEx)
+            {
+                _logger.LogError(moveEx, "エラーファイルの移動に失敗しました: {FilePath}", filePath);
+            }
+            
             throw;
         }
     }

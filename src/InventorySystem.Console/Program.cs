@@ -9,6 +9,8 @@ using InventorySystem.Import.Services;
 using InventorySystem.Import.Services.Masters;
 using InventorySystem.Data.Repositories.Masters;
 using InventorySystem.Core.Interfaces.Masters;
+using InventorySystem.Core.Configuration;
+using Microsoft.Extensions.Options;
 #if WINDOWS
 using InventorySystem.Reports.Interfaces;
 using InventorySystem.Reports.FastReport.Services;
@@ -64,6 +66,7 @@ var builder = Host.CreateApplicationBuilder();
 
 // Configuration
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
 
 // Logging
 builder.Logging.ClearProviders();
@@ -72,6 +75,12 @@ builder.Logging.AddDebug();
 
 // Add Memory Cache for master data repositories
 builder.Services.AddMemoryCache();
+
+// Department Settings
+builder.Services.Configure<InventorySystem.Core.Configuration.DepartmentSettings>(
+    builder.Configuration.GetSection("DepartmentSettings"));
+builder.Services.AddSingleton<IStartupFolderService, StartupFolderService>();
+builder.Services.AddScoped<ICsvFileProcessor, CsvFileProcessor>();
 
 // Services
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
@@ -139,6 +148,18 @@ builder.Services.AddScoped<InventoryAdjustmentImportService>();
 
 
 var host = builder.Build();
+
+// Initialize department folders at startup
+try
+{
+    var folderService = host.Services.GetRequiredService<IStartupFolderService>();
+    folderService.EnsureFoldersExist();
+}
+catch (Exception ex)
+{
+    var logger = host.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "部門フォルダの初期化中にエラーが発生しました");
+}
 
 // Parse command line arguments
 var commandArgs = Environment.GetCommandLineArgs();

@@ -160,6 +160,11 @@ public class SalesVoucher
     public DateTime UpdatedAt { get; set; }
 
     /// <summary>
+    /// 部門コード
+    /// </summary>
+    public string DepartmentCode { get; set; } = "DeptA";
+
+    /// <summary>
     /// 在庫キーを取得（互換性プロパティ）
     /// </summary>
     public InventoryKey InventoryKey { get; set; } = new();

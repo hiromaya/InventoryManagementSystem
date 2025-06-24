@@ -147,6 +147,11 @@ public class InventoryAdjustment
     public DateTime UpdatedAt { get; set; }
 
     /// <summary>
+    /// 部門コード
+    /// </summary>
+    public string DepartmentCode { get; set; } = "DeptA";
+
+    /// <summary>
     /// 在庫キーを取得
     /// </summary>
     public InventoryKey GetInventoryKey()

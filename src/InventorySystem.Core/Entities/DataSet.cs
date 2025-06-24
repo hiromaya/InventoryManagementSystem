@@ -55,6 +55,11 @@ public class DataSet
     /// 更新日時
     /// </summary>
     public DateTime UpdatedAt { get; set; }
+
+    /// <summary>
+    /// 部門コード
+    /// </summary>
+    public string DepartmentCode { get; set; } = "DeptA";
 }
 
 /// <summary>

@@ -47,6 +47,69 @@ public class InventoryKey
 最終粗利益 = 当日粗利益 - 当日在庫調整金額 - 当日加工費
 ```
 
+## 🏢 部門別管理機能
+
+### 1. 部門設定
+- 現在は「部門A」（DeptA）のみ運用
+- 将来的に「部門B」「部門C」等に拡張可能
+- 部門名は設定ファイルで変更可能
+
+### 2. フォルダ構成
+
+#### 本番環境（Windows）
+```
+D:\InventoryImport\
+├── DeptA\     # 部門A（現在のみ使用）
+│   ├── Import\     # CSV取込先
+│   ├── Processed\  # 処理済み（タイムスタンプ付きで保存）
+│   └── Error\      # エラー（エラーログも一緒に保存）
+├── DeptB\     # 部門B（将来用）
+│   └── ...
+└── DeptC\     # 部門C（将来用）
+    └── ...
+```
+
+#### 開発環境（Linux/Mac）
+```
+./data/InventoryImport/
+├── DeptA/
+│   ├── Import/
+│   ├── Processed/
+│   └── Error/
+└── ...
+```
+
+### 3. CSV処理フロー
+```
+Import/ → (処理) → Processed/ （成功時：タイムスタンプ付き）
+                 ↘ Error/     （エラー時：エラーログ同時保存）
+```
+
+### 4. 環境別設定
+```json
+// appsettings.Development.json
+{
+  "DepartmentSettings": {
+    "BasePath": "./data/InventoryImport"  // 相対パス
+  }
+}
+
+// appsettings.Production.json
+{
+  "DepartmentSettings": {
+    "BasePath": "D:\\InventoryImport"     // 絶対パス
+  }
+}
+```
+
+### 5. データベース部門対応
+すべての主要テーブルに`DepartmentCode`カラムを追加：
+- DataSets
+- SalesVouchers
+- PurchaseVouchers
+- InventoryAdjustments
+- CpInventoryMaster
+
 ## 📐 設計方針
 
 ### エラーハンドリング
@@ -63,6 +126,7 @@ public class InventoryKey
 - データセットID管理の実装
 - 処理履歴の記録
 - ロールバック機能の実装
+- CSVファイルの自動バックアップ（Processed/Errorフォルダ）
 
 ## 💻 コーディング規約
 
@@ -88,6 +152,15 @@ using var connection = new SqlConnection(connectionString);
 var result = await connection.QueryAsync<InventoryMaster>(sql, parameters);
 ```
 
+### 環境判定
+```csharp
+// IHostEnvironmentを使用した環境判定
+if (environment.IsDevelopment())
+{
+    // 開発環境の処理
+}
+```
+
 ## 🚫 除外データ条件
 
 ### アンマッチ・商品勘定でのみ除外
@@ -102,16 +175,6 @@ var result = await connection.QueryAsync<InventoryMaster>(sql, parameters);
 - 荷印名先頭「9aaa」→ 商品分類1='8'
 - 荷印名先頭「1aaa」→ 商品分類1='6'
 - 荷印名先頭「0999」→ 商品分類1='6'
-
-## 📁 フォルダ構成
-
-```
-D:\InventoryImport\
-└── User01\（部門別）
-    ├── Import\     # CSV取込先
-    ├── Processed\  # 処理済み
-    └── Error\      # エラー
-```
 
 ## 🎯 パフォーマンス目標
 
@@ -128,6 +191,25 @@ D:\InventoryImport\
 - 仕入伝票: 200-400件/日（年間12万件）
 - 在庫マスタ: 年間約10,000件
 
+## 🔧 開発環境セットアップ
+
+### 環境変数
+```bash
+# 開発環境
+ASPNETCORE_ENVIRONMENT=Development
+
+# 本番環境
+ASPNETCORE_ENVIRONMENT=Production
+```
+
+### 開発用フォルダ作成
+```bash
+# Linux/Mac
+mkdir -p ./data/InventoryImport/{DeptA,DeptB,DeptC}/{Import,Processed,Error}
+
+# Windows (PowerShell)
+@("DeptA","DeptB","DeptC") | % { New-Item -ItemType Directory -Path "./data/InventoryImport/$_/Import","./data/InventoryImport/$_/Processed","./data/InventoryImport/$_/Error" -Force }
+```
 
 # 在庫管理システム帳票仕様書
 
@@ -334,12 +416,11 @@ public class InventoryKey
 ### 5.4 ファイル構成
 ```
 D:\InventoryImport\
-└── User01\（部門別）
+└── DeptA\（部門別）
     ├── Import\     # CSV取込先
     ├── Processed\  # 処理済み
     └── Error\      # エラー
 ```
-
 
 ## 🔗 GitHubリポジトリ情報
 
@@ -389,4 +470,4 @@ Personal Access Token（PAT）を使用した認証が設定済み。
 
 ---
 
-最終更新日: 2025年6月18日
+最終更新日: 2025年6月24日

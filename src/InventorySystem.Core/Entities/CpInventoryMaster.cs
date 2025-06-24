@@ -66,6 +66,9 @@ public class CpInventoryMaster
     // データセットID管理
     public string DataSetId { get; set; } = string.Empty;       // データセットID
     
+    // 部門コード
+    public string DepartmentCode { get; set; } = "DeptA";
+    
     /// <summary>
     /// 当日在庫数量を計算する
     /// </summary>
