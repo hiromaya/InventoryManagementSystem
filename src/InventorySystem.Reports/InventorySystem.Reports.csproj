@@ -1,24 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PreserveCompilationContext>true</PreserveCompilationContext>
-  </PropertyGroup>
-
-  <!-- Windows環境の場合の設定 -->
-  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
-    <DefineConstants>WINDOWS</DefineConstants>
-    <!-- Windows Formsサポートを追加 -->
     <UseWindowsForms>true</UseWindowsForms>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <DefineConstants>WINDOWS</DefineConstants>
   </PropertyGroup>
 
-  <!-- FastReport.NET Trial DLL参照 (Windows のみ) -->
-  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+  <!-- FastReport.NET Trial DLL参照 -->
+  <ItemGroup>
     <Reference Include="FastReport">
       <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.dll</HintPath>
       <Private>true</Private>
@@ -57,8 +51,8 @@
     <ProjectReference Include="../InventorySystem.Data/InventorySystem.Data.csproj" />
   </ItemGroup>
 
-  <!-- ビルド後にFastReport DLLをコピー (Windows のみ) -->
-  <Target Name="CopyFastReportFiles" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT'">
+  <!-- ビルド後にFastReport DLLをコピー -->
+  <Target Name="CopyFastReportFiles" AfterTargets="Build">
     <ItemGroup>
       <FastReportFiles Include="C:\Program Files (x86)\FastReports\FastReport .NET Trial\*.dll" />
     </ItemGroup>

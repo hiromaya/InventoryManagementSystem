@@ -11,14 +11,11 @@ using InventorySystem.Data.Repositories.Masters;
 using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Core.Configuration;
 using Microsoft.Extensions.Options;
+using InventorySystem.Reports.Interfaces;
 #if WINDOWS
-using InventorySystem.Reports.Interfaces;
 using InventorySystem.Reports.FastReport.Services;
-using InventorySystem.Reports.Services; // Placeholderサービス用に追加
-#else
-using InventorySystem.Reports.Interfaces;
-using InventorySystem.Reports.Services;
 #endif
+using InventorySystem.Reports.Services;
 using System.Diagnostics;
 using System.Reflection;
 
@@ -123,22 +120,11 @@ builder.Services.AddScoped<SupplierMasterImportService>();
 builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
-// Report Services
+// Report Services - conditional based on platform
 #if WINDOWS
-if (OperatingSystem.IsWindows())
-{
-    // Windows環境：FastReport実装を使用
-    builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
-    builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, DailyReportFastReportService>();
-}
-else
-{
-    // Windowsではない場合（念のため）
-    builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
-    builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, PlaceholderDailyReportService>();
-}
+builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
+builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, DailyReportFastReportService>();
 #else
-// Linux環境：プレースホルダー実装を使用
 builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
 builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, PlaceholderDailyReportService>();
 #endif
