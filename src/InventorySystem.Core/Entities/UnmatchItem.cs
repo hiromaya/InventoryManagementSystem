@@ -22,6 +22,16 @@ public class UnmatchItem
     // 区分コード（在庫調整用）
     public int? CategoryCode { get; set; }
     
+    /// <summary>
+    /// 伝票日付（マスタデータ補完用）
+    /// </summary>
+    public DateTime VoucherDate { get; set; }
+    
+    /// <summary>
+    /// ジョブ日付（マスタデータ補完用）
+    /// </summary>
+    public DateTime JobDate { get; set; }
+    
     public static UnmatchItem FromSalesVoucher(SalesVoucher sales, string alertType, 
         string productCategory1 = "")
     {
@@ -48,7 +58,9 @@ public class UnmatchItem
             Amount = sales.Amount,
             VoucherNumber = sales.VoucherNumber,
             AlertType = alertType,
-            ProductCategory1 = productCategory1
+            ProductCategory1 = productCategory1,
+            VoucherDate = sales.VoucherDate,
+            JobDate = sales.JobDate
         };
     }
     
@@ -78,7 +90,9 @@ public class UnmatchItem
             Amount = purchase.Amount,
             VoucherNumber = purchase.VoucherNumber,
             AlertType = alertType,
-            ProductCategory1 = productCategory1
+            ProductCategory1 = productCategory1,
+            VoucherDate = purchase.VoucherDate,
+            JobDate = purchase.JobDate
         };
     }
     
@@ -105,7 +119,9 @@ public class UnmatchItem
             VoucherNumber = adjustment.VoucherNumber,
             AlertType = alertType,
             ProductCategory1 = productCategory1,
-            CategoryCode = adjustment.CategoryCode
+            CategoryCode = adjustment.CategoryCode,
+            VoucherDate = adjustment.VoucherDate,
+            JobDate = adjustment.JobDate
         };
     }
     

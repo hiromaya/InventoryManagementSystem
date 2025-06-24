@@ -373,7 +373,7 @@ public class UnmatchListService : IUnmatchListService
                 ShippingMarkName = item.Key.ShippingMarkName
             };
             
-            var inventory = await _inventoryRepository.GetByKeyAsync(inventoryKey, item.VoucherDate);
+            var inventory = await _inventoryRepository.GetByKeyAsync(inventoryKey, item.JobDate);
             if (inventory != null && !string.IsNullOrEmpty(inventory.ProductName))
             {
                 item.ProductName = inventory.ProductName;
