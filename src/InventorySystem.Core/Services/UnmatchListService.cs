@@ -120,8 +120,16 @@ public class UnmatchListService : IUnmatchListService
         var adjustmentUnmatches = await CheckInventoryAdjustmentUnmatchAsync(dataSetId, jobDate);
         unmatchItems.AddRange(adjustmentUnmatches);
 
+        // マスタデータで名前を補完
+        var enrichedItems = new List<UnmatchItem>();
+        foreach (var item in unmatchItems)
+        {
+            var enrichedItem = await EnrichWithMasterData(item);
+            enrichedItems.Add(enrichedItem);
+        }
+
         // ソート：商品分類1、商品コード、荷印コード、荷印名、等級コード、階級コード
-        return unmatchItems
+        return enrichedItems
             .OrderBy(x => x.ProductCategory1)
             .ThenBy(x => x.Key.ProductCode)
             .ThenBy(x => x.Key.ShippingMarkCode)
@@ -341,5 +349,43 @@ public class UnmatchListService : IUnmatchListService
             adjustment.ShippingMarkCode, adjustment.JobDate);
         task.Wait();
         return task.Result;
+    }
+
+    private async Task<UnmatchItem> EnrichWithMasterData(UnmatchItem item)
+    {
+        // 得意先名が空の場合、得意先マスタから取得を試みる
+        if (string.IsNullOrEmpty(item.CustomerName) && !string.IsNullOrEmpty(item.CustomerCode))
+        {
+            // 現在得意先マスタは実装されていないため、コードを表示
+            item.CustomerName = $"得意先({item.CustomerCode})";
+            _logger.LogInformation("得意先名補完: {Code} -> {Name}", item.CustomerCode, item.CustomerName);
+        }
+        
+        // 商品名が空の場合、在庫マスタから取得を試みる
+        if (string.IsNullOrEmpty(item.ProductName) && !string.IsNullOrEmpty(item.Key.ProductCode))
+        {
+            var inventoryKey = new InventoryKey
+            {
+                ProductCode = item.Key.ProductCode,
+                GradeCode = item.Key.GradeCode,
+                ClassCode = item.Key.ClassCode,
+                ShippingMarkCode = item.Key.ShippingMarkCode,
+                ShippingMarkName = item.Key.ShippingMarkName
+            };
+            
+            var inventory = await _inventoryRepository.GetByKeyAsync(inventoryKey, item.VoucherDate);
+            if (inventory != null && !string.IsNullOrEmpty(inventory.ProductName))
+            {
+                item.ProductName = inventory.ProductName;
+                _logger.LogInformation("商品名補完: {Code} -> {Name}", item.Key.ProductCode, item.ProductName);
+            }
+            else
+            {
+                item.ProductName = $"商品({item.Key.ProductCode})";
+                _logger.LogInformation("商品名補完(デフォルト): {Code} -> {Name}", item.Key.ProductCode, item.ProductName);
+            }
+        }
+        
+        return item;
     }
 }
