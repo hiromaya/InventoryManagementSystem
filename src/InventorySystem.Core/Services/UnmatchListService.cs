@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Interfaces.Masters;
 
 namespace InventorySystem.Core.Services;
 
@@ -14,6 +15,9 @@ public class UnmatchListService : IUnmatchListService
     private readonly IInventoryRepository _inventoryRepository;
     private readonly IGradeMasterRepository _gradeMasterRepository;
     private readonly IClassMasterRepository _classMasterRepository;
+    private readonly ICustomerMasterRepository _customerMasterRepository;
+    private readonly IProductMasterRepository _productMasterRepository;
+    private readonly ISupplierMasterRepository _supplierMasterRepository;
     private readonly ILogger<UnmatchListService> _logger;
 
     public UnmatchListService(
@@ -24,6 +28,9 @@ public class UnmatchListService : IUnmatchListService
         IInventoryRepository inventoryRepository,
         IGradeMasterRepository gradeMasterRepository,
         IClassMasterRepository classMasterRepository,
+        ICustomerMasterRepository customerMasterRepository,
+        IProductMasterRepository productMasterRepository,
+        ISupplierMasterRepository supplierMasterRepository,
         ILogger<UnmatchListService> logger)
     {
         _cpInventoryRepository = cpInventoryRepository;
@@ -33,6 +40,9 @@ public class UnmatchListService : IUnmatchListService
         _inventoryRepository = inventoryRepository;
         _gradeMasterRepository = gradeMasterRepository;
         _classMasterRepository = classMasterRepository;
+        _customerMasterRepository = customerMasterRepository;
+        _productMasterRepository = productMasterRepository;
+        _supplierMasterRepository = supplierMasterRepository;
         _logger = logger;
     }
 
@@ -363,36 +373,73 @@ public class UnmatchListService : IUnmatchListService
         item.GradeName = await GetGradeNameAsync(item.Key.GradeCode);
         item.ClassName = await GetClassNameAsync(item.Key.ClassCode);
         
-        // 得意先名が空の場合、得意先マスタから取得を試みる
+        // 得意先名が空の場合、得意先マスタから取得
         if (string.IsNullOrEmpty(item.CustomerName) && !string.IsNullOrEmpty(item.CustomerCode))
         {
-            // 現在得意先マスタは実装されていないため、コードを表示
-            item.CustomerName = $"得意先({item.CustomerCode})";
-            _logger.LogInformation("得意先名補完: {Code} -> {Name}", item.CustomerCode, item.CustomerName);
+            var customer = await _customerMasterRepository.GetByCodeAsync(item.CustomerCode);
+            if (customer != null)
+            {
+                item.CustomerName = customer.CustomerName;
+                _logger.LogInformation("得意先名補完: {Code} -> {Name}", item.CustomerCode, item.CustomerName);
+            }
+            else
+            {
+                item.CustomerName = $"得意先({item.CustomerCode})";
+                _logger.LogInformation("得意先名補完(デフォルト): {Code} -> {Name}", item.CustomerCode, item.CustomerName);
+            }
         }
         
-        // 商品名が空の場合、在庫マスタから取得を試みる
+        // 仕入先名が空の場合（仕入伝票の場合）、仕入先マスタから取得
+        if (item.Category == "掛仕入" || item.Category == "現金仕入")
+        {
+            if (string.IsNullOrEmpty(item.CustomerName) && !string.IsNullOrEmpty(item.CustomerCode))
+            {
+                var supplier = await _supplierMasterRepository.GetByCodeAsync(item.CustomerCode);
+                if (supplier != null)
+                {
+                    item.CustomerName = supplier.SupplierName;
+                    _logger.LogInformation("仕入先名補完: {Code} -> {Name}", item.CustomerCode, item.CustomerName);
+                }
+                else
+                {
+                    item.CustomerName = $"仕入先({item.CustomerCode})";
+                    _logger.LogInformation("仕入先名補完(デフォルト): {Code} -> {Name}", item.CustomerCode, item.CustomerName);
+                }
+            }
+        }
+        
+        // 商品名が空の場合、商品マスタから取得
         if (string.IsNullOrEmpty(item.ProductName) && !string.IsNullOrEmpty(item.Key.ProductCode))
         {
-            var inventoryKey = new InventoryKey
+            var product = await _productMasterRepository.GetByCodeAsync(item.Key.ProductCode);
+            if (product != null)
             {
-                ProductCode = item.Key.ProductCode,
-                GradeCode = item.Key.GradeCode,
-                ClassCode = item.Key.ClassCode,
-                ShippingMarkCode = item.Key.ShippingMarkCode,
-                ShippingMarkName = item.Key.ShippingMarkName
-            };
-            
-            var inventory = await _inventoryRepository.GetByKeyAsync(inventoryKey, item.JobDate);
-            if (inventory != null && !string.IsNullOrEmpty(inventory.ProductName))
-            {
-                item.ProductName = inventory.ProductName;
+                item.ProductName = product.ProductName;
                 _logger.LogInformation("商品名補完: {Code} -> {Name}", item.Key.ProductCode, item.ProductName);
             }
             else
             {
-                item.ProductName = $"商品({item.Key.ProductCode})";
-                _logger.LogInformation("商品名補完(デフォルト): {Code} -> {Name}", item.Key.ProductCode, item.ProductName);
+                // 商品マスタになければ在庫マスタから取得を試みる
+                var inventoryKey = new InventoryKey
+                {
+                    ProductCode = item.Key.ProductCode,
+                    GradeCode = item.Key.GradeCode,
+                    ClassCode = item.Key.ClassCode,
+                    ShippingMarkCode = item.Key.ShippingMarkCode,
+                    ShippingMarkName = item.Key.ShippingMarkName
+                };
+                
+                var inventory = await _inventoryRepository.GetByKeyAsync(inventoryKey, item.JobDate);
+                if (inventory != null && !string.IsNullOrEmpty(inventory.ProductName))
+                {
+                    item.ProductName = inventory.ProductName;
+                    _logger.LogInformation("商品名補完(在庫マスタ): {Code} -> {Name}", item.Key.ProductCode, item.ProductName);
+                }
+                else
+                {
+                    item.ProductName = $"商品({item.Key.ProductCode})";
+                    _logger.LogInformation("商品名補完(デフォルト): {Code} -> {Name}", item.Key.ProductCode, item.ProductName);
+                }
             }
         }
         

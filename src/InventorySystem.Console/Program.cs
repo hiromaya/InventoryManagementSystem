@@ -6,6 +6,9 @@ using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Services;
 using InventorySystem.Data.Repositories;
 using InventorySystem.Import.Services;
+using InventorySystem.Import.Services.Masters;
+using InventorySystem.Data.Repositories.Masters;
+using InventorySystem.Core.Interfaces.Masters;
 #if WINDOWS
 using InventorySystem.Reports.Interfaces;
 using InventorySystem.Reports.FastReport.Services;
@@ -96,6 +99,16 @@ builder.Services.AddScoped<PurchaseVoucherCsvRepository>(provider =>
 // Master data repositories
 builder.Services.AddScoped<IGradeMasterRepository, GradeMasterRepository>();
 builder.Services.AddScoped<IClassMasterRepository, ClassMasterRepository>();
+builder.Services.AddScoped<ICustomerMasterRepository>(provider => 
+    new CustomerMasterRepository(connectionString, provider.GetRequiredService<ILogger<CustomerMasterRepository>>()));
+builder.Services.AddScoped<IProductMasterRepository>(provider => 
+    new ProductMasterRepository(connectionString, provider.GetRequiredService<ILogger<ProductMasterRepository>>()));
+builder.Services.AddScoped<ISupplierMasterRepository>(provider => 
+    new SupplierMasterRepository(connectionString, provider.GetRequiredService<ILogger<SupplierMasterRepository>>()));
+
+// Master import services
+builder.Services.AddScoped<CustomerMasterImportService>();
+builder.Services.AddScoped<ProductMasterImportService>();
 
 builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();
@@ -141,7 +154,10 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  dotnet run import-sales <file> [YYYY-MM-DD]  - 売上伝票CSVを取込");
     Console.WriteLine("  dotnet run import-purchase <file> [YYYY-MM-DD] - 仕入伝票CSVを取込");
     Console.WriteLine("  dotnet run import-adjustment <file> [YYYY-MM-DD] - 在庫調整CSVを取込");
-    Console.WriteLine("  dotnet run debug-csv-structure <file>        - CSV構造を分析"  );
+    Console.WriteLine("  dotnet run debug-csv-structure <file>        - CSV構造を分析");
+    Console.WriteLine("  dotnet run import-customers <file>           - 得意先マスタCSVを取込");
+    Console.WriteLine("  dotnet run import-products <file>            - 商品マスタCSVを取込");
+    Console.WriteLine("  dotnet run import-suppliers <file>           - 仕入先マスタCSVを取込");
     Console.WriteLine("  例: dotnet run test-connection");
     Console.WriteLine("  例: dotnet run unmatch-list 2025-06-16");
     Console.WriteLine("  例: dotnet run daily-report 2025-06-16");
@@ -190,6 +206,18 @@ try
             
         case "debug-csv-structure":
             await DebugCsvStructureAsync(commandArgs);
+            break;
+            
+        case "import-customers":
+            await ExecuteImportCustomersAsync(host.Services, commandArgs);
+            break;
+            
+        case "import-products":
+            await ExecuteImportProductsAsync(host.Services, commandArgs);
+            break;
+            
+        case "import-suppliers":
+            await ExecuteImportSuppliersAsync(host.Services, commandArgs);
             break;
         
         default:
@@ -755,6 +783,109 @@ static async Task TestDatabaseConnectionAsync(IServiceProvider services)
         
         logger.LogError(ex, "データベース接続テストでエラーが発生しました");
     }
+}
+
+static async Task ExecuteImportCustomersAsync(IServiceProvider services, string[] args)
+{
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var importService = services.GetRequiredService<CustomerMasterImportService>();
+    
+    if (args.Length < 3)
+    {
+        Console.WriteLine("エラー: CSVファイルパスが指定されていません");
+        Console.WriteLine("使用方法: dotnet run import-customers <file>");
+        return;
+    }
+    
+    var filePath = args[2];
+    var importDate = DateTime.Today;
+    
+    var stopwatch = Stopwatch.StartNew();
+    
+    Console.WriteLine("=== 得意先マスタCSV取込処理開始 ===");
+    Console.WriteLine($"ファイル: {filePath}");
+    Console.WriteLine();
+    
+    try
+    {
+        var result = await importService.ImportFromCsvAsync(filePath, importDate);
+        
+        stopwatch.Stop();
+        
+        Console.WriteLine("=== 取込結果 ===");
+        Console.WriteLine($"データセットID: {result.DataSetId}");
+        Console.WriteLine($"ステータス: {result.Status}");
+        Console.WriteLine($"取込件数: {result.ImportedCount}");
+        Console.WriteLine($"処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
+        
+        if (!string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            Console.WriteLine($"エラー情報: {result.ErrorMessage}");
+        }
+        
+        Console.WriteLine("=== 得意先マスタCSV取込処理完了 ===");
+    }
+    catch (Exception ex)
+    {
+        stopwatch.Stop();
+        Console.WriteLine($"エラー: {ex.Message}");
+        logger.LogError(ex, "得意先マスタCSV取込処理でエラーが発生しました");
+    }
+}
+
+static async Task ExecuteImportProductsAsync(IServiceProvider services, string[] args)
+{
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var importService = services.GetRequiredService<ProductMasterImportService>();
+    
+    if (args.Length < 3)
+    {
+        Console.WriteLine("エラー: CSVファイルパスが指定されていません");
+        Console.WriteLine("使用方法: dotnet run import-products <file>");
+        return;
+    }
+    
+    var filePath = args[2];
+    var importDate = DateTime.Today;
+    
+    var stopwatch = Stopwatch.StartNew();
+    
+    Console.WriteLine("=== 商品マスタCSV取込処理開始 ===");
+    Console.WriteLine($"ファイル: {filePath}");
+    Console.WriteLine();
+    
+    try
+    {
+        var result = await importService.ImportFromCsvAsync(filePath, importDate);
+        
+        stopwatch.Stop();
+        
+        Console.WriteLine("=== 取込結果 ===");
+        Console.WriteLine($"データセットID: {result.DataSetId}");
+        Console.WriteLine($"ステータス: {result.Status}");
+        Console.WriteLine($"取込件数: {result.ImportedCount}");
+        Console.WriteLine($"処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
+        
+        if (!string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            Console.WriteLine($"エラー情報: {result.ErrorMessage}");
+        }
+        
+        Console.WriteLine("=== 商品マスタCSV取込処理完了 ===");
+    }
+    catch (Exception ex)
+    {
+        stopwatch.Stop();
+        Console.WriteLine($"エラー: {ex.Message}");
+        logger.LogError(ex, "商品マスタCSV取込処理でエラーが発生しました");
+    }
+}
+
+static async Task ExecuteImportSuppliersAsync(IServiceProvider services, string[] args)
+{
+    // TODO: 仕入先マスタ取込処理の実装
+    Console.WriteLine("仕入先マスタ取込機能は実装中です。");
+    await Task.CompletedTask;
 }
 
 
