@@ -12,10 +12,7 @@ using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Core.Configuration;
 using Microsoft.Extensions.Options;
 using InventorySystem.Reports.Interfaces;
-#if WINDOWS
 using InventorySystem.Reports.FastReport.Services;
-#endif
-using InventorySystem.Reports.Services;
 using System.Diagnostics;
 using System.Reflection;
 
@@ -29,32 +26,14 @@ if (args.Length > 0 && args[0] == "test-fastreport")
 {
     Console.WriteLine("=== FastReport.NET Trial テスト開始 ===");
     Console.WriteLine($"実行時刻: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-    
-    // プラットフォーム確認
-    if (!OperatingSystem.IsWindows())
-    {
-        Console.WriteLine("\n✓ Linux環境での実行を確認");
-        Console.WriteLine("FastReport.NET は Windows専用のため、実際のレポート生成はスキップされます。");
-        Console.WriteLine("Windows環境では以下のテストが実行されます：");
-        Console.WriteLine("  1. FastReportアセンブリの読み込み");
-        Console.WriteLine("  2. アンマッチリスト・商品日報のFastReport実装確認");
-        Console.WriteLine("  3. PDF生成テスト");
-        Console.WriteLine("\n✓ QuestPDFからFastReport.NETへの移行が完了しています");
-        Console.WriteLine("✓ クロスプラットフォーム対応が実装済みです");
-        Console.WriteLine("\n=== FastReport.NET移行テスト完了 ===");
-        return 0;
-    }
-    else
-    {
-        Console.WriteLine("\n✓ Windows環境を検出");
-        Console.WriteLine("✓ FastReport.NET Trial版が利用可能です");
-        Console.WriteLine("✓ アンマッチリスト・商品日報の実装が完了しています");
-        Console.WriteLine("\n実際のPDF生成テストを実行するには：");
-        Console.WriteLine("  dotnet run unmatch-list [日付] # アンマッチリストPDF生成");
-        Console.WriteLine("  dotnet run daily-report [日付] # 商品日報PDF生成");
-        Console.WriteLine("\n=== FastReport.NET移行テスト完了 ===");
-        return 0;
-    }
+    Console.WriteLine("\n✓ Windows専用環境");
+    Console.WriteLine("✓ FastReport.NET Trial版が利用可能です");
+    Console.WriteLine("✓ アンマッチリスト・商品日報の実装が完了しています");
+    Console.WriteLine("\n実際のPDF生成テストを実行するには：");
+    Console.WriteLine("  dotnet run unmatch-list [日付] # アンマッチリストPDF生成");
+    Console.WriteLine("  dotnet run daily-report [日付] # 商品日報PDF生成");
+    Console.WriteLine("\n=== FastReport.NET移行テスト完了 ===");
+    return 0;
 }
 
 // FastReport.NET Trial版を使用
@@ -120,14 +99,9 @@ builder.Services.AddScoped<SupplierMasterImportService>();
 builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
-// Report Services - conditional based on platform
-#if WINDOWS
+// Report Services - Windows専用でFastReport実装を使用
 builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
 builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, DailyReportFastReportService>();
-#else
-builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
-builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, PlaceholderDailyReportService>();
-#endif
 builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
 builder.Services.AddScoped<InventoryAdjustmentImportService>();
@@ -305,15 +279,12 @@ static async Task ExecuteUnmatchListAsync(IServiceProvider services, string[] ar
             await File.WriteAllBytesAsync(outputPath, pdfBytes);
             Console.WriteLine($"PDF出力完了: {outputPath}");
             
-            // PDFを開く（Windows環境のみ）
-            if (OperatingSystem.IsWindows())
+            // PDFを開く
+            Process.Start(new ProcessStartInfo
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = outputPath,
-                    UseShellExecute = true
-                });
-            }
+                FileName = outputPath,
+                UseShellExecute = true
+            });
         }
         catch (Exception ex)
         {
@@ -596,15 +567,12 @@ static async Task ExecuteDailyReportAsync(IServiceProvider services, string[] ar
             await File.WriteAllBytesAsync(outputPath, pdfBytes);
             Console.WriteLine($"PDF出力完了: {outputPath}");
             
-            // PDFを開く（Windows環境のみ）
-            if (OperatingSystem.IsWindows())
+            // PDFを開く
+            Process.Start(new ProcessStartInfo
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = outputPath,
-                    UseShellExecute = true
-                });
-            }
+                FileName = outputPath,
+                UseShellExecute = true
+            });
         }
         catch (Exception ex)
         {

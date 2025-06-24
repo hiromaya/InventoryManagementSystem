@@ -2,13 +2,10 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
-    <DefineConstants>WINDOWS</DefineConstants>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,9 +25,7 @@
     <ProjectReference Include="../InventorySystem.Core/InventorySystem.Core.csproj" />
     <ProjectReference Include="../InventorySystem.Data/InventorySystem.Data.csproj" />
     <ProjectReference Include="../InventorySystem.Import/InventorySystem.Import.csproj" />
-    <!-- 条件付きでReportsプロジェクトを参照 -->
-    <ProjectReference Include="../InventorySystem.Reports/InventorySystem.Reports.csproj" 
-                      Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+    <ProjectReference Include="../InventorySystem.Reports/InventorySystem.Reports.csproj" />
   </ItemGroup>
 
   <ItemGroup>

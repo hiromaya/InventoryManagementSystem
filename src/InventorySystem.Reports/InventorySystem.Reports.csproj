@@ -9,6 +9,7 @@
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <UseWindowsForms>true</UseWindowsForms>
     <DefineConstants>WINDOWS</DefineConstants>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <!-- FastReport.NET Trial DLL参照 -->
