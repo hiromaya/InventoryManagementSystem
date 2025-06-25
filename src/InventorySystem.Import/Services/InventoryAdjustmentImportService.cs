@@ -145,10 +145,9 @@ public class InventoryAdjustmentImportService
     /// </summary>
     private async Task<List<InventoryAdjustmentDaijinCsv>> ReadDaijinCsvFileAsync(string filePath)
     {
-        // ファイルのエンコーディングを自動判定
-        var encoding = DetectFileEncoding(filePath);
-        _logger.LogInformation("検出されたエンコーディング: {Encoding}", encoding.EncodingName);
-        using var reader = new StreamReader(filePath, encoding);
+        // UTF-8エンコーディングで直接読み込む
+        _logger.LogInformation("UTF-8エンコーディングでCSVファイルを読み込みます: {FilePath}", filePath);
+        using var reader = new StreamReader(filePath, Encoding.UTF8);
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HasHeaderRecord = true,
@@ -195,7 +194,8 @@ public class InventoryAdjustmentImportService
     /// </summary>
     private static string GenerateDataSetId()
     {
-        return $"ADJUSTMENT_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}";
+        // GUIDの最初の8文字のみ使用
+        return $"ADJUST_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N.Substring(0, 8)}";
     }
 
     /// <summary>
@@ -223,27 +223,4 @@ public class InventoryAdjustmentImportService
         };
     }
 
-    /// <summary>
-    /// ファイルのエンコーディングを自動判定
-    /// </summary>
-    private static Encoding DetectFileEncoding(string filePath)
-    {
-        var bytes = File.ReadAllBytes(filePath);
-        
-        // BOM付きUTF-8
-        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
-            return Encoding.UTF8;
-        
-        // BOM付きUTF-16 LE
-        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
-            return Encoding.Unicode;
-        
-        // BOM付きUTF-16 BE
-        if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF)
-            return Encoding.BigEndianUnicode;
-        
-        // BOMなしの場合、販売大臣のデフォルトであるShift-JISとして扱う
-        // 注意: 販売大臣AXのCSVは通常Shift-JISで出力される
-        return Encoding.GetEncoding("Shift_JIS");
-    }
 }

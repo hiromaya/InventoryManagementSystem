@@ -145,10 +145,10 @@ public class ProductMasterImportService
     /// </summary>
     private async Task<List<ProductMasterCsv>> ReadCsvFileAsync(string filePath)
     {
-        var encoding = DetectFileEncoding(filePath);
-        _logger.LogInformation("CSVファイル読み込み開始: {FilePath}, エンコーディング: {Encoding}", filePath, encoding.EncodingName);
+        // UTF-8エンコーディングで直接読み込む
+        _logger.LogInformation("UTF-8エンコーディングでCSVファイルを読み込みます: {FilePath}", filePath);
         
-        using var reader = new StreamReader(filePath, encoding);
+        using var reader = new StreamReader(filePath, Encoding.UTF8);
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HasHeaderRecord = true,
@@ -203,28 +203,6 @@ public class ProductMasterImportService
         return records;
     }
 
-    /// <summary>
-    /// ファイルのエンコーディングを自動判定
-    /// </summary>
-    private static Encoding DetectFileEncoding(string filePath)
-    {
-        var bytes = File.ReadAllBytes(filePath);
-        
-        // BOM付きUTF-8
-        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
-            return Encoding.UTF8;
-        
-        // BOM付きUTF-16 LE
-        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
-            return Encoding.Unicode;
-        
-        // BOM付きUTF-16 BE
-        if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF)
-            return Encoding.BigEndianUnicode;
-        
-        // BOMなしの場合、UTF-8として扱う（大臣出力ファイルのデフォルト）
-        return Encoding.UTF8;
-    }
 
     /// <summary>
     /// CSVレコードをEntityに変換
@@ -266,7 +244,8 @@ public class ProductMasterImportService
     /// </summary>
     private static string GenerateDataSetId()
     {
-        return $"PRODMST_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}";
+        // GUIDの最初の8文字のみ使用
+        return $"PRODMST_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N.Substring(0, 8)}";
     }
 
     /// <summary>

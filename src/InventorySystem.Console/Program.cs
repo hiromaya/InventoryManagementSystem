@@ -652,9 +652,9 @@ try
 
         try
         {
-            // エンコーディングを自動判定
-            var encoding = DetectFileEncoding(filePath);
-            Console.WriteLine($"検出されたエンコーディング: {encoding.EncodingName}\n");
+            // UTF-8エンコーディングで直接読み込む
+            var encoding = Encoding.UTF8;
+            Console.WriteLine($"使用エンコーディング: {encoding.EncodingName}\n");
 
             using var reader = new StreamReader(filePath, encoding);
             var headerLine = await reader.ReadLineAsync();
@@ -730,25 +730,6 @@ try
         }
     }
 
-    static Encoding DetectFileEncoding(string filePath)
-    {
-        var bytes = File.ReadAllBytes(filePath);
-        
-        // BOM付きUTF-8
-        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
-            return Encoding.UTF8;
-        
-        // BOM付きUTF-16 LE
-        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
-            return Encoding.Unicode;
-        
-        // BOM付きUTF-16 BE
-        if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF)
-            return Encoding.BigEndianUnicode;
-        
-        // BOMなしの場合、販売大臣のデフォルトであるShift-JISとして扱う
-        return Encoding.GetEncoding("Shift_JIS");
-    }
 
     static async Task TestDatabaseConnectionAsync(IServiceProvider services)
 {
