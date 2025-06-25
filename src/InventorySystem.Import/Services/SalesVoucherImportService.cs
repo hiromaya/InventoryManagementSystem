@@ -72,13 +72,12 @@ public class SalesVoucherImportService
                 ProcessType = "Sales",
                 Name = $"売上伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
                 Description = $"売上伝票CSVファイル取込: {Path.GetFileName(filePath)}",
-                ImportedAt = DateTime.Now,
+                CreatedAt = DateTime.Now,
                 RecordCount = 0,
                 Status = DataSetStatus.Processing,
                 FilePath = filePath,
                 JobDate = jobDate,
                 DepartmentCode = departmentCode,
-                CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
             
@@ -255,7 +254,7 @@ public class SalesVoucherImportService
             ImportedCount = dataSet.RecordCount,
             ErrorMessage = dataSet.ErrorMessage,
             FilePath = dataSet.FilePath,
-            ImportedAt = dataSet.ImportedAt,
+            CreatedAt = dataSet.CreatedAt,
             ImportedData = importedData.Cast<object>().ToList()
         };
     }
@@ -295,6 +294,6 @@ public class ImportResult
     public int ImportedCount { get; set; }
     public string? ErrorMessage { get; set; }
     public string? FilePath { get; set; }
-    public DateTime ImportedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
     public List<object> ImportedData { get; set; } = new();
 }

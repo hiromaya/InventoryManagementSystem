@@ -129,7 +129,7 @@ public class ProductMasterImportService
                 ImportedCount = importedCount,
                 ErrorMessage = errorMessages.Any() ? string.Join("\n", errorMessages) : null,
                 FilePath = filePath,
-                ImportedAt = DateTime.Now
+                CreatedAt = DateTime.Now
             };
         }
         catch (Exception ex)
@@ -287,7 +287,7 @@ public class ProductMasterImportService
             ImportedCount = dataSet.RecordCount,
             ErrorMessage = dataSet.ErrorMessage,
             FilePath = dataSet.FilePath,
-            ImportedAt = dataSet.ImportedAt
+            CreatedAt = dataSet.CreatedAt
         };
     }
 }

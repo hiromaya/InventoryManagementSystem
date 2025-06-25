@@ -94,7 +94,6 @@ public class PurchaseVoucherCsv
             ProductCategory1 = ProductCategory1?.Trim(),
             ProductCategory2 = ProductCategory2?.Trim(),
             ProductCategory3 = ProductCategory3?.Trim(),
-            ImportedAt = DateTime.Now,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };

@@ -56,12 +56,11 @@ public class SupplierMasterImportService
                 ProcessType = "SupplierMaster",
                 Name = $"仕入先マスタ取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
                 Description = $"仕入先マスタCSVファイル取込: {Path.GetFileName(filePath)}",
-                ImportedAt = DateTime.Now,
+                CreatedAt = DateTime.Now,
                 RecordCount = 0,
                 Status = DataSetStatus.Processing,
                 FilePath = filePath,
                 JobDate = importDate,
-                CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
             
@@ -130,7 +129,7 @@ public class SupplierMasterImportService
                 ImportedCount = importedCount,
                 ErrorMessage = errorMessages.Any() ? string.Join("\n", errorMessages) : null,
                 FilePath = filePath,
-                ImportedAt = DateTime.Now
+                CreatedAt = DateTime.Now
             };
         }
         catch (Exception ex)
@@ -281,7 +280,7 @@ public class SupplierMasterImportService
             ImportedCount = dataSet.RecordCount,
             ErrorMessage = dataSet.ErrorMessage,
             FilePath = dataSet.FilePath,
-            ImportedAt = dataSet.ImportedAt
+            CreatedAt = dataSet.CreatedAt
         };
     }
 }

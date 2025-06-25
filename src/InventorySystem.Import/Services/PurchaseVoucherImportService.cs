@@ -58,12 +58,11 @@ public class PurchaseVoucherImportService
                 ProcessType = "Purchase",
                 Name = $"仕入伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
                 Description = $"仕入伝票CSVファイル取込: {Path.GetFileName(filePath)}",
-                ImportedAt = DateTime.Now,
+                CreatedAt = DateTime.Now,
                 RecordCount = 0,
                 Status = DataSetStatus.Processing,
                 FilePath = filePath,
                 JobDate = jobDate,
-                CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
             
@@ -217,7 +216,7 @@ public class PurchaseVoucherImportService
             ImportedCount = dataSet.RecordCount,
             ErrorMessage = dataSet.ErrorMessage,
             FilePath = dataSet.FilePath,
-            ImportedAt = dataSet.ImportedAt,
+            CreatedAt = dataSet.CreatedAt,
             ImportedData = importedData.Cast<object>().ToList()
         };
     }

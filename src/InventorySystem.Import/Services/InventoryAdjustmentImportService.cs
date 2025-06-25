@@ -57,12 +57,11 @@ public class InventoryAdjustmentImportService
                 ProcessType = "Adjustment",
                 Name = $"在庫調整取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
                 Description = $"在庫調整CSVファイル取込: {Path.GetFileName(filePath)}",
-                ImportedAt = DateTime.Now,
+                CreatedAt = DateTime.Now,
                 RecordCount = 0,
                 Status = DataSetStatus.Processing,
                 FilePath = filePath,
                 JobDate = jobDate,
-                CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
             
@@ -219,7 +218,7 @@ public class InventoryAdjustmentImportService
             ImportedCount = dataSet.RecordCount,
             ErrorMessage = dataSet.ErrorMessage,
             FilePath = dataSet.FilePath,
-            ImportedAt = dataSet.ImportedAt,
+            CreatedAt = dataSet.CreatedAt,
             ImportedData = importedData.Cast<object>().ToList()
         };
     }
