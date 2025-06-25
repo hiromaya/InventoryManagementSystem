@@ -72,38 +72,38 @@ public class DataSet
     public DateTime JobDate { get; set; }
 
     /// <summary>
-    /// 作成日
+    /// 作成日時
     /// </summary>
-    public DateTime CreatedDate { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// 更新日
+    /// 更新日時
     /// </summary>
-    public DateTime UpdatedDate { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     /// <summary>
-    /// 完了日
+    /// 完了日時
     /// </summary>
     public DateTime? CompletedDate { get; set; }
 
     /// <summary>
-    /// 作成日時 - 互換性のため残す
+    /// 作成日 - 互換性のため残す
     /// </summary>
-    [Obsolete("CreatedDateを使用してください")]
-    public DateTime CreatedAt
+    [Obsolete("CreatedAtを使用してください")]
+    public DateTime CreatedDate
     {
-        get => CreatedDate;
-        set => CreatedDate = value;
+        get => CreatedAt;
+        set => CreatedAt = value;
     }
 
     /// <summary>
-    /// 更新日時 - 互換性のため残す
+    /// 更新日 - 互換性のため残す
     /// </summary>
-    [Obsolete("UpdatedDateを使用してください")]
-    public DateTime UpdatedAt
+    [Obsolete("UpdatedAtを使用してください")]
+    public DateTime UpdatedDate
     {
-        get => UpdatedDate;
-        set => UpdatedDate = value;
+        get => UpdatedAt;
+        set => UpdatedAt = value;
     }
 
     /// <summary>

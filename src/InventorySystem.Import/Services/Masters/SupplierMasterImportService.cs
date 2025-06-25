@@ -61,8 +61,8 @@ public class SupplierMasterImportService
                 Status = DataSetStatus.Processing,
                 FilePath = filePath,
                 JobDate = importDate,
-                CreatedDate = DateTime.Now,
-                UpdatedDate = DateTime.Now
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
             };
             
             await _dataSetRepository.CreateAsync(dataSet);

@@ -78,8 +78,8 @@ public class SalesVoucherImportService
                 FilePath = filePath,
                 JobDate = jobDate,
                 DepartmentCode = departmentCode,
-                CreatedDate = DateTime.Now,
-                UpdatedDate = DateTime.Now
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
             };
             
             await _dataSetRepository.CreateAsync(dataSet);

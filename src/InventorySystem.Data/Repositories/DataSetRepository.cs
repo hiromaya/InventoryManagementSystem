@@ -24,10 +24,10 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
         const string sql = @"
             INSERT INTO DataSets (
                 Id, Name, Description, ProcessType, Status, JobDate,
-                RecordCount, ErrorMessage, FilePath, CreatedDate, UpdatedDate
+                RecordCount, ErrorMessage, FilePath, CreatedAt, UpdatedAt
             ) VALUES (
                 @Id, @Name, @Description, @ProcessType, @Status, @JobDate,
-                @RecordCount, @ErrorMessage, @FilePath, @CreatedDate, @UpdatedDate
+                @RecordCount, @ErrorMessage, @FilePath, @CreatedAt, @UpdatedAt
             )";
 
         try
@@ -45,8 +45,8 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
                 dataSet.RecordCount,
                 dataSet.ErrorMessage,
                 dataSet.FilePath,
-                CreatedDate = DateTime.Now,
-                UpdatedDate = DateTime.Now
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
             };
 
             await connection.ExecuteAsync(sql, parameters);
@@ -70,7 +70,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     {
         const string sql = @"
             SELECT Id, Name, Description, ProcessType, Status, JobDate,
-                   RecordCount, ErrorMessage, FilePath, CreatedDate, UpdatedDate, CompletedDate
+                   RecordCount, ErrorMessage, FilePath, CreatedAt, UpdatedAt, CompletedDate
             FROM DataSets 
             WHERE Id = @Id";
 
@@ -97,7 +97,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
             UPDATE DataSets 
             SET Status = @Status, 
                 ErrorMessage = @ErrorMessage,
-                UpdatedDate = @UpdatedDate,
+                UpdatedAt = @UpdatedAt,
                 CompletedDate = @CompletedDate
             WHERE Id = @Id";
 
@@ -110,7 +110,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
                 Id = id,
                 Status = status,
                 ErrorMessage = errorMessage,
-                UpdatedDate = DateTime.Now,
+                UpdatedAt = DateTime.Now,
                 CompletedDate = (status == DataSetStatus.Completed || status == DataSetStatus.Failed) ? DateTime.Now : (DateTime?)null
             };
 
@@ -138,7 +138,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
         const string sql = @"
             UPDATE DataSets 
             SET RecordCount = @RecordCount,
-                UpdatedDate = @UpdatedDate
+                UpdatedAt = @UpdatedAt
             WHERE Id = @Id";
 
         try
@@ -149,7 +149,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
             {
                 Id = id,
                 RecordCount = recordCount,
-                UpdatedDate = DateTime.Now
+                UpdatedAt = DateTime.Now
             };
 
             await connection.ExecuteAsync(sql, parameters);

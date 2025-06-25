@@ -62,8 +62,8 @@ public class InventoryAdjustmentImportService
                 Status = DataSetStatus.Processing,
                 FilePath = filePath,
                 JobDate = jobDate,
-                CreatedDate = DateTime.Now,
-                UpdatedDate = DateTime.Now
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
             };
             
             await _dataSetRepository.CreateAsync(dataSet);

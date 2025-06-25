@@ -60,8 +60,8 @@ public class CustomerMasterImportService
                 RecordCount = 0,
                 FilePath = filePath,
                 JobDate = importDate,
-                CreatedDate = DateTime.Now,
-                UpdatedDate = DateTime.Now
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
             };
             
             await _dataSetRepository.CreateAsync(dataSet);
