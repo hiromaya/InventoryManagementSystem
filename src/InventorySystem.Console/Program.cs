@@ -193,7 +193,7 @@ try
             break;
             
         case "debug-csv-structure":
-            await DebugCsvStructureAsync(commandArgs);
+            await ExecuteDebugCsvStructureAsync(host.Services, commandArgs);
             break;
             
         case "import-customers":
@@ -206,10 +206,6 @@ try
             
         case "import-suppliers":
             await ExecuteImportSuppliersAsync(host.Services, commandArgs);
-            break;
-        
-        case "debug-csv-structure":
-            await ExecuteDebugCsvStructureAsync(host.Services, commandArgs);
             break;
         
         default:
