@@ -23,11 +23,11 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     {
         const string sql = @"
             INSERT INTO DataSets (
-                Id, DataSetType, ImportedAt, RecordCount, Status, 
-                ErrorMessage, FilePath, JobDate, CreatedAt, UpdatedAt
+                Id, Name, Description, ProcessType, Status, JobDate,
+                RecordCount, ErrorMessage, FilePath, CreatedDate, UpdatedDate
             ) VALUES (
-                @Id, @DataSetType, @ImportedAt, @RecordCount, @Status,
-                @ErrorMessage, @FilePath, @JobDate, @CreatedAt, @UpdatedAt
+                @Id, @Name, @Description, @ProcessType, @Status, @JobDate,
+                @RecordCount, @ErrorMessage, @FilePath, @CreatedDate, @UpdatedDate
             )";
 
         try
@@ -37,21 +37,22 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
             var parameters = new
             {
                 dataSet.Id,
-                dataSet.DataSetType,
-                dataSet.ImportedAt,
-                dataSet.RecordCount,
+                dataSet.Name,
+                dataSet.Description,
+                dataSet.ProcessType,
                 dataSet.Status,
+                dataSet.JobDate,
+                dataSet.RecordCount,
                 dataSet.ErrorMessage,
                 dataSet.FilePath,
-                dataSet.JobDate,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedDate = DateTime.Now,
+                UpdatedDate = DateTime.Now
             };
 
             await connection.ExecuteAsync(sql, parameters);
             
-            _logger.LogInformation("データセット作成完了: {DataSetId}, Type: {DataSetType}", 
-                dataSet.Id, dataSet.DataSetType);
+            _logger.LogInformation("データセット作成完了: {DataSetId}, Type: {ProcessType}", 
+                dataSet.Id, dataSet.ProcessType);
             
             return dataSet.Id;
         }
@@ -68,8 +69,8 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     public async Task<DataSet?> GetByIdAsync(string id)
     {
         const string sql = @"
-            SELECT Id, DataSetType, ImportedAt, RecordCount, Status, 
-                   ErrorMessage, FilePath, JobDate, CreatedAt, UpdatedAt
+            SELECT Id, Name, Description, ProcessType, Status, JobDate,
+                   RecordCount, ErrorMessage, FilePath, CreatedDate, UpdatedDate, CompletedDate
             FROM DataSets 
             WHERE Id = @Id";
 
@@ -96,7 +97,8 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
             UPDATE DataSets 
             SET Status = @Status, 
                 ErrorMessage = @ErrorMessage,
-                UpdatedAt = @UpdatedAt
+                UpdatedDate = @UpdatedDate,
+                CompletedDate = @CompletedDate
             WHERE Id = @Id";
 
         try
@@ -108,7 +110,8 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
                 Id = id,
                 Status = status,
                 ErrorMessage = errorMessage,
-                UpdatedAt = DateTime.Now
+                UpdatedDate = DateTime.Now,
+                CompletedDate = (status == DataSetStatus.Completed || status == DataSetStatus.Failed) ? DateTime.Now : (DateTime?)null
             };
 
             var affectedRows = await connection.ExecuteAsync(sql, parameters);
@@ -135,7 +138,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
         const string sql = @"
             UPDATE DataSets 
             SET RecordCount = @RecordCount,
-                UpdatedAt = @UpdatedAt
+                UpdatedDate = @UpdatedDate
             WHERE Id = @Id";
 
         try
@@ -146,7 +149,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
             {
                 Id = id,
                 RecordCount = recordCount,
-                UpdatedAt = DateTime.Now
+                UpdatedDate = DateTime.Now
             };
 
             await connection.ExecuteAsync(sql, parameters);

@@ -54,12 +54,16 @@ public class InventoryAdjustmentImportService
             var dataSet = new DataSet
             {
                 Id = dataSetId,
-                DataSetType = DataSetTypes.Adjustment,
+                ProcessType = "Adjustment",
+                Name = $"在庫調整取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
+                Description = $"在庫調整CSVファイル取込: {Path.GetFileName(filePath)}",
                 ImportedAt = DateTime.Now,
                 RecordCount = 0,
                 Status = DataSetStatus.Processing,
                 FilePath = filePath,
-                JobDate = jobDate
+                JobDate = jobDate,
+                CreatedDate = DateTime.Now,
+                UpdatedDate = DateTime.Now
             };
             
             await _dataSetRepository.CreateAsync(dataSet);

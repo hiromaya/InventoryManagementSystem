@@ -53,12 +53,15 @@ public class ProductMasterImportService
             var dataSet = new DataSet
             {
                 Id = dataSetId,
-                DataSetType = "ProductMaster",
-                ImportedAt = DateTime.Now,
-                RecordCount = 0,
+                Name = $"商品マスタ取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
+                Description = $"商品マスタCSV取込: {Path.GetFileName(filePath)}",
+                ProcessType = "ProductMaster",
                 Status = DataSetStatus.Processing,
+                RecordCount = 0,
                 FilePath = filePath,
-                JobDate = importDate
+                JobDate = importDate,
+                CreatedDate = DateTime.Now,
+                UpdatedDate = DateTime.Now
             };
             
             await _dataSetRepository.CreateAsync(dataSet);

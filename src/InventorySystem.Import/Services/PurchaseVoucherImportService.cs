@@ -55,12 +55,16 @@ public class PurchaseVoucherImportService
             var dataSet = new DataSet
             {
                 Id = dataSetId,
-                DataSetType = DataSetTypes.Purchase,
+                ProcessType = "Purchase",
+                Name = $"仕入伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
+                Description = $"仕入伝票CSVファイル取込: {Path.GetFileName(filePath)}",
                 ImportedAt = DateTime.Now,
                 RecordCount = 0,
                 Status = DataSetStatus.Processing,
                 FilePath = filePath,
-                JobDate = jobDate
+                JobDate = jobDate,
+                CreatedDate = DateTime.Now,
+                UpdatedDate = DateTime.Now
             };
             
             await _dataSetRepository.CreateAsync(dataSet);

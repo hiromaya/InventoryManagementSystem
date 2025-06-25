@@ -69,13 +69,17 @@ public class SalesVoucherImportService
             var dataSet = new DataSet
             {
                 Id = dataSetId,
-                DataSetType = DataSetTypes.Sales,
+                ProcessType = "Sales",
+                Name = $"売上伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
+                Description = $"売上伝票CSVファイル取込: {Path.GetFileName(filePath)}",
                 ImportedAt = DateTime.Now,
                 RecordCount = 0,
                 Status = DataSetStatus.Processing,
                 FilePath = filePath,
                 JobDate = jobDate,
-                DepartmentCode = departmentCode
+                DepartmentCode = departmentCode,
+                CreatedDate = DateTime.Now,
+                UpdatedDate = DateTime.Now
             };
             
             await _dataSetRepository.CreateAsync(dataSet);

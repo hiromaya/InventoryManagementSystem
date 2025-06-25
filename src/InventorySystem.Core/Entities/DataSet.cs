@@ -12,14 +12,39 @@ public class DataSet
     public string Id { get; set; } = string.Empty;
 
     /// <summary>
-    /// データセット種別 ('Sales', 'Purchase', 'Adjustment')
+    /// データセット名
     /// </summary>
-    public string DataSetType { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// 取込日時
+    /// 説明
     /// </summary>
-    public DateTime ImportedAt { get; set; }
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// 処理種類
+    /// </summary>
+    public string ProcessType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// データセット種別 ('Sales', 'Purchase', 'Adjustment') - 互換性のため残す
+    /// </summary>
+    [Obsolete("ProcessTypeを使用してください")]
+    public string DataSetType
+    {
+        get => ProcessType;
+        set => ProcessType = value;
+    }
+
+    /// <summary>
+    /// 取込日時 - 互換性のため残す
+    /// </summary>
+    [Obsolete("CreatedDateを使用してください")]
+    public DateTime ImportedAt
+    {
+        get => CreatedDate;
+        set => CreatedDate = value;
+    }
 
     /// <summary>
     /// 取込件数
@@ -47,14 +72,39 @@ public class DataSet
     public DateTime JobDate { get; set; }
 
     /// <summary>
-    /// 作成日時
+    /// 作成日
     /// </summary>
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedDate { get; set; }
 
     /// <summary>
-    /// 更新日時
+    /// 更新日
     /// </summary>
-    public DateTime UpdatedAt { get; set; }
+    public DateTime UpdatedDate { get; set; }
+
+    /// <summary>
+    /// 完了日
+    /// </summary>
+    public DateTime? CompletedDate { get; set; }
+
+    /// <summary>
+    /// 作成日時 - 互換性のため残す
+    /// </summary>
+    [Obsolete("CreatedDateを使用してください")]
+    public DateTime CreatedAt
+    {
+        get => CreatedDate;
+        set => CreatedDate = value;
+    }
+
+    /// <summary>
+    /// 更新日時 - 互換性のため残す
+    /// </summary>
+    [Obsolete("UpdatedDateを使用してください")]
+    public DateTime UpdatedAt
+    {
+        get => UpdatedDate;
+        set => UpdatedDate = value;
+    }
 
     /// <summary>
     /// 部門コード
@@ -70,6 +120,9 @@ public static class DataSetTypes
     public const string Sales = "Sales";
     public const string Purchase = "Purchase";
     public const string Adjustment = "Adjustment";
+    public const string ProductMaster = "ProductMaster";
+    public const string CustomerMaster = "CustomerMaster";
+    public const string SupplierMaster = "SupplierMaster";
 }
 
 /// <summary>
