@@ -27,53 +27,53 @@
   </Dictionary>
   <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" Watermark.Font="Arial, 60pt">
     <PageHeaderBand Name="PageHeader1" Width="1512" Height="80">
-      <TextObject Name="CreateDate" Width="300" Height="20" Text="作成日：[CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="PageNumber" Left="1212" Width="300" Height="20" Text="[Page#] / [TotalPages#] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Title" Top="20" Width="1587.6" Height="25" Text="※　[JobDate]　アンマッチリスト　※" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 14pt"/>
-      <TextObject Name="Header1" Top="50" Width="75" Height="30" Text="区分" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header2" Left="75" Top="50" Width="55" Height="30" Text="ｺｰﾄﾞ" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header3" Left="130" Top="50" Width="150" Height="30" Text="取引先名" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header4" Left="280" Top="50" Width="55" Height="30" Text="ｺｰﾄﾞ" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header5" Left="335" Top="50" Width="175" Height="30" Text="商　品　名" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header6" Left="510" Top="50" Width="45" Height="30" Text="ｺｰﾄﾞ" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header7" Left="555" Top="50" Width="125" Height="30" Text="荷　印" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header8" Left="680" Top="50" Width="125" Height="30" Text="手入力" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header9" Left="805" Top="50" Width="40" Height="30" Text="ｺｰﾄﾞ" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header10" Left="845" Top="50" Width="75" Height="30" Text="等　級" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header11" Left="920" Top="50" Width="45" Height="30" Text="ｺｰﾄﾞ" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header12" Left="965" Top="50" Width="75" Height="30" Text="階　級" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header13" Left="1040" Top="50" Width="75" Height="30" Text="　数　量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header14" Left="1115" Top="50" Width="75" Height="30" Text="　単　価" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header15" Left="1190" Top="50" Width="95" Height="30" Text="　金　額" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header16" Left="1285" Top="50" Width="75" Height="30" Text="伝票番号" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header17" Left="1360" Top="50" Width="75" Height="30" Text="ｱﾗｰﾄ" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Header18" Left="1435" Top="50" Width="75" Height="30" Text="ｱﾗｰﾄ" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+      <TextObject Name="CreateDate" Width="300" Height="20" Text="作成日：[CreateDate]" Font="MS Gothic, 9pt"/>
+      <TextObject Name="PageNumber" Left="1212" Width="300" Height="20" Text="[Page#] / [TotalPages#] 頁" HorzAlign="Right" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Title" Top="20" Width="1587.6" Height="25" Text="※　[JobDate]　アンマッチリスト　※" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 14pt, style=Bold"/>
+      <TextObject Name="Header1" Top="50" Width="75" Height="30" Text="区分" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header2" Left="75" Top="50" Width="55" Height="30" Text="ｺｰﾄﾞ" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header3" Left="130" Top="50" Width="160" Height="30" Text="取引先名" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header4" Left="290" Top="50" Width="45" Height="30" Text="ｺｰﾄﾞ" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header5" Left="335" Top="50" Width="185" Height="30" Text="商　品　名" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header6" Left="520" Top="50" Width="35" Height="30" Text="ｺｰﾄﾞ" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header7" Left="555" Top="50" Width="135" Height="30" Text="荷　印" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header8" Left="690" Top="50" Width="115" Height="30" Text="手入力" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header9" Left="805" Top="50" Width="40" Height="30" Text="ｺｰﾄﾞ" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header10" Left="845" Top="50" Width="75" Height="30" Text="等　級" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header11" Left="920" Top="50" Width="45" Height="30" Text="ｺｰﾄﾞ" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header12" Left="965" Top="50" Width="75" Height="30" Text="階　級" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header13" Left="1040" Top="50" Width="75" Height="30" Text="　数　量" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header14" Left="1115" Top="50" Width="75" Height="30" Text="　単　価" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header15" Left="1190" Top="50" Width="95" Height="30" Text="　金　額" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header16" Left="1285" Top="50" Width="75" Height="30" Text="伝票番号" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header17" Left="1360" Top="50" Width="75" Height="30" Text="ｱﾗｰﾄ" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header18" Left="1435" Top="50" Width="75" Height="30" Text="ｱﾗｰﾄ" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
     </PageHeaderBand>
     <DataBand Name="Data1" Top="83.2" Width="1512" Height="20" DataSource="UnmatchItems">
-      <TextObject Name="Data1" Width="75" Height="20" Text="[UnmatchItems.Category]" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data2" Left="75" Width="55" Height="20" Text="[UnmatchItems.CustomerCode]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data3" Left="130" Width="150" Height="20" Text="[UnmatchItems.CustomerName]" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data4" Left="280" Width="55" Height="20" Text="[UnmatchItems.ProductCode]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data5" Left="335" Width="175" Height="20" Text="[UnmatchItems.ProductName]" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data6" Left="510" Width="45" Height="20" Text="[UnmatchItems.ShippingMarkCode]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data7" Left="555" Width="125" Height="20" Text="[UnmatchItems.ShippingMarkName]" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data8" Left="680" Width="125" Height="20" Text="[UnmatchItems.ManualInput]" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data9" Left="805" Width="40" Height="20" Text="[UnmatchItems.GradeCode]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data10" Left="845" Width="75" Height="20" Text="[UnmatchItems.GradeName]" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data11" Left="920" Width="45" Height="20" Text="[UnmatchItems.ClassCode]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data12" Left="965" Width="75" Height="20" Text="[UnmatchItems.ClassName]" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data13" Left="1040" Width="75" Height="20" Text="[UnmatchItems.Quantity]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data14" Left="1115" Width="75" Height="20" Text="[UnmatchItems.UnitPrice]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data15" Left="1190" Width="95" Height="20" Text="[UnmatchItems.Amount]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data16" Left="1285" Width="75" Height="20" Text="[UnmatchItems.VoucherNumber]" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data17" Left="1360" Width="75" Height="20" Text="[UnmatchItems.AlertType]" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Data18" Left="1435" Width="75" Height="20" Text="[UnmatchItems.AlertType2]" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Data1" Width="75" Height="20" Text="[UnmatchItems.Category]" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data2" Left="75" Width="55" Height="20" Text="[UnmatchItems.CustomerCode]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data3" Left="130" Width="160" Height="20" Text="[UnmatchItems.CustomerName]" VertAlign="Center" Font="MS Gothic, 9pt" WordWrap="false" Trimming="EllipsisCharacter"/>
+      <TextObject Name="Data4" Left="290" Width="45" Height="20" Text="[UnmatchItems.ProductCode]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data5" Left="335" Width="185" Height="20" Text="[UnmatchItems.ProductName]" VertAlign="Center" Font="MS Gothic, 9pt" WordWrap="false" Trimming="EllipsisCharacter"/>
+      <TextObject Name="Data6" Left="520" Width="35" Height="20" Text="[UnmatchItems.ShippingMarkCode]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data7" Left="555" Width="135" Height="20" Text="[UnmatchItems.ShippingMarkName]" VertAlign="Center" Font="MS Gothic, 9pt" WordWrap="false" Trimming="EllipsisCharacter"/>
+      <TextObject Name="Data8" Left="690" Width="115" Height="20" Text="[UnmatchItems.ManualInput]" VertAlign="Center" Font="MS Gothic, 9pt" WordWrap="false" Trimming="EllipsisCharacter"/>
+      <TextObject Name="Data9" Left="805" Width="40" Height="20" Text="[UnmatchItems.GradeCode]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data10" Left="845" Width="75" Height="20" Text="[UnmatchItems.GradeName]" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data11" Left="920" Width="45" Height="20" Text="[UnmatchItems.ClassCode]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data12" Left="965" Width="75" Height="20" Text="[UnmatchItems.ClassName]" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data13" Left="1040" Width="75" Height="20" Text="[UnmatchItems.Quantity]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data14" Left="1115" Width="75" Height="20" Text="[UnmatchItems.UnitPrice]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data15" Left="1190" Width="95" Height="20" Text="[UnmatchItems.Amount]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data16" Left="1285" Width="75" Height="20" Text="[UnmatchItems.VoucherNumber]" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data17" Left="1360" Width="75" Height="20" Text="[UnmatchItems.AlertType]" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="Data18" Left="1435" Width="75" Height="20" Text="[UnmatchItems.AlertType2]" VertAlign="Center" Font="MS Gothic, 9pt"/>
     </DataBand>
     <ReportSummaryBand Name="ReportSummary1" Top="106.4" Width="1512" Height="40">
-      <TextObject Name="SummaryText" Top="10" Width="300" Height="20" Text="アンマッチ件数＝[TotalCount]" Font="ＭＳ ゴシック, 11pt"/>
+      <TextObject Name="SummaryText" Top="10" Width="300" Height="20" Text="アンマッチ件数＝[TotalCount]" Font="MS Gothic, 11pt, style=Bold"/>
     </ReportSummaryBand>
     <PageFooterBand Name="PageFooter1" Top="149.6" Width="1512" Height="20">
-      <TextObject Name="Footer" Width="1587.6" Height="20" Text="在庫管理システム - アンマッチリスト" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
+      <TextObject Name="Footer" Width="1587.6" Height="20" Text="在庫管理システム - アンマッチリスト" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" TextFill.Color="Gray"/>
     </PageFooterBand>
   </ReportPage>
 </Report>

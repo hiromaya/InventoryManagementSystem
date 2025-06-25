@@ -160,6 +160,9 @@ namespace InventorySystem.Reports.FastReport.Services
                     // 日本語フォントの埋め込み
                     EmbeddingFonts = true,
                     
+                    // フォントのサブセット化（ファイルサイズ削減）
+                    FontsSubset = true,
+                    
                     // PDFのメタデータ
                     Title = $"アンマッチリスト_{jobDate:yyyyMMdd}",
                     Subject = "アンマッチリスト",
@@ -168,6 +171,9 @@ namespace InventorySystem.Reports.FastReport.Services
                     
                     // PDF/A準拠（長期保存用）
                     PdfCompliance = PDFExport.PdfStandard.PdfA_2a,
+                    
+                    // 文字エンコーディング設定
+                    TextInCurves = false,  // テキストをパスに変換しない
                     
                     // 画質設定
                     JpegQuality = 95,
