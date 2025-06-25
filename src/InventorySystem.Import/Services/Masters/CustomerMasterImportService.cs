@@ -222,8 +222,8 @@ public class CustomerMasterImportService
         if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF)
             return Encoding.BigEndianUnicode;
         
-        // BOMなしの場合、Shift-JISとして扱う（日本語Windows環境のデフォルト）
-        return Encoding.GetEncoding("Shift_JIS");
+        // BOMなしの場合、UTF-8として扱う（大臣出力ファイルのデフォルト）
+        return Encoding.UTF8;
     }
 
     /// <summary>

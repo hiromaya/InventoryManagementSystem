@@ -11,8 +11,8 @@ public class ProductMasterCsv
     [Index(0)]
     public string ProductCode { get; set; } = string.Empty;
 
-    [Name("商品名称１")]
-    [Index(1)]
+    [Name("商品名")]
+    [Index(4)]
     public string ProductName { get; set; } = string.Empty;
 
     [Name("名称２")]

@@ -11,8 +11,8 @@ public class SupplierMasterCsv
     [Index(0)]
     public string SupplierCode { get; set; } = string.Empty;
 
-    [Name("仕入先名１")]
-    [Index(1)]
+    [Name("仕入先名")]
+    [Index(4)]
     public string SupplierName { get; set; } = string.Empty;
 
     [Name("仕入先名２")]

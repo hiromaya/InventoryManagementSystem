@@ -11,8 +11,8 @@ public class CustomerMasterCsv
     [Index(0)]
     public string CustomerCode { get; set; } = string.Empty;
 
-    [Name("得意先名１")]
-    [Index(1)]
+    [Name("得意先名")]
+    [Index(4)]
     public string CustomerName { get; set; } = string.Empty;
 
     [Name("得意先名２")]
