@@ -193,7 +193,8 @@ public class PurchaseVoucherImportService
     private static string GenerateDataSetId()
     {
         // GUIDの最初の8文字のみ使用
-        return $"PURCHASE_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N.Substring(0, 8)}";
+        var guid = Guid.NewGuid().ToString("N");
+        return $"PURCHASE_{DateTime.Now:yyyyMMdd_HHmmss}_{guid.Substring(0, 8)}";
     }
 
     /// <summary>

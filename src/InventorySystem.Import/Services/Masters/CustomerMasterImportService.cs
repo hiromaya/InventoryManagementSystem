@@ -241,7 +241,8 @@ public class CustomerMasterImportService
     private static string GenerateDataSetId()
     {
         // GUIDの最初の8文字のみ使用
-        return $"CUSTMST_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N.Substring(0, 8)}";
+        var guid = Guid.NewGuid().ToString("N");
+        return $"CUSTMST_{DateTime.Now:yyyyMMdd_HHmmss}_{guid.Substring(0, 8)}";
     }
 
     /// <summary>
