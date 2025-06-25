@@ -229,9 +229,6 @@ namespace InventorySystem.Reports.FastReport.Services
                     // 文字エンコーディング設定
                     TextInCurves = false,  // テキストをパスに変換しない
                     
-                    // TrueTypeフォントを使用
-                    UseFileCache = true,
-                    
                     // 画質設定
                     JpegQuality = 95,
                     
@@ -239,8 +236,8 @@ namespace InventorySystem.Reports.FastReport.Services
                     OpenAfterExport = false
                 };
                 
-                _logger.LogDebug("PDFExport設定: EmbeddingFonts={EmbeddingFonts}, TextInCurves={TextInCurves}, UseFileCache={UseFileCache}",
-                    pdfExport.EmbeddingFonts, pdfExport.TextInCurves, pdfExport.UseFileCache);
+                _logger.LogDebug("PDFExport設定: EmbeddingFonts={EmbeddingFonts}, TextInCurves={TextInCurves}",
+                    pdfExport.EmbeddingFonts, pdfExport.TextInCurves);
                 
                 // PDFをメモリストリームに出力
                 using var stream = new MemoryStream();
