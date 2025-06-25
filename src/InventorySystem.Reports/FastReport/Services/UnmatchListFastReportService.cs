@@ -197,6 +197,19 @@ namespace InventorySystem.Reports.FastReport.Services
                 report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
                 report.SetParameterValue("TotalCount", dataTable.Rows.Count.ToString("0000"));
                 
+                // デバッグ: フォント情報とデータ確認
+                _logger.LogDebug("使用フォント: {FontName}", "ＭＳ ゴシック");
+                
+                // データ確認（最初の3件）
+                foreach (var (item, idx) in unmatchList.Take(3).Select((i, index) => (i, index)))
+                {
+                    _logger.LogDebug("PDF用データ確認 {Index} - 商品名: {Name}, 長さ: {Length}, バイト: {Bytes}", 
+                        idx + 1,
+                        item.ProductName,
+                        item.ProductName?.Length ?? 0,
+                        item.ProductName != null ? BitConverter.ToString(Encoding.UTF8.GetBytes(item.ProductName)) : "null");
+                }
+                
                 // レポートを準備（スクリプトは使用しない）
                 _logger.LogInformation("レポートを生成しています...");
                 report.Prepare();
@@ -204,10 +217,10 @@ namespace InventorySystem.Reports.FastReport.Services
                 // PDF出力設定
                 using var pdfExport = new PDFExport
                 {
-                    // 日本語フォントの埋め込み
+                    // 日本語フォントの埋め込み（重要）
                     EmbeddingFonts = true,
                     
-                    // PDFのメタデータ
+                    // PDFのメタデータ（エンコーディング確認）
                     Title = $"アンマッチリスト_{jobDate:yyyyMMdd}",
                     Subject = "アンマッチリスト",
                     Creator = "在庫管理システム",
@@ -216,12 +229,18 @@ namespace InventorySystem.Reports.FastReport.Services
                     // 文字エンコーディング設定
                     TextInCurves = false,  // テキストをパスに変換しない
                     
+                    // TrueTypeフォントを使用
+                    UseFileCache = true,
+                    
                     // 画質設定
                     JpegQuality = 95,
                     
                     // セキュリティ設定なし（内部文書のため）
                     OpenAfterExport = false
                 };
+                
+                _logger.LogDebug("PDFExport設定: EmbeddingFonts={EmbeddingFonts}, TextInCurves={TextInCurves}, UseFileCache={UseFileCache}",
+                    pdfExport.EmbeddingFonts, pdfExport.TextInCurves, pdfExport.UseFileCache);
                 
                 // PDFをメモリストリームに出力
                 using var stream = new MemoryStream();

@@ -41,6 +41,7 @@ BEGIN
         DailyStock DECIMAL(9,4) NOT NULL DEFAULT 0,        -- 当日在庫数
         DailyStockAmount DECIMAL(12,4) NOT NULL DEFAULT 0, -- 当日在庫金額
         DailyFlag NCHAR(1) NOT NULL DEFAULT '9',           -- 当日発生フラグ
+        DataSetId NVARCHAR(100),                           -- データセットID
         
         CONSTRAINT PK_InventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName)
     );
@@ -50,6 +51,7 @@ BEGIN
     CREATE INDEX IX_InventoryMaster_ProductCode ON InventoryMaster(ProductCode);
     CREATE INDEX IX_InventoryMaster_ProductCategory1 ON InventoryMaster(ProductCategory1);
     CREATE INDEX IX_InventoryMaster_JobDate ON InventoryMaster(JobDate);
+    CREATE INDEX IX_InventoryMaster_DataSetId ON InventoryMaster(DataSetId);
 END
 
 -- ===================================================
@@ -136,7 +138,7 @@ END
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SalesVouchers]') AND type in (N'U'))
 BEGIN
     CREATE TABLE SalesVouchers (
-        VoucherId NVARCHAR(50) NOT NULL,            -- 伝票ID
+        VoucherId NVARCHAR(100) NOT NULL,            -- 伝票ID
         LineNumber INT NOT NULL,                    -- 行番号
         ProductCode NVARCHAR(15) NOT NULL,          -- 商品コード
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
@@ -174,7 +176,7 @@ END
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[PurchaseVouchers]') AND type in (N'U'))
 BEGIN
     CREATE TABLE PurchaseVouchers (
-        VoucherId NVARCHAR(50) NOT NULL,            -- 伝票ID
+        VoucherId NVARCHAR(100) NOT NULL,            -- 伝票ID
         LineNumber INT NOT NULL,                    -- 行番号
         ProductCode NVARCHAR(15) NOT NULL,          -- 商品コード
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
@@ -211,7 +213,7 @@ END
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[InventoryAdjustments]') AND type in (N'U'))
 BEGIN
     CREATE TABLE InventoryAdjustments (
-        VoucherId NVARCHAR(50) NOT NULL,            -- 伝票ID
+        VoucherId NVARCHAR(100) NOT NULL,            -- 伝票ID
         LineNumber INT NOT NULL,                    -- 行番号
         ProductCode NVARCHAR(15) NOT NULL,          -- 商品コード
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
