@@ -87,7 +87,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 foreach (var (item, index) in unmatchList.Take(5).Select((i, idx) => (i, idx)))
                 {
                     _logger.LogDebug("PDF生成 行{Index}: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}'", 
-                        index + 1, item.CustomerName, item.ProductName, item.ShippingMarkName);
+                        index + 1, item.CustomerName, item.ProductName, item.Key.ShippingMarkName);
                     
                     if (!string.IsNullOrEmpty(item.CustomerName))
                     {
