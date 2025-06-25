@@ -213,11 +213,21 @@ public class SalesVoucherImportService
                 var record = csv.GetRecord<SalesVoucherDaijinCsv>();
                 if (record != null)
                 {
-                    // 最初の10件は詳細ログ出力
+                    // 最初の10件は詳細ログ出力（文字化け調査用）
                     if (rowNumber <= 11)
                     {
                         _logger.LogInformation("CSV行{Line}: 伝票番号='{VoucherNumber}', 得意先コード='{CustomerCode}', 得意先名='{CustomerName}', 商品コード='{ProductCode}', 商品名='{ProductName}'",
                             rowNumber, record.VoucherNumber, record.CustomerCode, record.CustomerName, record.ProductCode, record.ProductName);
+                        
+                        // 文字化け調査用: バイト表現を確認
+                        if (!string.IsNullOrEmpty(record.CustomerName))
+                        {
+                            _logger.LogDebug("得意先名バイト列: {Bytes}", BitConverter.ToString(Encoding.UTF8.GetBytes(record.CustomerName)));
+                        }
+                        if (!string.IsNullOrEmpty(record.ShippingMarkName))
+                        {
+                            _logger.LogDebug("荷印名バイト列: {Bytes}", BitConverter.ToString(Encoding.UTF8.GetBytes(record.ShippingMarkName)));
+                        }
                     }
                     
                     records.Add(record);

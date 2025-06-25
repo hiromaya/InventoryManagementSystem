@@ -3,6 +3,7 @@ using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Data.SqlClient;
+using System.Text;
 
 namespace InventorySystem.Data.Repositories;
 
@@ -60,6 +61,19 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
                 CreatedDate = now,
                 voucher.DataSetId
             });
+
+            // 文字化け調査用: 最初の5件のデータ状態をログ出力
+            var sampleVouchers = vouchers.Take(5).ToList();
+            foreach (var (voucher, index) in sampleVouchers.Select((v, i) => (v, i)))
+            {
+                _logger.LogDebug("DB保存前 行{Index}: 得意先名='{CustomerName}', 荷印名='{ShippingMarkName}', 商品名='{ProductName}'", 
+                    index + 1, voucher.CustomerName, voucher.ShippingMarkName, voucher.ProductName);
+                
+                if (!string.IsNullOrEmpty(voucher.CustomerName))
+                {
+                    _logger.LogDebug("DB保存前 得意先名バイト列: {Bytes}", BitConverter.ToString(Encoding.UTF8.GetBytes(voucher.CustomerName)));
+                }
+            }
 
             var insertedCount = await connection.ExecuteAsync(sql, parameters);
             

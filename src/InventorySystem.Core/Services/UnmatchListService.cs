@@ -160,11 +160,22 @@ public class UnmatchListService : IUnmatchListService
 
         // 売上伝票取得
         var salesVouchers = await _salesVoucherRepository.GetByJobDateAsync(jobDate);
+        _logger.LogDebug("売上伝票取得: 総件数={TotalCount}", salesVouchers.Count());
+        
         var salesList = salesVouchers
             .Where(s => s.VoucherType == "51" || s.VoucherType == "52") // 売上伝票
             .Where(s => s.DetailType == "1" || s.DetailType == "2")     // 明細種
             .Where(s => s.Quantity != 0)                                // 数量0以外
             .ToList();
+            
+        _logger.LogDebug("売上伝票フィルタ後: 件数={FilteredCount}", salesList.Count);
+        
+        // 最初の5件の文字列状態を確認
+        foreach (var (sales, index) in salesList.Take(5).Select((s, i) => (s, i)))
+        {
+            _logger.LogDebug("売上伝票 行{Index}: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}'", 
+                index + 1, sales.CustomerName, sales.ProductName, sales.ShippingMarkName);
+        }
 
         foreach (var sales in salesList)
         {
@@ -189,6 +200,10 @@ public class UnmatchListService : IUnmatchListService
                 var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", productCategory1);
                 unmatchItem.AlertType2 = "該当無";
                 unmatchItems.Add(unmatchItem);
+                
+                // アンマッチ項目作成時の文字列状態を確認
+                _logger.LogDebug("アンマッチ項目作成: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}', カテゴリ={Category}", 
+                    unmatchItem.CustomerName, unmatchItem.ProductName, unmatchItem.Key.ShippingMarkName, unmatchItem.Category);
             }
             else if (cpInventory.PreviousDayStock >= 0 && cpInventory.DailyStock == 0)
             {

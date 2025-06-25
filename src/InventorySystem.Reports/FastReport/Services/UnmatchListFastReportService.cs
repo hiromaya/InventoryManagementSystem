@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Text;
 using FastReport;
 using FastReport.Export.Pdf;
 using InventorySystem.Core.Entities;
@@ -80,6 +81,19 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // データソースの準備
                 var unmatchList = unmatchItems.ToList();
+                _logger.LogDebug("PDF生成: アンマッチ項目数={Count}", unmatchList.Count);
+                
+                // 最初の5件の文字列状態を確認
+                foreach (var (item, index) in unmatchList.Take(5).Select((i, idx) => (i, idx)))
+                {
+                    _logger.LogDebug("PDF生成 行{Index}: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}'", 
+                        index + 1, item.CustomerName, item.ProductName, item.ShippingMarkName);
+                    
+                    if (!string.IsNullOrEmpty(item.CustomerName))
+                    {
+                        _logger.LogDebug("PDF生成 得意先名バイト列: {Bytes}", BitConverter.ToString(Encoding.UTF8.GetBytes(item.CustomerName)));
+                    }
+                }
                 
                 // DataTableを作成
                 var dataTable = new DataTable("UnmatchItems");
@@ -103,17 +117,32 @@ namespace InventorySystem.Reports.FastReport.Services
                 dataTable.Columns.Add("AlertType2", typeof(string));
                 
                 // データを追加
-                foreach (var item in unmatchList)
+                foreach (var (item, index) in unmatchList.Select((i, idx) => (i, idx)))
                 {
+                    var categoryName = GetCategoryName(item.Category);
+                    var customerCode = item.CustomerCode ?? "";
+                    var customerName = item.CustomerName ?? "";
+                    var productCode = item.Key.ProductCode ?? "";
+                    var productName = item.ProductName ?? "";
+                    var shippingMarkCode = item.Key.ShippingMarkCode ?? "";
+                    var shippingMarkName = item.Key.ShippingMarkName ?? "";
+                    
+                    // DataTable追加時の文字列状態をログ出力
+                    if (index < 5)  // 最初の5件のみ
+                    {
+                        _logger.LogDebug("DataTable追加 行{Index}: カテゴリ='{Category}', 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}'", 
+                            index + 1, categoryName, customerName, productName, shippingMarkName);
+                    }
+                    
                     dataTable.Rows.Add(
-                        GetCategoryName(item.Category),
-                        item.CustomerCode ?? "",
-                        item.CustomerName ?? "",
-                        item.Key.ProductCode ?? "",
-                        item.ProductName ?? "",
-                        item.Key.ShippingMarkCode ?? "",
-                        item.Key.ShippingMarkName ?? "",
-                        item.Key.ShippingMarkName ?? "",  // ManualInput - 荷印名と同じ値
+                        categoryName,
+                        customerCode,
+                        customerName,
+                        productCode,
+                        productName,
+                        shippingMarkCode,
+                        shippingMarkName,
+                        shippingMarkName,  // ManualInput - 荷印名と同じ値
                         item.Key.GradeCode ?? "",
                         item.GradeName ?? "",
                         item.Key.ClassCode ?? "",
