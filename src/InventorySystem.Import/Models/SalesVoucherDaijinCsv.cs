@@ -36,7 +36,7 @@ public class SalesVoucherDaijinCsv
     public string CustomerCode { get; set; } = string.Empty;
     
     [Name("得意先名１")]
-    [Index(8)]  // 実際のCSVでは9列目
+    [Index(7)]  // CSV解析結果に基づく修正: 8から7に変更
     public string CustomerName { get; set; } = string.Empty;
     
     [Name("商品コード")]
@@ -68,7 +68,7 @@ public class SalesVoucherDaijinCsv
     public string ShippingMarkCode { get; set; } = string.Empty;
     
     [Name("荷印名")]
-    [Index(138)]  // 139列目
+    [Index(143)]  // CSV解析結果に基づく修正: 138から143に変更
     public string ShippingMarkName { get; set; } = string.Empty;
     
     [Name("数量")]
