@@ -635,17 +635,6 @@ try
         await Task.CompletedTask; // 警告を回避
     }
 }
-        Console.WriteLine("\n--- 140列目周辺 ---");
-        for (int i = 135; i < Math.Min(150, values.Length); i++)
-        {
-            var value = values[i].Trim('"');
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                Console.WriteLine($"列{i:D3}: [{value}]");
-            }
-        }
-    }
-}
 
     static async Task ExecuteDebugCsvStructureAsync(IServiceProvider services, string[] args)
     {
