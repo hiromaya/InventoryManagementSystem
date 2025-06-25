@@ -15,6 +15,7 @@ using InventorySystem.Reports.Interfaces;
 using InventorySystem.Reports.FastReport.Services;
 using System.Diagnostics;
 using System.Reflection;
+using System.Text;
 
 // Program クラスの定義
 public class Program
@@ -205,6 +206,10 @@ try
             
         case "import-suppliers":
             await ExecuteImportSuppliersAsync(host.Services, commandArgs);
+            break;
+        
+        case "debug-csv-structure":
+            await ExecuteDebugCsvStructureAsync(host.Services, commandArgs);
             break;
         
         default:
@@ -724,6 +729,124 @@ try
         }
     }
 }
+
+    static async Task ExecuteDebugCsvStructureAsync(IServiceProvider services, string[] args)
+    {
+        if (args.Length < 2)
+        {
+            Console.WriteLine("エラー: CSVファイルパスが指定されていません");
+            Console.WriteLine("使用方法: dotnet run debug-csv-structure <file>");
+            return;
+        }
+
+        var filePath = args[1];
+        if (!File.Exists(filePath))
+        {
+            Console.WriteLine($"エラー: ファイルが存在しません: {filePath}");
+            return;
+        }
+
+        Console.WriteLine($"=== CSV構造解析 ===\nFile: {filePath}\n");
+
+        try
+        {
+            // エンコーディングを自動判定
+            var encoding = DetectFileEncoding(filePath);
+            Console.WriteLine($"検出されたエンコーディング: {encoding.EncodingName}\n");
+
+            using var reader = new StreamReader(filePath, encoding);
+            var headerLine = await reader.ReadLineAsync();
+            if (headerLine == null)
+            {
+                Console.WriteLine("エラー: CSVファイルが空です");
+                return;
+            }
+
+            var headers = headerLine.Split(',');
+            Console.WriteLine($"列数: {headers.Length}\n");
+
+            // 特定の列を検索
+            var searchColumns = new[] { "得意先名", "得意先名１", "仕入先名", "荷印名", "商品名" };
+            Console.WriteLine("=== 重要な列の位置 ===");
+            foreach (var searchColumn in searchColumns)
+            {
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    if (headers[i].Trim('\"').Contains(searchColumn))
+                    {
+                        Console.WriteLine($"列{i:D3}: {headers[i].Trim('\"')}");
+                    }
+                }
+            }
+
+            // 最初の20列を表示
+            Console.WriteLine("\n=== 最初の20列 ===");
+            for (int i = 0; i < Math.Min(20, headers.Length); i++)
+            {
+                Console.WriteLine($"列{i:D3}: {headers[i].Trim('\"')}");
+            }
+
+            // 80-95列目を表示
+            if (headers.Length > 80)
+            {
+                Console.WriteLine("\n=== 80-95列目 ===");
+                for (int i = 80; i < Math.Min(95, headers.Length); i++)
+                {
+                    Console.WriteLine($"列{i:D3}: {headers[i].Trim('\"')}");
+                }
+            }
+
+            // 130-150列目を表示
+            if (headers.Length > 130)
+            {
+                Console.WriteLine("\n=== 130-150列目 ===");
+                for (int i = 130; i < Math.Min(150, headers.Length); i++)
+                {
+                    Console.WriteLine($"列{i:D3}: {headers[i].Trim('\"')}");
+                }
+            }
+
+            // データの最初の行も確認
+            var dataLine = await reader.ReadLineAsync();
+            if (dataLine != null)
+            {
+                var dataValues = dataLine.Split(',');
+                Console.WriteLine("\n=== 最初のデータ行のサンプル ===");
+                var importantIndices = new[] { 3, 8, 88, 138, 142 }; // 得意先コード、得意先名、商品コード、荷印名、商品名
+                foreach (var idx in importantIndices)
+                {
+                    if (idx < dataValues.Length)
+                    {
+                        Console.WriteLine($"列{idx:D3} ({headers[idx].Trim('\"')}): {dataValues[idx].Trim('\"')}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"エラー: {ex.Message}");
+        }
+    }
+
+    static Encoding DetectFileEncoding(string filePath)
+    {
+        var bytes = File.ReadAllBytes(filePath);
+        
+        // BOM付きUTF-8
+        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
+            return Encoding.UTF8;
+        
+        // BOM付きUTF-16 LE
+        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
+            return Encoding.Unicode;
+        
+        // BOM付きUTF-16 BE
+        if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF)
+            return Encoding.BigEndianUnicode;
+        
+        // BOMなしの場合、販売大臣のデフォルトであるShift-JISとして扱う
+        return Encoding.GetEncoding("Shift_JIS");
+    }
 
     static async Task TestDatabaseConnectionAsync(IServiceProvider services)
 {
