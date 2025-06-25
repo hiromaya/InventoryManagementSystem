@@ -193,7 +193,7 @@ try
             break;
             
         case "debug-csv-structure":
-            await ExecuteDebugCsvStructureAsync(host.Services, commandArgs);
+            await DebugCsvStructureAsync(commandArgs);
             break;
             
         case "import-customers":
@@ -632,16 +632,16 @@ try
     }
 }
 
-    static async Task ExecuteDebugCsvStructureAsync(IServiceProvider services, string[] args)
+    static async Task DebugCsvStructureAsync(string[] args)
     {
-        if (args.Length < 2)
+        if (args.Length < 3)
         {
             Console.WriteLine("エラー: CSVファイルパスが指定されていません");
             Console.WriteLine("使用方法: dotnet run debug-csv-structure <file>");
             return;
         }
 
-        var filePath = args[1];
+        var filePath = args[2];
         if (!File.Exists(filePath))
         {
             Console.WriteLine($"エラー: ファイルが存在しません: {filePath}");
