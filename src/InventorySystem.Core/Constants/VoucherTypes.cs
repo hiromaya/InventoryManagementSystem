@@ -22,14 +22,14 @@ public static class SalesVoucherTypes
 public static class PurchaseVoucherTypes
 {
     /// <summary>
-    /// 61:掛仕入
+    /// 11:掛仕入
     /// </summary>
-    public const string Credit = "61";
+    public const string Credit = "11";
     
     /// <summary>
-    /// 62:現金仕入
+    /// 12:現金仕入
     /// </summary>
-    public const string Cash = "62";
+    public const string Cash = "12";
 }
 
 /// <summary>
@@ -38,9 +38,14 @@ public static class PurchaseVoucherTypes
 public static class InventoryAdjustmentTypes
 {
     /// <summary>
-    /// 70:在庫調整
+    /// 71:受注
     /// </summary>
-    public const string Adjustment = "70";
+    public const string Order = "71";
+    
+    /// <summary>
+    /// 72:注文
+    /// </summary>
+    public const string Purchase = "72";
 }
 
 /// <summary>

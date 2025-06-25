@@ -119,8 +119,8 @@ public class InventoryAdjustmentCsv
     /// </summary>
     public bool IsValidInventoryAdjustment()
     {
-        // 伝票種別チェック（70:在庫調整）
-        if (VoucherType != InventoryAdjustmentTypes.Adjustment)
+        // 伝票種別チェック（71:受注, 72:注文）
+        if (VoucherType != InventoryAdjustmentTypes.Order && VoucherType != InventoryAdjustmentTypes.Purchase)
         {
             return false;
         }
