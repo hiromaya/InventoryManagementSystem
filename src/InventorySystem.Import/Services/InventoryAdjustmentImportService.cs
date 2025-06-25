@@ -146,7 +146,10 @@ public class InventoryAdjustmentImportService
     /// </summary>
     private async Task<List<InventoryAdjustmentDaijinCsv>> ReadDaijinCsvFileAsync(string filePath)
     {
-        using var reader = new StreamReader(filePath, Encoding.GetEncoding("UTF-8"));
+        // ファイルのエンコーディングを自動判定
+        var encoding = DetectFileEncoding(filePath);
+        _logger.LogInformation("検出されたエンコーディング: {Encoding}", encoding.EncodingName);
+        using var reader = new StreamReader(filePath, encoding);
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HasHeaderRecord = true,
@@ -219,5 +222,29 @@ public class InventoryAdjustmentImportService
             ImportedAt = dataSet.ImportedAt,
             ImportedData = importedData.Cast<object>().ToList()
         };
+    }
+
+    /// <summary>
+    /// ファイルのエンコーディングを自動判定
+    /// </summary>
+    private static Encoding DetectFileEncoding(string filePath)
+    {
+        var bytes = File.ReadAllBytes(filePath);
+        
+        // BOM付きUTF-8
+        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
+            return Encoding.UTF8;
+        
+        // BOM付きUTF-16 LE
+        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
+            return Encoding.Unicode;
+        
+        // BOM付きUTF-16 BE
+        if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF)
+            return Encoding.BigEndianUnicode;
+        
+        // BOMなしの場合、販売大臣のデフォルトであるShift-JISとして扱う
+        // 注意: 販売大臣AXのCSVは通常Shift-JISで出力される
+        return Encoding.GetEncoding("Shift_JIS");
     }
 }
