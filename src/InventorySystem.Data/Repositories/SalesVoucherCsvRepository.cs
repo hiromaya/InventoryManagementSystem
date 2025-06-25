@@ -23,15 +23,13 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
     {
         const string sql = @"
             INSERT INTO SalesVouchers (
-                DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, CustomerCode,
-                CustomerName, ProductCode, ProductName, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                Quantity, UnitPrice, Amount, ProductCategory1, ProductCategory2, ProductCategory3,
-                GrossProfit, IsExcluded, ExcludeReason, ImportedAt, CreatedAt, UpdatedAt
+                VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
+                CustomerCode, CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                Quantity, UnitPrice, Amount, InventoryUnitPrice, CreatedDate, DataSetId
             ) VALUES (
-                @DataSetId, @VoucherNumber, @VoucherDate, @JobDate, @VoucherType, @DetailType, @CustomerCode,
-                @CustomerName, @ProductCode, @ProductName, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
-                @Quantity, @UnitPrice, @Amount, @ProductCategory1, @ProductCategory2, @ProductCategory3,
-                @GrossProfit, @IsExcluded, @ExcludeReason, @ImportedAt, @CreatedAt, @UpdatedAt
+                @VoucherId, @LineNumber, @VoucherNumber, @VoucherDate, @JobDate, @VoucherType, @DetailType,
+                @CustomerCode, @CustomerName, @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                @Quantity, @UnitPrice, @Amount, @InventoryUnitPrice, @CreatedDate, @DataSetId
             )";
 
         try
@@ -39,9 +37,10 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
             using var connection = new SqlConnection(_connectionString);
             var now = DateTime.Now;
             
-            var parameters = vouchers.Select(voucher => new
+            var parameters = vouchers.Select((voucher, index) => new
             {
-                voucher.DataSetId,
+                VoucherId = $"{voucher.DataSetId}_{voucher.VoucherNumber}",
+                LineNumber = index + 1,
                 voucher.VoucherNumber,
                 voucher.VoucherDate,
                 voucher.JobDate,
@@ -50,7 +49,6 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
                 voucher.CustomerCode,
                 voucher.CustomerName,
                 voucher.ProductCode,
-                voucher.ProductName,
                 voucher.GradeCode,
                 voucher.ClassCode,
                 voucher.ShippingMarkCode,
@@ -58,15 +56,9 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
                 voucher.Quantity,
                 voucher.UnitPrice,
                 voucher.Amount,
-                voucher.ProductCategory1,
-                voucher.ProductCategory2,
-                voucher.ProductCategory3,
-                voucher.GrossProfit,
-                voucher.IsExcluded,
-                voucher.ExcludeReason,
-                ImportedAt = now,
-                CreatedAt = now,
-                UpdatedAt = now
+                InventoryUnitPrice = 0m,  // デフォルト値
+                CreatedDate = now,
+                voucher.DataSetId
             });
 
             var insertedCount = await connection.ExecuteAsync(sql, parameters);
@@ -87,13 +79,12 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
     public async Task<IEnumerable<SalesVoucher>> GetByDataSetIdAsync(string dataSetId)
     {
         const string sql = @"
-            SELECT Id, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, CustomerCode,
-                   CustomerName, ProductCode, ProductName, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                   Quantity, UnitPrice, Amount, ProductCategory1, ProductCategory2, ProductCategory3,
-                   GrossProfit, IsExcluded, ExcludeReason, ImportedAt, CreatedAt, UpdatedAt
+            SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, CustomerCode,
+                   CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   Quantity, UnitPrice, Amount, InventoryUnitPrice, CreatedDate
             FROM SalesVouchers 
             WHERE DataSetId = @DataSetId
-            ORDER BY VoucherNumber, ProductCode";
+            ORDER BY VoucherNumber, LineNumber";
 
         try
         {
@@ -115,13 +106,12 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
     public async Task<IEnumerable<SalesVoucher>> GetByJobDateAsync(DateTime jobDate)
     {
         const string sql = @"
-            SELECT Id, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, CustomerCode,
-                   CustomerName, ProductCode, ProductName, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                   Quantity, UnitPrice, Amount, ProductCategory1, ProductCategory2, ProductCategory3,
-                   GrossProfit, IsExcluded, ExcludeReason, ImportedAt, CreatedAt, UpdatedAt
+            SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, CustomerCode,
+                   CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   Quantity, UnitPrice, Amount, InventoryUnitPrice, CreatedDate
             FROM SalesVouchers 
             WHERE JobDate = @JobDate
-            ORDER BY VoucherNumber, ProductCode";
+            ORDER BY VoucherNumber, LineNumber";
 
         try
         {
@@ -155,7 +145,6 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
                 CustomerCode = @CustomerCode,
                 CustomerName = @CustomerName,
                 ProductCode = @ProductCode,
-                ProductName = @ProductName,
                 GradeCode = @GradeCode,
                 ClassCode = @ClassCode,
                 ShippingMarkCode = @ShippingMarkCode,
@@ -163,14 +152,8 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
                 Quantity = @Quantity,
                 UnitPrice = @UnitPrice,
                 Amount = @Amount,
-                ProductCategory1 = @ProductCategory1,
-                ProductCategory2 = @ProductCategory2,
-                ProductCategory3 = @ProductCategory3,
-                GrossProfit = @GrossProfit,
-                IsExcluded = @IsExcluded,
-                ExcludeReason = @ExcludeReason,
-                UpdatedAt = @UpdatedAt
-            WHERE Id = @Id";
+                InventoryUnitPrice = @InventoryUnitPrice
+            WHERE VoucherId = @VoucherId AND LineNumber = @LineNumber";
 
         try
         {
@@ -178,7 +161,8 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
             
             var parameters = new
             {
-                voucher.Id,
+                voucher.VoucherId,
+                voucher.LineNumber,
                 voucher.VoucherNumber,
                 voucher.VoucherDate,
                 voucher.JobDate,
@@ -187,7 +171,6 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
                 voucher.CustomerCode,
                 voucher.CustomerName,
                 voucher.ProductCode,
-                voucher.ProductName,
                 voucher.GradeCode,
                 voucher.ClassCode,
                 voucher.ShippingMarkCode,
@@ -195,29 +178,25 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
                 voucher.Quantity,
                 voucher.UnitPrice,
                 voucher.Amount,
-                voucher.ProductCategory1,
-                voucher.ProductCategory2,
-                voucher.ProductCategory3,
-                voucher.GrossProfit,
-                voucher.IsExcluded,
-                voucher.ExcludeReason,
-                UpdatedAt = DateTime.Now
+                voucher.InventoryUnitPrice
             };
 
             await connection.ExecuteAsync(sql, parameters);
             
-            _logger.LogInformation("売上伝票データ更新完了: {Id}", voucher.Id);
+            _logger.LogInformation("売上伝票データ更新完了: {VoucherId}-{LineNumber}", voucher.VoucherId, voucher.LineNumber);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "売上伝票データ更新エラー: {Id}", voucher.Id);
+            _logger.LogError(ex, "売上伝票データ更新エラー: {VoucherId}-{LineNumber}", voucher.VoucherId, voucher.LineNumber);
             throw;
         }
     }
 
     public async Task DeleteAsync(long id)
     {
-        const string sql = "DELETE FROM SalesVouchers WHERE Id = @Id";
+        // Note: This method signature uses long id for compatibility, but we need VoucherId and LineNumber
+        // This is a limitation of the interface - consider updating interface to accept composite key
+        const string sql = "DELETE FROM SalesVouchers WHERE VoucherId = @VoucherId AND LineNumber = @LineNumber";
 
         try
         {
