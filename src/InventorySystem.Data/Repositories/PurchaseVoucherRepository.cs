@@ -16,11 +16,13 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
     {
         const string sql = @"
             SELECT 
-                Id,
-                VoucherNumber as VoucherId,
+                VoucherId,
+                LineNumber,
+                VoucherNumber,
                 VoucherDate,
                 VoucherType,
                 SupplierCode,
+                SupplierName,
                 ProductCode,
                 GradeCode,
                 ClassCode,
@@ -34,7 +36,7 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
                 DataSetId
             FROM PurchaseVouchers 
             WHERE JobDate = @JobDate
-            ORDER BY VoucherNumber";
+            ORDER BY VoucherNumber, LineNumber";
 
         try
         {
@@ -115,14 +117,15 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
     {
         return new PurchaseVoucher
         {
-            Id = row.Id ?? 0,
             VoucherId = row.VoucherId?.ToString() ?? string.Empty,
-            VoucherNumber = row.VoucherId?.ToString() ?? string.Empty,
+            LineNumber = row.LineNumber ?? 0,
+            VoucherNumber = row.VoucherNumber?.ToString() ?? string.Empty,
             VoucherDate = row.VoucherDate,
             JobDate = row.JobDate,
             VoucherType = row.VoucherType?.ToString() ?? string.Empty,
             DetailType = row.DetailType?.ToString() ?? string.Empty,
             SupplierCode = row.SupplierCode?.ToString(),
+            SupplierName = row.SupplierName?.ToString(),
             ProductCode = row.ProductCode?.ToString() ?? string.Empty,
             GradeCode = row.GradeCode?.ToString() ?? string.Empty,
             ClassCode = row.ClassCode?.ToString() ?? string.Empty,

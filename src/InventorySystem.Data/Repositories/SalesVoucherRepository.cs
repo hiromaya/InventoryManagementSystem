@@ -16,11 +16,13 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
     {
         const string sql = @"
             SELECT 
-                Id,
-                VoucherNumber as VoucherId,
+                VoucherId,
+                LineNumber,
+                VoucherNumber,
                 VoucherDate,
                 VoucherType,
                 CustomerCode,
+                CustomerName,
                 ProductCode,
                 GradeCode,
                 ClassCode,
@@ -29,12 +31,13 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
                 Quantity,
                 UnitPrice as SalesUnitPrice,
                 Amount as SalesAmount,
+                InventoryUnitPrice,
                 JobDate,
                 DetailType,
                 DataSetId
             FROM SalesVouchers
             WHERE JobDate = @jobDate
-            ORDER BY VoucherNumber, Id";
+            ORDER BY VoucherNumber, LineNumber";
 
         try
         {
@@ -115,14 +118,15 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
     {
         return new SalesVoucher
         {
-            Id = row.Id ?? 0,
             VoucherId = row.VoucherId?.ToString() ?? string.Empty,
-            VoucherNumber = row.VoucherId?.ToString() ?? string.Empty,
+            LineNumber = row.LineNumber ?? 0,
+            VoucherNumber = row.VoucherNumber?.ToString() ?? string.Empty,
             VoucherDate = row.VoucherDate,
             JobDate = row.JobDate,
             VoucherType = row.VoucherType?.ToString() ?? string.Empty,
             DetailType = row.DetailType?.ToString() ?? string.Empty,
             CustomerCode = row.CustomerCode?.ToString(),
+            CustomerName = row.CustomerName?.ToString(),
             ProductCode = row.ProductCode?.ToString() ?? string.Empty,
             GradeCode = row.GradeCode?.ToString() ?? string.Empty,
             ClassCode = row.ClassCode?.ToString() ?? string.Empty,
@@ -131,6 +135,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
             Quantity = row.Quantity ?? 0m,
             UnitPrice = row.SalesUnitPrice ?? 0m,
             Amount = row.SalesAmount ?? 0m,
+            InventoryUnitPrice = row.InventoryUnitPrice ?? 0m,
             DataSetId = row.DataSetId?.ToString() ?? string.Empty
         };
     }

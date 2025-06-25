@@ -97,6 +97,11 @@ public class SalesVoucher
     public decimal Amount { get; set; }
     
     /// <summary>
+    /// 在庫単価
+    /// </summary>
+    public decimal InventoryUnitPrice { get; set; }
+    
+    /// <summary>
     /// 売上単価（UnitPriceのエイリアス）
     /// </summary>
     public decimal SalesUnitPrice 

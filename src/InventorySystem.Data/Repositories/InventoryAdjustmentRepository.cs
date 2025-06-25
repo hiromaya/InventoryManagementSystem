@@ -24,15 +24,15 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
     {
         const string sql = @"
             INSERT INTO InventoryAdjustments (
-                DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, UnitCode,
-                ProductCode, ProductName, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                Quantity, UnitPrice, Amount, ProductCategory1, ProductCategory2, ProductCategory3,
-                IsExcluded, ExcludeReason, ImportedAt, CreatedAt, UpdatedAt
+                VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
+                CustomerCode, CustomerName, CategoryCode,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                Quantity, UnitPrice, Amount
             ) VALUES (
-                @DataSetId, @VoucherNumber, @VoucherDate, @JobDate, @VoucherType, @DetailType, @UnitCode,
-                @ProductCode, @ProductName, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
-                @Quantity, @UnitPrice, @Amount, @ProductCategory1, @ProductCategory2, @ProductCategory3,
-                @IsExcluded, @ExcludeReason, @ImportedAt, @CreatedAt, @UpdatedAt
+                @VoucherId, @LineNumber, @DataSetId, @VoucherNumber, @VoucherDate, @JobDate, @VoucherType, @DetailType,
+                @CustomerCode, @CustomerName, @CategoryCode,
+                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                @Quantity, @UnitPrice, @Amount
             )";
 
         try
@@ -42,30 +42,25 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
             
             var parameters = adjustments.Select(adj => new
             {
+                adj.VoucherId,
+                adj.LineNumber,
                 adj.DataSetId,
                 adj.VoucherNumber,
                 adj.VoucherDate,
                 adj.JobDate,
                 adj.VoucherType,
                 adj.DetailType,
-                adj.UnitCode,
+                adj.CustomerCode,
+                adj.CustomerName,
+                adj.CategoryCode,
                 adj.ProductCode,
-                adj.ProductName,
                 adj.GradeCode,
                 adj.ClassCode,
                 adj.ShippingMarkCode,
                 adj.ShippingMarkName,
                 adj.Quantity,
                 adj.UnitPrice,
-                adj.Amount,
-                adj.ProductCategory1,
-                adj.ProductCategory2,
-                adj.ProductCategory3,
-                adj.IsExcluded,
-                adj.ExcludeReason,
-                ImportedAt = now,
-                CreatedAt = now,
-                UpdatedAt = now
+                adj.Amount
             });
 
             var insertedCount = await connection.ExecuteAsync(sql, parameters);
@@ -114,13 +109,13 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
     public async Task<IEnumerable<InventoryAdjustment>> GetByJobDateAsync(DateTime jobDate)
     {
         const string sql = @"
-            SELECT Id, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, UnitCode,
-                   ProductCode, ProductName, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                   Quantity, UnitPrice, Amount, ProductCategory1, ProductCategory2, ProductCategory3,
-                   IsExcluded, ExcludeReason, ImportedAt, CreatedAt, UpdatedAt
+            SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
+                   CustomerCode, CustomerName, CategoryCode,
+                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   Quantity, UnitPrice, Amount, CreatedDate
             FROM InventoryAdjustments 
             WHERE JobDate = @JobDate
-            ORDER BY VoucherNumber, ProductCode";
+            ORDER BY VoucherNumber, LineNumber";
 
         try
         {
@@ -142,10 +137,10 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
     public async Task<IEnumerable<InventoryAdjustment>> GetByInventoryKeyAsync(InventoryKey inventoryKey, DateTime jobDate)
     {
         const string sql = @"
-            SELECT Id, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, UnitCode,
-                   ProductCode, ProductName, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                   Quantity, UnitPrice, Amount, ProductCategory1, ProductCategory2, ProductCategory3,
-                   IsExcluded, ExcludeReason, ImportedAt, CreatedAt, UpdatedAt
+            SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
+                   CustomerCode, CustomerName, CategoryCode,
+                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   Quantity, UnitPrice, Amount, CreatedDate
             FROM InventoryAdjustments 
             WHERE ProductCode = @ProductCode 
               AND GradeCode = @GradeCode 
