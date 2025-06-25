@@ -127,11 +127,29 @@ namespace InventorySystem.Reports.FastReport.Services
                     var shippingMarkCode = item.Key.ShippingMarkCode ?? "";
                     var shippingMarkName = item.Key.ShippingMarkName ?? "";
                     
-                    // DataTable追加時の文字列状態をログ出力
-                    if (index < 5)  // 最初の5件のみ
+                    // デバッグログ追加（文字化け調査用）
+                    _logger.LogDebug("DataTable追加前: カテゴリ={Category}, 商品名={ProductName}, 荷印名={ShippingMarkName}", 
+                        categoryName, 
+                        productName ?? "(null)", 
+                        shippingMarkName ?? "(null)");
+                    
+                    // 文字列のバイト表現を確認（文字化け調査用）
+                    if (!string.IsNullOrEmpty(productName))
                     {
-                        _logger.LogDebug("DataTable追加 行{Index}: カテゴリ='{Category}', 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}'", 
-                            index + 1, categoryName, customerName, productName, shippingMarkName);
+                        var bytes = Encoding.UTF8.GetBytes(productName);
+                        _logger.LogDebug("商品名バイト列: {Bytes}", BitConverter.ToString(bytes));
+                    }
+                    
+                    if (!string.IsNullOrEmpty(customerName))
+                    {
+                        var bytes = Encoding.UTF8.GetBytes(customerName);
+                        _logger.LogDebug("得意先名バイト列: {Bytes}", BitConverter.ToString(bytes));
+                    }
+                    
+                    if (!string.IsNullOrEmpty(shippingMarkName))
+                    {
+                        var bytes = Encoding.UTF8.GetBytes(shippingMarkName);
+                        _logger.LogDebug("荷印名バイト列: {Bytes}", BitConverter.ToString(bytes));
                     }
                     
                     dataTable.Rows.Add(
