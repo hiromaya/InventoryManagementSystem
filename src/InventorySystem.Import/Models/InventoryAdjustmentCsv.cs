@@ -63,6 +63,11 @@ public class InventoryAdjustmentCsv
     
     [Index(17)]
     public string ProductCategory3 { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 区分コード (CSV未対応のため、後で設定)
+    /// </summary>
+    public int? CategoryCode { get; set; }
 
     /// <summary>
     /// CSVデータをInventoryAdjustmentエンティティに変換
@@ -78,6 +83,7 @@ public class InventoryAdjustmentCsv
             VoucherType = VoucherType?.Trim() ?? string.Empty,
             DetailType = DetailType?.Trim() ?? string.Empty,
             UnitCode = UnitCode?.Trim() ?? string.Empty,
+            CategoryCode = CategoryCode ?? 0,  // デフォルト値を指定
             ProductCode = ProductCode?.Trim() ?? string.Empty,
             ProductName = ProductName?.Trim(),
             GradeCode = GradeCode?.Trim() ?? string.Empty,

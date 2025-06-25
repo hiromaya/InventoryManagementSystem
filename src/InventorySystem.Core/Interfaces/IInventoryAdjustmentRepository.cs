@@ -40,7 +40,7 @@ public interface IInventoryAdjustmentRepository
     /// <summary>
     /// 除外フラグを更新
     /// </summary>
-    Task UpdateExcludeStatusAsync(long id, bool isExcluded, string? excludeReason);
+    Task UpdateExcludeStatusAsync(string voucherId, int lineNumber, bool isExcluded, string? excludeReason);
 
     /// <summary>
     /// データセットIDごとの件数を取得

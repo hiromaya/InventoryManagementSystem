@@ -81,13 +81,13 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
     public async Task<IEnumerable<InventoryAdjustment>> GetByDataSetIdAsync(string dataSetId)
     {
         const string sql = @"
-            SELECT Id, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, UnitCode,
-                   ProductCode, ProductName, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                   Quantity, UnitPrice, Amount, ProductCategory1, ProductCategory2, ProductCategory3,
-                   IsExcluded, ExcludeReason, ImportedAt, CreatedAt, UpdatedAt
+            SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
+                   CustomerCode, CustomerName, CategoryCode,
+                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   Quantity, UnitPrice, Amount, CreatedDate
             FROM InventoryAdjustments 
             WHERE DataSetId = @DataSetId
-            ORDER BY VoucherNumber, ProductCode";
+            ORDER BY VoucherNumber, LineNumber";
 
         try
         {
@@ -184,23 +184,18 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
                 JobDate = @JobDate,
                 VoucherType = @VoucherType,
                 DetailType = @DetailType,
-                UnitCode = @UnitCode,
+                CustomerCode = @CustomerCode,
+                CustomerName = @CustomerName,
+                CategoryCode = @CategoryCode,
                 ProductCode = @ProductCode,
-                ProductName = @ProductName,
                 GradeCode = @GradeCode,
                 ClassCode = @ClassCode,
                 ShippingMarkCode = @ShippingMarkCode,
                 ShippingMarkName = @ShippingMarkName,
                 Quantity = @Quantity,
                 UnitPrice = @UnitPrice,
-                Amount = @Amount,
-                ProductCategory1 = @ProductCategory1,
-                ProductCategory2 = @ProductCategory2,
-                ProductCategory3 = @ProductCategory3,
-                IsExcluded = @IsExcluded,
-                ExcludeReason = @ExcludeReason,
-                UpdatedAt = @UpdatedAt
-            WHERE Id = @Id";
+                Amount = @Amount
+            WHERE VoucherId = @VoucherId AND LineNumber = @LineNumber";
 
         try
         {
@@ -208,42 +203,38 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
             
             var parameters = new
             {
-                adjustment.Id,
+                adjustment.VoucherId,
+                adjustment.LineNumber,
                 adjustment.VoucherNumber,
                 adjustment.VoucherDate,
                 adjustment.JobDate,
                 adjustment.VoucherType,
                 adjustment.DetailType,
-                adjustment.UnitCode,
+                adjustment.CustomerCode,
+                adjustment.CustomerName,
+                adjustment.CategoryCode,
                 adjustment.ProductCode,
-                adjustment.ProductName,
                 adjustment.GradeCode,
                 adjustment.ClassCode,
                 adjustment.ShippingMarkCode,
                 adjustment.ShippingMarkName,
                 adjustment.Quantity,
                 adjustment.UnitPrice,
-                adjustment.Amount,
-                adjustment.ProductCategory1,
-                adjustment.ProductCategory2,
-                adjustment.ProductCategory3,
-                adjustment.IsExcluded,
-                adjustment.ExcludeReason,
-                UpdatedAt = DateTime.Now
+                adjustment.Amount
             };
 
             var affectedRows = await connection.ExecuteAsync(sql, parameters);
             
             if (affectedRows == 0)
             {
-                throw new InvalidOperationException($"在庫調整データが見つかりません: {adjustment.Id}");
+                throw new InvalidOperationException($"在庫調整データが見つかりません: VoucherId={adjustment.VoucherId}, LineNumber={adjustment.LineNumber}");
             }
 
-            _logger.LogInformation("在庫調整データ更新完了: {Id}", adjustment.Id);
+            _logger.LogInformation("在庫調整データ更新完了: VoucherId={VoucherId}, LineNumber={LineNumber}", adjustment.VoucherId, adjustment.LineNumber);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "在庫調整データ更新エラー: {Id}", adjustment.Id);
+            _logger.LogError(ex, "在庫調整データ更新エラー: VoucherId={VoucherId}, LineNumber={LineNumber}", adjustment.VoucherId, adjustment.LineNumber);
             throw;
         }
     }
@@ -272,14 +263,13 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
     /// <summary>
     /// 除外フラグを更新
     /// </summary>
-    public async Task UpdateExcludeStatusAsync(long id, bool isExcluded, string? excludeReason)
+    public async Task UpdateExcludeStatusAsync(string voucherId, int lineNumber, bool isExcluded, string? excludeReason)
     {
         const string sql = @"
             UPDATE InventoryAdjustments 
             SET IsExcluded = @IsExcluded, 
-                ExcludeReason = @ExcludeReason,
-                UpdatedAt = @UpdatedAt
-            WHERE Id = @Id";
+                ExcludeReason = @ExcludeReason
+            WHERE VoucherId = @VoucherId AND LineNumber = @LineNumber";
 
         try
         {
@@ -287,19 +277,19 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
             
             var parameters = new
             {
-                Id = id,
+                VoucherId = voucherId,
+                LineNumber = lineNumber,
                 IsExcluded = isExcluded,
-                ExcludeReason = excludeReason,
-                UpdatedAt = DateTime.Now
+                ExcludeReason = excludeReason
             };
 
             await connection.ExecuteAsync(sql, parameters);
             
-            _logger.LogInformation("在庫調整除外ステータス更新: {Id} -> {IsExcluded}", id, isExcluded);
+            _logger.LogInformation("在庫調整除外ステータス更新: VoucherId={VoucherId}, LineNumber={LineNumber} -> {IsExcluded}", voucherId, lineNumber, isExcluded);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "在庫調整除外ステータス更新エラー: {Id}", id);
+            _logger.LogError(ex, "在庫調整除外ステータス更新エラー: VoucherId={VoucherId}, LineNumber={LineNumber}", voucherId, lineNumber);
             throw;
         }
     }
@@ -331,13 +321,13 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
     public async Task<IEnumerable<(string ProductCategory1, int Count, decimal TotalAmount)>> GetSummaryByProductCategory1Async(DateTime jobDate)
     {
         const string sql = @"
-            SELECT ProductCategory1, 
+            SELECT CategoryCode as ProductCategory1, 
                    COUNT(*) as Count, 
                    SUM(Amount) as TotalAmount
             FROM InventoryAdjustments 
-            WHERE JobDate = @JobDate AND IsExcluded = 0
-            GROUP BY ProductCategory1
-            ORDER BY ProductCategory1";
+            WHERE JobDate = @JobDate
+            GROUP BY CategoryCode
+            ORDER BY CategoryCode";
 
         try
         {

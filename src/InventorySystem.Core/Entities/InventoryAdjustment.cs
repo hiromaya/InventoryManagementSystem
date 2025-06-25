@@ -7,9 +7,14 @@ namespace InventorySystem.Core.Entities;
 public class InventoryAdjustment
 {
     /// <summary>
-    /// ID（自動採番）
+    /// 伝票ID（データベース用）
     /// </summary>
-    public long Id { get; set; }
+    public string VoucherId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 行番号（データベース用）
+    /// </summary>
+    public int LineNumber { get; set; }
 
     /// <summary>
     /// データセットID（取込単位の識別）
@@ -107,47 +112,52 @@ public class InventoryAdjustment
     public decimal Amount { get; set; }
 
     /// <summary>
-    /// 商品分類1（担当者コード）
+    /// 作成日（データベース用）
+    /// </summary>
+    public DateTime CreatedDate { get; set; }
+
+    /// <summary>
+    /// 商品分類1（担当者コード）- ビジネスロジック用、DBには保存しない
     /// </summary>
     public string? ProductCategory1 { get; set; }
 
     /// <summary>
-    /// 商品分類2
+    /// 商品分類2 - ビジネスロジック用、DBには保存しない
     /// </summary>
     public string? ProductCategory2 { get; set; }
 
     /// <summary>
-    /// 商品分類3
+    /// 商品分類3 - ビジネスロジック用、DBには保存しない
     /// </summary>
     public string? ProductCategory3 { get; set; }
 
     /// <summary>
-    /// 除外フラグ（アンマッチ処理時）
+    /// 除外フラグ（アンマッチ処理時）- ビジネスロジック用、DBには保存しない
     /// </summary>
     public bool IsExcluded { get; set; }
 
     /// <summary>
-    /// 除外理由
+    /// 除外理由 - ビジネスロジック用、DBには保存しない
     /// </summary>
     public string? ExcludeReason { get; set; }
 
     /// <summary>
-    /// 取込日時
+    /// 取込日時 - ビジネスロジック用、DBには保存しない
     /// </summary>
     public DateTime ImportedAt { get; set; }
 
     /// <summary>
-    /// 作成日時
+    /// 作成日時 - ビジネスロジック用、DBには保存しない
     /// </summary>
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// 更新日時
+    /// 更新日時 - ビジネスロジック用、DBには保存しない
     /// </summary>
     public DateTime UpdatedAt { get; set; }
 
     /// <summary>
-    /// 部門コード
+    /// 部門コード - ビジネスロジック用、DBには保存しない
     /// </summary>
     public string DepartmentCode { get; set; } = "DeptA";
 
@@ -203,10 +213,14 @@ public class InventoryAdjustment
             if (prefix == "9aaa")
             {
                 ProductCategory1 = "8";
+                // 区分コードも設定（商品分類1に基づいて）
+                CategoryCode = 8;
             }
             else if (prefix == "1aaa" || prefix == "0999")
             {
                 ProductCategory1 = "6";
+                // 区分コードも設定（商品分類1に基づいて）
+                CategoryCode = 6;
             }
         }
     }

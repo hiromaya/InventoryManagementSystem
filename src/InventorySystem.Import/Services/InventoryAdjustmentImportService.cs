@@ -83,6 +83,9 @@ public class InventoryAdjustmentImportService
                     }
 
                     var adjustment = record.ToEntity(dataSetId);
+                    // VoucherIdとLineNumberを設定
+                    adjustment.VoucherId = $"{dataSetId}_{adjustment.VoucherNumber}";
+                    adjustment.LineNumber = index; // 行番号を使用
                     adjustments.Add(adjustment);
                     importedCount++;
                 }
