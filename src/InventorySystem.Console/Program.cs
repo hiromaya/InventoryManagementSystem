@@ -671,7 +671,7 @@ try
                     {
                         var startInfo = new ProcessStartInfo
                         {
-                            FileName = pdfPath,
+                            FileName = filePath,
                             UseShellExecute = true
                         };
                         Process.Start(startInfo);
