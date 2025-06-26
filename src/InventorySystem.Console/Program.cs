@@ -271,6 +271,7 @@ try
         var logger = scopedServices.GetRequiredService<ILogger<Program>>();
         var unmatchListService = scopedServices.GetRequiredService<IUnmatchListService>();
         var reportService = scopedServices.GetRequiredService<IUnmatchListReportService>();
+        var fileManagementService = scopedServices.GetRequiredService<IFileManagementService>();
         
         // ジョブ日付を取得（引数から、またはデフォルト値）
         DateTime jobDate;
@@ -328,13 +329,13 @@ try
                 
                 if (pdfBytes != null && pdfBytes.Length > 0)
                 {
-                    // PDFファイル保存
-                    var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                    var fileName = $"unmatch_list_{jobDate:yyyyMMdd}_{timestamp}.pdf";
-                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), fileName);
+                    // FileManagementServiceを使用してレポートパスを取得
+                    var pdfPath = await fileManagementService.GetReportOutputPathAsync("UnmatchList", jobDate, "pdf");
                     
-                    await File.WriteAllBytesAsync(filePath, pdfBytes);
-                    Console.WriteLine($"PDF出力完了: {fileName}");
+                    await File.WriteAllBytesAsync(pdfPath, pdfBytes);
+                    
+                    Console.WriteLine($"PDFファイルを保存しました: {pdfPath}");
+                    Console.WriteLine($"ファイルサイズ: {pdfBytes.Length / 1024.0:F2} KB");
                     
                     // Windows環境では自動でPDFを開く
                     #if WINDOWS
@@ -342,7 +343,7 @@ try
                     {
                         var startInfo = new ProcessStartInfo
                         {
-                            FileName = filePath,
+                            FileName = pdfPath,
                             UseShellExecute = true
                         };
                         Process.Start(startInfo);
@@ -670,7 +671,7 @@ try
                     {
                         var startInfo = new ProcessStartInfo
                         {
-                            FileName = filePath,
+                            FileName = pdfPath,
                             UseShellExecute = true
                         };
                         Process.Start(startInfo);
