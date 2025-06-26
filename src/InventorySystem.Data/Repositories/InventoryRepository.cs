@@ -383,7 +383,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 combined.ShippingMarkCode, 
                 combined.ShippingMarkName COLLATE Japanese_CI_AS,
                 COALESCE(pm.ProductName, combined.ProductName, '商品名未設定') AS ProductName,
-                COALESCE(pm.Unit, '個') AS Unit,
+                COALESCE(pm.UnitCode, '個') AS Unit,
                 COALESCE(pm.StandardPrice, 0.0000) AS StandardPrice,
                 COALESCE(pm.ProductCategory1, '') AS ProductCategory1,
                 COALESCE(pm.ProductCategory2, '') AS ProductCategory2,
