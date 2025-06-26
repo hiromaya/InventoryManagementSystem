@@ -25,7 +25,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 DailyFlag, DataSetId
             )
             SELECT 
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, 
+                GradeCode, 
+                ClassCode, 
+                ShippingMarkCode, 
+                -- 文字化け対策：COLLATE指定
+                ShippingMarkName COLLATE Japanese_CI_AS,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 @JobDate, GETDATE(), GETDATE(),
                 CurrentStock, CurrentStockAmount, CASE WHEN CurrentStock > 0 THEN CurrentStockAmount / CurrentStock ELSE 0 END,
@@ -73,7 +78,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
-                AND ShippingMarkName = @ShippingMarkName
+                AND ShippingMarkName COLLATE Japanese_CI_AS = @ShippingMarkName COLLATE Japanese_CI_AS
                 AND DataSetId = @DataSetId
             """;
 
@@ -130,7 +135,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
-                AND ShippingMarkName = @ShippingMarkName
+                AND ShippingMarkName COLLATE Japanese_CI_AS = @ShippingMarkName COLLATE Japanese_CI_AS
                 AND DataSetId = @DataSetId
             """;
 
@@ -173,7 +178,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
-                AND ShippingMarkName = @ShippingMarkName
+                AND ShippingMarkName COLLATE Japanese_CI_AS = @ShippingMarkName COLLATE Japanese_CI_AS
                 AND DataSetId = @DataSetId
             """;
 
@@ -199,7 +204,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
                     SUM(ABS(Quantity)) as SalesQuantity,
                     SUM(ABS(Amount)) as SalesAmount
                 FROM SalesVouchers 
@@ -207,11 +212,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND VoucherType IN ('51', '52')
                     AND DetailType IN ('1', '2')
                     AND Quantity <> 0
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) sales ON cp.ProductCode = sales.ProductCode 
                 AND cp.GradeCode = sales.GradeCode 
                 AND cp.ClassCode = sales.ClassCode 
                 AND cp.ShippingMarkCode = sales.ShippingMarkCode
+                AND cp.ShippingMarkName COLLATE Japanese_CI_AS = sales.ShippingMarkName COLLATE Japanese_CI_AS
             WHERE cp.DataSetId = @DataSetId
             """;
 
@@ -230,7 +236,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
                     SUM(Quantity) as PurchaseQuantity,
                     SUM(Amount) as PurchaseAmount
                 FROM PurchaseVouchers 
@@ -238,11 +244,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND VoucherType IN ('61', '62')
                     AND DetailType IN ('1', '2')
                     AND Quantity <> 0
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) purchase ON cp.ProductCode = purchase.ProductCode 
                 AND cp.GradeCode = purchase.GradeCode 
                 AND cp.ClassCode = purchase.ClassCode 
                 AND cp.ShippingMarkCode = purchase.ShippingMarkCode
+                AND cp.ShippingMarkName COLLATE Japanese_CI_AS = purchase.ShippingMarkName COLLATE Japanese_CI_AS
             WHERE cp.DataSetId = @DataSetId
             """;
 
@@ -261,7 +268,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
                     SUM(Quantity) as AdjustmentQuantity,
                     SUM(Amount) as AdjustmentAmount
                 FROM InventoryAdjustments 
@@ -269,11 +276,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND VoucherType IN ('71', '72')
                     AND DetailType IN ('1', '3', '4')
                     AND Quantity <> 0
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) adj ON cp.ProductCode = adj.ProductCode 
                 AND cp.GradeCode = adj.GradeCode 
                 AND cp.ClassCode = adj.ClassCode 
                 AND cp.ShippingMarkCode = adj.ShippingMarkCode
+                AND cp.ShippingMarkName COLLATE Japanese_CI_AS = adj.ShippingMarkName COLLATE Japanese_CI_AS
             WHERE cp.DataSetId = @DataSetId
             """;
 
@@ -315,6 +323,38 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
 
         using var connection = new SqlConnection(_connectionString);
         return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+    }
+
+    public async Task<int> RepairShippingMarkNamesAsync(string dataSetId)
+    {
+        const string sql = """
+            UPDATE cp
+            SET cp.ShippingMarkName = im.ShippingMarkName
+            FROM CpInventoryMaster cp
+            INNER JOIN InventoryMaster im ON 
+                cp.ProductCode = im.ProductCode AND
+                cp.GradeCode = im.GradeCode AND
+                cp.ClassCode = im.ClassCode AND
+                cp.ShippingMarkCode = im.ShippingMarkCode
+            WHERE cp.DataSetId = @DataSetId
+                AND cp.ShippingMarkName LIKE '%?%'
+            """;
+        
+        using var connection = new SqlConnection(_connectionString);
+        return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+    }
+
+    public async Task<int> CountGarbledShippingMarkNamesAsync(string dataSetId)
+    {
+        const string sql = """
+            SELECT COUNT(*)
+            FROM CpInventoryMaster
+            WHERE DataSetId = @DataSetId
+                AND ShippingMarkName LIKE '%?%'
+            """;
+        
+        using var connection = new SqlConnection(_connectionString);
+        return await connection.ExecuteScalarAsync<int>(sql, new { DataSetId = dataSetId });
     }
 
     private static CpInventoryMaster MapToCpInventoryMaster(dynamic row)

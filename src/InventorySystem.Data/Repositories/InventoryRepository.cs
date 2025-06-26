@@ -294,4 +294,123 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             inventory.DataSetId
         };
     }
+    
+    public async Task<int> UpdateJobDateForVouchersAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE im
+            SET im.JobDate = @JobDate,
+                im.UpdatedDate = GETDATE()
+            FROM InventoryMaster im
+            WHERE EXISTS (
+                SELECT 1 FROM (
+                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                    FROM SalesVouchers WHERE JobDate = @JobDate
+                    UNION
+                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                    FROM PurchaseVouchers WHERE JobDate = @JobDate
+                ) v
+                WHERE v.ProductCode = im.ProductCode
+                    AND v.GradeCode = im.GradeCode
+                    AND v.ClassCode = im.ClassCode
+                    AND v.ShippingMarkCode = im.ShippingMarkCode
+                    AND v.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
+            )";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+            
+            LogInfo($"Updated JobDate for {result} inventory records", new { jobDate });
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(UpdateJobDateForVouchersAsync), new { jobDate });
+            throw;
+        }
+    }
+    
+    public async Task<int> RegisterNewProductsAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            INSERT INTO InventoryMaster (
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+                JobDate, CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
+                DailyFlag, CreatedDate, UpdatedDate, DataSetId
+            )
+            SELECT DISTINCT
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName COLLATE Japanese_CI_AS,
+                '商品名未設定', '個', 0.0000, '', '',
+                @JobDate, 0.0000, 0.0000, 0.0000, 0.0000,
+                '9', GETDATE(), GETDATE(), ''
+            FROM (
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                FROM SalesVouchers WHERE JobDate = @JobDate
+                UNION
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                FROM PurchaseVouchers WHERE JobDate = @JobDate
+            ) AS combined
+            WHERE NOT EXISTS (
+                SELECT 1 FROM InventoryMaster im
+                WHERE im.ProductCode = combined.ProductCode
+                    AND im.GradeCode = combined.GradeCode
+                    AND im.ClassCode = combined.ClassCode
+                    AND im.ShippingMarkCode = combined.ShippingMarkCode
+                    AND im.ShippingMarkName COLLATE Japanese_CI_AS = combined.ShippingMarkName COLLATE Japanese_CI_AS
+                    AND im.JobDate = @JobDate
+            )";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+            
+            LogInfo($"Registered {result} new products to inventory", new { jobDate });
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(RegisterNewProductsAsync), new { jobDate });
+            throw;
+        }
+    }
+    
+    public async Task<int> UpdateFromCpInventoryAsync(string dataSetId, DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE im
+            SET im.CurrentStock = cp.DailyStock,
+                im.CurrentStockAmount = cp.DailyStockAmount,
+                im.DailyStock = cp.DailyStock,
+                im.DailyStockAmount = cp.DailyStockAmount,
+                im.DailyFlag = cp.DailyFlag,
+                im.UpdatedDate = GETDATE(),
+                im.DataSetId = cp.DataSetId
+            FROM InventoryMaster im
+            INNER JOIN CpInventoryMaster cp ON
+                im.ProductCode = cp.ProductCode
+                AND im.GradeCode = cp.GradeCode
+                AND im.ClassCode = cp.ClassCode
+                AND im.ShippingMarkCode = cp.ShippingMarkCode
+                AND im.ShippingMarkName COLLATE Japanese_CI_AS = cp.ShippingMarkName COLLATE Japanese_CI_AS
+            WHERE cp.DataSetId = @DataSetId
+                AND im.JobDate = @JobDate";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteAsync(sql, new { DataSetId = dataSetId, JobDate = jobDate });
+            
+            LogInfo($"Updated inventory from CP inventory for {result} records", new { dataSetId, jobDate });
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(UpdateFromCpInventoryAsync), new { dataSetId, jobDate });
+            throw;
+        }
+    }
 }

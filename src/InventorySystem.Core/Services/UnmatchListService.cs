@@ -56,6 +56,11 @@ public class UnmatchListService : IUnmatchListService
             _logger.LogInformation("アンマッチリスト処理開始 - ジョブ日付: {JobDate}, データセットID: {DataSetId}", 
                 jobDate, dataSetId);
 
+            // 在庫マスタ最適化処理
+            _logger.LogInformation("在庫マスタの最適化を開始します");
+            await OptimizeInventoryMasterAsync(jobDate);
+            _logger.LogInformation("在庫マスタの最適化が完了しました");
+
             // 処理1-1: CP在庫M作成
             _logger.LogInformation("CP在庫マスタ作成開始");
             var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, jobDate);
@@ -65,6 +70,15 @@ public class UnmatchListService : IUnmatchListService
             _logger.LogInformation("当日エリアクリア開始");
             await _cpInventoryRepository.ClearDailyAreaAsync(dataSetId);
             _logger.LogInformation("当日エリアクリア完了");
+            
+            // CP在庫マスタ作成後、文字化けチェック
+            var garbledCount = await _cpInventoryRepository.CountGarbledShippingMarkNamesAsync(dataSetId);
+            if (garbledCount > 0)
+            {
+                _logger.LogWarning("CP在庫マスタに文字化けデータが{Count}件検出されました。修復を試みます。", garbledCount);
+                var repairCount = await _cpInventoryRepository.RepairShippingMarkNamesAsync(dataSetId);
+                _logger.LogInformation("文字化けデータ{Count}件を修復しました。", repairCount);
+            }
 
             // 当日データ集計
             _logger.LogInformation("当日データ集計開始");
@@ -459,5 +473,29 @@ public class UnmatchListService : IUnmatchListService
         }
         
         return item;
+    }
+    
+    /// <summary>
+    /// 在庫マスタ最適化処理
+    /// </summary>
+    private async Task OptimizeInventoryMasterAsync(DateTime jobDate)
+    {
+        try
+        {
+            // 1. 売上・仕入伝票に対応する在庫マスタのJobDate更新
+            _logger.LogInformation("在庫マスタのJobDate更新を開始します");
+            var updateCount = await _inventoryRepository.UpdateJobDateForVouchersAsync(jobDate);
+            _logger.LogInformation("在庫マスタのJobDate更新完了: {Count}件", updateCount);
+            
+            // 2. 新規商品の在庫マスタ登録
+            _logger.LogInformation("新規商品の在庫マスタ登録を開始します");
+            var registerCount = await _inventoryRepository.RegisterNewProductsAsync(jobDate);
+            _logger.LogInformation("新規商品の在庫マスタ登録完了: {Count}件", registerCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "在庫マスタ最適化処理でエラーが発生しました");
+            throw;
+        }
     }
 }

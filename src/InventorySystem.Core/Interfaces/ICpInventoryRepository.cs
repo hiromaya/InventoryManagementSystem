@@ -63,4 +63,14 @@ public interface ICpInventoryRepository
     /// CP在庫マスタを削除する（データセット指定）
     /// </summary>
     Task<int> DeleteByDataSetIdAsync(string dataSetId);
+    
+    /// <summary>
+    /// 文字化けしたShippingMarkNameを修復する
+    /// </summary>
+    Task<int> RepairShippingMarkNamesAsync(string dataSetId);
+    
+    /// <summary>
+    /// 文字化けしたShippingMarkNameの件数を取得する
+    /// </summary>
+    Task<int> CountGarbledShippingMarkNamesAsync(string dataSetId);
 }

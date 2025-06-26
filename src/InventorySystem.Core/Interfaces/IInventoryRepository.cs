@@ -11,4 +11,19 @@ public interface IInventoryRepository
     Task<int> DeleteByJobDateAsync(DateTime jobDate);
     Task<int> ClearDailyFlagAsync(DateTime jobDate);
     Task<int> BulkInsertAsync(IEnumerable<InventoryMaster> inventories);
+    
+    /// <summary>
+    /// 売上・仕入伝票に対応する在庫マスタのJobDateを更新する
+    /// </summary>
+    Task<int> UpdateJobDateForVouchersAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// 新規商品を在庫マスタに登録する
+    /// </summary>
+    Task<int> RegisterNewProductsAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// CP在庫マスタから在庫マスタを更新する（日次終了処理用）
+    /// </summary>
+    Task<int> UpdateFromCpInventoryAsync(string dataSetId, DateTime jobDate);
 }
