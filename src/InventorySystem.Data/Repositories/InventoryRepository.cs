@@ -342,17 +342,41 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 DailyFlag, CreatedDate, UpdatedDate, DataSetId
             )
             SELECT DISTINCT
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName COLLATE Japanese_CI_AS,
-                '商品名未設定', '個', 0.0000, '', '',
-                @JobDate, 0.0000, 0.0000, 0.0000, 0.0000,
-                '9', GETDATE(), GETDATE(), ''
+                combined.ProductCode, 
+                combined.GradeCode, 
+                combined.ClassCode, 
+                combined.ShippingMarkCode, 
+                combined.ShippingMarkName COLLATE Japanese_CI_AS,
+                COALESCE(pm.ProductName, combined.ProductName, '商品名未設定') AS ProductName,
+                COALESCE(pm.Unit, '個') AS Unit,
+                COALESCE(pm.StandardPrice, 0.0000) AS StandardPrice,
+                COALESCE(pm.ProductCategory1, '') AS ProductCategory1,
+                COALESCE(pm.ProductCategory2, '') AS ProductCategory2,
+                @JobDate, 
+                0.0000, 
+                0.0000, 
+                0.0000, 
+                0.0000,
+                '9', 
+                GETDATE(), 
+                GETDATE(), 
+                ''
             FROM (
-                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
-                FROM SalesVouchers WHERE JobDate = @JobDate
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, ProductName
+                FROM SalesVouchers 
+                WHERE JobDate = @JobDate
+                    AND (VoucherType = '51' OR VoucherType = '52')
+                    AND (DetailType = '1' OR DetailType = '2')
+                    AND Quantity != 0
                 UNION
-                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
-                FROM PurchaseVouchers WHERE JobDate = @JobDate
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, ProductName
+                FROM PurchaseVouchers 
+                WHERE JobDate = @JobDate
+                    AND (VoucherType = '11' OR VoucherType = '12')
+                    AND (DetailType = '1' OR DetailType = '2')
+                    AND Quantity != 0
             ) AS combined
+            LEFT JOIN ProductMaster pm ON pm.ProductCode = combined.ProductCode
             WHERE NOT EXISTS (
                 SELECT 1 FROM InventoryMaster im
                 WHERE im.ProductCode = combined.ProductCode
@@ -369,6 +393,23 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             var result = await connection.ExecuteAsync(sql, new { JobDate = jobDate });
             
             LogInfo($"Registered {result} new products to inventory", new { jobDate });
+            
+            // 登録した商品の詳細をログ出力
+            if (result > 0)
+            {
+                const string detailSql = @"
+                    SELECT TOP 10 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, ProductName
+                    FROM InventoryMaster
+                    WHERE JobDate = @JobDate AND CreatedDate >= DATEADD(MINUTE, -1, GETDATE())
+                    ORDER BY CreatedDate DESC";
+                
+                var newProducts = await connection.QueryAsync<dynamic>(detailSql, new { JobDate = jobDate });
+                foreach (var product in newProducts)
+                {
+                    LogDebug($"New product registered: ProductCode={product.ProductCode}, ProductName={product.ProductName}, ShippingMarkName={product.ShippingMarkName}");
+                }
+            }
+            
             return result;
         }
         catch (Exception ex)
@@ -410,6 +451,55 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
         catch (Exception ex)
         {
             LogError(ex, nameof(UpdateFromCpInventoryAsync), new { dataSetId, jobDate });
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 在庫マスタから任意の日付で商品キーに一致するレコードを取得（最新日付優先）
+    /// </summary>
+    public async Task<InventoryMaster?> GetByKeyAnyDateAsync(InventoryKey key)
+    {
+        const string sql = @"
+            SELECT TOP 1 
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+                JobDate, CreatedDate, UpdatedDate,
+                CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
+                DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
+                DataSetId
+            FROM InventoryMaster 
+            WHERE ProductCode = @ProductCode 
+                AND GradeCode = @GradeCode 
+                AND ClassCode = @ClassCode 
+                AND ShippingMarkCode = @ShippingMarkCode 
+                AND ShippingMarkName COLLATE Japanese_CI_AS = @ShippingMarkName COLLATE Japanese_CI_AS
+            ORDER BY JobDate DESC";
+
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.QuerySingleOrDefaultAsync(sql, new
+            {
+                ProductCode = key.ProductCode,
+                GradeCode = key.GradeCode,
+                ClassCode = key.ClassCode,
+                ShippingMarkCode = key.ShippingMarkCode,
+                ShippingMarkName = key.ShippingMarkName
+            });
+
+            if (result != null)
+            {
+                LogDebug($"Found inventory master for product key", new { key });
+                return MapToInventoryMaster(result);
+            }
+
+            LogDebug($"No inventory master found for product key", new { key });
+            return null;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetByKeyAnyDateAsync), new { key });
             throw;
         }
     }

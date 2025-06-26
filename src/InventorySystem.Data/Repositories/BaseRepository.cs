@@ -28,4 +28,9 @@ public abstract class BaseRepository
     {
         _logger.LogInformation("{Message}. Parameters: {@Parameters}", message, parameters);
     }
+
+    protected void LogDebug(string message, object? parameters = null)
+    {
+        _logger.LogDebug("{Message}. Parameters: {@Parameters}", message, parameters);
+    }
 }

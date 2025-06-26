@@ -26,4 +26,9 @@ public interface IInventoryRepository
     /// CP在庫マスタから在庫マスタを更新する（日次終了処理用）
     /// </summary>
     Task<int> UpdateFromCpInventoryAsync(string dataSetId, DateTime jobDate);
+    
+    /// <summary>
+    /// 在庫マスタから任意の日付で商品キーに一致するレコードを取得（最新日付優先）
+    /// </summary>
+    Task<InventoryMaster?> GetByKeyAnyDateAsync(InventoryKey key);
 }

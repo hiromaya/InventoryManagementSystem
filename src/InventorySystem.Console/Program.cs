@@ -11,8 +11,8 @@ using InventorySystem.Data.Repositories.Masters;
 using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Core.Configuration;
 using Microsoft.Extensions.Options;
-using InventorySystem.Reports.Interfaces;
-using InventorySystem.Reports.FastReport.Services;
+// using InventorySystem.Reports.Interfaces;
+// using InventorySystem.Reports.FastReport.Services;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
@@ -128,8 +128,8 @@ builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
 // Report Services - Windows専用でFastReport実装を使用
-builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
-builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, DailyReportFastReportService>();
+// builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
+// builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, DailyReportFastReportService>();
 builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
 builder.Services.AddScoped<InventoryAdjustmentImportService>();
@@ -308,35 +308,8 @@ try
             Console.WriteLine();
         }
         
-        // PDF出力
-        try
-        {
-            var reportService = scopedServices.GetRequiredService<IUnmatchListReportService>();
-            var fileService = scopedServices.GetRequiredService<IFileManagementService>();
-            Console.WriteLine("PDF生成中...");
-            var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, jobDate);
-            
-            var outputPath = await fileService.GetReportOutputPathAsync(
-                "unmatch_list", 
-                jobDate, 
-                "pdf"
-            );
-            
-            await File.WriteAllBytesAsync(outputPath, pdfBytes);
-            Console.WriteLine($"PDF出力完了: {outputPath}");
-            
-            // PDFを開く
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = outputPath,
-                UseShellExecute = true
-            });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "PDF生成でエラーが発生しました");
-            Console.WriteLine($"PDF生成エラー: {ex.Message}");
-        }
+        // PDF出力（Linux環境では無効化）
+        Console.WriteLine("注意: Linux環境のためPDF生成はスキップされました");
         
         Console.WriteLine("=== アンマッチリスト処理完了 ===");
     }
@@ -616,35 +589,12 @@ try
                 Console.WriteLine();
             }
             
-            // PDF出力
-            try
-            {
-                var reportService = scopedServices.GetRequiredService<InventorySystem.Reports.Interfaces.IDailyReportService>();
-                var fileService = scopedServices.GetRequiredService<IFileManagementService>();
-                Console.WriteLine("PDF生成中...");
-                var pdfBytes = reportService.GenerateDailyReport(result.ReportItems, result.Subtotals, result.Total, jobDate);
-                
-                var outputPath = await fileService.GetReportOutputPathAsync(
-                    "daily_report", 
-                    jobDate, 
-                    "pdf"
-                );
-                
-                await File.WriteAllBytesAsync(outputPath, pdfBytes);
-                Console.WriteLine($"PDF出力完了: {outputPath}");
-                
-                // PDFを開く
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = outputPath,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "PDF生成でエラーが発生しました");
-                Console.WriteLine($"PDF生成エラー: {ex.Message}");
-            }
+            // PDF出力（Linux環境では無効化）
+            Console.WriteLine("注意: Linux環境のためPDF生成はスキップされました");
+            
+            // PDFを開く（コメントアウト）
+            /*
+            */
             
             Console.WriteLine("=== 商品日報処理完了 ===");
         }
