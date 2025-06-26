@@ -241,7 +241,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     SUM(Amount) as PurchaseAmount
                 FROM PurchaseVouchers 
                 WHERE JobDate = @JobDate 
-                    AND VoucherType IN ('61', '62')
+                    AND VoucherType IN ('11', '12')
                     AND DetailType IN ('1', '2')
                     AND Quantity <> 0
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
