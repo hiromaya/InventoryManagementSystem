@@ -238,30 +238,30 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
         {
             Key = new InventoryKey
             {
-                ProductCode = row.ProductCode,
-                GradeCode = row.GradeCode,
-                ClassCode = row.ClassCode,
-                ShippingMarkCode = row.ShippingMarkCode,
-                ShippingMarkName = row.ShippingMarkName
+                ProductCode = row.ProductCode ?? string.Empty,
+                GradeCode = row.GradeCode ?? string.Empty,
+                ClassCode = row.ClassCode ?? string.Empty,
+                ShippingMarkCode = row.ShippingMarkCode ?? string.Empty,
+                ShippingMarkName = row.ShippingMarkName ?? string.Empty
             },
-            ProductName = row.ProductName,
-            Unit = row.Unit,
-            StandardPrice = row.StandardPrice,
-            ProductCategory1 = row.ProductCategory1,
-            ProductCategory2 = row.ProductCategory2,
-            JobDate = row.JobDate,
-            CreatedDate = row.CreatedDate,
-            UpdatedDate = row.UpdatedDate,
-            CurrentStock = row.CurrentStock,
-            CurrentStockAmount = row.CurrentStockAmount,
-            DailyStock = row.DailyStock,
-            DailyStockAmount = row.DailyStockAmount,
-            DailyFlag = row.DailyFlag,
-            DailyGrossProfit = row.DailyGrossProfit,
-            DailyAdjustmentAmount = row.DailyAdjustmentAmount,
-            DailyProcessingCost = row.DailyProcessingCost,
-            FinalGrossProfit = row.FinalGrossProfit,
-            DataSetId = row.DataSetId
+            ProductName = row.ProductName ?? string.Empty,
+            Unit = row.Unit ?? string.Empty,
+            StandardPrice = row.StandardPrice ?? 0m,
+            ProductCategory1 = row.ProductCategory1 ?? string.Empty,
+            ProductCategory2 = row.ProductCategory2 ?? string.Empty,
+            JobDate = row.JobDate ?? DateTime.MinValue,
+            CreatedDate = row.CreatedDate ?? DateTime.MinValue,
+            UpdatedDate = row.UpdatedDate ?? DateTime.MinValue,
+            CurrentStock = row.CurrentStock ?? 0m,
+            CurrentStockAmount = row.CurrentStockAmount ?? 0m,
+            DailyStock = row.DailyStock ?? 0m,
+            DailyStockAmount = row.DailyStockAmount ?? 0m,
+            DailyFlag = ConvertToChar(row.DailyFlag),
+            DailyGrossProfit = row.DailyGrossProfit ?? 0m,
+            DailyAdjustmentAmount = row.DailyAdjustmentAmount ?? 0m,
+            DailyProcessingCost = row.DailyProcessingCost ?? 0m,
+            FinalGrossProfit = row.FinalGrossProfit ?? 0m,
+            DataSetId = row.DataSetId ?? string.Empty
         };
     }
 
@@ -293,6 +293,41 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             inventory.FinalGrossProfit,
             inventory.DataSetId
         };
+    }
+    
+    /// <summary>
+    /// 動的な値をchar型に変換する
+    /// </summary>
+    /// <param name="value">変換対象の値</param>
+    /// <param name="defaultValue">デフォルト値（値がnullまたは空の場合）</param>
+    /// <returns>変換されたchar値</returns>
+    private static char ConvertToChar(dynamic value, char defaultValue = '9')
+    {
+        if (value == null)
+            return defaultValue;
+        
+        // 文字列の場合
+        if (value is string strValue)
+        {
+            return string.IsNullOrEmpty(strValue) ? defaultValue : strValue[0];
+        }
+        
+        // 既にchar型の場合
+        if (value is char charValue)
+        {
+            return charValue;
+        }
+        
+        // その他の型の場合は文字列に変換して最初の文字を取得
+        try
+        {
+            var converted = value.ToString();
+            return string.IsNullOrEmpty(converted) ? defaultValue : converted[0];
+        }
+        catch
+        {
+            return defaultValue;
+        }
     }
     
     public async Task<int> UpdateJobDateForVouchersAsync(DateTime jobDate)

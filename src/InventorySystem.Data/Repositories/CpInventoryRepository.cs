@@ -434,7 +434,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             DailyStock = row.DailyStock ?? 0m,
             DailyStockAmount = row.DailyStockAmount ?? 0m,
             DailyUnitPrice = row.DailyUnitPrice ?? 0m,
-            DailyFlag = Convert.ToChar(row.DailyFlag ?? '9'),
+            DailyFlag = ConvertToChar(row.DailyFlag),
             DailySalesQuantity = row.DailySalesQuantity ?? 0m,
             DailySalesAmount = row.DailySalesAmount ?? 0m,
             DailySalesReturnQuantity = row.DailySalesReturnQuantity ?? 0m,
@@ -459,5 +459,40 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             DailyDiscountAmount = row.DailyDiscountAmount ?? 0m,
             DataSetId = row.DataSetId ?? string.Empty
         };
+    }
+    
+    /// <summary>
+    /// 動的な値をchar型に変換する
+    /// </summary>
+    /// <param name="value">変換対象の値</param>
+    /// <param name="defaultValue">デフォルト値（値がnullまたは空の場合）</param>
+    /// <returns>変換されたchar値</returns>
+    private static char ConvertToChar(dynamic value, char defaultValue = '9')
+    {
+        if (value == null)
+            return defaultValue;
+        
+        // 文字列の場合
+        if (value is string strValue)
+        {
+            return string.IsNullOrEmpty(strValue) ? defaultValue : strValue[0];
+        }
+        
+        // 既にchar型の場合
+        if (value is char charValue)
+        {
+            return charValue;
+        }
+        
+        // その他の型の場合は文字列に変換して最初の文字を取得
+        try
+        {
+            var converted = value.ToString();
+            return string.IsNullOrEmpty(converted) ? defaultValue : converted[0];
+        }
+        catch
+        {
+            return defaultValue;
+        }
     }
 }
