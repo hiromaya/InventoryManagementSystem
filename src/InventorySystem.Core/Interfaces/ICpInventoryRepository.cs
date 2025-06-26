@@ -73,4 +73,14 @@ public interface ICpInventoryRepository
     /// 文字化けしたShippingMarkNameの件数を取得する
     /// </summary>
     Task<int> CountGarbledShippingMarkNamesAsync(string dataSetId);
+    
+    /// <summary>
+    /// CP在庫マスタの全レコードを削除する
+    /// </summary>
+    Task<int> DeleteAllAsync();
+    
+    /// <summary>
+    /// 集計結果を取得する
+    /// </summary>
+    Task<InventorySystem.Core.Models.AggregationResult> GetAggregationResultAsync(string dataSetId);
 }

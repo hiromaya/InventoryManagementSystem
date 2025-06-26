@@ -357,6 +357,57 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         return await connection.ExecuteScalarAsync<int>(sql, new { DataSetId = dataSetId });
     }
 
+    public async Task<int> DeleteAllAsync()
+    {
+        const string sql = "DELETE FROM CpInventoryMaster";
+        
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var deletedCount = await connection.ExecuteAsync(sql);
+            
+            _logger.LogInformation("CP在庫マスタ全削除完了: {Count}件", deletedCount);
+            return deletedCount;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "CP在庫マスタ全削除エラー");
+            throw;
+        }
+    }
+
+    public async Task<InventorySystem.Core.Models.AggregationResult> GetAggregationResultAsync(string dataSetId)
+    {
+        const string sql = """
+            SELECT 
+                COUNT(*) as TotalCount,
+                SUM(CASE WHEN DailyFlag = '0' THEN 1 ELSE 0 END) as AggregatedCount,
+                SUM(CASE WHEN DailyFlag = '9' THEN 1 ELSE 0 END) as NotAggregatedCount,
+                SUM(CASE WHEN DailyFlag = '0' AND DailyPurchaseQuantity = 0 AND DailySalesQuantity = 0 THEN 1 ELSE 0 END) as ZeroTransactionCount
+            FROM CpInventoryMaster
+            WHERE DataSetId = @DataSetId
+            """;
+        
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var result = await connection.QuerySingleAsync<dynamic>(sql, new { DataSetId = dataSetId });
+            
+            return new InventorySystem.Core.Models.AggregationResult
+            {
+                TotalCount = result.TotalCount ?? 0,
+                AggregatedCount = result.AggregatedCount ?? 0,
+                NotAggregatedCount = result.NotAggregatedCount ?? 0,
+                ZeroTransactionCount = result.ZeroTransactionCount ?? 0
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "集計結果取得エラー: DataSetId={DataSetId}", dataSetId);
+            throw;
+        }
+    }
+
     private static CpInventoryMaster MapToCpInventoryMaster(dynamic row)
     {
         return new CpInventoryMaster

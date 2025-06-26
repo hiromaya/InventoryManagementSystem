@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Interfaces.Masters;
+using InventorySystem.Core.Models;
 
 namespace InventorySystem.Core.Services;
 
@@ -61,6 +62,11 @@ public class UnmatchListService : IUnmatchListService
             await OptimizeInventoryMasterAsync(jobDate);
             _logger.LogInformation("在庫マスタの最適化が完了しました");
 
+            // 重要: 既存のCP在庫マスタを全件削除
+            _logger.LogInformation("既存のCP在庫マスタを全件削除します");
+            var deletedCount = await _cpInventoryRepository.DeleteAllAsync();
+            _logger.LogInformation("CP在庫マスタから{Count}件のレコードを削除しました", deletedCount);
+
             // 処理1-1: CP在庫M作成
             _logger.LogInformation("CP在庫マスタ作成開始");
             var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, jobDate);
@@ -80,18 +86,20 @@ public class UnmatchListService : IUnmatchListService
                 _logger.LogInformation("文字化けデータ{Count}件を修復しました。", repairCount);
             }
 
-            // 当日データ集計
+            // 当日データ集計と検証
             _logger.LogInformation("当日データ集計開始");
-            await _cpInventoryRepository.AggregateSalesDataAsync(dataSetId, jobDate);
-            await _cpInventoryRepository.AggregatePurchaseDataAsync(dataSetId, jobDate);
-            await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, jobDate);
+            await AggregateDailyDataWithValidationAsync(dataSetId, jobDate);
             _logger.LogInformation("当日データ集計完了");
 
-            // 処理1-3: 当日在庫計算
-            _logger.LogInformation("当日在庫計算開始");
-            await _cpInventoryRepository.CalculateDailyStockAsync(dataSetId);
-            await _cpInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
-            _logger.LogInformation("当日在庫計算完了");
+            // 集計結果の検証
+            var aggregationResult = await ValidateAggregationResultAsync(dataSetId);
+            _logger.LogInformation("集計結果 - 総数: {TotalCount}, 集計済み: {AggregatedCount}, 未集計: {NotAggregatedCount}, 取引なし: {ZeroTransactionCount}",
+                aggregationResult.TotalCount, aggregationResult.AggregatedCount, aggregationResult.NotAggregatedCount, aggregationResult.ZeroTransactionCount);
+
+            if (aggregationResult.NotAggregatedCount > 0)
+            {
+                _logger.LogWarning("未集計のレコードが{Count}件存在します", aggregationResult.NotAggregatedCount);
+            }
 
             // 処理1-6: アンマッチリスト生成
             _logger.LogInformation("アンマッチリスト生成開始");
@@ -495,6 +503,56 @@ public class UnmatchListService : IUnmatchListService
         catch (Exception ex)
         {
             _logger.LogError(ex, "在庫マスタ最適化処理でエラーが発生しました");
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 当日データ集計と検証処理
+    /// </summary>
+    private async Task AggregateDailyDataWithValidationAsync(string dataSetId, DateTime jobDate)
+    {
+        try
+        {
+            // 1. 仕入データの集計
+            var purchaseCount = await _cpInventoryRepository.AggregatePurchaseDataAsync(dataSetId, jobDate);
+            _logger.LogInformation("仕入データを集計しました。更新件数: {Count}件", purchaseCount);
+            
+            // 2. 売上データの集計
+            var salesCount = await _cpInventoryRepository.AggregateSalesDataAsync(dataSetId, jobDate);
+            _logger.LogInformation("売上データを集計しました。更新件数: {Count}件", salesCount);
+            
+            // 3. 在庫調整データの集計
+            var adjustmentCount = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, jobDate);
+            _logger.LogInformation("在庫調整データを集計しました。更新件数: {Count}件", adjustmentCount);
+            
+            // 4. 当日在庫計算
+            var calculatedCount = await _cpInventoryRepository.CalculateDailyStockAsync(dataSetId);
+            _logger.LogInformation("当日在庫を計算しました。更新件数: {Count}件", calculatedCount);
+            
+            // 5. 当日発生フラグを'0'に更新
+            var flagCount = await _cpInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
+            _logger.LogInformation("当日発生フラグを更新しました。更新件数: {Count}件", flagCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "当日データ集計中にエラーが発生しました");
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 集計結果の検証
+    /// </summary>
+    private async Task<AggregationResult> ValidateAggregationResultAsync(string dataSetId)
+    {
+        try
+        {
+            return await _cpInventoryRepository.GetAggregationResultAsync(dataSetId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "集計結果の検証中にエラーが発生しました");
             throw;
         }
     }
