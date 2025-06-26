@@ -34,8 +34,9 @@ public class PurchaseVoucherImportService
     /// </summary>
     /// <param name="filePath">取込対象CSVファイルパス</param>
     /// <param name="jobDate">ジョブ日付</param>
+    /// <param name="departmentCode">部門コード（省略時は使用しない）</param>
     /// <returns>データセットID</returns>
-    public async Task<string> ImportAsync(string filePath, DateTime jobDate)
+    public async Task<string> ImportAsync(string filePath, DateTime jobDate, string? departmentCode = null)
     {
         if (!File.Exists(filePath))
         {
@@ -46,8 +47,8 @@ public class PurchaseVoucherImportService
         var importedCount = 0;
         var errorMessages = new List<string>();
 
-        _logger.LogInformation("仕入伝票CSV取込開始: {FilePath}, DataSetId: {DataSetId}", 
-            filePath, dataSetId);
+        _logger.LogInformation("仕入伝票CSV取込開始: {FilePath}, DataSetId: {DataSetId}, Department: {DepartmentCode}", 
+            filePath, dataSetId, departmentCode ?? "未指定");
 
         try
         {
@@ -63,6 +64,7 @@ public class PurchaseVoucherImportService
                 Status = DataSetStatus.Processing,
                 FilePath = filePath,
                 JobDate = jobDate,
+                DepartmentCode = departmentCode,
                 UpdatedAt = DateTime.Now
             };
             

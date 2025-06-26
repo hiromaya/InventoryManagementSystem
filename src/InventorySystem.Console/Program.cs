@@ -1028,6 +1028,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         var fileService = scopedServices.GetRequiredService<IFileManagementService>();
         var salesImportService = scopedServices.GetRequiredService<SalesVoucherImportService>();
         var purchaseImportService = scopedServices.GetRequiredService<PurchaseVoucherImportService>();
+        var adjustmentImportService = scopedServices.GetRequiredService<InventoryAdjustmentImportService>();
         
         var department = args[2];
         DateTime jobDate = args.Length >= 4 && DateTime.TryParse(args[3], out var date) ? date : DateTime.Today;
@@ -1057,6 +1058,11 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     {
                         await purchaseImportService.ImportAsync(file, jobDate, department);
                         Console.WriteLine("✅ 仕入伝票として処理完了");
+                    }
+                    else if (fileName.StartsWith("在庫調整"))
+                    {
+                        await adjustmentImportService.ImportAsync(file, jobDate, department);
+                        Console.WriteLine("✅ 在庫調整として処理完了");
                     }
                     else
                     {
