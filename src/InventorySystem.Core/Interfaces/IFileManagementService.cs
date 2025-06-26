@@ -108,6 +108,15 @@ namespace InventorySystem.Core.Interfaces
         /// <param name="path">チェック対象パス</param>
         /// <returns>書き込み可能な場合true</returns>
         Task<bool> CheckWritePermissionAsync(string path);
+        
+        /// <summary>
+        /// 帳票の出力パスを取得
+        /// </summary>
+        /// <param name="reportType">帳票タイプ（unmatch_list, daily_report等）</param>
+        /// <param name="jobDate">ジョブ日付</param>
+        /// <param name="extension">拡張子（pdf, xlsx等）</param>
+        /// <returns>完全な出力パス</returns>
+        Task<string> GetReportOutputPathAsync(string reportType, DateTime jobDate, string extension);
     }
     
     /// <summary>

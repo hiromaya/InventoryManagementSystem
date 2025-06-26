@@ -41,6 +41,16 @@ namespace InventorySystem.Core.Configuration
         public string DevBackupRootPath { get; set; } = "C:\\Temp\\InventoryTest\\Backup";
         
         /// <summary>
+        /// 帳票出力パス
+        /// </summary>
+        public string ReportOutputPath { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// 開発環境での帳票出力パス
+        /// </summary>
+        public string DevReportOutputPath { get; set; } = "C:\\Temp\\InventoryTest\\Reports";
+        
+        /// <summary>
         /// 実際のインポートルートパスを取得
         /// </summary>
         public string GetImportRootPath() => IsDevEnvironment ? DevImportRootPath : ImportRootPath;
@@ -49,6 +59,12 @@ namespace InventorySystem.Core.Configuration
         /// 実際のバックアップルートパスを取得
         /// </summary>
         public string GetBackupRootPath() => IsDevEnvironment ? DevBackupRootPath : BackupRootPath;
+        
+        /// <summary>
+        /// 実際の帳票出力パスを取得
+        /// </summary>
+        public string GetReportOutputPath() => IsDevEnvironment ? DevReportOutputPath : 
+            (string.IsNullOrEmpty(ReportOutputPath) ? Path.Combine(GetBackupRootPath(), "Reports") : ReportOutputPath);
     }
     
     /// <summary>

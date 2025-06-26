@@ -470,5 +470,42 @@ namespace InventorySystem.Core.Services
                 _logger.LogError(ex, "{BackupType}バックアップのクリーンアップ中にエラーが発生しました", backupType);
             }
         }
+        
+        /// <summary>
+        /// 帳票の出力パスを取得
+        /// </summary>
+        public async Task<string> GetReportOutputPathAsync(string reportType, DateTime jobDate, string extension)
+        {
+            await Task.CompletedTask; // 非同期対応
+            
+            try
+            {
+                // 帳票出力ベースパスを取得
+                var reportBasePath = _settings.GetReportOutputPath();
+                
+                // 年月別フォルダ（YYYY-MM形式）
+                var yearMonth = jobDate.ToString("yyyy-MM");
+                var reportPath = Path.Combine(reportBasePath, yearMonth);
+                
+                // ディレクトリが存在しない場合は作成
+                if (!Directory.Exists(reportPath))
+                {
+                    Directory.CreateDirectory(reportPath);
+                    _logger.LogInformation("帳票出力ディレクトリを作成しました: {Path}", reportPath);
+                }
+                
+                // ファイル名を生成（reportType_YYYYMMDD_HHMMSS.extension）
+                var fileName = $"{reportType}_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.{extension}";
+                var fullPath = Path.Combine(reportPath, fileName);
+                
+                _logger.LogInformation("帳票出力パス: {Path}", fullPath);
+                return fullPath;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "帳票出力パス取得中にエラーが発生しました: {ReportType}, {JobDate}", reportType, jobDate);
+                throw;
+            }
+        }
     }
 }

@@ -312,11 +312,15 @@ try
         try
         {
             var reportService = scopedServices.GetRequiredService<IUnmatchListReportService>();
+            var fileService = scopedServices.GetRequiredService<IFileManagementService>();
             Console.WriteLine("PDF生成中...");
             var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, jobDate);
             
-            var outputPath = Path.Combine(Environment.CurrentDirectory, 
-                $"unmatch_list_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
+            var outputPath = await fileService.GetReportOutputPathAsync(
+                "unmatch_list", 
+                jobDate, 
+                "pdf"
+            );
             
             await File.WriteAllBytesAsync(outputPath, pdfBytes);
             Console.WriteLine($"PDF出力完了: {outputPath}");
@@ -616,11 +620,15 @@ try
             try
             {
                 var reportService = scopedServices.GetRequiredService<InventorySystem.Reports.Interfaces.IDailyReportService>();
+                var fileService = scopedServices.GetRequiredService<IFileManagementService>();
                 Console.WriteLine("PDF生成中...");
                 var pdfBytes = reportService.GenerateDailyReport(result.ReportItems, result.Subtotals, result.Total, jobDate);
                 
-                var outputPath = Path.Combine(Environment.CurrentDirectory, 
-                    $"daily_report_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
+                var outputPath = await fileService.GetReportOutputPathAsync(
+                    "daily_report", 
+                    jobDate, 
+                    "pdf"
+                );
                 
                 await File.WriteAllBytesAsync(outputPath, pdfBytes);
                 Console.WriteLine($"PDF出力完了: {outputPath}");
