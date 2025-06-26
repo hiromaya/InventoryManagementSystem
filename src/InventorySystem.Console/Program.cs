@@ -102,6 +102,13 @@ builder.Services.AddScoped<CustomerMasterImportService>();
 builder.Services.AddScoped<ProductMasterImportService>();
 builder.Services.AddScoped<SupplierMasterImportService>();
 
+// FileStorage設定の登録
+builder.Services.Configure<FileStorageSettings>(
+    builder.Configuration.GetSection("FileStorage"));
+
+// FileManagementServiceの登録
+builder.Services.AddScoped<IFileManagementService, FileManagementService>();
+
 // Error prevention services
 builder.Services.AddScoped<InventorySystem.Core.Services.Validation.IDateValidationService, InventorySystem.Core.Services.Validation.DateValidationService>();
 builder.Services.AddScoped<InventorySystem.Core.Services.Dataset.IDatasetManager, InventorySystem.Core.Services.Dataset.DatasetManager>();
@@ -161,6 +168,8 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  dotnet run import-customers <file>           - 得意先マスタCSVを取込");
     Console.WriteLine("  dotnet run import-products <file>            - 商品マスタCSVを取込");
     Console.WriteLine("  dotnet run import-suppliers <file>           - 仕入先マスタCSVを取込");
+    Console.WriteLine("  dotnet run init-folders                      - フォルダ構造を初期化");
+    Console.WriteLine("  dotnet run import-folder <dept> [YYYY-MM-DD] - 部門フォルダから一括取込");
     Console.WriteLine("  例: dotnet run test-connection");
     Console.WriteLine("  例: dotnet run unmatch-list 2025-06-16");
     Console.WriteLine("  例: dotnet run daily-report 2025-06-16");
@@ -221,6 +230,14 @@ try
             
         case "import-suppliers":
             await ExecuteImportSuppliersAsync(host.Services, commandArgs);
+            break;
+            
+        case "init-folders":
+            await ExecuteInitializeFoldersAsync(host.Services);
+            break;
+            
+        case "import-folder":
+            await ExecuteImportFromFolderAsync(host.Services, commandArgs);
             break;
         
         default:
@@ -969,6 +986,98 @@ try
         Console.WriteLine($"エラー: {ex.Message}");
         logger.LogError(ex, "仕入先マスタCSV取込処理でエラーが発生しました");
     }
+    }
+}
+
+static async Task ExecuteInitializeFoldersAsync(IServiceProvider services)
+{
+    using (var scope = services.CreateScope())
+    {
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var fileService = scopedServices.GetRequiredService<IFileManagementService>();
+        
+        Console.WriteLine("=== フォルダ構造初期化開始 ===");
+        
+        try
+        {
+            await fileService.InitializeDirectoryStructureAsync();
+            Console.WriteLine("✅ フォルダ構造の初期化が完了しました");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ エラー: {ex.Message}");
+            logger.LogError(ex, "フォルダ構造初期化でエラーが発生しました");
+        }
+    }
+}
+
+static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string[] args)
+{
+    if (args.Length < 3)
+    {
+        Console.WriteLine("エラー: 部門コードが指定されていません");
+        Console.WriteLine("使用方法: dotnet run import-folder <dept> [YYYY-MM-DD]");
+        return;
+    }
+    
+    using (var scope = services.CreateScope())
+    {
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var fileService = scopedServices.GetRequiredService<IFileManagementService>();
+        var salesImportService = scopedServices.GetRequiredService<SalesVoucherImportService>();
+        var purchaseImportService = scopedServices.GetRequiredService<PurchaseVoucherImportService>();
+        
+        var department = args[2];
+        DateTime jobDate = args.Length >= 4 && DateTime.TryParse(args[3], out var date) ? date : DateTime.Today;
+        
+        Console.WriteLine($"=== フォルダ監視取込開始 ===");
+        Console.WriteLine($"部門: {department}");
+        Console.WriteLine($"ジョブ日付: {jobDate:yyyy-MM-dd}");
+        
+        try
+        {
+            var files = await fileService.GetPendingFilesAsync(department);
+            Console.WriteLine($"取込対象ファイル数: {files.Count}");
+            
+            foreach (var file in files)
+            {
+                var fileName = Path.GetFileName(file);
+                Console.WriteLine($"\n処理中: {fileName}");
+                
+                try
+                {
+                    if (fileName.StartsWith("売上伝票"))
+                    {
+                        await salesImportService.ImportAsync(file, jobDate, department);
+                        Console.WriteLine("✅ 売上伝票として処理完了");
+                    }
+                    else if (fileName.StartsWith("仕入伝票"))
+                    {
+                        await purchaseImportService.ImportAsync(file, jobDate, department);
+                        Console.WriteLine("✅ 仕入伝票として処理完了");
+                    }
+                    else
+                    {
+                        await fileService.MoveToErrorAsync(file, department, "未対応のファイル形式");
+                        Console.WriteLine("⚠️ 未対応のファイル形式のためエラーフォルダへ移動");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "ファイル処理エラー: {File}", file);
+                    Console.WriteLine($"❌ エラー: {ex.Message}");
+                }
+            }
+            
+            Console.WriteLine("\n=== フォルダ監視取込完了 ===");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ エラー: {ex.Message}");
+            logger.LogError(ex, "フォルダ監視取込でエラーが発生しました");
+        }
     }
 }
 } // Program クラスの終了
