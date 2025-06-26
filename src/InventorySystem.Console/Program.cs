@@ -11,8 +11,12 @@ using InventorySystem.Data.Repositories.Masters;
 using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Core.Configuration;
 using Microsoft.Extensions.Options;
-// using InventorySystem.Reports.Interfaces;
-// using InventorySystem.Reports.FastReport.Services;
+using InventorySystem.Reports.Interfaces;
+#if WINDOWS
+using InventorySystem.Reports.FastReport.Services;
+#else
+using InventorySystem.Reports.Services;
+#endif
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
@@ -127,9 +131,14 @@ builder.Services.AddScoped<IDailyCloseManagementRepository>(provider =>
 builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
-// Report Services - Windows専用でFastReport実装を使用
-// builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
-// builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, DailyReportFastReportService>();
+// Report Services - プラットフォーム別実装
+#if WINDOWS
+builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
+builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, DailyReportFastReportService>();
+#else
+builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
+builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, PlaceholderDailyReportService>();
+#endif
 builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
 builder.Services.AddScoped<InventoryAdjustmentImportService>();
@@ -261,6 +270,7 @@ try
         var scopedServices = scope.ServiceProvider;
         var logger = scopedServices.GetRequiredService<ILogger<Program>>();
         var unmatchListService = scopedServices.GetRequiredService<IUnmatchListService>();
+        var reportService = scopedServices.GetRequiredService<IUnmatchListReportService>();
         
         // ジョブ日付を取得（引数から、またはデフォルト値）
         DateTime jobDate;
@@ -308,8 +318,56 @@ try
             Console.WriteLine();
         }
         
-        // PDF出力（Linux環境では無効化）
-        Console.WriteLine("注意: Linux環境のためPDF生成はスキップされました");
+        // PDF出力
+        if (result.UnmatchCount > 0)
+        {
+            try
+            {
+                Console.WriteLine("PDF生成中...");
+                var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, jobDate);
+                
+                if (pdfBytes != null && pdfBytes.Length > 0)
+                {
+                    // PDFファイル保存
+                    var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                    var fileName = $"unmatch_list_{jobDate:yyyyMMdd}_{timestamp}.pdf";
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), fileName);
+                    
+                    await File.WriteAllBytesAsync(filePath, pdfBytes);
+                    Console.WriteLine($"PDF出力完了: {fileName}");
+                    
+                    // Windows環境では自動でPDFを開く
+                    #if WINDOWS
+                    try
+                    {
+                        var startInfo = new ProcessStartInfo
+                        {
+                            FileName = filePath,
+                            UseShellExecute = true
+                        };
+                        Process.Start(startInfo);
+                    }
+                    catch (Exception openEx)
+                    {
+                        logger.LogWarning(openEx, "PDFファイルの自動表示に失敗しました");
+                    }
+                    #endif
+                }
+                else
+                {
+                    Console.WriteLine("PDF生成がスキップされました（環境制限またはデータなし）");
+                }
+            }
+            catch (Exception pdfEx)
+            {
+                logger.LogError(pdfEx, "PDF生成中にエラーが発生しました");
+                Console.WriteLine($"PDF生成エラー: {pdfEx.Message}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("アンマッチ件数が0件のため、PDF生成をスキップしました");
+        }
         
         Console.WriteLine("=== アンマッチリスト処理完了 ===");
     }
@@ -526,6 +584,7 @@ try
         var scopedServices = scope.ServiceProvider;
         var logger = scopedServices.GetRequiredService<ILogger<Program>>();
         var dailyReportService = scopedServices.GetRequiredService<InventorySystem.Core.Interfaces.IDailyReportService>();
+        var reportService = scopedServices.GetRequiredService<InventorySystem.Reports.Interfaces.IDailyReportService>();
         
         // ジョブ日付を取得（引数から、またはデフォルト値）
         DateTime jobDate;
@@ -589,12 +648,49 @@ try
                 Console.WriteLine();
             }
             
-            // PDF出力（Linux環境では無効化）
-            Console.WriteLine("注意: Linux環境のためPDF生成はスキップされました");
-            
-            // PDFを開く（コメントアウト）
-            /*
-            */
+            // PDF出力
+            try
+            {
+                Console.WriteLine("PDF生成中...");
+                var pdfBytes = reportService.GenerateDailyReport(result.ReportItems, result.Subtotals, result.Total, jobDate);
+                
+                if (pdfBytes != null && pdfBytes.Length > 0)
+                {
+                    // PDFファイル保存
+                    var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                    var fileName = $"daily_report_{jobDate:yyyyMMdd}_{timestamp}.pdf";
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), fileName);
+                    
+                    await File.WriteAllBytesAsync(filePath, pdfBytes);
+                    Console.WriteLine($"PDF出力完了: {fileName}");
+                    
+                    // Windows環境では自動でPDFを開く
+                    #if WINDOWS
+                    try
+                    {
+                        var startInfo = new ProcessStartInfo
+                        {
+                            FileName = filePath,
+                            UseShellExecute = true
+                        };
+                        Process.Start(startInfo);
+                    }
+                    catch (Exception openEx)
+                    {
+                        logger.LogWarning(openEx, "PDFファイルの自動表示に失敗しました");
+                    }
+                    #endif
+                }
+                else
+                {
+                    Console.WriteLine("PDF生成がスキップされました（環境制限またはデータなし）");
+                }
+            }
+            catch (Exception pdfEx)
+            {
+                logger.LogError(pdfEx, "PDF生成中にエラーが発生しました");
+                Console.WriteLine($"PDF生成エラー: {pdfEx.Message}");
+            }
             
             Console.WriteLine("=== 商品日報処理完了 ===");
         }
