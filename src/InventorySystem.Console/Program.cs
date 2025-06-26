@@ -102,6 +102,21 @@ builder.Services.AddScoped<CustomerMasterImportService>();
 builder.Services.AddScoped<ProductMasterImportService>();
 builder.Services.AddScoped<SupplierMasterImportService>();
 
+// Error prevention services
+builder.Services.AddScoped<InventorySystem.Core.Services.Validation.IDateValidationService, InventorySystem.Core.Services.Validation.DateValidationService>();
+builder.Services.AddScoped<InventorySystem.Core.Services.Dataset.IDatasetManager, InventorySystem.Core.Services.Dataset.DatasetManager>();
+builder.Services.AddScoped<InventorySystem.Core.Services.History.IProcessHistoryService, InventorySystem.Core.Services.History.ProcessHistoryService>();
+builder.Services.AddScoped<IBackupService, BackupService>();
+builder.Services.AddScoped<IDailyCloseService, DailyCloseService>();
+
+// Error prevention repositories
+builder.Services.AddScoped<IDatasetManagementRepository>(provider => 
+    new DatasetManagementRepository(connectionString, provider.GetRequiredService<ILogger<DatasetManagementRepository>>()));
+builder.Services.AddScoped<IProcessHistoryRepository>(provider => 
+    new ProcessHistoryRepository(connectionString, provider.GetRequiredService<ILogger<ProcessHistoryRepository>>()));
+builder.Services.AddScoped<IDailyCloseManagementRepository>(provider => 
+    new DailyCloseManagementRepository(connectionString, provider.GetRequiredService<ILogger<DailyCloseManagementRepository>>()));
+
 builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
