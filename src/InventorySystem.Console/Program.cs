@@ -142,6 +142,7 @@ builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportServic
 builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
 builder.Services.AddScoped<InventoryAdjustmentImportService>();
+builder.Services.AddScoped<PreviousMonthInventoryImportService>();
 
 
 var host = builder.Build();
@@ -259,6 +260,10 @@ try
         
         case "check-masters":
             await ExecuteCheckMastersAsync(host.Services);
+            break;
+        
+        case "import-previous-inventory":
+            await ExecuteImportPreviousInventoryAsync(host.Services, commandArgs);
             break;
         
         default:
@@ -1200,6 +1205,70 @@ static async Task ExecuteCheckMastersAsync(IServiceProvider services)
         {
             Console.WriteLine($"❌ エラー: {ex.Message}");
             logger.LogError(ex, "マスタデータ確認でエラーが発生しました");
+        }
+    }
+}
+
+static async Task ExecuteImportPreviousInventoryAsync(IServiceProvider services, string[] args)
+{
+    using (var scope = services.CreateScope())
+    {
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var importService = scopedServices.GetRequiredService<PreviousMonthInventoryImportService>();
+        
+        try
+        {
+            Console.WriteLine("=== 前月末在庫インポート開始 ===");
+            
+            // 対象年月の取得（引数から、またはデフォルト値）
+            DateTime targetDate;
+            if (args.Length >= 3 && DateTime.TryParse(args[2], out targetDate))
+            {
+                logger.LogInformation("指定された対象日付: {TargetDate}", targetDate.ToString("yyyy-MM-dd"));
+            }
+            else
+            {
+                targetDate = DateTime.Today;
+                logger.LogInformation("デフォルトの対象日付を使用: {TargetDate}", targetDate.ToString("yyyy-MM-dd"));
+            }
+            
+            // インポート実行
+            var result = await importService.ImportAsync(targetDate);
+            
+            // 結果表示
+            Console.WriteLine($"\n処理時間: {result.Duration.TotalSeconds:F2}秒");
+            Console.WriteLine($"読込件数: {result.TotalRecords:N0}件");
+            Console.WriteLine($"処理件数: {result.ProcessedRecords:N0}件");
+            Console.WriteLine($"エラー件数: {result.ErrorRecords:N0}件");
+            
+            if (result.IsSuccess)
+            {
+                Console.WriteLine("\n✅ 前月末在庫インポートが正常に完了しました");
+            }
+            else
+            {
+                Console.WriteLine("\n⚠️ インポートは完了しましたが、エラーが発生しました");
+                if (result.Errors.Count > 0)
+                {
+                    Console.WriteLine("\nエラー詳細:");
+                    foreach (var error in result.Errors.Take(10))
+                    {
+                        Console.WriteLine($"  - {error}");
+                    }
+                    if (result.Errors.Count > 10)
+                    {
+                        Console.WriteLine($"  ... 他 {result.Errors.Count - 10}件のエラー");
+                    }
+                }
+            }
+            
+            Console.WriteLine("\n=== 前月末在庫インポート完了 ===");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ エラー: {ex.Message}");
+            logger.LogError(ex, "前月末在庫インポートでエラーが発生しました");
         }
     }
 }

@@ -233,6 +233,27 @@ public class InventoryAdjustment
         return UnitCode == "01" || UnitCode == "02" || UnitCode == "03" ||
                UnitCode == "04" || UnitCode == "05" || UnitCode == "06";
     }
+
+    /// <summary>
+    /// 区分コードに基づいて集計タイプを取得
+    /// </summary>
+    /// <returns>集計タイプ（在庫調整、加工、振替）</returns>
+    public string GetAggregationType()
+    {
+        if (!CategoryCode.HasValue)
+            return "在庫調整"; // デフォルト
+
+        return CategoryCode.Value switch
+        {
+            1 => "在庫調整", // ロス
+            2 => "加工",     // 経費
+            3 => "在庫調整", // くさり
+            4 => "振替",     // 振替
+            5 => "加工",     // 加工費B
+            6 => "在庫調整", // 調整
+            _ => "在庫調整"  // その他
+        };
+    }
 }
 
 /// <summary>

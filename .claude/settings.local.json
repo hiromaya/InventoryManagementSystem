@@ -25,7 +25,8 @@
       "Bash(ASPNETCORE_ENVIRONMENT=Development dotnet run --project src/InventorySystem.Console/InventorySystem.Console.csproj)",
       "Bash(dotnet clean:*)",
       "Bash(find:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

@@ -2,6 +2,7 @@ using System.Globalization;
 using CsvHelper.Configuration.Attributes;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Constants;
+using InventorySystem.Import.Validators;
 
 namespace InventorySystem.Import.Models;
 
@@ -75,18 +76,21 @@ public class InventoryAdjustmentDaijinCsv
     [Index(93)]  // 94列目
     public decimal Quantity { get; set; }
     
-    [Name("単価")]
+    [Name("区分(1:ﾛｽ,4:振替,6:調整)")]
     [Index(95)]  // 96列目
+    public string CategoryCode { get; set; } = string.Empty;
+    
+    [Name("単価")]
+    [Index(96)]  // 97列目
     public decimal UnitPrice { get; set; }
     
     [Name("金額")]
-    [Index(96)]  // 97列目
+    [Index(97)]  // 98列目
     public decimal Amount { get; set; }
     
-    // 区分コード（1:ロス, 4:振替, 6:調整, 2:経費, 5:加工）
-    [Name("区分コード")]
-    [Index(100)]  // 仮のインデックス、実際のCSVに合わせて調整
-    public int? CategoryCode { get; set; }
+    [Name("手入力項目(半角8文字)")]
+    [Index(152)]  // 153列目
+    public string HandInputItem { get; set; } = string.Empty;
     
     // 商品分類は販売大臣のCSVに含まれない可能性があるため、デフォルト値を設定
     public string ProductCategory1 { get; set; } = "";
@@ -113,8 +117,8 @@ public class InventoryAdjustmentDaijinCsv
             GradeCode = GradeCode?.Trim() ?? string.Empty,
             ClassCode = ClassCode?.Trim() ?? string.Empty,
             ShippingMarkCode = ShippingMarkCode?.Trim() ?? string.Empty,
-            ShippingMarkName = ShippingMarkName?.Trim() ?? string.Empty,
-            CategoryCode = CategoryCode,
+            ShippingMarkName = (HandInputItem ?? "").PadRight(8).Substring(0, 8),  // 手入力項目を荷印手入力として使用（8桁固定）
+            CategoryCode = ParseCategoryCode(CategoryCode),
             Quantity = Quantity,
             UnitPrice = UnitPrice,
             Amount = Amount,
@@ -163,8 +167,15 @@ public class InventoryAdjustmentDaijinCsv
             return false;
         }
 
+        // 商品コード00000は除外
+        if (ProductCodeValidator.IsExcludedProductCode(ProductCode))
+        {
+            return false;
+        }
+
         // 区分コードチェック（2:経費, 5:加工は除外）
-        if (CategoryCode.HasValue && (CategoryCode.Value == 2 || CategoryCode.Value == 5))
+        var categoryCode = ParseCategoryCode(CategoryCode);
+        if (categoryCode.HasValue && (categoryCode.Value == 2 || categoryCode.Value == 5))
         {
             return false;
         }
@@ -174,8 +185,7 @@ public class InventoryAdjustmentDaijinCsv
             string.IsNullOrWhiteSpace(ProductCode) ||
             string.IsNullOrWhiteSpace(GradeCode) ||
             string.IsNullOrWhiteSpace(ClassCode) ||
-            string.IsNullOrWhiteSpace(ShippingMarkCode) ||
-            string.IsNullOrWhiteSpace(ShippingMarkName))
+            string.IsNullOrWhiteSpace(ShippingMarkCode))
         {
             return false;
         }
@@ -232,5 +242,19 @@ public class InventoryAdjustmentDaijinCsv
             "1" => "受注",
             _ => detailType
         };
+    }
+
+    /// <summary>
+    /// 区分コードを数値に変換
+    /// </summary>
+    private static int? ParseCategoryCode(string categoryCode)
+    {
+        if (string.IsNullOrWhiteSpace(categoryCode))
+            return null;
+
+        if (int.TryParse(categoryCode.Trim(), out var code))
+            return code;
+
+        return null;
     }
 }

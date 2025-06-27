@@ -2,6 +2,7 @@ using System.Globalization;
 using CsvHelper.Configuration.Attributes;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Constants;
+using InventorySystem.Import.Validators;
 
 namespace InventorySystem.Import.Models;
 
@@ -83,6 +84,10 @@ public class PurchaseVoucherDaijinCsv
     [Index(91)]  // 92列目
     public decimal Amount { get; set; }
     
+    [Name("手入力項目(半角8文字)")]
+    [Index(151)]  // 152列目（推定）
+    public string HandInputItem { get; set; } = string.Empty;
+    
     // 商品分類は販売大臣のCSVに含まれない可能性があるため、デフォルト値を設定
     public string ProductCategory1 { get; set; } = "";
     public string ProductCategory2 { get; set; } = "";
@@ -108,7 +113,7 @@ public class PurchaseVoucherDaijinCsv
             GradeCode = GradeCode?.Trim() ?? string.Empty,
             ClassCode = ClassCode?.Trim() ?? string.Empty,
             ShippingMarkCode = ShippingMarkCode?.Trim() ?? string.Empty,
-            ShippingMarkName = ShippingMarkName?.Trim() ?? string.Empty,
+            ShippingMarkName = (HandInputItem ?? "").PadRight(8).Substring(0, 8),  // 手入力項目を荷印手入力として使用（8桁固定）
             Quantity = Quantity,
             UnitPrice = UnitPrice,
             Amount = Amount,
@@ -169,13 +174,18 @@ public class PurchaseVoucherDaijinCsv
             return false;
         }
 
+        // 商品コード00000は除外
+        if (ProductCodeValidator.IsExcludedProductCode(ProductCode))
+        {
+            return false;
+        }
+
         // 必須項目チェック
         if (string.IsNullOrWhiteSpace(VoucherNumber) ||
             string.IsNullOrWhiteSpace(ProductCode) ||
             string.IsNullOrWhiteSpace(GradeCode) ||
             string.IsNullOrWhiteSpace(ClassCode) ||
-            string.IsNullOrWhiteSpace(ShippingMarkCode) ||
-            string.IsNullOrWhiteSpace(ShippingMarkName))
+            string.IsNullOrWhiteSpace(ShippingMarkCode))
         {
             return false;
         }
