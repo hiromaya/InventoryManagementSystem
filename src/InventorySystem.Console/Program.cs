@@ -1403,17 +1403,17 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     }
                     else if (fileName == "商品.csv")
                     {
-                        var result = await productImportService.ImportFromCsvAsync(file);
+                        var result = await productImportService.ImportFromCsvAsync(file, jobDate);
                         Console.WriteLine($"✅ 商品マスタとして処理完了（{result.ImportedCount}件）");
                     }
                     else if (fileName == "得意先.csv")
                     {
-                        var result = await customerImportService.ImportFromCsvAsync(file);
+                        var result = await customerImportService.ImportFromCsvAsync(file, jobDate);
                         Console.WriteLine($"✅ 得意先マスタとして処理完了（{result.ImportedCount}件）");
                     }
                     else if (fileName == "仕入先.csv")
                     {
-                        var result = await supplierImportService.ImportFromCsvAsync(file);
+                        var result = await supplierImportService.ImportFromCsvAsync(file, jobDate);
                         Console.WriteLine($"✅ 仕入先マスタとして処理完了（{result.ImportedCount}件）");
                     }
                     // ========== 初期在庫ファイル ==========
