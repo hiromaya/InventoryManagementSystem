@@ -1,7 +1,10 @@
+using System.Data;
+using System.Data.SqlClient;
 using System.Globalization;
 using System.Text;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Dapper;
 using InventorySystem.Core.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +21,7 @@ public class ClassMasterRepository : IClassMasterRepository
     private readonly ILogger<ClassMasterRepository> _logger;
     private readonly IMemoryCache _cache;
     private readonly string _csvFilePath;
+    private readonly string _connectionString;
     private const string CacheKey = "ClassMaster";
     private readonly TimeSpan _cacheExpiration = TimeSpan.FromHours(1);
 
@@ -28,9 +32,10 @@ public class ClassMasterRepository : IClassMasterRepository
     {
         _logger = logger;
         _cache = cache;
+        _connectionString = configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("接続文字列が設定されていません");
         
-        // CSVファイルパスの設定（設定ファイルから読み込むか、デフォルトパスを使用）
-        var basePath = configuration["MasterDataPath"] ?? Path.Combine(Directory.GetCurrentDirectory(), "MasterData");
+        // CSVファイルパスの設定（環境変数またはデフォルトパスを使用）
+        var basePath = Environment.GetEnvironmentVariable("MASTER_DATA_PATH") ?? @"D:\InventoryImport\DeptA\Import";
         _csvFilePath = Path.Combine(basePath, "階級汎用マスター２.csv");
     }
 
@@ -117,5 +122,91 @@ public class ClassMasterRepository : IClassMasterRepository
 
         _logger.LogInformation("階級マスタを読み込みました。件数: {Count}", classes.Count);
         return classes;
+    }
+
+    public async Task<int> ImportFromCsvAsync()
+    {
+        if (!File.Exists(_csvFilePath))
+        {
+            _logger.LogError("CSVファイルが見つかりません: {Path}", _csvFilePath);
+            throw new FileNotFoundException($"CSVファイルが見つかりません: {_csvFilePath}");
+        }
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            // トランザクション開始
+            using var transaction = connection.BeginTransaction();
+            
+            try
+            {
+                // 既存データをクリア
+                await connection.ExecuteAsync("TRUNCATE TABLE ClassMaster", transaction: transaction);
+
+                // CSVを読み込み
+                using var reader = new StreamReader(_csvFilePath, Encoding.UTF8);
+                using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    HasHeaderRecord = true,
+                    BadDataFound = null,
+                    MissingFieldFound = null
+                });
+
+                var importCount = 0;
+                await csv.ReadAsync(); // ヘッダーを読む
+                csv.ReadHeader();
+
+                while (await csv.ReadAsync())
+                {
+                    try
+                    {
+                        var classCode = csv.GetField<string>(0)?.Trim();
+                        var className = csv.GetField<string>(1)?.Trim();
+                        var searchKana = csv.GetField<string>(2)?.Trim() ?? "";
+
+                        if (!string.IsNullOrEmpty(classCode) && !string.IsNullOrEmpty(className))
+                        {
+                            var sql = @"
+                                INSERT INTO ClassMaster (ClassCode, ClassName, SearchKana, CreatedAt, UpdatedAt)
+                                VALUES (@ClassCode, @ClassName, @SearchKana, GETDATE(), GETDATE())";
+
+                            await connection.ExecuteAsync(sql, new
+                            {
+                                ClassCode = classCode,
+                                ClassName = className,
+                                SearchKana = searchKana
+                            }, transaction);
+
+                            importCount++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "階級マスタの行読み込みでエラーが発生しました");
+                        continue;
+                    }
+                }
+
+                await transaction.CommitAsync();
+                
+                // キャッシュをクリア
+                _cache.Remove(CacheKey);
+                
+                _logger.LogInformation("階級マスタのインポートが完了しました。件数: {Count}", importCount);
+                return importCount;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "階級マスタのインポートでエラーが発生しました");
+            throw;
+        }
     }
 }

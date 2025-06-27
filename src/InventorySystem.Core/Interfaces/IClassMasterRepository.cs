@@ -17,4 +17,10 @@ public interface IClassMasterRepository
     /// </summary>
     /// <returns>階級コードと階級名のディクショナリ</returns>
     Task<Dictionary<string, string>> GetAllClassesAsync();
+
+    /// <summary>
+    /// CSVファイルからデータベースにインポートする
+    /// </summary>
+    /// <returns>インポートした件数</returns>
+    Task<int> ImportFromCsvAsync();
 }

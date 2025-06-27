@@ -179,11 +179,13 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  dotnet run import-suppliers <file>           - 仕入先マスタCSVを取込");
     Console.WriteLine("  dotnet run init-folders                      - フォルダ構造を初期化");
     Console.WriteLine("  dotnet run import-folder <dept> [YYYY-MM-DD] - 部門フォルダから一括取込");
+    Console.WriteLine("  dotnet run import-masters                    - 等級・階級マスタをインポート");
     Console.WriteLine("  例: dotnet run test-connection");
     Console.WriteLine("  例: dotnet run unmatch-list 2025-06-16");
     Console.WriteLine("  例: dotnet run daily-report 2025-06-16");
     Console.WriteLine("  例: dotnet run inventory-list 2025-06-16");
     Console.WriteLine("  例: dotnet run import-sales sales.csv 2025-06-16");
+    Console.WriteLine("  例: dotnet run import-masters");
     return 1;
 }
 
@@ -247,6 +249,10 @@ try
             
         case "import-folder":
             await ExecuteImportFromFolderAsync(host.Services, commandArgs);
+            break;
+        
+        case "import-masters":
+            await ExecuteImportMastersAsync(host.Services);
             break;
         
         default:
@@ -1063,6 +1069,51 @@ static async Task ExecuteInitializeFoldersAsync(IServiceProvider services)
         {
             Console.WriteLine($"❌ エラー: {ex.Message}");
             logger.LogError(ex, "フォルダ構造初期化でエラーが発生しました");
+        }
+    }
+}
+
+static async Task ExecuteImportMastersAsync(IServiceProvider services)
+{
+    using (var scope = services.CreateScope())
+    {
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var gradeRepo = scopedServices.GetRequiredService<IGradeMasterRepository>();
+        var classRepo = scopedServices.GetRequiredService<IClassMasterRepository>();
+        
+        Console.WriteLine("=== マスタデータインポート開始 ===");
+        Console.WriteLine();
+        
+        try
+        {
+            // 等級マスタのインポート
+            Console.WriteLine("等級マスタをインポート中...");
+            var gradeCount = await gradeRepo.ImportFromCsvAsync();
+            Console.WriteLine($"✅ 等級マスタ: {gradeCount}件インポートしました");
+            Console.WriteLine();
+            
+            // 階級マスタのインポート
+            Console.WriteLine("階級マスタをインポート中...");
+            var classCount = await classRepo.ImportFromCsvAsync();
+            Console.WriteLine($"✅ 階級マスタ: {classCount}件インポートしました");
+            Console.WriteLine();
+            
+            Console.WriteLine("=== マスタデータインポート完了 ===");
+            Console.WriteLine($"合計: {gradeCount + classCount}件のレコードをインポートしました");
+        }
+        catch (FileNotFoundException ex)
+        {
+            Console.WriteLine($"❌ エラー: {ex.Message}");
+            Console.WriteLine("CSVファイルが見つかりません。以下のパスにファイルが存在することを確認してください：");
+            Console.WriteLine("  - D:\\InventoryImport\\DeptA\\Import\\等級汎用マスター１.csv");
+            Console.WriteLine("  - D:\\InventoryImport\\DeptA\\Import\\階級汎用マスター２.csv");
+            logger.LogError(ex, "マスタデータインポートでファイルが見つかりません");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ エラー: {ex.Message}");
+            logger.LogError(ex, "マスタデータインポートでエラーが発生しました");
         }
     }
 }

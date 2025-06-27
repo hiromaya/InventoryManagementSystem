@@ -17,4 +17,10 @@ public interface IGradeMasterRepository
     /// </summary>
     /// <returns>等級コードと等級名のディクショナリ</returns>
     Task<Dictionary<string, string>> GetAllGradesAsync();
+
+    /// <summary>
+    /// CSVファイルからデータベースにインポートする
+    /// </summary>
+    /// <returns>インポートした件数</returns>
+    Task<int> ImportFromCsvAsync();
 }
