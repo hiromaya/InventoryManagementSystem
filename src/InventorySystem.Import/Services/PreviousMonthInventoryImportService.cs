@@ -4,7 +4,8 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
-using InventorySystem.Core.Interfaces.Repositories;
+using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Import.Models;
 
 namespace InventorySystem.Import.Services;
@@ -14,17 +15,17 @@ namespace InventorySystem.Import.Services;
 /// </summary>
 public class PreviousMonthInventoryImportService
 {
-    private readonly IInventoryMasterRepository _inventoryMasterRepository;
+    private readonly IInventoryRepository _inventoryRepository;
     private readonly IProductMasterRepository _productMasterRepository;
     private readonly ILogger<PreviousMonthInventoryImportService> _logger;
     private readonly string _importPath;
 
     public PreviousMonthInventoryImportService(
-        IInventoryMasterRepository inventoryMasterRepository,
+        IInventoryRepository inventoryRepository,
         IProductMasterRepository productMasterRepository,
         ILogger<PreviousMonthInventoryImportService> logger)
     {
-        _inventoryMasterRepository = inventoryMasterRepository;
+        _inventoryRepository = inventoryRepository;
         _productMasterRepository = productMasterRepository;
         _logger = logger;
         _importPath = @"D:\InventoryImport\DeptA\Import\前月末在庫.csv";
@@ -33,9 +34,9 @@ public class PreviousMonthInventoryImportService
     /// <summary>
     /// 前月末在庫CSVをインポート
     /// </summary>
-    public async Task<ImportResult> ImportAsync(DateTime targetDate)
+    public async Task<PreviousMonthImportResult> ImportAsync(DateTime targetDate)
     {
-        var result = new ImportResult
+        var result = new PreviousMonthImportResult
         {
             StartTime = DateTime.Now,
             ImportType = "前月末在庫"
@@ -78,22 +79,24 @@ public class PreviousMonthInventoryImportService
                     }
 
                     // 在庫マスタの更新または作成
-                    var inventoryMaster = await _inventoryMasterRepository.GetByKeyAsync(
-                        key.ProductCode,
-                        key.GradeCode,
-                        key.ClassCode,
-                        key.ShippingMarkCode,
-                        key.ShippingMarkName
-                    );
+                    var inventoryKey = new InventoryKey
+                    {
+                        ProductCode = key.ProductCode,
+                        GradeCode = key.GradeCode,
+                        ClassCode = key.ClassCode,
+                        ShippingMarkCode = key.ShippingMarkCode,
+                        ShippingMarkName = key.ShippingMarkName
+                    };
+                    var inventoryMaster = await _inventoryRepository.GetByKeyAsync(inventoryKey, targetDate);
 
                     if (inventoryMaster != null)
                     {
                         // 既存レコードの更新
                         inventoryMaster.PreviousMonthQuantity = record.Quantity;
                         inventoryMaster.PreviousMonthAmount = record.Amount;
-                        inventoryMaster.UpdatedAt = DateTime.Now;
+                        inventoryMaster.UpdatedDate = DateTime.Now;
                         
-                        await _inventoryMasterRepository.UpdateAsync(inventoryMaster);
+                        await _inventoryRepository.UpdateAsync(inventoryMaster);
                         _logger.LogDebug("在庫マスタ更新: {Key}", key);
                     }
                     else
@@ -101,20 +104,17 @@ public class PreviousMonthInventoryImportService
                         // 新規レコードの作成
                         inventoryMaster = new InventoryMaster
                         {
-                            ProductCode = key.ProductCode,
-                            GradeCode = key.GradeCode,
-                            ClassCode = key.ClassCode,
-                            ShippingMarkCode = key.ShippingMarkCode,
-                            ShippingMarkName = key.ShippingMarkName,
+                            Key = inventoryKey,
                             PreviousMonthQuantity = record.Quantity,
                             PreviousMonthAmount = record.Amount,
-                            CurrentMonthQuantity = 0,
-                            CurrentMonthAmount = 0,
-                            CreatedAt = DateTime.Now,
-                            UpdatedAt = DateTime.Now
+                            CurrentStock = 0,
+                            CurrentStockAmount = 0,
+                            JobDate = targetDate,
+                            CreatedDate = DateTime.Now,
+                            UpdatedDate = DateTime.Now
                         };
                         
-                        await _inventoryMasterRepository.InsertAsync(inventoryMaster);
+                        await _inventoryRepository.CreateAsync(inventoryMaster);
                         _logger.LogDebug("在庫マスタ新規作成: {Key}", key);
                     }
 
@@ -182,9 +182,9 @@ public class PreviousMonthInventoryImportService
 }
 
 /// <summary>
-/// インポート結果
+/// 前月末在庫インポート結果
 /// </summary>
-public class ImportResult
+public class PreviousMonthImportResult
 {
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
@@ -198,3 +198,4 @@ public class ImportResult
 
     public TimeSpan Duration => EndTime - StartTime;
 }
+

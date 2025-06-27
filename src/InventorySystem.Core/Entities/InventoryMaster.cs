@@ -21,6 +21,8 @@ public class InventoryMaster
     public decimal CurrentStockAmount { get; set; }              // 現在在庫金額
     public decimal DailyStock { get; set; }                      // 当日在庫数
     public decimal DailyStockAmount { get; set; }                // 当日在庫金額
+    public decimal PreviousMonthQuantity { get; set; }           // 前月末在庫数量
+    public decimal PreviousMonthAmount { get; set; }             // 前月末在庫金額
     
     // 当日発生フラグ ('0':データあり, '9':クリア状態)
     public char DailyFlag { get; set; } = '9';
