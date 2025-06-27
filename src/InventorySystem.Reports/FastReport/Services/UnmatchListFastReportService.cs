@@ -152,6 +152,15 @@ namespace InventorySystem.Reports.FastReport.Services
                         _logger.LogDebug("荷印名バイト列: {Bytes}", BitConverter.ToString(bytes));
                     }
                     
+                    // 等級名の設定（コード0の場合は空白）
+                    var gradeName = IsZeroCode(item.Key.GradeCode) ? "" : (item.GradeName ?? "");
+                    
+                    // 階級名の設定（コード0の場合は空白）
+                    var className = IsZeroCode(item.Key.ClassCode) ? "" : (item.ClassName ?? "");
+                    
+                    // 荷印名の設定（コード0の場合は空白）
+                    var displayShippingMarkName = IsZeroCode(item.Key.ShippingMarkCode) ? "" : shippingMarkName;
+                    
                     dataTable.Rows.Add(
                         categoryName,
                         customerCode,
@@ -159,12 +168,12 @@ namespace InventorySystem.Reports.FastReport.Services
                         productCode,
                         productName,
                         shippingMarkCode,
-                        shippingMarkName,
-                        shippingMarkName,  // ManualInput - 荷印名と同じ値
+                        displayShippingMarkName,
+                        displayShippingMarkName,  // ManualInput - 荷印名と同じ値
                         item.Key.GradeCode ?? "",
-                        item.GradeName ?? "",
+                        gradeName,
                         item.Key.ClassCode ?? "",
-                        item.ClassName ?? "",
+                        className,
                         item.Quantity,
                         item.UnitPrice,
                         item.Amount,
@@ -260,6 +269,30 @@ namespace InventorySystem.Reports.FastReport.Services
             }
         }
         
+        
+        /// <summary>
+        /// コードが0（オール0）かどうかを判定
+        /// </summary>
+        private static bool IsZeroCode(string? code)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return false;
+            
+            var cleanCode = code.Trim().Trim('"');
+            
+            if (string.IsNullOrEmpty(cleanCode))
+                return false;
+            
+            // 数値として0かチェック
+            if (decimal.TryParse(cleanCode, out var numValue) && numValue == 0)
+                return true;
+            
+            // 文字列として全て0かチェック（例：0, 00, 000, 0000）
+            if (cleanCode.All(c => c == '0'))
+                return true;
+            
+            return false;
+        }
         
         /// <summary>
         /// カテゴリコードを日本語名に変換

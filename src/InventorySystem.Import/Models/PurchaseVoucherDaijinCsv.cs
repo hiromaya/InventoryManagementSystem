@@ -180,6 +180,12 @@ public class PurchaseVoucherDaijinCsv
             return false;
         }
 
+        // 仕入先コード00000は除外
+        if (CodeValidator.IsExcludedCode(SupplierCode))
+        {
+            return false;
+        }
+
         // 必須項目チェック
         if (string.IsNullOrWhiteSpace(VoucherNumber) ||
             string.IsNullOrWhiteSpace(ProductCode) ||

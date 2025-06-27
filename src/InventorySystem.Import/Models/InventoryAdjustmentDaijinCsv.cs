@@ -173,6 +173,12 @@ public class InventoryAdjustmentDaijinCsv
             return false;
         }
 
+        // 区分コード0は除外
+        if (CodeValidator.IsExcludedCode(CategoryCode))
+        {
+            return false;
+        }
+
         // 区分コードチェック（2:経費, 5:加工は除外）
         var categoryCode = ParseCategoryCode(CategoryCode);
         if (categoryCode.HasValue && (categoryCode.Value == 2 || categoryCode.Value == 5))
