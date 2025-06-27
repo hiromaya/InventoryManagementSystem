@@ -1273,6 +1273,32 @@ static async Task ExecuteImportPreviousInventoryAsync(IServiceProvider services,
     }
 }
 
+/// <summary>
+/// ファイル処理順序を取得
+/// </summary>
+private static int GetFileProcessOrder(string fileName)
+{
+    // Phase 1: マスタファイル（優先度1-7）
+    if (fileName.Contains("等級汎用マスター")) return 1;
+    if (fileName.Contains("階級汎用マスター")) return 2;
+    if (fileName.Contains("荷印汎用マスター")) return 3;
+    if (fileName.Contains("産地汎用マスター")) return 4;
+    if (fileName == "商品.csv") return 5;
+    if (fileName == "得意先.csv") return 6;
+    if (fileName == "仕入先.csv") return 7;
+    
+    // Phase 2: 初期在庫（優先度8）
+    if (fileName == "前月末在庫.csv") return 8;
+    
+    // Phase 3: 伝票ファイル（優先度10-12）
+    if (fileName.StartsWith("売上伝票")) return 10;
+    if (fileName.StartsWith("仕入伝票")) return 11;
+    if (fileName.StartsWith("在庫調整") || fileName.StartsWith("受注伝票")) return 12;
+    
+    // Phase 4: その他（優先度99）
+    return 99;
+}
+
 static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string[] args)
 {
     if (args.Length < 3)
@@ -1286,10 +1312,22 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
     {
         var scopedServices = scope.ServiceProvider;
         var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        
+        // ファイル管理サービス
         var fileService = scopedServices.GetRequiredService<IFileManagementService>();
+        
+        // 伝票インポートサービス
         var salesImportService = scopedServices.GetRequiredService<SalesVoucherImportService>();
         var purchaseImportService = scopedServices.GetRequiredService<PurchaseVoucherImportService>();
         var adjustmentImportService = scopedServices.GetRequiredService<InventoryAdjustmentImportService>();
+        
+        // マスタインポートサービス
+        var productImportService = scopedServices.GetRequiredService<ProductMasterImportService>();
+        var customerImportService = scopedServices.GetRequiredService<CustomerMasterImportService>();
+        var supplierImportService = scopedServices.GetRequiredService<SupplierMasterImportService>();
+        
+        // 初期在庫サービス
+        var previousMonthInventoryService = scopedServices.GetRequiredService<PreviousMonthInventoryImportService>();
         
         var department = args[2];
         DateTime jobDate = args.Length >= 4 && DateTime.TryParse(args[3], out var date) ? date : DateTime.Today;
@@ -1300,16 +1338,25 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         
         try
         {
+            // ファイル一覧の取得
             var files = await fileService.GetPendingFilesAsync(department);
             Console.WriteLine($"取込対象ファイル数: {files.Count}");
             
-            foreach (var file in files)
+            // ファイルを処理順序でソート
+            var sortedFiles = files
+                .OrderBy(f => GetFileProcessOrder(Path.GetFileName(f)))
+                .ThenBy(f => Path.GetFileName(f))
+                .ToList();
+            
+            // 各ファイルの処理
+            foreach (var file in sortedFiles)
             {
                 var fileName = Path.GetFileName(file);
                 Console.WriteLine($"\n処理中: {fileName}");
                 
                 try
                 {
+                    // ========== 伝票系ファイル ==========
                     if (fileName.StartsWith("売上伝票"))
                     {
                         await salesImportService.ImportAsync(file, jobDate, department);
@@ -1320,21 +1367,102 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         await purchaseImportService.ImportAsync(file, jobDate, department);
                         Console.WriteLine("✅ 仕入伝票として処理完了");
                     }
-                    else if (fileName.StartsWith("在庫調整"))
+                    else if (fileName.StartsWith("在庫調整") || fileName.StartsWith("受注伝票"))
                     {
                         await adjustmentImportService.ImportAsync(file, jobDate, department);
                         Console.WriteLine("✅ 在庫調整として処理完了");
                     }
+                    // ========== マスタ系ファイル ==========
+                    else if (fileName.Contains("等級汎用マスター"))
+                    {
+                        // 等級マスタは GradeMasterRepository のインポート機能を使用
+                        var gradeRepo = scopedServices.GetRequiredService<IGradeMasterRepository>();
+                        await gradeRepo.ImportFromCsvAsync();
+                        Console.WriteLine("✅ 等級マスタとして処理完了");
+                    }
+                    else if (fileName.Contains("階級汎用マスター"))
+                    {
+                        // 階級マスタは ClassMasterRepository のインポート機能を使用
+                        var classRepo = scopedServices.GetRequiredService<IClassMasterRepository>();
+                        await classRepo.ImportFromCsvAsync();
+                        Console.WriteLine("✅ 階級マスタとして処理完了");
+                    }
+                    else if (fileName.Contains("荷印汎用マスター"))
+                    {
+                        // 荷印マスタはスタブ処理
+                        logger.LogWarning("荷印マスタインポートは未実装です: {FileName}", fileName);
+                        Console.WriteLine("⚠️ 荷印マスタインポートは未実装です（スキップ）");
+                        await fileService.MoveToProcessedAsync(file, department); // 処理済みとして移動
+                    }
+                    else if (fileName.Contains("産地汎用マスター"))
+                    {
+                        // 産地マスタはスタブ処理
+                        logger.LogWarning("産地マスタインポートは未実装です: {FileName}", fileName);
+                        Console.WriteLine("⚠️ 産地マスタインポートは未実装です（スキップ）");
+                        await fileService.MoveToProcessedAsync(file, department); // 処理済みとして移動
+                    }
+                    else if (fileName == "商品.csv")
+                    {
+                        var result = await productImportService.ImportFromCsvAsync(file);
+                        Console.WriteLine($"✅ 商品マスタとして処理完了（{result.ImportedCount}件）");
+                    }
+                    else if (fileName == "得意先.csv")
+                    {
+                        var result = await customerImportService.ImportFromCsvAsync(file);
+                        Console.WriteLine($"✅ 得意先マスタとして処理完了（{result.ImportedCount}件）");
+                    }
+                    else if (fileName == "仕入先.csv")
+                    {
+                        var result = await supplierImportService.ImportFromCsvAsync(file);
+                        Console.WriteLine($"✅ 仕入先マスタとして処理完了（{result.ImportedCount}件）");
+                    }
+                    // ========== 初期在庫ファイル ==========
+                    else if (fileName == "前月末在庫.csv")
+                    {
+                        var result = await previousMonthInventoryService.ImportAsync(jobDate);
+                        Console.WriteLine($"✅ 前月末在庫（初期在庫）として処理完了（{result.ProcessedRecords}件）");
+                    }
+                    // ========== 未対応ファイル ==========
+                    else if (fileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // 既知の未対応ファイル
+                        string[] knownButUnsupported = {
+                            "担当者", "単位", "商品分類", "得意先分類", 
+                            "仕入先分類", "担当者分類", "支払伝票", "入金伝票"
+                        };
+                        
+                        if (knownButUnsupported.Any(pattern => fileName.Contains(pattern)))
+                        {
+                            Console.WriteLine($"⚠️ {fileName} は現在未対応です（スキップ）");
+                            await fileService.MoveToErrorAsync(file, department, "未対応のCSVファイル形式");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"⚠️ {fileName} は認識できないCSVファイルです");
+                            await fileService.MoveToErrorAsync(file, department, "不明なCSVファイル");
+                        }
+                    }
                     else
                     {
-                        await fileService.MoveToErrorAsync(file, department, "未対応のファイル形式");
-                        Console.WriteLine("⚠️ 未対応のファイル形式のためエラーフォルダへ移動");
+                        // CSV以外のファイル
+                        await fileService.MoveToErrorAsync(file, department, "CSVファイル以外は処理対象外");
+                        Console.WriteLine("⚠️ CSVファイル以外のためエラーフォルダへ移動");
                     }
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "ファイル処理エラー: {File}", file);
                     Console.WriteLine($"❌ エラー: {ex.Message}");
+                    
+                    // エラーが発生してもファイルをエラーフォルダに移動
+                    try
+                    {
+                        await fileService.MoveToErrorAsync(file, department, ex.Message);
+                    }
+                    catch (Exception moveEx)
+                    {
+                        logger.LogError(moveEx, "エラーファイルの移動に失敗: {File}", file);
+                    }
                 }
             }
             
