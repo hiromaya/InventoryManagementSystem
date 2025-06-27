@@ -23,4 +23,10 @@ public interface IClassMasterRepository
     /// </summary>
     /// <returns>インポートした件数</returns>
     Task<int> ImportFromCsvAsync();
+
+    /// <summary>
+    /// データベースに登録されている階級マスタの件数を取得する
+    /// </summary>
+    /// <returns>登録件数</returns>
+    Task<int> GetCountAsync();
 }

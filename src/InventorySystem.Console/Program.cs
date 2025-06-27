@@ -180,12 +180,14 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  dotnet run init-folders                      - フォルダ構造を初期化");
     Console.WriteLine("  dotnet run import-folder <dept> [YYYY-MM-DD] - 部門フォルダから一括取込");
     Console.WriteLine("  dotnet run import-masters                    - 等級・階級マスタをインポート");
+    Console.WriteLine("  dotnet run check-masters                     - 等級・階級マスタの登録状況を確認");
     Console.WriteLine("  例: dotnet run test-connection");
     Console.WriteLine("  例: dotnet run unmatch-list 2025-06-16");
     Console.WriteLine("  例: dotnet run daily-report 2025-06-16");
     Console.WriteLine("  例: dotnet run inventory-list 2025-06-16");
     Console.WriteLine("  例: dotnet run import-sales sales.csv 2025-06-16");
     Console.WriteLine("  例: dotnet run import-masters");
+    Console.WriteLine("  例: dotnet run check-masters");
     return 1;
 }
 
@@ -253,6 +255,10 @@ try
         
         case "import-masters":
             await ExecuteImportMastersAsync(host.Services);
+            break;
+        
+        case "check-masters":
+            await ExecuteCheckMastersAsync(host.Services);
             break;
         
         default:
@@ -1114,6 +1120,86 @@ static async Task ExecuteImportMastersAsync(IServiceProvider services)
         {
             Console.WriteLine($"❌ エラー: {ex.Message}");
             logger.LogError(ex, "マスタデータインポートでエラーが発生しました");
+        }
+    }
+}
+
+static async Task ExecuteCheckMastersAsync(IServiceProvider services)
+{
+    using (var scope = services.CreateScope())
+    {
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var gradeRepo = scopedServices.GetRequiredService<IGradeMasterRepository>();
+        var classRepo = scopedServices.GetRequiredService<IClassMasterRepository>();
+        
+        Console.WriteLine("=== マスタデータ登録状況確認 ===");
+        Console.WriteLine();
+        
+        try
+        {
+            // 等級マスタの件数を確認
+            Console.WriteLine("【等級マスタ】");
+            var gradeCount = await gradeRepo.GetCountAsync();
+            Console.WriteLine($"  登録件数: {gradeCount:N0}件");
+            
+            if (gradeCount > 0)
+            {
+                // サンプルデータを表示
+                var allGrades = await gradeRepo.GetAllGradesAsync();
+                var sampleGrades = allGrades.Take(5);
+                Console.WriteLine("  サンプルデータ:");
+                foreach (var grade in sampleGrades)
+                {
+                    Console.WriteLine($"    {grade.Key}: {grade.Value}");
+                }
+                if (allGrades.Count > 5)
+                {
+                    Console.WriteLine($"    ... 他 {allGrades.Count - 5}件");
+                }
+            }
+            else
+            {
+                Console.WriteLine("  ⚠️ データが登録されていません");
+                Console.WriteLine("  'dotnet run import-masters' でインポートしてください");
+            }
+            
+            Console.WriteLine();
+            
+            // 階級マスタの件数を確認
+            Console.WriteLine("【階級マスタ】");
+            var classCount = await classRepo.GetCountAsync();
+            Console.WriteLine($"  登録件数: {classCount:N0}件");
+            
+            if (classCount > 0)
+            {
+                // サンプルデータを表示
+                var allClasses = await classRepo.GetAllClassesAsync();
+                var sampleClasses = allClasses.Take(5);
+                Console.WriteLine("  サンプルデータ:");
+                foreach (var cls in sampleClasses)
+                {
+                    Console.WriteLine($"    {cls.Key}: {cls.Value}");
+                }
+                if (allClasses.Count > 5)
+                {
+                    Console.WriteLine($"    ... 他 {allClasses.Count - 5}件");
+                }
+            }
+            else
+            {
+                Console.WriteLine("  ⚠️ データが登録されていません");
+                Console.WriteLine("  'dotnet run import-masters' でインポートしてください");
+            }
+            
+            Console.WriteLine();
+            Console.WriteLine("=== 確認完了 ===");
+            Console.WriteLine($"合計: {gradeCount + classCount:N0}件のマスタデータが登録されています");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ エラー: {ex.Message}");
+            logger.LogError(ex, "マスタデータ確認でエラーが発生しました");
         }
     }
 }

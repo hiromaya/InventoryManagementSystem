@@ -209,4 +209,23 @@ public class ClassMasterRepository : IClassMasterRepository
             throw;
         }
     }
+
+    public async Task<int> GetCountAsync()
+    {
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var sql = "SELECT COUNT(*) FROM ClassMaster";
+            var count = await connection.QuerySingleAsync<int>(sql);
+            
+            return count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "階級マスタの件数取得でエラーが発生しました");
+            throw;
+        }
+    }
 }
