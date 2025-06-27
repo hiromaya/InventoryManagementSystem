@@ -1,11 +1,11 @@
 using System.Data;
-using System.Data.SqlClient;
 using System.Globalization;
 using System.Text;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Dapper;
 using InventorySystem.Core.Interfaces;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
