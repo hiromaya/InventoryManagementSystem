@@ -163,8 +163,8 @@ public class PreviousMonthInventoryImportService
             MissingFieldFound = null,
             BadDataFound = context =>
             {
-                _logger.LogWarning("不正なデータ: 行 {Row}, フィールド {Field}, データ {Data}",
-                    context.Row, context.Field, context.RawRecord);
+                _logger.LogWarning("不正なデータ: 行 {Row}, データ {Data}",
+                    context.Context.Parser.Row, context.RawRecord);
             }
         };
 
