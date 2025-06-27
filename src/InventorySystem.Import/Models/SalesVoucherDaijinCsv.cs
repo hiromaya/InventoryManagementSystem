@@ -53,7 +53,7 @@ public class SalesVoucherDaijinCsv
     public string GradeCode { get; set; } = string.Empty;
     
     [Name("等級名")]
-    [Index(145)]  // 146列目
+    [Index(144)]  // 145列目
     public string GradeName { get; set; } = string.Empty;
     
     [Name("階級コード")]
@@ -61,7 +61,7 @@ public class SalesVoucherDaijinCsv
     public string ClassCode { get; set; } = string.Empty;
     
     [Name("階級名")]
-    [Index(146)]  // 147列目
+    [Index(145)]  // 146列目
     public string ClassName { get; set; } = string.Empty;
     
     [Name("荷印コード")]
