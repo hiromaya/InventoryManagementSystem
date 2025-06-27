@@ -21,7 +21,7 @@ public class SalesVoucherDaijinCsv
     public string VoucherDate { get; set; } = string.Empty;
     
     [Name("ジョブデート")]
-    [Index(47)]  // 48列目
+    [Index(48)]  // 49列目
     public string JobDate { get; set; } = string.Empty;
     
     [Name("伝票区分(51:掛売,52:現売)")]
@@ -29,7 +29,7 @@ public class SalesVoucherDaijinCsv
     public string VoucherType { get; set; } = string.Empty;
     
     [Name("明細種(1:売上,2:返品,4:値引)")]
-    [Index(80)]  // 81列目
+    [Index(83)]  // 84列目
     public string DetailType { get; set; } = string.Empty;
     
     [Name("得意先コード")]
@@ -41,47 +41,47 @@ public class SalesVoucherDaijinCsv
     public string CustomerName { get; set; } = string.Empty;
     
     [Name("商品コード")]
-    [Index(88)]  // 89列目
+    [Index(93)]  // 94列目
     public string ProductCode { get; set; } = string.Empty;
     
     [Name("商品名")]
-    [Index(142)]  // 143列目
+    [Index(148)]  // 149列目
     public string ProductName { get; set; } = string.Empty;
     
     [Name("等級コード")]
-    [Index(82)]  // 83列目
+    [Index(87)]  // 88列目
     public string GradeCode { get; set; } = string.Empty;
     
     [Name("等級名")]
-    [Index(136)]  // 137列目
+    [Index(145)]  // 146列目
     public string GradeName { get; set; } = string.Empty;
     
     [Name("階級コード")]
-    [Index(83)]  // 84列目
+    [Index(88)]  // 89列目
     public string ClassCode { get; set; } = string.Empty;
     
     [Name("階級名")]
-    [Index(137)]  // 138列目
+    [Index(146)]  // 147列目
     public string ClassName { get; set; } = string.Empty;
     
     [Name("荷印コード")]
-    [Index(84)]  // 85列目
+    [Index(89)]  // 90列目
     public string ShippingMarkCode { get; set; } = string.Empty;
     
     [Name("荷印名")]
-    [Index(143)]  // CSV解析結果に基づく修正: 138から143に変更
+    [Index(146)]  // 147列目
     public string ShippingMarkName { get; set; } = string.Empty;
     
     [Name("数量")]
-    [Index(93)]  // 94列目
+    [Index(98)]  // 99列目
     public decimal Quantity { get; set; }
     
     [Name("単価")]
-    [Index(95)]  // 96列目
+    [Index(100)]  // 101列目
     public decimal UnitPrice { get; set; }
     
     [Name("金額")]
-    [Index(96)]  // 97列目
+    [Index(101)]  // 102列目
     public decimal Amount { get; set; }
     
     [Name("手入力項目(半角8文字)")]

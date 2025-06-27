@@ -29,7 +29,7 @@ public class PurchaseVoucherDaijinCsv
     public string VoucherType { get; set; } = string.Empty;
     
     [Name("明細種")]
-    [Index(75)]  // 76列目
+    [Index(77)]  // 78列目
     public string DetailType { get; set; } = string.Empty;
     
     [Name("仕入先コード")]
@@ -41,47 +41,47 @@ public class PurchaseVoucherDaijinCsv
     public string SupplierName { get; set; } = string.Empty;
     
     [Name("商品コード")]
-    [Index(83)]  // 84列目
+    [Index(87)]  // 88列目
     public string ProductCode { get; set; } = string.Empty;
     
     [Name("商品名")]
-    [Index(139)]  // 140列目
+    [Index(142)]  // 143列目
     public string ProductName { get; set; } = string.Empty;
     
     [Name("等級コード")]
-    [Index(77)]  // 78列目
+    [Index(81)]  // 82列目
     public string GradeCode { get; set; } = string.Empty;
     
     [Name("等級名")]
-    [Index(131)]  // 132列目
+    [Index(139)]  // 140列目
     public string GradeName { get; set; } = string.Empty;
     
     [Name("階級コード")]
-    [Index(78)]  // 79列目
+    [Index(82)]  // 83列目
     public string ClassCode { get; set; } = string.Empty;
     
     [Name("階級名")]
-    [Index(132)]  // 133列目
+    [Index(140)]  // 141列目
     public string ClassName { get; set; } = string.Empty;
     
     [Name("荷印コード")]
-    [Index(79)]  // 80列目
+    [Index(83)]  // 84列目
     public string ShippingMarkCode { get; set; } = string.Empty;
     
     [Name("荷印名")]
-    [Index(143)]  // CSV解析結果に基づく修正: 133から143に変更
+    [Index(140)]  // 141列目
     public string ShippingMarkName { get; set; } = string.Empty;
     
     [Name("数量")]
-    [Index(88)]  // 89列目
+    [Index(92)]  // 93列目
     public decimal Quantity { get; set; }
     
     [Name("単価")]
-    [Index(90)]  // 91列目
+    [Index(94)]  // 95列目
     public decimal UnitPrice { get; set; }
     
     [Name("金額")]
-    [Index(91)]  // 92列目
+    [Index(95)]  // 96列目
     public decimal Amount { get; set; }
     
     [Name("手入力項目(半角8文字)")]

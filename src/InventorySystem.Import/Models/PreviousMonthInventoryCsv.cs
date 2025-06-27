@@ -43,11 +43,11 @@ public class PreviousMonthInventoryCsv
     public string ProductCode { get; set; } = string.Empty;
     
     [Name("商品名")]
-    [Index(143)]  // 144列目
+    [Index(142)]  // 143列目
     public string ProductName { get; set; } = string.Empty;
     
     [Name("荷印名")]
-    [Index(141)]  // 142列目
+    [Index(138)]  // 139列目
     public string ShippingMarkName { get; set; } = string.Empty;
     
     [Name("数量")]
