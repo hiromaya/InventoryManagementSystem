@@ -21,7 +21,7 @@ public class PurchaseVoucherDaijinCsv
     public string VoucherDate { get; set; } = string.Empty;
     
     [Name("ジョブデート")]
-    [Index(42)]  // 43列目
+    [Index(44)]  // 45列目
     public string JobDate { get; set; } = string.Empty;
     
     [Name("伝票区分(11:掛仕入,12:現金仕入)")]
@@ -29,7 +29,7 @@ public class PurchaseVoucherDaijinCsv
     public string VoucherType { get; set; } = string.Empty;
     
     [Name("明細種")]
-    [Index(77)]  // 78列目
+    [Index(79)]  // 80列目
     public string DetailType { get; set; } = string.Empty;
     
     [Name("仕入先コード")]
@@ -45,7 +45,7 @@ public class PurchaseVoucherDaijinCsv
     public string ProductCode { get; set; } = string.Empty;
     
     [Name("商品名")]
-    [Index(142)]  // 143列目
+    [Index(140)]  // 141列目
     public string ProductName { get; set; } = string.Empty;
     
     [Name("等級コード")]
@@ -53,7 +53,7 @@ public class PurchaseVoucherDaijinCsv
     public string GradeCode { get; set; } = string.Empty;
     
     [Name("等級名")]
-    [Index(139)]  // 140列目
+    [Index(134)]  // 135列目
     public string GradeName { get; set; } = string.Empty;
     
     [Name("階級コード")]
@@ -61,7 +61,7 @@ public class PurchaseVoucherDaijinCsv
     public string ClassCode { get; set; } = string.Empty;
     
     [Name("階級名")]
-    [Index(140)]  // 141列目
+    [Index(135)]  // 136列目
     public string ClassName { get; set; } = string.Empty;
     
     [Name("荷印コード")]
@@ -69,7 +69,7 @@ public class PurchaseVoucherDaijinCsv
     public string ShippingMarkCode { get; set; } = string.Empty;
     
     [Name("荷印名")]
-    [Index(140)]  // 141列目
+    [Index(136)]  // 137列目
     public string ShippingMarkName { get; set; } = string.Empty;
     
     [Name("数量")]
@@ -84,8 +84,8 @@ public class PurchaseVoucherDaijinCsv
     [Index(95)]  // 96列目
     public decimal Amount { get; set; }
     
-    [Name("手入力項目(半角8文字)")]
-    [Index(151)]  // 152列目（推定）
+    [Name("荷印手入力")]
+    [Index(147)]  // 148列目
     public string HandInputItem { get; set; } = string.Empty;
     
     // 商品分類は販売大臣のCSVに含まれない可能性があるため、デフォルト値を設定

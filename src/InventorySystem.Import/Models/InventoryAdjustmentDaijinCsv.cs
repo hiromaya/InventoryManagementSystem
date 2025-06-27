@@ -41,39 +41,39 @@ public class InventoryAdjustmentDaijinCsv
     public string CustomerName { get; set; } = string.Empty;
     
     [Name("商品コード")]
-    [Index(88)]  // 89列目
+    [Index(89)]  // 90列目
     public string ProductCode { get; set; } = string.Empty;
     
     [Name("商品名")]
-    [Index(142)]  // 143列目
+    [Index(147)]  // 148列目
     public string ProductName { get; set; } = string.Empty;
     
     [Name("等級コード")]
-    [Index(82)]  // 83列目
+    [Index(83)]  // 84列目
     public string GradeCode { get; set; } = string.Empty;
     
     [Name("等級名")]
-    [Index(136)]  // 137列目
+    [Index(141)]  // 142列目
     public string GradeName { get; set; } = string.Empty;
     
     [Name("階級コード")]
-    [Index(83)]  // 84列目
+    [Index(84)]  // 85列目
     public string ClassCode { get; set; } = string.Empty;
     
     [Name("階級名")]
-    [Index(137)]  // 138列目
+    [Index(142)]  // 143列目
     public string ClassName { get; set; } = string.Empty;
     
     [Name("荷印コード")]
-    [Index(84)]  // 85列目
+    [Index(85)]  // 86列目
     public string ShippingMarkCode { get; set; } = string.Empty;
     
     [Name("荷印名")]
-    [Index(138)]  // 139列目
+    [Index(143)]  // 144列目
     public string ShippingMarkName { get; set; } = string.Empty;
     
     [Name("数量")]
-    [Index(93)]  // 94列目
+    [Index(94)]  // 95列目
     public decimal Quantity { get; set; }
     
     [Name("区分(1:ﾛｽ,4:振替,6:調整)")]
@@ -81,15 +81,15 @@ public class InventoryAdjustmentDaijinCsv
     public string CategoryCode { get; set; } = string.Empty;
     
     [Name("単価")]
-    [Index(96)]  // 97列目
+    [Index(98)]  // 99列目
     public decimal UnitPrice { get; set; }
     
     [Name("金額")]
-    [Index(97)]  // 98列目
+    [Index(99)]  // 100列目
     public decimal Amount { get; set; }
     
     [Name("手入力項目(半角8文字)")]
-    [Index(152)]  // 153列目
+    [Index(156)]  // 157列目
     public string HandInputItem { get; set; } = string.Empty;
     
     // 商品分類は販売大臣のCSVに含まれない可能性があるため、デフォルト値を設定

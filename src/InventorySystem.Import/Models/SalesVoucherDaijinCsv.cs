@@ -21,7 +21,7 @@ public class SalesVoucherDaijinCsv
     public string VoucherDate { get; set; } = string.Empty;
     
     [Name("ジョブデート")]
-    [Index(48)]  // 49列目
+    [Index(49)]  // 50列目
     public string JobDate { get; set; } = string.Empty;
     
     [Name("伝票区分(51:掛売,52:現売)")]
