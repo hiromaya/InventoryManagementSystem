@@ -258,6 +258,47 @@ public class InventoryAdjustment
 }
 
 /// <summary>
+/// 在庫調整区分の種類
+/// </summary>
+public enum AdjustmentType
+{
+    /// <summary>
+    /// 消費税（伝票単位消費税）
+    /// </summary>
+    Tax = 0,
+    
+    /// <summary>
+    /// ロス
+    /// </summary>
+    Loss = 1,
+    
+    /// <summary>
+    /// 不明（要確認）
+    /// </summary>
+    Unknown2 = 2,
+    
+    /// <summary>
+    /// 不明（要確認）
+    /// </summary>
+    Unknown3 = 3,
+    
+    /// <summary>
+    /// 振替
+    /// </summary>
+    Transfer = 4,
+    
+    /// <summary>
+    /// 不明（要確認）
+    /// </summary>
+    Unknown5 = 5,
+    
+    /// <summary>
+    /// 調整
+    /// </summary>
+    Adjustment = 6
+}
+
+/// <summary>
 /// 在庫調整用単位コードの定数
 /// </summary>
 public static class InventoryAdjustmentUnitCodes

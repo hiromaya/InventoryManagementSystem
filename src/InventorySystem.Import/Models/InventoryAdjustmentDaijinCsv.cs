@@ -174,11 +174,15 @@ public class InventoryAdjustmentDaijinCsv
         }
 
         // 区分コードチェック（0-6すべて許可）
-        // 0:消費税, 1:ロス, 2:不明, 3:不明, 4:振替, 5:不明, 6:調整
+        // AdjustmentTypeの定義に従って有効な値をチェック
         var categoryCode = ParseCategoryCode(CategoryCode);
-        if (categoryCode.HasValue && (categoryCode.Value < 0 || categoryCode.Value > 6))
+        if (categoryCode.HasValue)
         {
-            return false;
+            var isValidType = Enum.IsDefined(typeof(AdjustmentType), categoryCode.Value);
+            if (!isValidType)
+            {
+                return false;
+            }
         }
 
         // 必須項目チェック（等級・階級・荷印コードが"000"の場合も許可）
