@@ -93,6 +93,12 @@ public class SalesVoucherImportService
             {
                 try
                 {
+                    if (CodeValidator.IsExcludedCode(record.CustomerCode)) // 得意先コードがオール0
+                    {
+                        _logger.LogInformation("行{index}: 得意先コードがオール0のためスキップします。伝票番号: {VoucherNumber}", index, record.VoucherNumber);
+                        continue;
+                    }
+
                     if (!record.IsValidSalesVoucher())
                     {
                         var error = $"行{index}: 不正な売上伝票データ - 伝票番号: {record.VoucherNumber}";
