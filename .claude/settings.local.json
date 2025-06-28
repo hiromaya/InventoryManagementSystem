@@ -27,7 +27,10 @@
       "Bash(find:*)",
       "Bash(git rm:*)",
       "Bash(grep:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(/home/hiroki/.claude/gemini-search.sh:*)",
+      "Bash(cut:*)",
+      "Bash(python3:*)"
     ],
     "deny": []
   }

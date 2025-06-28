@@ -12,32 +12,32 @@ namespace InventorySystem.Import.Models;
 /// </summary>
 public class InventoryAdjustmentDaijinCsv
 {
-    [Name("伝票番号(自動採番)")]
+    [Name("伝票日付")]
     [Index(0)]
-    public string VoucherNumber { get; set; } = string.Empty;
-    
-    [Name("伝票日付(西暦4桁YYYYMMDD)")]
-    [Index(1)]
     public string VoucherDate { get; set; } = string.Empty;
+    
+    [Name("伝票区分(71:在庫調整)")]
+    [Index(1)]
+    public string VoucherType { get; set; } = string.Empty;
+    
+    [Name("伝票番号")]
+    [Index(2)]
+    public string VoucherNumber { get; set; } = string.Empty;
     
     [Name("ジョブデート")]
     [Index(47)]  // 48列目
     public string JobDate { get; set; } = string.Empty;
-    
-    [Name("伝票区分(71:受注,72:注文)")]
-    [Index(2)]
-    public string VoucherType { get; set; } = string.Empty;
     
     [Name("明細種(1:受注)")]
     [Index(80)]  // 81列目
     public string DetailType { get; set; } = string.Empty;
     
     [Name("得意先コード")]
-    [Index(3)]
+    [Index(6)]
     public string CustomerCode { get; set; } = string.Empty;
     
     [Name("得意先名１")]
-    [Index(8)]
+    [Index(7)]
     public string CustomerName { get; set; } = string.Empty;
     
     [Name("商品コード")]
@@ -186,12 +186,9 @@ public class InventoryAdjustmentDaijinCsv
             return false;
         }
 
-        // 必須項目チェック
+        // 必須項目チェック（等級・階級・荷印コードが"000"の場合も許可）
         if (string.IsNullOrWhiteSpace(VoucherNumber) ||
-            string.IsNullOrWhiteSpace(ProductCode) ||
-            string.IsNullOrWhiteSpace(GradeCode) ||
-            string.IsNullOrWhiteSpace(ClassCode) ||
-            string.IsNullOrWhiteSpace(ShippingMarkCode))
+            string.IsNullOrWhiteSpace(ProductCode))
         {
             return false;
         }

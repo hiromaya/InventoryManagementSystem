@@ -122,10 +122,11 @@ public class SalesVoucherCsv
             return false;
         }
 
-        // 明細種別チェック（1:商品, 2:返品, 3:値引のみ取込）
+        // 明細種別チェック（1:商品, 2:返品, 3:値引, 18:諸経費のみ取込）
         if (DetailType != DetailTypes.Product && 
             DetailType != DetailTypes.Return && 
-            DetailType != DetailTypes.Discount)
+            DetailType != DetailTypes.Discount &&
+            DetailType != DetailTypes.Expense)
         {
             return false;
         }

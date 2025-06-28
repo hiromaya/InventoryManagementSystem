@@ -16,7 +16,7 @@
 
 ```bash
 # 正しい使用方法
-./.claude/search.sh "検索クエリ"
+/home/hiroki/.claude/gemini-search.sh "検索クエリ"
 
 # 絶対に使用しない
 # ・Claude Codeの内蔵Web検索
@@ -30,8 +30,8 @@
 
 ```bash
 # 画像解析は必ずGemini CLI経由
-./.claude/analyze_image.sh <画像パス> [質問]
-./.claude/analyze_file.sh <画像パス> [質問] diagram
+/home/hiroki/.claude/analyze_image.sh <画像パス> [質問]
+/home/hiroki/.claude/analyze_file.sh <画像パス> [質問] diagram
 ```
 
 ### 3. PDF文書の処理
@@ -41,18 +41,18 @@
 
 ```bash
 # PDF解析は必ずGemini CLI経由
-./.claude/analyze_pdf.sh <PDFパス> [質問]
+/home/hiroki/.claude/analyze_pdf.sh <PDFパス> [質問]
 ```
 
 ## 🛠️ 利用可能なコマンド一覧
 
 | コマンド | 用途 | 使用例 |
 |---------|------|--------|
-| `search.sh` | Web検索 | `./.claude/search.sh "Ubuntu 24.04 新機能"` |
-| `analyze_image.sh` | 画像解析 | `./.claude/analyze_image.sh ./img.png "何が写っていますか"` |
-| `analyze_pdf.sh` | PDF解析 | `./.claude/analyze_pdf.sh ./doc.pdf "要約して"` |
-| `analyze_file.sh` | 汎用ファイル解析 | `./.claude/analyze_file.sh ./chart.jpg "データを読み取って" chart` |
-| `batch_analyze.sh` | 一括解析 | `./.claude/batch_analyze.sh ./images "*.png"` |
+| `gemini-search.sh` | Web検索 | `/home/hiroki/.claude/gemini-search.sh "Ubuntu 24.04 新機能"` |
+| `analyze_image.sh` | 画像解析 | `/home/hiroki/.claude/analyze_image.sh ./img.png "何が写っていますか"` |
+| `analyze_pdf.sh` | PDF解析 | `/home/hiroki/.claude/analyze_pdf.sh ./doc.pdf "要約して"` |
+| `analyze_file.sh` | 汎用ファイル解析 | `/home/hiroki/.claude/analyze_file.sh ./chart.jpg "データを読み取って" chart` |
+| `batch_analyze.sh` | 一括解析 | `/home/hiroki/.claude/batch_analyze.sh ./images "*.png"` |
 
 ## 📐 解析タイプ指定
 
@@ -69,25 +69,25 @@
 ### 1. 技術調査タスク
 ```bash
 # Step 1: 最新情報の検索
-./.claude/search.sh "React Server Components 2025"
+/home/hiroki/.claude/gemini-search.sh "React Server Components 2025"
 
 # Step 2: 公式ドキュメントPDFの解析
-./.claude/analyze_pdf.sh ./react-rsc-guide.pdf "主要な変更点をリストアップ"
+/home/hiroki/.claude/analyze_pdf.sh ./react-rsc-guide.pdf "主要な変更点をリストアップ"
 
 # Step 3: アーキテクチャ図の理解
-./.claude/analyze_file.sh ./rsc-architecture.png "データフローを説明" diagram
+/home/hiroki/.claude/analyze_file.sh ./rsc-architecture.png "データフローを説明" diagram
 ```
 
 ### 2. データ分析タスク
 ```bash
 # Step 1: 売上データのグラフ解析
-./.claude/analyze_file.sh ./sales-chart.jpg "トレンドと異常値を特定" chart
+/home/hiroki/.claude/analyze_file.sh ./sales-chart.jpg "トレンドと異常値を特定" chart
 
 # Step 2: レポートPDFから詳細情報抽出
-./.claude/analyze_pdf.sh ./quarterly-report.pdf "地域別の売上を抽出"
+/home/hiroki/.claude/analyze_pdf.sh ./quarterly-report.pdf "地域別の売上を抽出"
 
 # Step 3: 競合情報の検索
-./.claude/search.sh "業界平均成長率 2025"
+/home/hiroki/.claude/gemini-search.sh "業界平均成長率 2025"
 ```
 
 ## ⚠️ 重要な制限事項
@@ -111,10 +111,10 @@
 
 ```bash
 # ❌ 悪い例：曖昧な質問
-./.claude/analyze_image.sh ./screenshot.png
+/home/hiroki/.claude/analyze_image.sh ./screenshot.png
 
 # ✅ 良い例：具体的な質問
-./.claude/analyze_image.sh ./screenshot.png "エラーメッセージとその原因を特定してください"
+/home/hiroki/.claude/analyze_image.sh ./screenshot.png "エラーメッセージとその原因を特定してください"
 ```
 
 ### 結果の活用方法

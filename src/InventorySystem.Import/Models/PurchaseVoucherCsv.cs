@@ -116,14 +116,16 @@ public class PurchaseVoucherCsv
     /// </summary>
     public bool IsValidPurchaseVoucher()
     {
-        // 伝票種別チェック（61:掛仕入, 62:現金仕入）
+        // 伝票種別チェック（11:掛仕入, 12:現金仕入）
         if (VoucherType != PurchaseVoucherTypes.Credit && VoucherType != PurchaseVoucherTypes.Cash)
         {
             return false;
         }
 
-        // 明細種別チェック（1:商品, 2:返品のみ取込）
-        if (DetailType != DetailTypes.Product && DetailType != DetailTypes.Return)
+        // 明細種別チェック（1:商品, 2:返品, 3:値引のみ取込）
+        if (DetailType != DetailTypes.Product && 
+            DetailType != DetailTypes.Return &&
+            DetailType != DetailTypes.Discount)
         {
             return false;
         }
@@ -134,12 +136,18 @@ public class PurchaseVoucherCsv
             return false;
         }
 
-        // 必須項目チェック
+        // 必須項目チェック（等級・階級コードが"000"の場合は空として扱い、許可する）
         if (string.IsNullOrWhiteSpace(VoucherNumber) ||
-            string.IsNullOrWhiteSpace(ProductCode) ||
-            string.IsNullOrWhiteSpace(GradeCode) ||
-            string.IsNullOrWhiteSpace(ClassCode) ||
-            string.IsNullOrWhiteSpace(ShippingMarkCode) ||
+            string.IsNullOrWhiteSpace(ProductCode))
+        {
+            return false;
+        }
+
+        // 等級・階級コードは"000"または空を許可しない（ただし"000"は許可）
+        // ※販売大臣では等級・階級が"000"の場合があるため、これを許可する
+
+        // 荷印コード・荷印名は必須
+        if (string.IsNullOrWhiteSpace(ShippingMarkCode) ||
             string.IsNullOrWhiteSpace(ShippingMarkName))
         {
             return false;
