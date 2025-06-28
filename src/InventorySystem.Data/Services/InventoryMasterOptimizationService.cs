@@ -7,6 +7,7 @@ using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
+using InventorySystem.Core.Interfaces;
 
 namespace InventorySystem.Data.Services
 {
@@ -14,7 +15,7 @@ namespace InventorySystem.Data.Services
     /// 在庫マスタ最適化サービス
     /// CSV取込後に売上商品を在庫マスタに反映する
     /// </summary>
-    public class InventoryMasterOptimizationService
+    public class InventoryMasterOptimizationService : IInventoryMasterOptimizationService
     {
         private readonly string _connectionString;
         private readonly ILogger<InventoryMasterOptimizationService> _logger;
@@ -28,7 +29,37 @@ namespace InventorySystem.Data.Services
         }
 
         /// <summary>
-        /// 在庫マスタの最適化を実行
+        /// 指定日付の在庫マスタを最適化する
+        /// </summary>
+        public async Task<int> OptimizeInventoryMasterAsync(DateTime jobDate)
+        {
+            var dataSetId = $"AUTO_OPTIMIZE_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}";
+            var result = await OptimizeAsync(jobDate, dataSetId);
+            return result.ProcessedCount;
+        }
+
+        /// <summary>
+        /// 日付範囲の在庫マスタを最適化する
+        /// </summary>
+        public async Task<int> OptimizeInventoryMasterRangeAsync(DateTime startDate, DateTime endDate)
+        {
+            _logger.LogInformation("在庫マスタ最適化開始 - 期間: {StartDate} ～ {EndDate}", 
+                startDate, endDate);
+
+            var totalCount = 0;
+            
+            for (var date = startDate; date <= endDate; date = date.AddDays(1))
+            {
+                var count = await OptimizeInventoryMasterAsync(date);
+                totalCount += count;
+            }
+            
+            _logger.LogInformation("在庫マスタ最適化完了 - 合計{Count}件追加", totalCount);
+            return totalCount;
+        }
+
+        /// <summary>
+        /// 在庫マスタの最適化を実行（内部実装）
         /// </summary>
         public async Task<OptimizationResult> OptimizeAsync(DateTime jobDate, string dataSetId)
         {

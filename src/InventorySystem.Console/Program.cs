@@ -150,6 +150,15 @@ builder.Services.AddScoped<PurchaseVoucherImportService>();
 builder.Services.AddScoped<InventoryAdjustmentImportService>();
 builder.Services.AddScoped<PreviousMonthInventoryImportService>();
 
+// 在庫マスタ最適化サービスを追加
+builder.Services.AddScoped<IInventoryMasterOptimizationService>(provider =>
+{
+    var configuration = provider.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetConnectionString("DefaultConnection") 
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    var logger = provider.GetRequiredService<ILogger<InventorySystem.Data.Services.InventoryMasterOptimizationService>>();
+    return new InventorySystem.Data.Services.InventoryMasterOptimizationService(connectionString, logger);
+});
 
 var host = builder.Build();
 
@@ -1338,6 +1347,9 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         // 初期在庫サービス
         var previousMonthInventoryService = scopedServices.GetRequiredService<PreviousMonthInventoryImportService>();
         
+        // 在庫マスタ最適化サービス
+        var optimizationService = scopedServices.GetRequiredService<IInventoryMasterOptimizationService>();
+        
         var department = args[2];
         DateTime jobDate = args.Length >= 4 && DateTime.TryParse(args[3], out var date) ? date : DateTime.Today;
         
@@ -1473,37 +1485,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             }
             
             // ========== 在庫マスタ最適化処理 ==========
-            Console.WriteLine("\n=== 在庫マスタ最適化開始 ===");
-            try
-            {
-                // 接続文字列を取得
-                var configuration = scopedServices.GetRequiredService<IConfiguration>();
-                var connectionString = configuration.GetConnectionString("DefaultConnection") 
-                    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-                
-                // 在庫マスタ最適化サービスを作成
-                var optimizationLogger = scopedServices.GetRequiredService<ILogger<InventorySystem.Data.Services.InventoryMasterOptimizationService>>();
-                var optimizationService = new InventorySystem.Data.Services.InventoryMasterOptimizationService(
-                    connectionString,
-                    optimizationLogger);
-                
-                // DataSetIdを生成（簡易版）
-                var dataSetId = $"IMPORT_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}";
-                
-                // 最適化実行
-                var optimizationResult = await optimizationService.OptimizeAsync(jobDate, dataSetId);
-                
-                Console.WriteLine($"売上商品数: {optimizationResult.SalesProductCount}件");
-                Console.WriteLine($"処理済み: {optimizationResult.ProcessedCount}件");
-                Console.WriteLine($"クリーンアップ: {optimizationResult.CleanedCount}件");
-                Console.WriteLine("✅ 在庫マスタ最適化完了");
-            }
-            catch (Exception optEx)
-            {
-                logger.LogError(optEx, "在庫マスタ最適化でエラーが発生しました");
-                Console.WriteLine($"⚠️ 在庫マスタ最適化でエラーが発生しました: {optEx.Message}");
-                // エラーが発生しても処理を継続（CSVインポート自体は成功しているため）
-            }
+            await OptimizeInventoryMastersAsync(optimizationService, jobDate, logger);
             
             // 処理結果のサマリを表示
             Console.WriteLine("\n=== インポート処理完了 ===");
@@ -1557,6 +1539,38 @@ static async Task ClearExistingVoucherData(IServiceProvider services, DateTime j
         logger.LogError(ex, "既存データクリア中にエラーが発生しました");
         Console.WriteLine($"⚠️ 既存データクリア中にエラー: {ex.Message}");
         // エラーが発生しても処理を継続
+    }
+}
+
+private static async Task OptimizeInventoryMastersAsync(IInventoryMasterOptimizationService optimizationService, DateTime jobDate, ILogger<Program> logger)
+{
+    try
+    {
+        logger.LogInformation("在庫マスタの自動最適化を開始します");
+        Console.WriteLine("\n=== 在庫マスタ最適化開始 ===");
+        
+        // 過去7日分の在庫マスタを最適化
+        var endDate = jobDate;
+        var startDate = endDate.AddDays(-7);
+        
+        var totalCount = await optimizationService.OptimizeInventoryMasterRangeAsync(startDate, endDate);
+        
+        if (totalCount > 0)
+        {
+            logger.LogInformation("在庫マスタの自動最適化が完了しました - 追加件数: {Count}件", totalCount);
+            Console.WriteLine($"✅ 在庫マスタ最適化完了 - {totalCount}件の商品を追加しました");
+        }
+        else
+        {
+            logger.LogInformation("在庫マスタの最適化は不要でした（追加対象なし）");
+            Console.WriteLine("✅ 在庫マスタ最適化完了 - 追加対象はありませんでした");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "在庫マスタの自動最適化中にエラーが発生しました");
+        Console.WriteLine($"⚠️ 在庫マスタ最適化でエラーが発生しました: {ex.Message}");
+        // エラーが発生してもCSVインポート自体は成功とする
     }
 }
 
