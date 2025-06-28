@@ -28,7 +28,7 @@ public class InventoryAdjustmentDaijinCsv
     [Index(47)]  // 48列目
     public string JobDate { get; set; } = string.Empty;
     
-    [Name("明細種(1:受注)")]
+    [Name("明細種(1固定)")]
     [Index(80)]  // 81列目
     public string DetailType { get; set; } = string.Empty;
     
