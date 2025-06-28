@@ -200,6 +200,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             SET 
                 DailySalesQuantity = ISNULL(sales.SalesQuantity, 0),
                 DailySalesAmount = ISNULL(sales.SalesAmount, 0),
+                -- 売上データが存在する場合のみDailyFlagを'0'に更新
+                DailyFlag = CASE 
+                    WHEN sales.ProductCode IS NOT NULL THEN '0' 
+                    ELSE cp.DailyFlag 
+                END,
                 UpdatedDate = GETDATE()
             FROM CpInventoryMaster cp
             LEFT JOIN (
@@ -232,6 +237,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             SET 
                 DailyPurchaseQuantity = ISNULL(purchase.PurchaseQuantity, 0),
                 DailyPurchaseAmount = ISNULL(purchase.PurchaseAmount, 0),
+                -- 仕入データが存在する場合のみDailyFlagを'0'に更新
+                DailyFlag = CASE 
+                    WHEN purchase.ProductCode IS NOT NULL THEN '0' 
+                    ELSE cp.DailyFlag 
+                END,
                 UpdatedDate = GETDATE()
             FROM CpInventoryMaster cp
             LEFT JOIN (
@@ -264,6 +274,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             SET 
                 DailyInventoryAdjustmentQuantity = ISNULL(adj.AdjustmentQuantity, 0),
                 DailyInventoryAdjustmentAmount = ISNULL(adj.AdjustmentAmount, 0),
+                -- 在庫調整データが存在する場合のみDailyFlagを'0'に更新
+                DailyFlag = CASE 
+                    WHEN adj.ProductCode IS NOT NULL THEN '0' 
+                    ELSE cp.DailyFlag 
+                END,
                 UpdatedDate = GETDATE()
             FROM CpInventoryMaster cp
             LEFT JOIN (
@@ -305,16 +320,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
 
     public async Task<int> SetDailyFlagToProcessedAsync(string dataSetId)
     {
-        const string sql = """
-            UPDATE CpInventoryMaster 
-            SET 
-                DailyFlag = '0',
-                UpdatedDate = GETDATE()
-            WHERE DataSetId = @DataSetId
-            """;
-
-        using var connection = new SqlConnection(_connectionString);
-        return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+        // このメソッドは使用しないため無効化
+        return 0;
     }
 
     public async Task<int> DeleteByDataSetIdAsync(string dataSetId)

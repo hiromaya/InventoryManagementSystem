@@ -624,9 +624,9 @@ public class UnmatchListService : IUnmatchListService
             var calculatedCount = await _cpInventoryRepository.CalculateDailyStockAsync(dataSetId);
             _logger.LogInformation("当日在庫を計算しました。更新件数: {Count}件", calculatedCount);
             
-            // 5. 当日発生フラグを'0'に更新
-            var flagCount = await _cpInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
-            _logger.LogInformation("当日発生フラグを更新しました。更新件数: {Count}件", flagCount);
+            // 5. 当日発生フラグ更新は各集計処理内で実行されるため、ここでは実行しない
+            // var flagCount = await _cpInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
+            // _logger.LogInformation("当日発生フラグを更新しました。更新件数: {Count}件", flagCount);
         }
         catch (Exception ex)
         {
