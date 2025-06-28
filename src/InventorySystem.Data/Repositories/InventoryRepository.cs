@@ -21,7 +21,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
-                DataSetId
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             FROM InventoryMaster 
             WHERE JobDate = @JobDate
             ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
@@ -49,7 +49,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
-                DataSetId
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             FROM InventoryMaster 
             WHERE ProductCode = @ProductCode 
                 AND GradeCode = @GradeCode 
@@ -89,14 +89,14 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
-                DataSetId
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             ) VALUES (
                 @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
                 @ProductName, @Unit, @StandardPrice, @ProductCategory1, @ProductCategory2,
                 @JobDate, @CreatedDate, @UpdatedDate,
                 @CurrentStock, @CurrentStockAmount, @DailyStock, @DailyStockAmount,
                 @DailyFlag, @DailyGrossProfit, @DailyAdjustmentAmount, @DailyProcessingCost, @FinalGrossProfit,
-                @DataSetId
+                @DataSetId, @PreviousMonthQuantity, @PreviousMonthAmount
             )";
 
         try
@@ -133,7 +133,9 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 DailyAdjustmentAmount = @DailyAdjustmentAmount,
                 DailyProcessingCost = @DailyProcessingCost,
                 FinalGrossProfit = @FinalGrossProfit,
-                DataSetId = @DataSetId
+                DataSetId = @DataSetId,
+                PreviousMonthQuantity = @PreviousMonthQuantity,
+                PreviousMonthAmount = @PreviousMonthAmount
             WHERE ProductCode = @ProductCode 
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
@@ -206,14 +208,14 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
-                DataSetId
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             ) VALUES (
                 @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
                 @ProductName, @Unit, @StandardPrice, @ProductCategory1, @ProductCategory2,
                 @JobDate, @CreatedDate, @UpdatedDate,
                 @CurrentStock, @CurrentStockAmount, @DailyStock, @DailyStockAmount,
                 @DailyFlag, @DailyGrossProfit, @DailyAdjustmentAmount, @DailyProcessingCost, @FinalGrossProfit,
-                @DataSetId
+                @DataSetId, @PreviousMonthQuantity, @PreviousMonthAmount
             )";
 
         try
@@ -293,7 +295,9 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             inventory.DailyAdjustmentAmount,
             inventory.DailyProcessingCost,
             inventory.FinalGrossProfit,
-            inventory.DataSetId
+            inventory.DataSetId,
+            inventory.PreviousMonthQuantity,
+            inventory.PreviousMonthAmount
         };
     }
     
@@ -516,7 +520,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
         try
         {
             using var connection = CreateConnection();
-            var result = await connection.QuerySingleOrDefaultAsync(sql, new
+            var result = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, new
             {
                 ProductCode = key.ProductCode,
                 GradeCode = key.GradeCode,
