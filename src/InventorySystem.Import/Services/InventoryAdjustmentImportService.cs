@@ -79,6 +79,11 @@ public class InventoryAdjustmentImportService
             {
                 try
                 {
+                    if (record.IsSummaryRow())
+                    {
+                        continue; // 集計行はスキップ
+                    }
+
                     if (!record.IsValidInventoryAdjustment())
                     {
                         var error = $"行{index}: 不正な在庫調整データ - 伝票番号: {record.VoucherNumber}";

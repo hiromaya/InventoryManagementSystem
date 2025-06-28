@@ -145,6 +145,15 @@ public class InventoryAdjustmentDaijinCsv
     }
 
     /// <summary>
+    /// 消費税の集計行など、処理対象外の行かどうかを判定
+    /// </summary>
+    public bool IsSummaryRow()
+    {
+        // 商品コードが "00000" で、商品名に "消費税" が含まれる行は集計行とみなす
+        return ProductCode == "00000" && (ProductName ?? "").Contains("消費税");
+    }
+
+    /// <summary>
     /// 在庫調整伝票として有効かどうかを判定
     /// </summary>
     public bool IsValidInventoryAdjustment()
