@@ -47,7 +47,7 @@ public class PreviousMonthInventoryCsv
     public string ProductName { get; set; } = string.Empty;
     
     [Name("荷印名")]
-    [Index(143)]  // 144列目
+    [Index(141)]  // 142列目
     public string ShippingMarkName { get; set; } = string.Empty;
     
     [Name("数量")]
@@ -59,15 +59,15 @@ public class PreviousMonthInventoryCsv
     public string CategoryCode { get; set; } = string.Empty;
     
     [Name("単価")]
-    [Index(98)]  // 99列目
+    [Index(96)]  // 97列目
     public decimal UnitPrice { get; set; }
     
     [Name("金額")]
-    [Index(99)]  // 100列目
+    [Index(97)]  // 98列目
     public decimal Amount { get; set; }
     
     [Name("手入力項目(半角8文字)")]
-    [Index(156)]  // 157列目
+    [Index(152)]  // 153列目
     public string HandInputItem { get; set; } = string.Empty;
 
     /// <summary>
@@ -103,7 +103,7 @@ public class PreviousMonthInventoryCsv
             GradeCode: (GradeCode ?? "").Trim().PadLeft(3, '0'),
             ClassCode: (ClassCode ?? "").Trim().PadLeft(3, '0'),
             ShippingMarkCode: (ShippingMarkCode ?? "").Trim().PadLeft(4, '0'),
-            ShippingMarkName: (HandInputItem ?? "").PadRight(8).Substring(0, 8)
+            ShippingMarkName: (ShippingMarkName ?? "").Trim()
         );
     }
 

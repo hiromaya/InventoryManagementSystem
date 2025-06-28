@@ -174,7 +174,7 @@ public class PreviousMonthInventoryImportService
 
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
-            Encoding = Encoding.GetEncoding("Shift_JIS"),
+            Encoding = Encoding.UTF8,
             HasHeaderRecord = true,
             HeaderValidated = null,
             MissingFieldFound = null,
@@ -185,7 +185,7 @@ public class PreviousMonthInventoryImportService
             }
         };
 
-        using var reader = new StreamReader(filePath, Encoding.GetEncoding("Shift_JIS"));
+        using var reader = new StreamReader(filePath, Encoding.UTF8);
         using var csv = new CsvReader(reader, config);
 
         await foreach (var record in csv.GetRecordsAsync<PreviousMonthInventoryCsv>())
