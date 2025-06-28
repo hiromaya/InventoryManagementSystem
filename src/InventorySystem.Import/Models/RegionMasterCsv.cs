@@ -21,63 +21,63 @@ public class RegionMasterCsv
 
     [Name("汎用数値１")]
     [Index(3)]
-    public decimal? GenericNumber1 { get; set; }
+    public decimal? NumericValue1 { get; set; }
 
     [Name("汎用数値２")]
     [Index(4)]
-    public decimal? GenericNumber2 { get; set; }
+    public decimal? NumericValue2 { get; set; }
 
     [Name("汎用数値３")]
     [Index(5)]
-    public decimal? GenericNumber3 { get; set; }
+    public decimal? NumericValue3 { get; set; }
 
     [Name("汎用数値４")]
     [Index(6)]
-    public decimal? GenericNumber4 { get; set; }
+    public decimal? NumericValue4 { get; set; }
 
     [Name("汎用数値５")]
     [Index(7)]
-    public decimal? GenericNumber5 { get; set; }
+    public decimal? NumericValue5 { get; set; }
 
     [Name("汎用日付１")]
     [Index(8)]
-    public string GenericDate1 { get; set; } = string.Empty;
+    public DateTime? DateValue1 { get; set; }
 
     [Name("汎用日付２")]
     [Index(9)]
-    public string GenericDate2 { get; set; } = string.Empty;
+    public DateTime? DateValue2 { get; set; }
 
     [Name("汎用日付３")]
     [Index(10)]
-    public string GenericDate3 { get; set; } = string.Empty;
+    public DateTime? DateValue3 { get; set; }
 
     [Name("汎用日付４")]
     [Index(11)]
-    public string GenericDate4 { get; set; } = string.Empty;
+    public DateTime? DateValue4 { get; set; }
 
     [Name("汎用日付５")]
     [Index(12)]
-    public string GenericDate5 { get; set; } = string.Empty;
+    public DateTime? DateValue5 { get; set; }
 
     [Name("汎用摘要１")]
     [Index(13)]
-    public string GenericNote1 { get; set; } = string.Empty;
+    public string? TextValue1 { get; set; }
 
     [Name("汎用摘要２")]
     [Index(14)]
-    public string GenericNote2 { get; set; } = string.Empty;
+    public string? TextValue2 { get; set; }
 
     [Name("汎用摘要３")]
     [Index(15)]
-    public string GenericNote3 { get; set; } = string.Empty;
+    public string? TextValue3 { get; set; }
 
     [Name("汎用摘要４")]
     [Index(16)]
-    public string GenericNote4 { get; set; } = string.Empty;
+    public string? TextValue4 { get; set; }
 
     [Name("汎用摘要５")]
     [Index(17)]
-    public string GenericNote5 { get; set; } = string.Empty;
+    public string? TextValue5 { get; set; }
 
     /// <summary>
     /// レコードが有効かどうかを判定

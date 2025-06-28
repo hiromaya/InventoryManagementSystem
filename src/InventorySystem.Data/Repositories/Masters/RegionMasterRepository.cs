@@ -144,6 +144,7 @@ public class RegionMasterRepository : IRegionMasterRepository
                 );";
 
         using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
         using var transaction = connection.BeginTransaction();
         
         try

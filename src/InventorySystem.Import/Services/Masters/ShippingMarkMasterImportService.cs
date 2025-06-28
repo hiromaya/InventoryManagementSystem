@@ -153,7 +153,10 @@ public class ShippingMarkMasterImportService : IShippingMarkMasterImportService
 
         await foreach (var record in csv.GetRecordsAsync<ShippingMarkMasterCsv>())
         {
-            records.Add(record);
+            if (record != null)
+            {
+                records.Add(record);
+            }
         }
 
         return records;

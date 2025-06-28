@@ -153,7 +153,10 @@ public class RegionMasterImportService : IRegionMasterImportService
 
         await foreach (var record in csv.GetRecordsAsync<RegionMasterCsv>())
         {
-            records.Add(record);
+            if (record != null)
+            {
+                records.Add(record);
+            }
         }
 
         return records;
