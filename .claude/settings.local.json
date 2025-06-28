@@ -26,7 +26,8 @@
       "Bash(dotnet clean:*)",
       "Bash(find:*)",
       "Bash(git rm:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git reset:*)"
     ],
     "deny": []
   }

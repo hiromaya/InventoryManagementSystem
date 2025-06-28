@@ -1466,6 +1466,38 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 }
             }
             
+            // ========== 在庫マスタ最適化処理 ==========
+            Console.WriteLine("\n=== 在庫マスタ最適化開始 ===");
+            try
+            {
+                // 接続文字列を取得
+                var configuration = scopedServices.GetRequiredService<IConfiguration>();
+                var connectionString = configuration.GetConnectionString("DefaultConnection") 
+                    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+                
+                // 在庫マスタ最適化サービスを作成
+                var optimizationService = new InventorySystem.Data.Services.InventoryMasterOptimizationService(
+                    connectionString,
+                    logger);
+                
+                // DataSetIdを生成（簡易版）
+                var dataSetId = $"IMPORT_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}";
+                
+                // 最適化実行
+                var optimizationResult = await optimizationService.OptimizeAsync(jobDate, dataSetId);
+                
+                Console.WriteLine($"売上商品数: {optimizationResult.SalesProductCount}件");
+                Console.WriteLine($"処理済み: {optimizationResult.ProcessedCount}件");
+                Console.WriteLine($"クリーンアップ: {optimizationResult.CleanedCount}件");
+                Console.WriteLine("✅ 在庫マスタ最適化完了");
+            }
+            catch (Exception optEx)
+            {
+                logger.LogError(optEx, "在庫マスタ最適化でエラーが発生しました");
+                Console.WriteLine($"⚠️ 在庫マスタ最適化でエラーが発生しました: {optEx.Message}");
+                // エラーが発生しても処理を継続（CSVインポート自体は成功しているため）
+            }
+            
             Console.WriteLine("\n=== フォルダ監視取込完了 ===");
         }
         catch (Exception ex)
