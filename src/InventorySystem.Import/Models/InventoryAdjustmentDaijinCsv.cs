@@ -49,27 +49,27 @@ public class InventoryAdjustmentDaijinCsv
     public string ProductName { get; set; } = string.Empty;
     
     [Name("等級コード")]
-    [Index(82)]  // 83列目
+    [Index(83)]  // 84列目
     public string GradeCode { get; set; } = string.Empty;
     
     [Name("等級名")]
-    [Index(140)]  // 141列目
+    [Index(141)]  // 142列目
     public string GradeName { get; set; } = string.Empty;
     
     [Name("階級コード")]
-    [Index(83)]  // 84列目
+    [Index(84)]  // 85列目
     public string ClassCode { get; set; } = string.Empty;
     
     [Name("階級名")]
-    [Index(141)]  // 142列目
+    [Index(142)]  // 143列目
     public string ClassName { get; set; } = string.Empty;
     
     [Name("荷印コード")]
-    [Index(84)]  // 85列目
+    [Index(85)]  // 86列目
     public string ShippingMarkCode { get; set; } = string.Empty;
     
     [Name("荷印名")]
-    [Index(142)]  // 143列目
+    [Index(143)]  // 144列目
     public string ShippingMarkName { get; set; } = string.Empty;
     
     [Name("数量")]
