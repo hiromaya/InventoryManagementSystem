@@ -346,4 +346,23 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
             throw;
         }
     }
+
+    public async Task<int> DeleteByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = "DELETE FROM InventoryAdjustments WHERE JobDate = @JobDate";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+            
+            _logger.LogInformation("Deleted {Count} inventory adjustment records for JobDate: {JobDate}", result, jobDate);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "在庫調整データ削除エラー: {JobDate}", jobDate);
+            throw;
+        }
+    }
 }

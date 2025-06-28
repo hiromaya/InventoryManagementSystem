@@ -100,11 +100,17 @@ builder.Services.AddScoped<IProductMasterRepository>(provider =>
     new ProductMasterRepository(connectionString, provider.GetRequiredService<ILogger<ProductMasterRepository>>()));
 builder.Services.AddScoped<ISupplierMasterRepository>(provider => 
     new SupplierMasterRepository(connectionString, provider.GetRequiredService<ILogger<SupplierMasterRepository>>()));
+builder.Services.AddScoped<IShippingMarkMasterRepository>(provider => 
+    new ShippingMarkMasterRepository(connectionString, provider.GetRequiredService<ILogger<ShippingMarkMasterRepository>>()));
+builder.Services.AddScoped<IRegionMasterRepository>(provider => 
+    new RegionMasterRepository(connectionString, provider.GetRequiredService<ILogger<RegionMasterRepository>>()));
 
 // Master import services
 builder.Services.AddScoped<CustomerMasterImportService>();
 builder.Services.AddScoped<ProductMasterImportService>();
 builder.Services.AddScoped<SupplierMasterImportService>();
+builder.Services.AddScoped<IShippingMarkMasterImportService, ShippingMarkMasterImportService>();
+builder.Services.AddScoped<IRegionMasterImportService, RegionMasterImportService>();
 
 // FileStorage設定の登録
 builder.Services.Configure<FileStorageSettings>(
@@ -1325,6 +1331,8 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         var productImportService = scopedServices.GetRequiredService<ProductMasterImportService>();
         var customerImportService = scopedServices.GetRequiredService<CustomerMasterImportService>();
         var supplierImportService = scopedServices.GetRequiredService<SupplierMasterImportService>();
+        var shippingMarkImportService = scopedServices.GetRequiredService<IShippingMarkMasterImportService>();
+        var regionImportService = scopedServices.GetRequiredService<IRegionMasterImportService>();
         
         // 初期在庫サービス
         var previousMonthInventoryService = scopedServices.GetRequiredService<PreviousMonthInventoryImportService>();
@@ -1338,6 +1346,11 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         
         try
         {
+            // 重複データクリア処理
+            Console.WriteLine("\n既存データのクリア中...");
+            await ClearExistingVoucherData(scopedServices, jobDate);
+            Console.WriteLine("✅ 既存データクリア完了");
+            
             // ファイル一覧の取得
             var files = await fileService.GetPendingFilesAsync(department);
             Console.WriteLine($"取込対象ファイル数: {files.Count}");
@@ -1389,17 +1402,13 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     }
                     else if (fileName.Contains("荷印汎用マスター"))
                     {
-                        // 荷印マスタはスタブ処理
-                        logger.LogWarning("荷印マスタインポートは未実装です: {FileName}", fileName);
-                        Console.WriteLine("⚠️ 荷印マスタインポートは未実装です（スキップ）");
-                        await fileService.MoveToProcessedAsync(file, department); // 処理済みとして移動
+                        var result = await shippingMarkImportService.ImportAsync(file);
+                        Console.WriteLine($"✅ 荷印マスタ: {result.ImportedCount}件インポートしました");
                     }
                     else if (fileName.Contains("産地汎用マスター"))
                     {
-                        // 産地マスタはスタブ処理
-                        logger.LogWarning("産地マスタインポートは未実装です: {FileName}", fileName);
-                        Console.WriteLine("⚠️ 産地マスタインポートは未実装です（スキップ）");
-                        await fileService.MoveToProcessedAsync(file, department); // 処理済みとして移動
+                        var result = await regionImportService.ImportAsync(file);
+                        Console.WriteLine($"✅ 産地マスタ: {result.ImportedCount}件インポートしました");
                     }
                     else if (fileName == "商品.csv")
                     {
@@ -1508,6 +1517,39 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         }
     }
 }
+
+/// <summary>
+/// JobDateに基づいて既存の伝票データを削除
+/// </summary>
+static async Task ClearExistingVoucherData(IServiceProvider services, DateTime jobDate)
+{
+    var salesRepo = services.GetRequiredService<ISalesVoucherRepository>();
+    var purchaseRepo = services.GetRequiredService<IPurchaseVoucherRepository>();
+    var adjustmentRepo = services.GetRequiredService<IInventoryAdjustmentRepository>();
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    
+    try
+    {
+        // JobDateベースで既存データを削除
+        var salesDeleted = await salesRepo.DeleteByJobDateAsync(jobDate);
+        var purchaseDeleted = await purchaseRepo.DeleteByJobDateAsync(jobDate);
+        var adjustmentDeleted = await adjustmentRepo.DeleteByJobDateAsync(jobDate);
+        
+        logger.LogInformation("既存データ削除完了: 売上 {SalesCount}件, 仕入 {PurchaseCount}件, 調整 {AdjustmentCount}件", 
+            salesDeleted, purchaseDeleted, adjustmentDeleted);
+        
+        Console.WriteLine($"  - 売上伝票: {salesDeleted}件削除");
+        Console.WriteLine($"  - 仕入伝票: {purchaseDeleted}件削除");
+        Console.WriteLine($"  - 在庫調整: {adjustmentDeleted}件削除");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "既存データクリア中にエラーが発生しました");
+        Console.WriteLine($"⚠️ 既存データクリア中にエラー: {ex.Message}");
+        // エラーが発生しても処理を継続
+    }
+}
+
 } // Program クラスの終了
 
 

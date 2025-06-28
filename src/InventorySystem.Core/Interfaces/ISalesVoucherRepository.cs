@@ -7,4 +7,5 @@ public interface ISalesVoucherRepository
     Task<IEnumerable<SalesVoucher>> GetByJobDateAsync(DateTime jobDate);
     Task<int> CreateAsync(SalesVoucher voucher);
     Task<int> BulkInsertAsync(IEnumerable<SalesVoucher> vouchers);
+    Task<int> DeleteByJobDateAsync(DateTime jobDate);
 }

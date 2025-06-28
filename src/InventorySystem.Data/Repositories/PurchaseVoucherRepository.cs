@@ -159,4 +159,23 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
             voucher.DetailType
         };
     }
+
+    public async Task<int> DeleteByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = "DELETE FROM PurchaseVouchers WHERE JobDate = @JobDate";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+            
+            LogInfo($"Deleted {result} purchase voucher records", new { jobDate });
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(DeleteByJobDateAsync), new { jobDate });
+            throw;
+        }
+    }
 }

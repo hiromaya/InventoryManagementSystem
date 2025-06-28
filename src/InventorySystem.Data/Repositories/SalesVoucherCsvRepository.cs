@@ -225,4 +225,23 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
             throw;
         }
     }
+
+    public async Task<int> DeleteByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = "DELETE FROM SalesVouchers WHERE JobDate = @JobDate";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+            
+            LogInfo($"Deleted {result} sales voucher records", new { jobDate });
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(DeleteByJobDateAsync), new { jobDate });
+            throw;
+        }
+    }
 }

@@ -51,4 +51,9 @@ public interface IInventoryAdjustmentRepository
     /// 商品分類1による集計データを取得
     /// </summary>
     Task<IEnumerable<(string ProductCategory1, int Count, decimal TotalAmount)>> GetSummaryByProductCategory1Async(DateTime jobDate);
+
+    /// <summary>
+    /// ジョブ日付で在庫調整データを削除
+    /// </summary>
+    Task<int> DeleteByJobDateAsync(DateTime jobDate);
 }
