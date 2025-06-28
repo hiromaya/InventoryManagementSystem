@@ -261,7 +261,9 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             DailyAdjustmentAmount = row.DailyAdjustmentAmount ?? 0m,
             DailyProcessingCost = row.DailyProcessingCost ?? 0m,
             FinalGrossProfit = row.FinalGrossProfit ?? 0m,
-            DataSetId = row.DataSetId ?? string.Empty
+            DataSetId = row.DataSetId ?? string.Empty,
+            PreviousMonthQuantity = row.PreviousMonthQuantity ?? 0m,
+            PreviousMonthAmount = row.PreviousMonthAmount ?? 0m
         };
     }
 
@@ -502,7 +504,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
-                DataSetId
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             FROM InventoryMaster 
             WHERE ProductCode = @ProductCode 
                 AND GradeCode = @GradeCode 
