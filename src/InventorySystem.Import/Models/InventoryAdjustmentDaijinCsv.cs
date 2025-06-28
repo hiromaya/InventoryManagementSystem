@@ -173,10 +173,10 @@ public class InventoryAdjustmentDaijinCsv
             return false;
         }
 
-        // 区分コードチェック（2:経費, 5:加工は除外）
-        // 注：区分コード"00"は有効な値として扱う（調整用）
+        // 区分コードチェック（0-6すべて許可）
+        // 0:消費税, 1:ロス, 2:不明, 3:不明, 4:振替, 5:不明, 6:調整
         var categoryCode = ParseCategoryCode(CategoryCode);
-        if (categoryCode.HasValue && (categoryCode.Value == 2 || categoryCode.Value == 5))
+        if (categoryCode.HasValue && (categoryCode.Value < 0 || categoryCode.Value > 6))
         {
             return false;
         }

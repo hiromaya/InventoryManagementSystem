@@ -52,7 +52,7 @@ public class InventoryAdjustment
     public string UnitCode { get; set; } = string.Empty;
     
     /// <summary>
-    /// 区分コード (1:ロス,4:振替,6:調整) ※受注伝票用
+    /// 区分コード (0:消費税,1:ロス,2:不明,3:不明,4:振替,5:不明,6:調整) ※受注伝票用
     /// </summary>
     public int? CategoryCode { get; set; }
     
@@ -245,11 +245,12 @@ public class InventoryAdjustment
 
         return CategoryCode.Value switch
         {
+            0 => "在庫調整", // 消費税（伝票単位消費税）
             1 => "在庫調整", // ロス
-            2 => "加工",     // 経費
-            3 => "在庫調整", // くさり
+            2 => "在庫調整", // 不明（要確認）
+            3 => "在庫調整", // 不明（要確認）
             4 => "振替",     // 振替
-            5 => "加工",     // 加工費B
+            5 => "在庫調整", // 不明（要確認）
             6 => "在庫調整", // 調整
             _ => "在庫調整"  // その他
         };
