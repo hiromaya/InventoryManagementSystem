@@ -87,21 +87,25 @@ public class PreviousMonthInventoryImportService
                         ShippingMarkCode = key.ShippingMarkCode,
                         ShippingMarkName = key.ShippingMarkName
                     };
-                    var inventoryMaster = await _inventoryRepository.GetByKeyAsync(inventoryKey, targetDate);
+                    // JobDateに関係なく既存レコードを検索
+                    var inventoryMaster = await _inventoryRepository.GetByKeyAnyDateAsync(inventoryKey);
 
                     if (inventoryMaster != null)
                     {
-                        // 既存レコードの更新
+                        // 既存レコードのJobDateと前月末在庫を更新
+                        var oldJobDate = inventoryMaster.JobDate;
+                        inventoryMaster.JobDate = targetDate;  // JobDateを更新
                         inventoryMaster.PreviousMonthQuantity = record.Quantity;
                         inventoryMaster.PreviousMonthAmount = record.Amount;
                         inventoryMaster.UpdatedDate = DateTime.Now;
                         
                         await _inventoryRepository.UpdateAsync(inventoryMaster);
-                        _logger.LogDebug("在庫マスタ更新: {Key}", key);
+                        _logger.LogDebug("在庫マスタ更新: {Key}, JobDate: {OldDate} -> {NewDate}", 
+                            key, oldJobDate, targetDate);
                     }
                     else
                     {
-                        // 新規レコードの作成
+                        // 新規レコードの作成（初回のみ）
                         inventoryMaster = new InventoryMaster
                         {
                             Key = inventoryKey,
@@ -111,7 +115,20 @@ public class PreviousMonthInventoryImportService
                             CurrentStockAmount = 0,
                             JobDate = targetDate,
                             CreatedDate = DateTime.Now,
-                            UpdatedDate = DateTime.Now
+                            UpdatedDate = DateTime.Now,
+                            ProductName = "商品名未設定",
+                            Unit = "PCS",
+                            StandardPrice = 0,
+                            ProductCategory1 = "",
+                            ProductCategory2 = "",
+                            DailyStock = 0,
+                            DailyStockAmount = 0,
+                            DailyFlag = '9',
+                            DataSetId = "",
+                            DailyGrossProfit = 0,
+                            DailyAdjustmentAmount = 0,
+                            DailyProcessingCost = 0,
+                            FinalGrossProfit = 0
                         };
                         
                         await _inventoryRepository.CreateAsync(inventoryMaster);
