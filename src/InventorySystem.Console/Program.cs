@@ -1284,7 +1284,7 @@ static async Task ExecuteImportPreviousInventoryAsync(IServiceProvider services,
 /// </summary>
 private static int GetFileProcessOrder(string fileName)
 {
-    // Phase 1: マスタファイル（優先度1-7）
+    // Phase 1: マスタファイル（優先度1-8）
     if (fileName.Contains("等級汎用マスター")) return 1;
     if (fileName.Contains("階級汎用マスター")) return 2;
     if (fileName.Contains("荷印汎用マスター")) return 3;
@@ -1292,14 +1292,15 @@ private static int GetFileProcessOrder(string fileName)
     if (fileName == "商品.csv") return 5;
     if (fileName == "得意先.csv") return 6;
     if (fileName == "仕入先.csv") return 7;
+    if (fileName == "単位.csv") return 8;
     
-    // Phase 2: 初期在庫（優先度8）
-    if (fileName == "前月末在庫.csv") return 8;
+    // Phase 2: 初期在庫（優先度10）
+    if (fileName == "前月末在庫.csv") return 10;
     
-    // Phase 3: 伝票ファイル（優先度10-12）
-    if (fileName.StartsWith("売上伝票")) return 10;
-    if (fileName.StartsWith("仕入伝票")) return 11;
-    if (fileName.StartsWith("在庫調整") || fileName.StartsWith("受注伝票")) return 12;
+    // Phase 3: 伝票ファイル（優先度20-22）
+    if (fileName.StartsWith("売上伝票")) return 20;
+    if (fileName.StartsWith("仕入伝票")) return 21;
+    if (fileName.StartsWith("在庫調整") || fileName.StartsWith("受注伝票")) return 22;
     
     // Phase 4: その他（優先度99）
     return 99;
@@ -1344,11 +1345,13 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         Console.WriteLine($"部門: {department}");
         Console.WriteLine($"ジョブ日付: {jobDate:yyyy-MM-dd}");
         
+        var errorCount = 0;
+        
         try
         {
             // 重複データクリア処理
             Console.WriteLine("\n既存データのクリア中...");
-            await ClearExistingVoucherData(scopedServices, jobDate);
+            await ClearExistingVoucherData(scopedServices, jobDate, department);
             Console.WriteLine("✅ 既存データクリア完了");
             
             // ファイル一覧の取得
@@ -1460,18 +1463,12 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "ファイル処理エラー: {File}", file);
-                    Console.WriteLine($"❌ エラー: {ex.Message}");
+                    logger.LogError(ex, "ファイル処理中にエラーが発生しました: {FileName}", fileName);
+                    Console.WriteLine($"❌ エラー: {fileName} - {ex.Message}");
                     
-                    // エラーが発生してもファイルをエラーフォルダに移動
-                    try
-                    {
-                        await fileService.MoveToErrorAsync(file, department, ex.Message);
-                    }
-                    catch (Exception moveEx)
-                    {
-                        logger.LogError(moveEx, "エラーファイルの移動に失敗: {File}", file);
-                    }
+                    // エラーファイルは移動せずに続行
+                    errorCount++;
+                    continue;
                 }
             }
             
@@ -1508,7 +1505,18 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 // エラーが発生しても処理を継続（CSVインポート自体は成功しているため）
             }
             
-            Console.WriteLine("\n=== フォルダ監視取込完了 ===");
+            // 処理結果のサマリを表示
+            Console.WriteLine("\n=== インポート処理完了 ===");
+            Console.WriteLine($"対象日付: {jobDate:yyyy-MM-dd}");
+            Console.WriteLine($"部門: {department}");
+            Console.WriteLine($"処理ファイル数: {sortedFiles.Count}");
+            
+            if (errorCount > 0)
+            {
+                Console.WriteLine($"⚠️ {errorCount}件のファイルでエラーが発生しました。");
+            }
+            
+            Console.WriteLine("========================\n");
         }
         catch (Exception ex)
         {
@@ -1521,12 +1529,14 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
 /// <summary>
 /// JobDateに基づいて既存の伝票データを削除
 /// </summary>
-static async Task ClearExistingVoucherData(IServiceProvider services, DateTime jobDate)
+static async Task ClearExistingVoucherData(IServiceProvider services, DateTime jobDate, string department)
 {
     var salesRepo = services.GetRequiredService<ISalesVoucherRepository>();
     var purchaseRepo = services.GetRequiredService<IPurchaseVoucherRepository>();
     var adjustmentRepo = services.GetRequiredService<IInventoryAdjustmentRepository>();
     var logger = services.GetRequiredService<ILogger<Program>>();
+    
+    logger.LogInformation("既存データをクリア中（JobDate: {JobDate}, 部門: {Department}）...", jobDate, department);
     
     try
     {
