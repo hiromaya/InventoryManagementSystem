@@ -1476,9 +1476,10 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
                 
                 // 在庫マスタ最適化サービスを作成
+                var optimizationLogger = scopedServices.GetRequiredService<ILogger<InventorySystem.Data.Services.InventoryMasterOptimizationService>>();
                 var optimizationService = new InventorySystem.Data.Services.InventoryMasterOptimizationService(
                     connectionString,
-                    logger);
+                    optimizationLogger);
                 
                 // DataSetIdを生成（簡易版）
                 var dataSetId = $"IMPORT_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}";
