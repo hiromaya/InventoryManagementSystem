@@ -1,0 +1,122 @@
+[
+  {
+    "ColumnName": "OriginCode",
+    "DataType": "nvarchar",
+    "max_length": 30,
+    "is_nullable": "0"
+  },
+  {
+    "ColumnName": "OriginName",
+    "DataType": "nvarchar",
+    "max_length": 100,
+    "is_nullable": "0"
+  },
+  {
+    "ColumnName": "SearchKana",
+    "DataType": "nvarchar",
+    "max_length": 200,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "NumericValue1",
+    "DataType": "decimal",
+    "max_length": 9,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "NumericValue2",
+    "DataType": "decimal",
+    "max_length": 9,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "NumericValue3",
+    "DataType": "decimal",
+    "max_length": 9,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "NumericValue4",
+    "DataType": "decimal",
+    "max_length": 9,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "NumericValue5",
+    "DataType": "decimal",
+    "max_length": 9,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "DateValue1",
+    "DataType": "date",
+    "max_length": 3,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "DateValue2",
+    "DataType": "date",
+    "max_length": 3,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "DateValue3",
+    "DataType": "date",
+    "max_length": 3,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "DateValue4",
+    "DataType": "date",
+    "max_length": 3,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "DateValue5",
+    "DataType": "date",
+    "max_length": 3,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "TextValue1",
+    "DataType": "nvarchar",
+    "max_length": 510,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "TextValue2",
+    "DataType": "nvarchar",
+    "max_length": 510,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "TextValue3",
+    "DataType": "nvarchar",
+    "max_length": 510,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "TextValue4",
+    "DataType": "nvarchar",
+    "max_length": 510,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "TextValue5",
+    "DataType": "nvarchar",
+    "max_length": 510,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "CreatedAt",
+    "DataType": "datetime2",
+    "max_length": 8,
+    "is_nullable": "1"
+  },
+  {
+    "ColumnName": "UpdatedAt",
+    "DataType": "datetime2",
+    "max_length": 8,
+    "is_nullable": "1"
+  }
+]

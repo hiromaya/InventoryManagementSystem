@@ -1,0 +1,35 @@
+[
+  {
+    "TableName": "CategoryMaster"
+  },
+  {
+    "TableName": "ClassMaster"
+  },
+  {
+    "TableName": "CpInventoryMaster"
+  },
+  {
+    "TableName": "CustomerMaster"
+  },
+  {
+    "TableName": "GradeMaster"
+  },
+  {
+    "TableName": "InventoryMaster"
+  },
+  {
+    "TableName": "ProductMaster"
+  },
+  {
+    "TableName": "RegionMaster"
+  },
+  {
+    "TableName": "ShippingMarkMaster"
+  },
+  {
+    "TableName": "SupplierMaster"
+  },
+  {
+    "TableName": "UnitMaster"
+  }
+]

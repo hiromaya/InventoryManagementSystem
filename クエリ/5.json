@@ -1,0 +1,68 @@
+[
+  {
+    "SchemaName": "dbo",
+    "TableName": "CategoryMaster",
+    "create_date": "2025-06-24T11:57:40.46",
+    "modify_date": "2025-06-24T11:57:40.47"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "ClassMaster",
+    "create_date": "2025-06-24T11:57:40.443",
+    "modify_date": "2025-06-24T11:57:40.45"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "CpInventoryMaster",
+    "create_date": "2025-06-24T11:57:36.313",
+    "modify_date": "2025-06-24T11:57:36.333"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "CustomerMaster",
+    "create_date": "2025-06-24T11:57:40.417",
+    "modify_date": "2025-06-24T11:57:40.48"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "GradeMaster",
+    "create_date": "2025-06-24T11:57:40.437",
+    "modify_date": "2025-06-24T11:57:40.443"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "InventoryMaster",
+    "create_date": "2025-06-24T11:57:36.307",
+    "modify_date": "2025-06-28T10:30:16.52"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "ProductMaster",
+    "create_date": "2025-06-24T11:57:40.427",
+    "modify_date": "2025-06-24T11:57:40.477"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "RegionMaster",
+    "create_date": "2025-06-24T11:57:40.45",
+    "modify_date": "2025-06-28T19:25:23.65"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "ShippingMarkMaster",
+    "create_date": "2025-06-24T11:57:40.447",
+    "modify_date": "2025-06-24T11:57:40.453"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "SupplierMaster",
+    "create_date": "2025-06-24T11:57:40.43",
+    "modify_date": "2025-06-24T11:57:40.483"
+  },
+  {
+    "SchemaName": "dbo",
+    "TableName": "UnitMaster",
+    "create_date": "2025-06-24T11:57:40.457",
+    "modify_date": "2025-06-24T11:57:40.477"
+  }
+]
