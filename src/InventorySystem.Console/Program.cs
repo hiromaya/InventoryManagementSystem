@@ -1805,36 +1805,6 @@ private static async Task OptimizeInventoryMastersAsync(IInventoryMasterOptimiza
     }
 }
 
-/// <summary>
-/// ファイル処理順序を取得
-/// </summary>
-private static int GetFileProcessOrder(string fileName)
-{
-    // Phase 1: マスタ系ファイル
-    if (fileName.Contains("等級汎用マスター") || fileName.Contains("階級汎用マスター") ||
-        fileName.Contains("荷印汎用マスター") || fileName.Contains("産地汎用マスター") ||
-        fileName == "商品.csv" || fileName == "得意先.csv" || fileName == "仕入先.csv")
-    {
-        return 1;
-    }
-    // Phase 2: 初期在庫ファイル
-    else if (fileName == "前月末在庫.csv")
-    {
-        return 2;
-    }
-    // Phase 3: 伝票系ファイル
-    else if (fileName.StartsWith("売上伝票") || fileName.StartsWith("仕入伝票") || 
-             fileName.StartsWith("受注伝票") || fileName.StartsWith("在庫調整"))
-    {
-        return 3;
-    }
-    // その他
-    else
-    {
-        return 99;
-    }
-}
-
 } // Program クラスの終了
 
 
