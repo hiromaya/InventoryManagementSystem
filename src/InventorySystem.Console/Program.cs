@@ -1389,16 +1389,19 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     {
                         await salesImportService.ImportAsync(file, jobDate, department);
                         Console.WriteLine("✅ 売上伝票として処理完了");
+                        await fileService.MoveToProcessedAsync(file, department);
                     }
                     else if (fileName.StartsWith("仕入伝票"))
                     {
                         await purchaseImportService.ImportAsync(file, jobDate, department);
                         Console.WriteLine("✅ 仕入伝票として処理完了");
+                        await fileService.MoveToProcessedAsync(file, department);
                     }
                     else if (fileName.StartsWith("在庫調整") || fileName.StartsWith("受注伝票"))
                     {
                         await adjustmentImportService.ImportAsync(file, jobDate, department);
                         Console.WriteLine("✅ 在庫調整として処理完了");
+                        await fileService.MoveToProcessedAsync(file, department);
                     }
                     // ========== マスタ系ファイル ==========
                     else if (fileName.Contains("等級汎用マスター"))
@@ -1407,6 +1410,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         var gradeRepo = scopedServices.GetRequiredService<IGradeMasterRepository>();
                         await gradeRepo.ImportFromCsvAsync();
                         Console.WriteLine("✅ 等級マスタとして処理完了");
+                        await fileService.MoveToProcessedAsync(file, department);
                     }
                     else if (fileName.Contains("階級汎用マスター"))
                     {
@@ -1414,37 +1418,44 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         var classRepo = scopedServices.GetRequiredService<IClassMasterRepository>();
                         await classRepo.ImportFromCsvAsync();
                         Console.WriteLine("✅ 階級マスタとして処理完了");
+                        await fileService.MoveToProcessedAsync(file, department);
                     }
                     else if (fileName.Contains("荷印汎用マスター"))
                     {
                         var result = await shippingMarkImportService.ImportAsync(file);
                         Console.WriteLine($"✅ 荷印マスタ: {result.ImportedCount}件インポートしました");
+                        await fileService.MoveToProcessedAsync(file, department);
                     }
                     else if (fileName.Contains("産地汎用マスター"))
                     {
                         var result = await regionImportService.ImportAsync(file);
                         Console.WriteLine($"✅ 産地マスタ: {result.ImportedCount}件インポートしました");
+                        await fileService.MoveToProcessedAsync(file, department);
                     }
                     else if (fileName == "商品.csv")
                     {
                         var result = await productImportService.ImportFromCsvAsync(file, jobDate);
                         Console.WriteLine($"✅ 商品マスタとして処理完了（{result.ImportedCount}件）");
+                        await fileService.MoveToProcessedAsync(file, department);
                     }
                     else if (fileName == "得意先.csv")
                     {
                         var result = await customerImportService.ImportFromCsvAsync(file, jobDate);
                         Console.WriteLine($"✅ 得意先マスタとして処理完了（{result.ImportedCount}件）");
+                        await fileService.MoveToProcessedAsync(file, department);
                     }
                     else if (fileName == "仕入先.csv")
                     {
                         var result = await supplierImportService.ImportFromCsvAsync(file, jobDate);
                         Console.WriteLine($"✅ 仕入先マスタとして処理完了（{result.ImportedCount}件）");
+                        await fileService.MoveToProcessedAsync(file, department);
                     }
                     // ========== 初期在庫ファイル ==========
                     else if (fileName == "前月末在庫.csv")
                     {
                         var result = await previousMonthInventoryService.ImportAsync(jobDate);
                         Console.WriteLine($"✅ 前月末在庫（初期在庫）として処理完了（{result.ProcessedRecords}件）");
+                        await fileService.MoveToProcessedAsync(file, department);
                     }
                     // ========== 未対応ファイル ==========
                     else if (fileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
