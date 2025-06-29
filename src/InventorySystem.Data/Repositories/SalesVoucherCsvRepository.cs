@@ -38,10 +38,11 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
             using var connection = new SqlConnection(_connectionString);
             var now = DateTime.Now;
             
-            var parameters = vouchers.Select((voucher, index) => new
+            // LineNumberはすでにToEntityで設定されているため、そのまま使用
+            var parameters = vouchers.Select(voucher => new
             {
-                VoucherId = $"{voucher.DataSetId}_{voucher.VoucherNumber}",
-                LineNumber = index + 1,
+                voucher.VoucherId,  // すでに正しく設定されている
+                voucher.LineNumber, // すでに正しく設定されている
                 voucher.VoucherNumber,
                 voucher.VoucherDate,
                 voucher.JobDate,
@@ -57,7 +58,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
                 voucher.Quantity,
                 voucher.UnitPrice,
                 voucher.Amount,
-                InventoryUnitPrice = 0m,  // デフォルト値
+                InventoryUnitPrice = voucher.InventoryUnitPrice,
                 CreatedDate = now,
                 voucher.DataSetId
             });

@@ -92,6 +92,26 @@ public class InventoryAdjustmentDaijinCsv
     [Index(156)]  // 157列目
     public string HandInputItem { get; set; } = string.Empty;
     
+    [Name("１階層目行番号")]
+    [Index(75)]  // 76列目（受注伝票の場合）
+    public int? Level1LineNumber { get; set; }
+
+    [Name("２階層目行番号")]
+    [Index(76)]  // 77列目
+    public int? Level2LineNumber { get; set; }
+
+    [Name("３階層目行番号")]
+    [Index(77)]  // 78列目
+    public int? Level3LineNumber { get; set; }
+
+    [Name("４階層目行番号")]
+    [Index(78)]  // 79列目
+    public int? Level4LineNumber { get; set; }
+
+    [Name("５階層目行番号")]
+    [Index(79)]  // 80列目
+    public int? Level5LineNumber { get; set; }
+    
     // 商品分類は販売大臣のCSVに含まれない可能性があるため、デフォルト値を設定
     public string ProductCategory1 { get; set; } = "";
     public string ProductCategory2 { get; set; } = "";
@@ -129,7 +149,17 @@ public class InventoryAdjustmentDaijinCsv
             UpdatedAt = DateTime.Now
         };
 
-        // InventoryAdjustmentエンティティには特別な設定は不要
+        // LineNumberの設定（階層情報から決定）
+        // 5階層目が設定されていればそれを使用、なければ4階層目...という優先順位
+        inventoryAdjustment.LineNumber = Level5LineNumber ?? 
+                                          Level4LineNumber ?? 
+                                          Level3LineNumber ?? 
+                                          Level2LineNumber ?? 
+                                          Level1LineNumber ?? 
+                                          1;
+        
+        // VoucherIdの設定（DataSetId、伝票番号、行番号を含む一意な値）
+        inventoryAdjustment.VoucherId = $"{dataSetId}_{VoucherNumber}_{inventoryAdjustment.LineNumber}";
 
         // 特殊処理ルールを適用
         inventoryAdjustment.ApplySpecialProcessingRules();

@@ -88,6 +88,26 @@ public class PurchaseVoucherDaijinCsv
     [Index(147)]  // 148列目
     public string HandInputItem { get; set; } = string.Empty;
     
+    [Name("１階層目行番号")]
+    [Index(74)]  // 75列目（仕入伝票の場合）
+    public int? Level1LineNumber { get; set; }
+
+    [Name("２階層目行番号")]
+    [Index(75)]  // 76列目
+    public int? Level2LineNumber { get; set; }
+
+    [Name("３階層目行番号")]
+    [Index(76)]  // 77列目
+    public int? Level3LineNumber { get; set; }
+
+    [Name("４階層目行番号")]
+    [Index(77)]  // 78列目
+    public int? Level4LineNumber { get; set; }
+
+    [Name("５階層目行番号")]
+    [Index(78)]  // 79列目
+    public int? Level5LineNumber { get; set; }
+    
     // 商品分類は販売大臣のCSVに含まれない可能性があるため、デフォルト値を設定
     public string ProductCategory1 { get; set; } = "";
     public string ProductCategory2 { get; set; } = "";
@@ -134,9 +154,17 @@ public class PurchaseVoucherDaijinCsv
             ShippingMarkName = purchaseVoucher.ShippingMarkName
         };
 
-        // VoucherIdとLineNumberの生成（簡易実装）
-        purchaseVoucher.VoucherId = $"{VoucherNumber}_{VoucherDate}";
-        purchaseVoucher.LineNumber = 1; // 実際のCSVに行番号がある場合は適切に設定
+        // LineNumberの設定（階層情報から決定）
+        // 5階層目が設定されていればそれを使用、なければ4階層目...という優先順位
+        purchaseVoucher.LineNumber = Level5LineNumber ?? 
+                                     Level4LineNumber ?? 
+                                     Level3LineNumber ?? 
+                                     Level2LineNumber ?? 
+                                     Level1LineNumber ?? 
+                                     1;
+        
+        // VoucherIdの設定（DataSetId、伝票番号、行番号を含む一意な値）
+        purchaseVoucher.VoucherId = $"{dataSetId}_{VoucherNumber}_{purchaseVoucher.LineNumber}";
 
         // 特殊処理ルールを適用
         purchaseVoucher.ApplySpecialProcessingRules();
