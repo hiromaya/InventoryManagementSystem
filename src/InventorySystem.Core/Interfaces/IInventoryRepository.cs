@@ -31,4 +31,9 @@ public interface IInventoryRepository
     /// 在庫マスタから任意の日付で商品キーに一致するレコードを取得（最新日付優先）
     /// </summary>
     Task<InventoryMaster?> GetByKeyAnyDateAsync(InventoryKey key);
+    
+    /// <summary>
+    /// 売上・仕入・在庫調整から在庫マスタの初期データを作成
+    /// </summary>
+    Task<int> CreateInitialInventoryFromVouchersAsync(DateTime jobDate);
 }

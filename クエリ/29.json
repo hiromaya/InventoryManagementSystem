@@ -1,0 +1,260 @@
+[
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "ProductCode",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 15
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "GradeCode",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 15
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "ClassCode",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 15
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "ShippingMarkCode",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 15
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "ShippingMarkName",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 50
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DataSetId",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 100
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "ProductName",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 100
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "Unit",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 10
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "StandardPrice",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "ProductCategory1",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 10
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "ProductCategory2",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 10
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "JobDate",
+    "DATA_TYPE": "date",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "CreatedDate",
+    "DATA_TYPE": "datetime2",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "UpdatedDate",
+    "DATA_TYPE": "datetime2",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "PreviousDayStock",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "PreviousDayStockAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "PreviousDayUnitPrice",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyStock",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyStockAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyUnitPrice",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyFlag",
+    "DATA_TYPE": "nchar",
+    "CHARACTER_MAXIMUM_LENGTH": 1
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailySalesQuantity",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailySalesAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailySalesReturnQuantity",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailySalesReturnAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyPurchaseQuantity",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyPurchaseAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyPurchaseReturnQuantity",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyPurchaseReturnAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyInventoryAdjustmentQuantity",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyInventoryAdjustmentAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyProcessingQuantity",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyProcessingAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyTransferQuantity",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyTransferAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyReceiptQuantity",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyReceiptAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyShipmentQuantity",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyShipmentAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyGrossProfit",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyWalkingAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyIncentiveAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster",
+    "COLUMN_NAME": "DailyDiscountAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null
+  }
+]

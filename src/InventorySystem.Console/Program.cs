@@ -197,6 +197,7 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  dotnet run import-folder <dept> [YYYY-MM-DD] - 部門フォルダから一括取込");
     Console.WriteLine("  dotnet run import-masters                    - 等級・階級マスタをインポート");
     Console.WriteLine("  dotnet run check-masters                     - 等級・階級マスタの登録状況を確認");
+    Console.WriteLine("  dotnet run init-inventory [YYYY-MM-DD]       - 在庫マスタ初期データを作成");
     Console.WriteLine("  例: dotnet run test-connection");
     Console.WriteLine("  例: dotnet run unmatch-list 2025-06-16");
     Console.WriteLine("  例: dotnet run daily-report 2025-06-16");
@@ -204,6 +205,7 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  例: dotnet run import-sales sales.csv 2025-06-16");
     Console.WriteLine("  例: dotnet run import-masters");
     Console.WriteLine("  例: dotnet run check-masters");
+    Console.WriteLine("  例: dotnet run init-inventory 2025-06-16");
     return 1;
 }
 
@@ -279,6 +281,10 @@ try
         
         case "import-previous-inventory":
             await ExecuteImportPreviousInventoryAsync(host.Services, commandArgs);
+            break;
+        
+        case "init-inventory":
+            await ExecuteInitInventoryCommand(host.Services, commandArgs);
             break;
         
         default:
@@ -1315,6 +1321,63 @@ private static int GetFileProcessOrder(string fileName)
     return 99;
 }
 
+static async Task ExecuteInitInventoryCommand(IServiceProvider services, string[] args)
+{
+    using (var scope = services.CreateScope())
+    {
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var inventoryRepo = scopedServices.GetRequiredService<IInventoryRepository>();
+        
+        try
+        {
+            // ジョブ日付を取得（引数から、またはデフォルト値）
+            DateTime jobDate;
+            if (args.Length >= 3 && DateTime.TryParse(args[2], out jobDate))
+            {
+                logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+            }
+            else
+            {
+                jobDate = DateTime.Today;
+                logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+            }
+            
+            Console.WriteLine("=== 在庫マスタ初期データ作成開始 ===");
+            Console.WriteLine($"ジョブ日付: {jobDate:yyyy-MM-dd}");
+            Console.WriteLine();
+            
+            var stopwatch = Stopwatch.StartNew();
+            
+            // 在庫マスタ初期データ作成実行
+            var count = await inventoryRepo.CreateInitialInventoryFromVouchersAsync(jobDate);
+            
+            stopwatch.Stop();
+            
+            Console.WriteLine($"\n処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
+            Console.WriteLine($"作成件数: {count:N0}件");
+            
+            if (count > 0)
+            {
+                Console.WriteLine("\n✅ 在庫マスタ初期データ作成が正常に完了しました");
+                logger.LogInformation("在庫マスタ初期データ作成完了: {Count}件", count);
+            }
+            else
+            {
+                Console.WriteLine("\n⚠️ 作成対象のデータがありませんでした");
+                Console.WriteLine("売上・仕入・在庫調整伝票がインポートされているか確認してください");
+                logger.LogWarning("在庫マスタ初期データ作成: 作成対象なし");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\n❌ エラー: {ex.Message}");
+            logger.LogError(ex, "在庫マスタ初期データ作成でエラーが発生しました");
+            throw;
+        }
+    }
+}
+
 static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string[] args)
 {
     if (args.Length < 3)
@@ -1337,15 +1400,20 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         var purchaseImportService = scopedServices.GetRequiredService<PurchaseVoucherImportService>();
         var adjustmentImportService = scopedServices.GetRequiredService<InventoryAdjustmentImportService>();
         
-        // マスタインポートサービス
-        var productImportService = scopedServices.GetRequiredService<ProductMasterImportService>();
-        var customerImportService = scopedServices.GetRequiredService<CustomerMasterImportService>();
-        var supplierImportService = scopedServices.GetRequiredService<SupplierMasterImportService>();
-        var shippingMarkImportService = scopedServices.GetRequiredService<IShippingMarkMasterImportService>();
-        var regionImportService = scopedServices.GetRequiredService<IRegionMasterImportService>();
+        // マスタインポートサービス（利用可能なものを取得）
+        var gradeImportService = scopedServices.GetService<IGradeMasterImportService>();
+        var classImportService = scopedServices.GetService<IClassMasterImportService>();
+        var shippingMarkImportService = scopedServices.GetService<IShippingMarkMasterImportService>();
+        var regionImportService = scopedServices.GetService<IRegionMasterImportService>();
+        var productImportService = scopedServices.GetService<ProductMasterImportService>();
+        var customerImportService = scopedServices.GetService<CustomerMasterImportService>();
+        var supplierImportService = scopedServices.GetService<SupplierMasterImportService>();
+        var previousMonthInventoryService = scopedServices.GetService<IPreviousMonthInventoryImportService>();
         
-        // 初期在庫サービス
-        var previousMonthInventoryService = scopedServices.GetRequiredService<PreviousMonthInventoryImportService>();
+        // リポジトリ（代替手段として使用）
+        var gradeRepo = scopedServices.GetService<IGradeMasterRepository>();
+        var classRepo = scopedServices.GetService<IClassMasterRepository>();
+        var inventoryRepo = scopedServices.GetRequiredService<IInventoryRepository>();
         
         // 在庫マスタ最適化サービス
         var optimizationService = scopedServices.GetRequiredService<IInventoryMasterOptimizationService>();
@@ -1358,6 +1426,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         Console.WriteLine($"ジョブ日付: {jobDate:yyyy-MM-dd}");
         
         var errorCount = 0;
+        var processedCounts = new Dictionary<string, int>();
         
         try
         {
@@ -1368,7 +1437,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             
             // ファイル一覧の取得
             var files = await fileService.GetPendingFilesAsync(department);
-            Console.WriteLine($"取込対象ファイル数: {files.Count}");
+            Console.WriteLine($"取込対象ファイル数: {files.Count}\n");
             
             // ファイルを処理順序でソート
             var sortedFiles = files
@@ -1380,82 +1449,232 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             foreach (var file in sortedFiles)
             {
                 var fileName = Path.GetFileName(file);
-                Console.WriteLine($"\n処理中: {fileName}");
+                Console.WriteLine($"処理中: {fileName}");
                 
                 try
                 {
-                    // ========== 伝票系ファイル ==========
-                    if (fileName.StartsWith("売上伝票"))
+                    // ========== Phase 1: マスタ系ファイル ==========
+                    if (fileName.Contains("等級汎用マスター"))
                     {
-                        await salesImportService.ImportAsync(file, jobDate, department);
-                        Console.WriteLine("✅ 売上伝票として処理完了");
-                        await fileService.MoveToProcessedAsync(file, department);
-                    }
-                    else if (fileName.StartsWith("仕入伝票"))
-                    {
-                        await purchaseImportService.ImportAsync(file, jobDate, department);
-                        Console.WriteLine("✅ 仕入伝票として処理完了");
-                        await fileService.MoveToProcessedAsync(file, department);
-                    }
-                    else if (fileName.StartsWith("在庫調整") || fileName.StartsWith("受注伝票"))
-                    {
-                        await adjustmentImportService.ImportAsync(file, jobDate, department);
-                        Console.WriteLine("✅ 在庫調整として処理完了");
-                        await fileService.MoveToProcessedAsync(file, department);
-                    }
-                    // ========== マスタ系ファイル ==========
-                    else if (fileName.Contains("等級汎用マスター"))
-                    {
-                        // 等級マスタは GradeMasterRepository のインポート機能を使用
-                        var gradeRepo = scopedServices.GetRequiredService<IGradeMasterRepository>();
-                        await gradeRepo.ImportFromCsvAsync();
-                        Console.WriteLine("✅ 等級マスタとして処理完了");
-                        await fileService.MoveToProcessedAsync(file, department);
+                        if (gradeImportService != null)
+                        {
+                            var result = await gradeImportService.ImportAsync(file);
+                            Console.WriteLine($"✅ 等級マスタとして処理完了 - {result.ImportedCount}件");
+                            processedCounts["等級マスタ"] = result.ImportedCount;
+                        }
+                        else if (gradeRepo != null)
+                        {
+                            await gradeRepo.ImportFromCsvAsync();
+                            Console.WriteLine("✅ 等級マスタとして処理完了");
+                        }
+                        else
+                        {
+                            logger.LogWarning("IGradeMasterImportServiceが未実装のため、等級マスタの取込をスキップします");
+                            await fileService.MoveToProcessedAsync(file, department, jobDate, "Service_Not_Implemented");
+                            continue;
+                        }
+                        await fileService.MoveToProcessedAsync(file, department, jobDate);
                     }
                     else if (fileName.Contains("階級汎用マスター"))
                     {
-                        // 階級マスタは ClassMasterRepository のインポート機能を使用
-                        var classRepo = scopedServices.GetRequiredService<IClassMasterRepository>();
-                        await classRepo.ImportFromCsvAsync();
-                        Console.WriteLine("✅ 階級マスタとして処理完了");
-                        await fileService.MoveToProcessedAsync(file, department);
+                        if (classImportService != null)
+                        {
+                            var result = await classImportService.ImportAsync(file);
+                            Console.WriteLine($"✅ 階級マスタとして処理完了 - {result.ImportedCount}件");
+                            processedCounts["階級マスタ"] = result.ImportedCount;
+                        }
+                        else if (classRepo != null)
+                        {
+                            await classRepo.ImportFromCsvAsync();
+                            Console.WriteLine("✅ 階級マスタとして処理完了");
+                        }
+                        else
+                        {
+                            logger.LogWarning("IClassMasterImportServiceが未実装のため、階級マスタの取込をスキップします");
+                            await fileService.MoveToProcessedAsync(file, department, jobDate, "Service_Not_Implemented");
+                            continue;
+                        }
+                        await fileService.MoveToProcessedAsync(file, department, jobDate);
                     }
                     else if (fileName.Contains("荷印汎用マスター"))
                     {
-                        var result = await shippingMarkImportService.ImportAsync(file);
-                        Console.WriteLine($"✅ 荷印マスタ: {result.ImportedCount}件インポートしました");
-                        await fileService.MoveToProcessedAsync(file, department);
+                        if (shippingMarkImportService != null)
+                        {
+                            var result = await shippingMarkImportService.ImportAsync(file);
+                            Console.WriteLine($"✅ 荷印マスタとして処理完了 - {result.ImportedCount}件");
+                            processedCounts["荷印マスタ"] = result.ImportedCount;
+                        }
+                        else
+                        {
+                            logger.LogWarning("IShippingMarkMasterImportServiceが未実装のため、荷印マスタの取込をスキップします");
+                            await fileService.MoveToProcessedAsync(file, department, jobDate, "Service_Not_Implemented");
+                            continue;
+                        }
+                        await fileService.MoveToProcessedAsync(file, department, jobDate);
                     }
                     else if (fileName.Contains("産地汎用マスター"))
                     {
-                        var result = await regionImportService.ImportAsync(file);
-                        Console.WriteLine($"✅ 産地マスタ: {result.ImportedCount}件インポートしました");
-                        await fileService.MoveToProcessedAsync(file, department);
+                        if (regionImportService != null)
+                        {
+                            var result = await regionImportService.ImportAsync(file);
+                            Console.WriteLine($"✅ 産地マスタとして処理完了 - {result.ImportedCount}件");
+                            processedCounts["産地マスタ"] = result.ImportedCount;
+                        }
+                        else
+                        {
+                            logger.LogWarning("IRegionMasterImportServiceが未実装のため、産地マスタの取込をスキップします");
+                            await fileService.MoveToProcessedAsync(file, department, jobDate, "Service_Not_Implemented");
+                            continue;
+                        }
+                        await fileService.MoveToProcessedAsync(file, department, jobDate);
                     }
                     else if (fileName == "商品.csv")
                     {
-                        var result = await productImportService.ImportFromCsvAsync(file, jobDate);
-                        Console.WriteLine($"✅ 商品マスタとして処理完了（{result.ImportedCount}件）");
-                        await fileService.MoveToProcessedAsync(file, department);
+                        if (productImportService != null)
+                        {
+                            var result = await productImportService.ImportFromCsvAsync(file, jobDate);
+                            Console.WriteLine($"✅ 商品マスタとして処理完了 - {result.ImportedCount}件");
+                            processedCounts["商品マスタ"] = result.ImportedCount;
+                        }
+                        else
+                        {
+                            logger.LogWarning("ProductMasterImportServiceが未実装のため、商品マスタの取込をスキップします");
+                            await fileService.MoveToProcessedAsync(file, department, jobDate, "Service_Not_Implemented");
+                            continue;
+                        }
+                        await fileService.MoveToProcessedAsync(file, department, jobDate);
                     }
                     else if (fileName == "得意先.csv")
                     {
-                        var result = await customerImportService.ImportFromCsvAsync(file, jobDate);
-                        Console.WriteLine($"✅ 得意先マスタとして処理完了（{result.ImportedCount}件）");
-                        await fileService.MoveToProcessedAsync(file, department);
+                        if (customerImportService != null)
+                        {
+                            var result = await customerImportService.ImportFromCsvAsync(file, jobDate);
+                            Console.WriteLine($"✅ 得意先マスタとして処理完了 - {result.ImportedCount}件");
+                            processedCounts["得意先マスタ"] = result.ImportedCount;
+                        }
+                        else
+                        {
+                            logger.LogWarning("CustomerMasterImportServiceが未実装のため、得意先マスタの取込をスキップします");
+                            await fileService.MoveToProcessedAsync(file, department, jobDate, "Service_Not_Implemented");
+                            continue;
+                        }
+                        await fileService.MoveToProcessedAsync(file, department, jobDate);
                     }
                     else if (fileName == "仕入先.csv")
                     {
-                        var result = await supplierImportService.ImportFromCsvAsync(file, jobDate);
-                        Console.WriteLine($"✅ 仕入先マスタとして処理完了（{result.ImportedCount}件）");
-                        await fileService.MoveToProcessedAsync(file, department);
+                        if (supplierImportService != null)
+                        {
+                            var result = await supplierImportService.ImportFromCsvAsync(file, jobDate);
+                            Console.WriteLine($"✅ 仕入先マスタとして処理完了 - {result.ImportedCount}件");
+                            processedCounts["仕入先マスタ"] = result.ImportedCount;
+                        }
+                        else
+                        {
+                            logger.LogWarning("SupplierMasterImportServiceが未実装のため、仕入先マスタの取込をスキップします");
+                            await fileService.MoveToProcessedAsync(file, department, jobDate, "Service_Not_Implemented");
+                            continue;
+                        }
+                        await fileService.MoveToProcessedAsync(file, department, jobDate);
                     }
-                    // ========== 初期在庫ファイル ==========
+                    // ========== Phase 2: 初期在庫ファイル ==========
                     else if (fileName == "前月末在庫.csv")
                     {
-                        var result = await previousMonthInventoryService.ImportAsync(jobDate);
-                        Console.WriteLine($"✅ 前月末在庫（初期在庫）として処理完了（{result.ProcessedRecords}件）");
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // 前月末在庫は特殊処理：在庫調整として読み込み後、在庫マスタに反映
+                        logger.LogInformation("前月末在庫の処理を開始します");
+                        
+                        // 在庫調整として読み込み（商品コード00000は除外される）
+                        var adjustments = await adjustmentImportService.ImportAsync(file, jobDate, department);
+                        var inventoryCount = 0;
+                        
+                        // 在庫マスタに初期在庫として反映
+                        foreach (var adj in adjustments.Where(a => a.ProductCode != "00000"))
+                        {
+                            var inventoryKey = new InventoryKey
+                            {
+                                ProductCode = adj.ProductCode,
+                                GradeCode = adj.GradeCode,
+                                ClassCode = adj.ClassCode,
+                                ShippingMarkCode = adj.ShippingMarkCode,
+                                ShippingMarkName = adj.ShippingMarkName
+                            };
+                            
+                            var inventory = await inventoryRepo.GetByKeyAsync(inventoryKey, jobDate);
+                            
+                            if (inventory == null)
+                            {
+                                // 新規作成
+                                inventory = new InventoryMaster
+                                {
+                                    Key = inventoryKey,
+                                    ProductName = adj.ProductName ?? "商品名未設定",
+                                    Unit = "個",
+                                    JobDate = jobDate,
+                                    // 前月末在庫と前日在庫の両方に設定
+                                    PreviousMonthQuantity = adj.Quantity,
+                                    PreviousMonthAmount = adj.Amount,
+                                    PreviousDayStock = adj.Quantity,
+                                    PreviousDayStockAmount = adj.Amount,
+                                    // 現在在庫にも設定
+                                    CurrentStock = adj.Quantity,
+                                    CurrentStockAmount = adj.Amount,
+                                    DailyStock = 0,
+                                    DailyStockAmount = 0,
+                                    DailyFlag = '9',
+                                    CreatedDate = DateTime.Now,
+                                    UpdatedDate = DateTime.Now,
+                                    DataSetId = department
+                                };
+                                await inventoryRepo.CreateAsync(inventory);
+                                inventoryCount++;
+                            }
+                            else
+                            {
+                                // 既存更新
+                                inventory.PreviousMonthQuantity = adj.Quantity;
+                                inventory.PreviousMonthAmount = adj.Amount;
+                                inventory.PreviousDayStock = adj.Quantity;
+                                inventory.PreviousDayStockAmount = adj.Amount;
+                                inventory.CurrentStock = adj.Quantity;
+                                inventory.CurrentStockAmount = adj.Amount;
+                                inventory.UpdatedDate = DateTime.Now;
+                                await inventoryRepo.UpdateAsync(inventory);
+                                inventoryCount++;
+                            }
+                        }
+                        
+                        Console.WriteLine($"✅ 前月末在庫（初期在庫）として処理完了 - 在庫マスタ作成: {inventoryCount}件");
+                        processedCounts["前月末在庫"] = inventoryCount;
+                        await fileService.MoveToProcessedAsync(file, department, jobDate);
+                    }
+                    // ========== Phase 3: 伝票系ファイル ==========
+                    else if (fileName.StartsWith("売上伝票"))
+                    {
+                        var vouchers = await salesImportService.ImportAsync(file, jobDate, department);
+                        Console.WriteLine($"✅ 売上伝票として処理完了 - {vouchers.Count}件");
+                        processedCounts["売上伝票"] = vouchers.Count;
+                        await fileService.MoveToProcessedAsync(file, department, jobDate);
+                    }
+                    else if (fileName.StartsWith("仕入伝票"))
+                    {
+                        var vouchers = await purchaseImportService.ImportAsync(file, jobDate, department);
+                        Console.WriteLine($"✅ 仕入伝票として処理完了 - {vouchers.Count}件");
+                        processedCounts["仕入伝票"] = vouchers.Count;
+                        await fileService.MoveToProcessedAsync(file, department, jobDate);
+                    }
+                    else if (fileName.StartsWith("受注伝票"))
+                    {
+                        // 受注伝票は在庫調整として処理
+                        var adjustments = await adjustmentImportService.ImportAsync(file, jobDate, department);
+                        Console.WriteLine($"✅ 在庫調整として処理完了 - {adjustments.Count}件");
+                        processedCounts["受注伝票（在庫調整）"] = adjustments.Count;
+                        await fileService.MoveToProcessedAsync(file, department, jobDate);
+                    }
+                    else if (fileName.StartsWith("在庫調整"))
+                    {
+                        var adjustments = await adjustmentImportService.ImportAsync(file, jobDate, department);
+                        Console.WriteLine($"✅ 在庫調整として処理完了 - {adjustments.Count}件");
+                        processedCounts["在庫調整"] = adjustments.Count;
+                        await fileService.MoveToProcessedAsync(file, department, jobDate);
                     }
                     // ========== 未対応ファイル ==========
                     else if (fileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
@@ -1493,20 +1712,31 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     errorCount++;
                     continue;
                 }
+                
+                Console.WriteLine(); // 各ファイル処理後に改行
             }
             
             // ========== 在庫マスタ最適化処理 ==========
             await OptimizeInventoryMastersAsync(optimizationService, jobDate, logger);
             
             // 処理結果のサマリを表示
-            Console.WriteLine("\n=== インポート処理完了 ===");
+            Console.WriteLine("\n=== フォルダ監視取込完了 ===");
             Console.WriteLine($"対象日付: {jobDate:yyyy-MM-dd}");
             Console.WriteLine($"部門: {department}");
             Console.WriteLine($"処理ファイル数: {sortedFiles.Count}");
             
+            if (processedCounts.Any())
+            {
+                Console.WriteLine("\n処理実績:");
+                foreach (var kvp in processedCounts)
+                {
+                    Console.WriteLine($"  {kvp.Key}: {kvp.Value}件");
+                }
+            }
+            
             if (errorCount > 0)
             {
-                Console.WriteLine($"⚠️ {errorCount}件のファイルでエラーが発生しました。");
+                Console.WriteLine($"\n⚠️ {errorCount}件のファイルでエラーが発生しました。");
             }
             
             Console.WriteLine("========================\n");

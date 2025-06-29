@@ -544,4 +544,102 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             throw;
         }
     }
+    
+    /// <summary>
+    /// 売上・仕入・在庫調整から在庫マスタの初期データを作成
+    /// </summary>
+    public async Task<int> CreateInitialInventoryFromVouchersAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            INSERT INTO InventoryMaster (
+                ProductCode, ProductName, GradeCode, ClassCode, 
+                ShippingMarkCode, ShippingMarkName, 
+                Unit, StandardPrice, ProductCategory1, ProductCategory2,
+                JobDate, CurrentStock, CurrentStockAmount, 
+                DailyStock, DailyStockAmount, DailyFlag, DataSetId,
+                CreatedDate, UpdatedDate
+            )
+            SELECT DISTINCT
+                sv.ProductCode,
+                ISNULL(sv.ProductName, '商品名未設定'),
+                sv.GradeCode,
+                sv.ClassCode,
+                sv.ShippingMarkCode,
+                sv.ShippingMarkName,
+                '個',  -- デフォルト単位
+                0,     -- 標準単価（後で商品マスタから更新）
+                '',    -- 商品分類1（後で商品マスタから更新）
+                '',    -- 商品分類2（後で商品マスタから更新）
+                sv.JobDate,
+                0,     -- 現在在庫
+                0,     -- 現在在庫金額
+                0,     -- 当日在庫
+                0,     -- 当日在庫金額
+                '9',   -- 当日発生フラグ（未処理）
+                '',    -- DataSetId
+                GETDATE(),
+                GETDATE()
+            FROM (
+                -- 売上伝票
+                SELECT DISTINCT 
+                    ProductCode, ProductName, GradeCode, ClassCode, 
+                    ShippingMarkCode, ShippingMarkName, JobDate
+                FROM SalesVouchers
+                WHERE JobDate = @JobDate
+                
+                UNION
+                
+                -- 仕入伝票
+                SELECT DISTINCT 
+                    ProductCode, ProductName, GradeCode, ClassCode, 
+                    ShippingMarkCode, ShippingMarkName, JobDate
+                FROM PurchaseVouchers
+                WHERE JobDate = @JobDate
+                
+                UNION
+                
+                -- 在庫調整
+                SELECT DISTINCT 
+                    ProductCode, ProductName, GradeCode, ClassCode, 
+                    ShippingMarkCode, ShippingMarkName, JobDate
+                FROM InventoryAdjustments
+                WHERE JobDate = @JobDate
+            ) sv
+            WHERE NOT EXISTS (
+                SELECT 1 FROM InventoryMaster im
+                WHERE im.ProductCode = sv.ProductCode
+                    AND im.GradeCode = sv.GradeCode
+                    AND im.ClassCode = sv.ClassCode
+                    AND im.ShippingMarkCode = sv.ShippingMarkCode
+                    AND im.ShippingMarkName = sv.ShippingMarkName
+                    AND im.JobDate = sv.JobDate
+            );";
+
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+            
+            LogInfo($"Created initial inventory master records: {result} items", new { jobDate });
+            
+            // 作成された在庫マスタの件数を確認
+            if (result > 0)
+            {
+                const string countSql = @"
+                    SELECT COUNT(DISTINCT ProductCode + '_' + GradeCode + '_' + ClassCode + '_' + ShippingMarkCode + '_' + ShippingMarkName)
+                    FROM InventoryMaster
+                    WHERE JobDate = @JobDate";
+                
+                var totalCount = await connection.QuerySingleAsync<int>(countSql, new { JobDate = jobDate });
+                LogInfo($"Total inventory master records for JobDate {jobDate:yyyy-MM-dd}: {totalCount}");
+            }
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(CreateInitialInventoryFromVouchersAsync), new { jobDate });
+            throw;
+        }
+    }
 }
