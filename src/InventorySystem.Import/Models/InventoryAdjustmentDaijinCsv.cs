@@ -150,13 +150,22 @@ public class InventoryAdjustmentDaijinCsv
         };
 
         // LineNumberの設定（階層情報から決定）
-        // 5階層目が設定されていればそれを使用、なければ4階層目...という優先順位
-        inventoryAdjustment.LineNumber = Level5LineNumber ?? 
-                                          Level4LineNumber ?? 
-                                          Level3LineNumber ?? 
-                                          Level2LineNumber ?? 
-                                          Level1LineNumber ?? 
-                                          1;
+        // 販売大臣の仕様：通常は5階層目に行番号が入る
+        // 0より大きい値を持つ最も深い階層の値を使用
+        int lineNumber = 1; // デフォルト値
+
+        if (Level5LineNumber.HasValue && Level5LineNumber.Value > 0)
+            lineNumber = Level5LineNumber.Value;
+        else if (Level4LineNumber.HasValue && Level4LineNumber.Value > 0)
+            lineNumber = Level4LineNumber.Value;
+        else if (Level3LineNumber.HasValue && Level3LineNumber.Value > 0)
+            lineNumber = Level3LineNumber.Value;
+        else if (Level2LineNumber.HasValue && Level2LineNumber.Value > 0)
+            lineNumber = Level2LineNumber.Value;
+        else if (Level1LineNumber.HasValue && Level1LineNumber.Value > 0)
+            lineNumber = Level1LineNumber.Value;
+
+        inventoryAdjustment.LineNumber = lineNumber;
         
         // VoucherIdの設定（DataSetId、伝票番号、行番号を含む一意な値）
         inventoryAdjustment.VoucherId = $"{dataSetId}_{VoucherNumber}_{inventoryAdjustment.LineNumber}";
