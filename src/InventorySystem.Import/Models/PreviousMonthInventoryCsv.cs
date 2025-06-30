@@ -1,6 +1,7 @@
 using System.Globalization;
 using CsvHelper.Configuration.Attributes;
 using InventorySystem.Import.Validators;
+using InventorySystem.Import.Helpers;
 
 namespace InventorySystem.Import.Models;
 
@@ -52,7 +53,7 @@ public class PreviousMonthInventoryCsv
     
     [Name("数量")]
     [Index(94)]  // 95列目
-    public decimal Quantity { get; set; }
+    public string QuantityString { get; set; } = string.Empty;
     
     [Name("区分(1:ﾛｽ,4:振替,6:調整)")]
     [Index(87)]  // 88列目
@@ -60,11 +61,26 @@ public class PreviousMonthInventoryCsv
     
     [Name("単価")]
     [Index(96)]  // 97列目
-    public decimal UnitPrice { get; set; }
+    public string UnitPriceString { get; set; } = string.Empty;
     
     [Name("金額")]
     [Index(97)]  // 98列目
-    public decimal Amount { get; set; }
+    public string AmountString { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 数量（ロケールに依存しない解析）
+    /// </summary>
+    public decimal Quantity => CsvParsingHelper.ParseDecimal(QuantityString);
+    
+    /// <summary>
+    /// 単価（ロケールに依存しない解析）
+    /// </summary>
+    public decimal UnitPrice => CsvParsingHelper.ParseDecimal(UnitPriceString);
+    
+    /// <summary>
+    /// 金額（ロケールに依存しない解析）
+    /// </summary>
+    public decimal Amount => CsvParsingHelper.ParseDecimal(AmountString);
     
     [Name("手入力項目(半角8文字)")]
     [Index(152)]  // 153列目

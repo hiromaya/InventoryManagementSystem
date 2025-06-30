@@ -3,6 +3,7 @@ using CsvHelper.Configuration.Attributes;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Constants;
 using InventorySystem.Import.Validators;
+using InventorySystem.Import.Helpers;
 
 namespace InventorySystem.Import.Models;
 
@@ -78,15 +79,30 @@ public class PurchaseVoucherDaijinCsv
     
     [Name("数量")]
     [Index(91)]  // 92列目
-    public decimal Quantity { get; set; }
+    public string QuantityString { get; set; } = string.Empty;
     
     [Name("単価")]
     [Index(93)]  // 94列目
-    public decimal UnitPrice { get; set; }
+    public string UnitPriceString { get; set; } = string.Empty;
     
     [Name("金額")]
     [Index(94)]  // 95列目
-    public decimal Amount { get; set; }
+    public string AmountString { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 数量（ロケールに依存しない解析）
+    /// </summary>
+    public decimal Quantity => CsvParsingHelper.ParseDecimal(QuantityString);
+    
+    /// <summary>
+    /// 単価（ロケールに依存しない解析）
+    /// </summary>
+    public decimal UnitPrice => CsvParsingHelper.ParseDecimal(UnitPriceString);
+    
+    /// <summary>
+    /// 金額（ロケールに依存しない解析）
+    /// </summary>
+    public decimal Amount => CsvParsingHelper.ParseDecimal(AmountString);
     
     [Name("荷印手入力")]
     [Index(146)]  // 147列目（0ベースインデックス）
