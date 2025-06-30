@@ -380,7 +380,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
-                DailyFlag, CreatedDate, UpdatedDate, DataSetId
+                DailyFlag, CreatedDate, UpdatedDate, DataSetId,
+                PreviousMonthQuantity, PreviousMonthAmount
             )
             SELECT DISTINCT
                 combined.ProductCode, 
@@ -394,14 +395,16 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 COALESCE(pm.ProductCategory1, '') AS ProductCategory1,
                 COALESCE(pm.ProductCategory2, '') AS ProductCategory2,
                 @JobDate, 
-                0.0000, 
-                0.0000, 
-                0.0000, 
-                0.0000,
+                ISNULL(pmi.Quantity, 0.0000), -- 前月末在庫から初期在庫を設定
+                ISNULL(pmi.Amount, 0.0000),   -- 前月末在庫金額から初期在庫金額を設定
+                ISNULL(pmi.Quantity, 0.0000), -- DailyStockも同じ値で初期化
+                ISNULL(pmi.Amount, 0.0000),   -- DailyStockAmountも同じ値で初期化
                 '9', 
                 GETDATE(), 
                 GETDATE(), 
-                ''
+                '',
+                ISNULL(pmi.Quantity, 0.0000), -- 前月末在庫数量
+                ISNULL(pmi.Amount, 0.0000)    -- 前月末在庫金額
             FROM (
                 SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                 FROM SalesVouchers 
@@ -418,6 +421,12 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                     AND Quantity != 0
             ) AS combined
             LEFT JOIN ProductMaster pm ON pm.ProductCode = combined.ProductCode
+            LEFT JOIN PreviousMonthInventory pmi ON 
+                pmi.ProductCode = combined.ProductCode
+                AND pmi.GradeCode = combined.GradeCode
+                AND pmi.ClassCode = combined.ClassCode
+                AND pmi.ShippingMarkCode = combined.ShippingMarkCode
+                AND pmi.ShippingMarkName COLLATE Japanese_CI_AS = combined.ShippingMarkName COLLATE Japanese_CI_AS
             WHERE NOT EXISTS (
                 SELECT 1 FROM InventoryMaster im
                 WHERE im.ProductCode = combined.ProductCode

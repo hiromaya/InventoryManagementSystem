@@ -34,7 +34,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 @JobDate, GETDATE(), GETDATE(),
                 CurrentStock, CurrentStockAmount, CASE WHEN CurrentStock > 0 THEN CurrentStockAmount / CurrentStock ELSE 0 END,
-                0, 0, 0,
+                CurrentStock, CurrentStockAmount, CASE WHEN CurrentStock > 0 THEN CurrentStockAmount / CurrentStock ELSE 0 END,
                 '9', @DataSetId
             FROM InventoryMaster
             WHERE JobDate = @JobDate
