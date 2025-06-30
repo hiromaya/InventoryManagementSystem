@@ -159,6 +159,7 @@
 - **2025-06-30: 荷印名の仕様変更を反映**
 - **2025-06-30: 除外データ条件を明確化**
 - **2025-06-30: 荷印名（手入力）の処理詳細を追加**
+- **2025-07-01: FastReportの使用方針を追加**
 
 ---
 
@@ -390,3 +391,54 @@ var key = new InventoryKey
     ShippingMarkName = (handInputItem ?? "").PadRight(8).Substring(0, 8) // 8桁固定
 };
 ```
+
+## 📄 FastReportの使用方針
+
+### 基本方針
+- **FastReportのスクリプト機能は使用しない**
+- **すべての計算・制御ロジックはC#プログラム側で実装する**
+- **FastReportは純粋に表のレイアウトとテンプレートとしてのみ使用する**
+
+### 実装ガイドライン
+
+#### 1. テンプレートファイル（.frx）の設定
+- `ScriptLanguage="None"`を必ず指定
+- `<ScriptText>`セクションは削除または空にする
+- イベントハンドラー（例：`BeforePrintEvent`）は使用しない
+
+#### 2. データの準備
+- すべてのデータ加工・計算はC#側で完結させる
+- DataTableまたはコレクションとして完成されたデータを渡す
+- 条件分岐やフィルタリングもC#側で実装
+
+#### 3. 動的な表示制御
+- 0件時のヘッダー非表示などの制御はC#コードで実装
+- `report.FindObject()`を使用してオブジェクトを取得
+- `Visible`プロパティなどを直接操作
+
+#### 実装例
+```csharp
+// アンマッチリスト0件時のヘッダー制御
+if (dataCount == 0)
+{
+    var pageHeader = report.FindObject("PageHeader1") as FR.PageHeaderBand;
+    if (pageHeader != null)
+    {
+        // ヘッダーオブジェクトを非表示
+        for (int i = 1; i <= 18; i++)
+        {
+            var header = report.FindObject($"Header{i}") as FR.TextObject;
+            if (header != null)
+            {
+                header.Visible = false;
+            }
+        }
+    }
+}
+```
+
+### メリット
+- .NET 8環境でのスクリプトエラーを回避
+- デバッグが容易（C#側でブレークポイント設定可能）
+- 単体テストの実装が可能
+- コードの保守性向上
