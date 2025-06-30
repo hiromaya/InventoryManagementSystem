@@ -1566,75 +1566,31 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     // ========== Phase 2: 初期在庫ファイル ==========
                     else if (fileName == "前月末在庫.csv")
                     {
-                        // 前月末在庫は特殊処理：在庫調整として読み込み後、在庫マスタに反映
                         logger.LogInformation("前月末在庫の処理を開始します");
                         
-                        // 在庫調整として読み込み（商品コード00000は除外される）
-                        var dataSetId = await adjustmentImportService.ImportAsync(file, jobDate, department);
-                        var inventoryCount = 0;
-                        
-                        // 在庫マスタに初期在庫として反映 - ビジネス要件によっては別途実装が必要
-                        // TODO: 在庫調整データを取得し、在庫マスタへ反映するロジックを実装
-                        /*
-                        foreach (var adj in adjustments.Where(a => a.ProductCode != "00000"))
+                        // PreviousMonthInventoryImportServiceを使用して処理
+                        var previousMonthService = scopedServices.GetService<PreviousMonthInventoryImportService>();
+                        if (previousMonthService == null)
                         {
-                            var inventoryKey = new InventoryKey
-                            {
-                                ProductCode = adj.ProductCode,
-                                GradeCode = adj.GradeCode,
-                                ClassCode = adj.ClassCode,
-                                ShippingMarkCode = adj.ShippingMarkCode,
-                                ShippingMarkName = adj.ShippingMarkName
-                            };
-                            
-                            var inventory = await inventoryRepo.GetByKeyAsync(inventoryKey, jobDate);
-                            
-                            if (inventory == null)
-                            {
-                                // 新規作成
-                                inventory = new InventoryMaster
-                                {
-                                    Key = inventoryKey,
-                                    ProductName = adj.ProductName ?? "商品名未設定",
-                                    Unit = "個",
-                                    JobDate = jobDate,
-                                    // 前月末在庫と前日在庫の両方に設定
-                                    PreviousMonthQuantity = adj.Quantity,
-                                    PreviousMonthAmount = adj.Amount,
-                                    PreviousDayStock = adj.Quantity,
-                                    PreviousDayStockAmount = adj.Amount,
-                                    // 現在在庫にも設定
-                                    CurrentStock = adj.Quantity,
-                                    CurrentStockAmount = adj.Amount,
-                                    DailyStock = 0,
-                                    DailyStockAmount = 0,
-                                    DailyFlag = '9',
-                                    CreatedDate = DateTime.Now,
-                                    UpdatedDate = DateTime.Now,
-                                    DataSetId = department
-                                };
-                                await inventoryRepo.CreateAsync(inventory);
-                                inventoryCount++;
-                            }
-                            else
-                            {
-                                // 既存更新
-                                inventory.PreviousMonthQuantity = adj.Quantity;
-                                inventory.PreviousMonthAmount = adj.Amount;
-                                inventory.PreviousDayStock = adj.Quantity;
-                                inventory.PreviousDayStockAmount = adj.Amount;
-                                inventory.CurrentStock = adj.Quantity;
-                                inventory.CurrentStockAmount = adj.Amount;
-                                inventory.UpdatedDate = DateTime.Now;
-                                await inventoryRepo.UpdateAsync(inventory);
-                                inventoryCount++;
-                            }
+                            logger.LogError("PreviousMonthInventoryImportServiceが登録されていません");
+                            await fileService.MoveToErrorAsync(file, department, "Service_Not_Found");
+                            continue;
                         }
-                        */
                         
-                        Console.WriteLine($"✅ 前月末在庫（初期在庫）として処理完了 - データセットID: {dataSetId}");
-                        processedCounts["前月末在庫"] = 1; // TODO: 実際の件数を取得
-                        // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
+                        var result = await previousMonthService.ImportAsync(jobDate);
+                        
+                        if (result.IsSuccess)
+                        {
+                            await fileService.MoveToProcessedAsync(file, department);
+                            logger.LogInformation("前月末在庫を初期在庫として処理完了: {Count}件", result.ProcessedRecords);
+                        }
+                        else
+                        {
+                            await fileService.MoveToErrorAsync(file, department, result.Message);
+                            logger.LogError("前月末在庫の処理に失敗: {Message}", result.Message);
+                        }
+                        
+                        continue;
                     }
                     // ========== Phase 3: 伝票系ファイル ==========
                     else if (fileName.StartsWith("売上伝票"))

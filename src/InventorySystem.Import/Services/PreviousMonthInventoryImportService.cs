@@ -128,11 +128,14 @@ public class PreviousMonthInventoryImportService
                         inventoryMaster.JobDate = targetDate;  // JobDateを更新
                         inventoryMaster.PreviousMonthQuantity = record.Quantity;
                         inventoryMaster.PreviousMonthAmount = record.Amount;
+                        // 前日在庫も同時に設定（初期値として前月末在庫と同じ値を設定）
+                        inventoryMaster.PreviousDayQuantity = record.Quantity;
+                        inventoryMaster.PreviousDayAmount = record.Amount;
                         inventoryMaster.UpdatedDate = DateTime.Now;
                         
                         await _inventoryRepository.UpdateAsync(inventoryMaster);
-                        _logger.LogDebug("在庫マスタ更新: {Key}, JobDate: {OldDate} -> {NewDate}", 
-                            key, oldJobDate, targetDate);
+                        _logger.LogDebug("在庫マスタ更新: {Key}, JobDate: {OldDate} -> {NewDate}, 前月末数量={Qty}, 前月末金額={Amt}", 
+                            key, oldJobDate, targetDate, record.Quantity, record.Amount);
                     }
                     else
                     {
@@ -142,6 +145,9 @@ public class PreviousMonthInventoryImportService
                             Key = inventoryKey,
                             PreviousMonthQuantity = record.Quantity,
                             PreviousMonthAmount = record.Amount,
+                            // 前日在庫も同時に設定（初期値として前月末在庫と同じ値を設定）
+                            PreviousDayQuantity = record.Quantity,
+                            PreviousDayAmount = record.Amount,
                             CurrentStock = 0,
                             CurrentStockAmount = 0,
                             JobDate = targetDate,
