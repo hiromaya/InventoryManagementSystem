@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Interfaces.Services;
 
 namespace InventorySystem.Data.Services
 {
@@ -25,6 +27,15 @@ namespace InventorySystem.Data.Services
             ILogger<InventoryMasterOptimizationService> logger)
         {
             _connectionString = connectionString;
+            _logger = logger;
+        }
+
+        public InventoryMasterOptimizationService(
+            IConfiguration configuration,
+            ILogger<InventoryMasterOptimizationService> logger)
+        {
+            _connectionString = configuration.GetConnectionString("DefaultConnection") 
+                ?? throw new InvalidOperationException("接続文字列が設定されていません");
             _logger = logger;
         }
 
@@ -59,8 +70,84 @@ namespace InventorySystem.Data.Services
         }
 
         /// <summary>
-        /// 在庫マスタの最適化を実行（内部実装）
+        /// ストアドプロシージャを使用した在庫マスタ最適化（将来対応用）
         /// </summary>
+        /// <param name="jobDate">処理対象日</param>
+        /// <param name="dataSetId">データセットID</param>
+        /// <returns>最適化結果</returns>
+        public async Task<OptimizationResult> OptimizeUsingStoredProcedureAsync(DateTime jobDate, string dataSetId)
+        {
+            var result = new OptimizationResult();
+            
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                await connection.OpenAsync();
+                
+                _logger.LogInformation("ストアドプロシージャ sp_OptimizeInventoryMaster を実行します");
+                
+                var parameters = new DynamicParameters();
+                parameters.Add("@jobDate", jobDate);
+                parameters.Add("@dataSetId", dataSetId ?? "");
+                
+                // 出力パラメータを追加（ストアドプロシージャが対応している場合）
+                parameters.Add("@salesCount", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("@purchaseCount", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("@adjustmentCount", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("@insertedCount", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("@updatedCount", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                
+                await connection.ExecuteAsync(
+                    "sp_OptimizeInventoryMaster",
+                    parameters,
+                    commandType: CommandType.StoredProcedure,
+                    commandTimeout: 300);
+                
+                // 結果を取得（ストアドプロシージャが出力パラメータに対応している場合）
+                try
+                {
+                    result.SalesProductCount = parameters.Get<int?>("@salesCount") ?? 0;
+                    result.PurchaseProductCount = parameters.Get<int?>("@purchaseCount") ?? 0;
+                    result.AdjustmentProductCount = parameters.Get<int?>("@adjustmentCount") ?? 0;
+                    result.InsertedCount = parameters.Get<int?>("@insertedCount") ?? 0;
+                    result.UpdatedCount = parameters.Get<int?>("@updatedCount") ?? 0;
+                    result.ProcessedCount = result.InsertedCount + result.UpdatedCount;
+                }
+                catch (Exception paramEx)
+                {
+                    // 出力パラメータが未対応の場合はログのみ出力
+                    _logger.LogWarning(paramEx, "ストアドプロシージャの出力パラメータ取得に失敗しました（未対応の可能性）");
+                    result.ProcessedCount = 1; // 処理完了とする
+                }
+                
+                _logger.LogInformation("ストアドプロシージャによる在庫マスタ最適化が正常に完了しました");
+            }
+            catch (SqlException sqlEx)
+            {
+                _logger.LogError(sqlEx, 
+                    "ストアドプロシージャ実行でSQLエラーが発生しました。" +
+                    "エラーコード: {Number}, 重大度: {Class}, 状態: {State}", 
+                    sqlEx.Number, sqlEx.Class, sqlEx.State);
+                result.ErrorCount = 1;
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "ストアドプロシージャ実行で予期しないエラーが発生しました");
+                result.ErrorCount = 1;
+                throw;
+            }
+            
+            return result;
+        }
+
+        /// <summary>
+        /// 在庫マスタの最適化を実行（内部実装）
+        /// 売上・仕入・在庫調整で使用される5項目キーの組み合わせを在庫マスタに登録する
+        /// </summary>
+        /// <param name="jobDate">処理対象日</param>
+        /// <param name="dataSetId">データセットID</param>
+        /// <returns>最適化結果</returns>
         public async Task<OptimizationResult> OptimizeAsync(DateTime jobDate, string dataSetId)
         {
             var result = new OptimizationResult();
@@ -80,10 +167,12 @@ namespace InventorySystem.Data.Services
                 
                 // 2. 仕入商品の取得
                 var purchaseProducts = await GetPurchaseProductsAsync(connection, transaction, jobDate);
+                result.PurchaseProductCount = purchaseProducts.Count;
                 _logger.LogInformation("仕入商品数: {Count}件", purchaseProducts.Count);
                 
                 // 3. 在庫調整商品の取得
                 var adjustmentProducts = await GetAdjustmentProductsAsync(connection, transaction, jobDate);
+                result.AdjustmentProductCount = adjustmentProducts.Count;
                 _logger.LogInformation("在庫調整商品数: {Count}件", adjustmentProducts.Count);
                 
                 // 4. すべての商品を統合（重複除去）
@@ -96,27 +185,38 @@ namespace InventorySystem.Data.Services
                 _logger.LogInformation("統合商品数（重複除去後）: {Count}件", allProducts.Count);
                 
                 // 5. MERGE文で一括処理
-                var affected = await MergeInventoryMasterAsync(connection, transaction, jobDate, dataSetId);
-                result.ProcessedCount = affected;
-                
-                // 6. 対象日の伝票がない商品のJobDateをクリア（90件問題対応）
-                var cleaned = await CleanupOldJobDatesAsync(connection, transaction, jobDate);
-                result.CleanedCount = cleaned;
+                var mergeResults = await MergeInventoryMasterAsync(connection, transaction, jobDate, dataSetId);
+                result.InsertedCount = mergeResults.insertCount;
+                result.UpdatedCount = mergeResults.updateCount;
+                result.ProcessedCount = result.InsertedCount + result.UpdatedCount;
                 
                 await transaction.CommitAsync();
                 
                 _logger.LogInformation(
-                    "在庫マスタ最適化完了: 売上商品{Sales}件、処理{Processed}件、クリーンアップ{Cleaned}件", 
+                    "在庫マスタ最適化完了: 売上商品{Sales}件、仕入商品{Purchase}件、在庫調整{Adjustment}件、新規{Insert}件、更新{Update}件", 
                     result.SalesProductCount, 
-                    result.ProcessedCount,
-                    result.CleanedCount);
+                    result.PurchaseProductCount,
+                    result.AdjustmentProductCount,
+                    result.InsertedCount,
+                    result.UpdatedCount);
                 
                 return result;
+            }
+            catch (SqlException sqlEx)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(sqlEx, 
+                    "在庫マスタ最適化処理でSQLエラーが発生しました。" +
+                    "エラーコード: {Number}, 重大度: {Class}, 状態: {State}", 
+                    sqlEx.Number, sqlEx.Class, sqlEx.State);
+                result.ErrorCount = 1;
+                throw;
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "在庫マスタ最適化エラー");
+                _logger.LogError(ex, "在庫マスタ最適化で予期しないエラーが発生しました");
+                result.ErrorCount = 1;
                 throw;
             }
         }
@@ -193,7 +293,7 @@ namespace InventorySystem.Data.Services
             return products.ToList();
         }
 
-        private async Task<int> MergeInventoryMasterAsync(
+        private async Task<(int insertCount, int updateCount)> MergeInventoryMasterAsync(
             SqlConnection connection,
             SqlTransaction transaction,
             DateTime jobDate,
@@ -273,7 +373,7 @@ namespace InventorySystem.Data.Services
                 "在庫マスタMERGE完了 - 新規作成: {InsertCount}件, 更新: {UpdateCount}件", 
                 insertCount, updateCount);
                 
-            return insertCount + updateCount;
+            return (insertCount, updateCount);
         }
 
         private async Task<int> CleanupOldJobDatesAsync(
@@ -312,15 +412,6 @@ namespace InventorySystem.Data.Services
         }
     }
 
-    /// <summary>
-    /// 最適化結果
-    /// </summary>
-    public class OptimizationResult
-    {
-        public int SalesProductCount { get; set; }
-        public int ProcessedCount { get; set; }
-        public int CleanedCount { get; set; }
-    }
 
     /// <summary>
     /// 商品キー
