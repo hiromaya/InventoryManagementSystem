@@ -40,4 +40,19 @@
     </None>
   </ItemGroup>
 
+  <!-- FastReportテンプレートファイルをビルド時にコピー -->
+  <ItemGroup>
+    <None Include="..\InventorySystem.Reports\FastReport\Templates\*.frx" Link="FastReport\Templates\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- ビルド後にFastReport DLLをコピー -->
+  <Target Name="CopyFastReportFiles" AfterTargets="Build">
+    <ItemGroup>
+      <FastReportFiles Include="C:\Program Files (x86)\FastReports\FastReport .NET Trial\*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(FastReportFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>
