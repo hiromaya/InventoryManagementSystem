@@ -1634,7 +1634,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         
                         Console.WriteLine($"✅ 前月末在庫（初期在庫）として処理完了 - データセットID: {dataSetId}");
                         processedCounts["前月末在庫"] = 1; // TODO: 実際の件数を取得
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     // ========== Phase 3: 伝票系ファイル ==========
                     else if (fileName.StartsWith("売上伝票"))
@@ -1642,14 +1642,14 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         var dataSetId = await salesImportService.ImportAsync(file, jobDate, department);
                         Console.WriteLine($"✅ 売上伝票として処理完了 - データセットID: {dataSetId}");
                         processedCounts["売上伝票"] = 1; // TODO: 実際の件数を取得
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     else if (fileName.StartsWith("仕入伝票"))
                     {
                         var dataSetId = await purchaseImportService.ImportAsync(file, jobDate, department);
                         Console.WriteLine($"✅ 仕入伝票として処理完了 - データセットID: {dataSetId}");
                         processedCounts["仕入伝票"] = 1; // TODO: 実際の件数を取得
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     else if (fileName.StartsWith("受注伝票"))
                     {
@@ -1657,14 +1657,14 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         var dataSetId = await adjustmentImportService.ImportAsync(file, jobDate, department);
                         Console.WriteLine($"✅ 在庫調整として処理完了 - データセットID: {dataSetId}");
                         processedCounts["受注伝票（在庫調整）"] = 1; // TODO: 実際の件数を取得
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     else if (fileName.StartsWith("在庫調整"))
                     {
                         var dataSetId = await adjustmentImportService.ImportAsync(file, jobDate, department);
                         Console.WriteLine($"✅ 在庫調整として処理完了 - データセットID: {dataSetId}");
                         processedCounts["在庫調整"] = 1; // TODO: 実際の件数を取得
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     // ========== 未対応ファイル ==========
                     else if (fileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
