@@ -24,6 +24,10 @@ public class InventoryAdjustmentDaijinCsv
     [Index(2)]
     public string VoucherNumber { get; set; } = string.Empty;
     
+    [Name("システムデート")]
+    [Index(46)]  // 47列目
+    public string SystemDate { get; set; } = string.Empty;
+    
     [Name("ジョブデート")]
     [Index(47)]  // 48列目
     public string JobDate { get; set; } = string.Empty;
@@ -77,19 +81,19 @@ public class InventoryAdjustmentDaijinCsv
     public decimal Quantity { get; set; }
     
     [Name("区分(1:ﾛｽ,4:振替,6:調整)")]
-    [Index(95)]  // 96列目
+    [Index(87)]  // 88列目
     public string CategoryCode { get; set; } = string.Empty;
     
     [Name("単価")]
-    [Index(98)]  // 99列目
+    [Index(96)]  // 97列目
     public decimal UnitPrice { get; set; }
     
     [Name("金額")]
-    [Index(99)]  // 100列目
+    [Index(98)]  // 99列目
     public decimal Amount { get; set; }
     
     [Name("手入力項目(半角8文字)")]
-    [Index(156)]  // 157列目
+    [Index(152)]  // 153列目
     public string HandInputItem { get; set; } = string.Empty;
     
     [Name("１階層目行番号")]
@@ -137,7 +141,10 @@ public class InventoryAdjustmentDaijinCsv
             GradeCode = GradeCode?.Trim() ?? string.Empty,
             ClassCode = ClassCode?.Trim() ?? string.Empty,
             ShippingMarkCode = ShippingMarkCode?.Trim() ?? string.Empty,
-            ShippingMarkName = (HandInputItem ?? "").PadRight(8).Substring(0, 8),  // 手入力項目を荷印手入力として使用（8桁固定）
+            // 荷印名は手入力項目（157列目、Index=156）から取得する
+            // ※CSV内の141列目の「荷印名」フィールドは使用しない（マスタ参照値のため）
+            // 伝票に直接入力された値を8桁固定で使用
+            ShippingMarkName = (HandInputItem ?? "").PadRight(8).Substring(0, 8),
             CategoryCode = ParseCategoryCode(CategoryCode),
             Quantity = Quantity,
             UnitPrice = UnitPrice,

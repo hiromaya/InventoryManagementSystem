@@ -13,19 +13,23 @@ namespace InventorySystem.Import.Models;
 public class PurchaseVoucherDaijinCsv
 {
     [Name("伝票番号")]
-    [Index(0)]
+    [Index(2)]  // 3列目
     public string VoucherNumber { get; set; } = string.Empty;
     
     [Name("伝票日付")]
-    [Index(1)]
+    [Index(0)]  // 1列目
     public string VoucherDate { get; set; } = string.Empty;
     
+    [Name("システムデート")]
+    [Index(42)]  // 43列目（汎用日付1）
+    public string SystemDate { get; set; } = string.Empty;
+    
     [Name("ジョブデート")]
-    [Index(44)]  // 45列目
+    [Index(43)]  // 44列目
     public string JobDate { get; set; } = string.Empty;
     
     [Name("伝票区分(11:掛仕入,12:現金仕入)")]
-    [Index(2)]
+    [Index(1)]  // 2列目
     public string VoucherType { get; set; } = string.Empty;
     
     [Name("明細種")]
@@ -33,7 +37,7 @@ public class PurchaseVoucherDaijinCsv
     public string DetailType { get; set; } = string.Empty;
     
     [Name("仕入先コード")]
-    [Index(3)]
+    [Index(6)]  // 7列目
     public string SupplierCode { get; set; } = string.Empty;
     
     [Name("仕入先名")]
@@ -41,7 +45,7 @@ public class PurchaseVoucherDaijinCsv
     public string SupplierName { get; set; } = string.Empty;
     
     [Name("商品コード")]
-    [Index(87)]  // 88列目
+    [Index(86)]  // 87列目
     public string ProductCode { get; set; } = string.Empty;
     
     [Name("商品名")]
@@ -49,7 +53,7 @@ public class PurchaseVoucherDaijinCsv
     public string ProductName { get; set; } = string.Empty;
     
     [Name("等級コード")]
-    [Index(81)]  // 82列目
+    [Index(80)]  // 81列目
     public string GradeCode { get; set; } = string.Empty;
     
     [Name("等級名")]
@@ -57,7 +61,7 @@ public class PurchaseVoucherDaijinCsv
     public string GradeName { get; set; } = string.Empty;
     
     [Name("階級コード")]
-    [Index(82)]  // 83列目
+    [Index(81)]  // 82列目
     public string ClassCode { get; set; } = string.Empty;
     
     [Name("階級名")]
@@ -65,7 +69,7 @@ public class PurchaseVoucherDaijinCsv
     public string ClassName { get; set; } = string.Empty;
     
     [Name("荷印コード")]
-    [Index(83)]  // 84列目
+    [Index(82)]  // 83列目
     public string ShippingMarkCode { get; set; } = string.Empty;
     
     [Name("荷印名")]
@@ -73,20 +77,20 @@ public class PurchaseVoucherDaijinCsv
     public string ShippingMarkName { get; set; } = string.Empty;
     
     [Name("数量")]
-    [Index(92)]  // 93列目
+    [Index(91)]  // 92列目
     public decimal Quantity { get; set; }
     
     [Name("単価")]
-    [Index(94)]  // 95列目
+    [Index(93)]  // 94列目
     public decimal UnitPrice { get; set; }
     
     [Name("金額")]
-    [Index(95)]  // 96列目
+    [Index(94)]  // 95列目
     public decimal Amount { get; set; }
     
     [Name("荷印手入力")]
-    [Index(147)]  // 148列目
-    public string HandInputItem { get; set; } = string.Empty;
+    [Index(146)]  // 147列目（0ベースインデックス）
+    public string HandInputItem { get; set; } = string.Empty;  // 荷印手入力
     
     [Name("１階層目行番号")]
     [Index(74)]  // 75列目（仕入伝票の場合）
@@ -133,7 +137,10 @@ public class PurchaseVoucherDaijinCsv
             GradeCode = GradeCode?.Trim() ?? string.Empty,
             ClassCode = ClassCode?.Trim() ?? string.Empty,
             ShippingMarkCode = ShippingMarkCode?.Trim() ?? string.Empty,
-            ShippingMarkName = (HandInputItem ?? "").PadRight(8).Substring(0, 8),  // 手入力項目を荷印手入力として使用（8桁固定）
+            // 荷印名は手入力項目（147列目、Index=146）から取得する
+            // ※CSV内の141列目の「荷印名」フィールドは使用しない（マスタ参照値のため）
+            // 伝票に直接入力された値を8桁固定で使用
+            ShippingMarkName = (HandInputItem ?? "").PadRight(8).Substring(0, 8),
             Quantity = Quantity,
             UnitPrice = UnitPrice,
             Amount = Amount,

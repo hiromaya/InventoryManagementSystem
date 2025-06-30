@@ -44,24 +44,48 @@ public class PreviousMonthInventoryImportService
 
         try
         {
-            _logger.LogInformation("前月末在庫インポート開始: {TargetDate}", targetDate);
+            _logger.LogInformation("=== 前月末在庫インポート開始 ===");
+            _logger.LogInformation("対象日付: {TargetDate}", targetDate);
+            _logger.LogInformation("CSVファイルパス: {Path}", _importPath);
 
+            // ファイル存在確認
             if (!File.Exists(_importPath))
             {
+                _logger.LogError("CSVファイルが見つかりません: {Path}", _importPath);
                 throw new FileNotFoundException($"インポートファイルが見つかりません: {_importPath}");
             }
 
-            // CSVファイルを読み込む
+            // 1. CSV読み込み
             var records = await ReadCsvAsync(_importPath);
             result.TotalRecords = records.Count;
+            _logger.LogInformation("=== ステップ1: CSV読み込み完了 ===");
+            _logger.LogInformation("読み込みレコード数: {Count}", records.Count);
 
-            // 有効なレコードをフィルタリング
+            // 2. 有効レコードフィルタリング
             var validRecords = records.Where(r => r.IsValid()).ToList();
-            _logger.LogInformation("有効レコード数: {Count}/{Total}", validRecords.Count, records.Count);
+            var invalidRecords = records.Where(r => !r.IsValid()).ToList();
+            
+            _logger.LogInformation("=== ステップ2: バリデーション完了 ===");
+            _logger.LogInformation("有効レコード: {Valid}件", validRecords.Count);
+            _logger.LogInformation("無効レコード: {Invalid}件", invalidRecords.Count);
+            
+            // 無効レコードの詳細（最初の10件）
+            foreach (var invalid in invalidRecords.Take(10))
+            {
+                _logger.LogWarning("無効レコード詳細: 商品={Product}, 等級={Grade}, 階級={Class}, 荷印={Mark}, 理由={Reason}",
+                    invalid.ProductCode ?? "(null)", 
+                    invalid.GradeCode ?? "(null)", 
+                    invalid.ClassCode ?? "(null)", 
+                    invalid.ShippingMarkCode ?? "(null)",
+                    invalid.GetValidationError());
+            }
 
-            // 在庫マスタの更新処理
+            // 3. 商品マスタチェックとスキップ数のカウント
+            var skippedByProductMaster = 0;
             var processedCount = 0;
             var errorCount = 0;
+
+            _logger.LogInformation("=== ステップ3: レコード処理開始 ===");
 
             foreach (var record in validRecords)
             {
@@ -69,11 +93,15 @@ public class PreviousMonthInventoryImportService
                 {
                     var key = record.GetNormalizedKey();
                     
+                    _logger.LogDebug("処理中レコード: 商品={Product}, 等級={Grade}, 階級={Class}, 荷印={Mark}, 荷印名={MarkName}",
+                        key.ProductCode, key.GradeCode, key.ClassCode, key.ShippingMarkCode, key.ShippingMarkName);
+
                     // 商品マスタの存在チェック
                     var productExists = await _productMasterRepository.ExistsAsync(key.ProductCode);
                     if (!productExists)
                     {
-                        _logger.LogWarning("商品マスタに存在しない商品コード: {ProductCode}", key.ProductCode);
+                        _logger.LogWarning("商品マスタ未登録でスキップ: {ProductCode}", key.ProductCode);
+                        skippedByProductMaster++;
                         errorCount++;
                         continue;
                     }
@@ -89,6 +117,9 @@ public class PreviousMonthInventoryImportService
                     };
                     // JobDateに関係なく既存レコードを検索
                     var inventoryMaster = await _inventoryRepository.GetByKeyAnyDateAsync(inventoryKey);
+                    
+                    _logger.LogDebug("在庫マスタ検索結果: {Result}",
+                        inventoryMaster != null ? "既存レコード更新" : "新規レコード作成");
 
                     if (inventoryMaster != null)
                     {
@@ -145,13 +176,17 @@ public class PreviousMonthInventoryImportService
                 }
             }
 
+            _logger.LogInformation("=== ステップ4: 処理完了 ===");
+            _logger.LogInformation("処理済み: {Processed}件", processedCount);
+            _logger.LogInformation("商品マスタ未登録でスキップ: {Skipped}件", skippedByProductMaster);
+            _logger.LogInformation("その他エラー: {Error}件", errorCount - skippedByProductMaster);
+
             result.ProcessedRecords = processedCount;
             result.ErrorRecords = errorCount;
             result.EndTime = DateTime.Now;
             result.IsSuccess = errorCount == 0;
             result.Message = $"前月末在庫インポート完了: 処理 {processedCount}件, エラー {errorCount}件";
 
-            _logger.LogInformation(result.Message);
             return result;
         }
         catch (Exception ex)

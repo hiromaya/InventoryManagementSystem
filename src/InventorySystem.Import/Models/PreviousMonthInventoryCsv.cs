@@ -43,7 +43,7 @@ public class PreviousMonthInventoryCsv
     public string ProductCode { get; set; } = string.Empty;
     
     [Name("商品名")]
-    [Index(147)]  // 148列目
+    [Index(145)]  // 146列目
     public string ProductName { get; set; } = string.Empty;
     
     [Name("荷印名")]
@@ -55,7 +55,7 @@ public class PreviousMonthInventoryCsv
     public decimal Quantity { get; set; }
     
     [Name("区分(1:ﾛｽ,4:振替,6:調整)")]
-    [Index(95)]  // 96列目
+    [Index(87)]  // 88列目
     public string CategoryCode { get; set; } = string.Empty;
     
     [Name("単価")]
@@ -94,6 +94,36 @@ public class PreviousMonthInventoryCsv
     }
 
     /// <summary>
+    /// バリデーション失敗の理由を取得
+    /// </summary>
+    public string GetValidationError()
+    {
+        if (ProductCodeValidator.IsExcludedProductCode(ProductCode))
+        {
+            return $"商品コード00000で除外: {ProductCode}";
+        }
+
+        if (string.IsNullOrWhiteSpace(ProductCode))
+        {
+            return "商品コードが空白";
+        }
+        if (string.IsNullOrWhiteSpace(GradeCode))
+        {
+            return "等級コードが空白";
+        }
+        if (string.IsNullOrWhiteSpace(ClassCode))
+        {
+            return "階級コードが空白";
+        }
+        if (string.IsNullOrWhiteSpace(ShippingMarkCode))
+        {
+            return "荷印コードが空白";
+        }
+
+        return "有効";
+    }
+
+    /// <summary>
     /// 正規化された在庫キーを生成
     /// </summary>
     public (string ProductCode, string GradeCode, string ClassCode, string ShippingMarkCode, string ShippingMarkName) GetNormalizedKey()
@@ -103,7 +133,10 @@ public class PreviousMonthInventoryCsv
             GradeCode: (GradeCode ?? "").Trim().PadLeft(3, '0'),
             ClassCode: (ClassCode ?? "").Trim().PadLeft(3, '0'),
             ShippingMarkCode: (ShippingMarkCode ?? "").Trim().PadLeft(4, '0'),
-            ShippingMarkName: (ShippingMarkName ?? "").Trim()
+            // 荷印名は手入力項目（153列目、Index=152）から取得する
+            // ※CSV内の142列目の「荷印名」フィールドは使用しない（マスタ参照値のため）
+            // 伝票に直接入力された値を8桁固定で使用
+            ShippingMarkName: (HandInputItem ?? "").PadRight(8).Substring(0, 8)
         );
     }
 
