@@ -26,7 +26,39 @@
     <Parameter Name="TotalCount" DataType="System.String" AsString=""/>
   </Dictionary>
   <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" Watermark.Font="Arial, 60pt">
-    <PageHeaderBand Name="PageHeader1" Width="1512" Height="80">
+    <ScriptText>
+      <![CDATA[
+        private void PageHeader1_BeforePrint(object sender, EventArgs e)
+        {
+          // 0件時は表ヘッダーを非表示にする
+          bool hasData = ((DataTable)Report.GetDataSource("UnmatchItems")).Rows.Count > 0;
+          
+          // ヘッダー項目の表示/非表示制御
+          ((TextObject)Report.FindObject("Header1")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header2")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header3")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header4")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header5")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header6")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header7")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header8")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header9")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header10")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header11")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header12")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header13")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header14")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header15")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header16")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header17")).Visible = hasData;
+          ((TextObject)Report.FindObject("Header18")).Visible = hasData;
+          
+          // 0件時はページ番号も非表示
+          ((TextObject)Report.FindObject("PageNumber")).Visible = hasData;
+        }
+      ]]>
+    </ScriptText>
+    <PageHeaderBand Name="PageHeader1" Width="1512" Height="80" BeforePrintEvent="PageHeader1_BeforePrint">
       <TextObject Name="CreateDate" Width="300" Height="20" Text="作成日：[CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="PageNumber" Left="1212" Width="300" Height="20" Text="[Page#] / [TotalPages#] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Title" Top="20" Width="1587.6" Height="25" Text="※　[JobDate]　アンマッチリスト　※" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 14pt"/>

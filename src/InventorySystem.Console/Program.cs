@@ -359,55 +359,53 @@ try
             Console.WriteLine();
         }
         
-        // PDF出力
-        if (result.UnmatchCount > 0)
+        // PDF出力（0件でも生成）
+        try
         {
-            try
+            if (result.UnmatchCount == 0)
             {
-                Console.WriteLine("PDF生成中...");
-                var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, jobDate);
-                
-                if (pdfBytes != null && pdfBytes.Length > 0)
-                {
-                    // FileManagementServiceを使用してレポートパスを取得
-                    var pdfPath = await fileManagementService.GetReportOutputPathAsync("UnmatchList", jobDate, "pdf");
-                    
-                    await File.WriteAllBytesAsync(pdfPath, pdfBytes);
-                    
-                    Console.WriteLine($"PDFファイルを保存しました: {pdfPath}");
-                    Console.WriteLine($"ファイルサイズ: {pdfBytes.Length / 1024.0:F2} KB");
-                    
-                    // Windows環境では自動でPDFを開く
-                    #if WINDOWS
-                    try
-                    {
-                        var startInfo = new ProcessStartInfo
-                        {
-                            FileName = pdfPath,
-                            UseShellExecute = true
-                        };
-                        Process.Start(startInfo);
-                    }
-                    catch (Exception openEx)
-                    {
-                        logger.LogWarning(openEx, "PDFファイルの自動表示に失敗しました");
-                    }
-                    #endif
-                }
-                else
-                {
-                    Console.WriteLine("PDF生成がスキップされました（環境制限またはデータなし）");
-                }
+                Console.WriteLine("アンマッチ件数が0件です。0件のPDFを生成します");
             }
-            catch (Exception pdfEx)
+            
+            Console.WriteLine("PDF生成中...");
+            var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, jobDate);
+            
+            if (pdfBytes != null && pdfBytes.Length > 0)
             {
-                logger.LogError(pdfEx, "PDF生成中にエラーが発生しました");
-                Console.WriteLine($"PDF生成エラー: {pdfEx.Message}");
+                // FileManagementServiceを使用してレポートパスを取得
+                var pdfPath = await fileManagementService.GetReportOutputPathAsync("UnmatchList", jobDate, "pdf");
+                
+                await File.WriteAllBytesAsync(pdfPath, pdfBytes);
+                
+                Console.WriteLine($"PDFファイルを保存しました: {pdfPath}");
+                Console.WriteLine($"ファイルサイズ: {pdfBytes.Length / 1024.0:F2} KB");
+                
+                // Windows環境では自動でPDFを開く
+                #if WINDOWS
+                try
+                {
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = pdfPath,
+                        UseShellExecute = true
+                    };
+                    Process.Start(startInfo);
+                }
+                catch (Exception openEx)
+                {
+                    logger.LogWarning(openEx, "PDFファイルの自動表示に失敗しました");
+                }
+                #endif
+            }
+            else
+            {
+                Console.WriteLine("PDF生成がスキップされました（環境制限またはデータなし）");
             }
         }
-        else
+        catch (Exception pdfEx)
         {
-            Console.WriteLine("アンマッチ件数が0件のため、PDF生成をスキップしました");
+            logger.LogError(pdfEx, "PDF生成中にエラーが発生しました");
+            Console.WriteLine($"PDF生成エラー: {pdfEx.Message}");
         }
         
         Console.WriteLine("=== アンマッチリスト処理完了 ===");
