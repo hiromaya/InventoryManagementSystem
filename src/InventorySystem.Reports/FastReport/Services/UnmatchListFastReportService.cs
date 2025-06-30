@@ -188,6 +188,43 @@ namespace InventorySystem.Reports.FastReport.Services
                 // DataTableとして登録
                 report.RegisterData(dataTable, "UnmatchItems");
                 
+                // 0件時のヘッダー制御
+                if (unmatchList.Count == 0)
+                {
+                    _logger.LogInformation("アンマッチ0件のため、ヘッダーを非表示にします");
+                    
+                    // PageHeaderBandを取得
+                    var pageHeader = report.FindObject("PageHeader1") as FR.PageHeaderBand;
+                    if (pageHeader != null)
+                    {
+                        // ヘッダーオブジェクトを非表示（Header1～Header18）
+                        for (int i = 1; i <= 18; i++)
+                        {
+                            var header = report.FindObject($"Header{i}") as FR.TextObject;
+                            if (header != null)
+                            {
+                                header.Visible = false;
+                                _logger.LogDebug("Header{Index}を非表示にしました", i);
+                            }
+                        }
+                        
+                        // ページ番号も非表示
+                        var pageNumber = report.FindObject("PageNumber") as FR.TextObject;
+                        if (pageNumber != null)
+                        {
+                            pageNumber.Visible = false;
+                            _logger.LogDebug("PageNumberを非表示にしました");
+                        }
+                        
+                        // CreateDateとTitleは表示したままにする
+                        _logger.LogDebug("CreateDateとTitleは表示を維持します");
+                    }
+                    else
+                    {
+                        _logger.LogWarning("PageHeader1が見つかりません");
+                    }
+                }
+                
                 // データソースを明示的に取得して設定
                 var dataSource = report.GetDataSource("UnmatchItems");
                 if (dataSource != null)
