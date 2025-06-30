@@ -1,0 +1,177 @@
+[
+  {
+    "COLUMN_NAME": "ProductCode",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 15,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null
+  },
+  {
+    "COLUMN_NAME": "GradeCode",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 15,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null
+  },
+  {
+    "COLUMN_NAME": "ClassCode",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 15,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null
+  },
+  {
+    "COLUMN_NAME": "ShippingMarkCode",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 15,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null
+  },
+  {
+    "COLUMN_NAME": "ShippingMarkName",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 50,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null
+  },
+  {
+    "COLUMN_NAME": "ProductName",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 100,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null
+  },
+  {
+    "COLUMN_NAME": "Unit",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 10,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null
+  },
+  {
+    "COLUMN_NAME": "StandardPrice",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "((0))"
+  },
+  {
+    "COLUMN_NAME": "ProductCategory1",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 10,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "('')"
+  },
+  {
+    "COLUMN_NAME": "ProductCategory2",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 10,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "('')"
+  },
+  {
+    "COLUMN_NAME": "JobDate",
+    "DATA_TYPE": "date",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null
+  },
+  {
+    "COLUMN_NAME": "CreatedDate",
+    "DATA_TYPE": "datetime2",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "(getdate())"
+  },
+  {
+    "COLUMN_NAME": "UpdatedDate",
+    "DATA_TYPE": "datetime2",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "(getdate())"
+  },
+  {
+    "COLUMN_NAME": "CurrentStock",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "((0))"
+  },
+  {
+    "COLUMN_NAME": "CurrentStockAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "((0))"
+  },
+  {
+    "COLUMN_NAME": "DailyStock",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "((0))"
+  },
+  {
+    "COLUMN_NAME": "DailyStockAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "((0))"
+  },
+  {
+    "COLUMN_NAME": "DailyFlag",
+    "DATA_TYPE": "nchar",
+    "CHARACTER_MAXIMUM_LENGTH": 1,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "('9')"
+  },
+  {
+    "COLUMN_NAME": "DataSetId",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 50,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "('')"
+  },
+  {
+    "COLUMN_NAME": "DailyGrossProfit",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "((0))"
+  },
+  {
+    "COLUMN_NAME": "DailyAdjustmentAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "((0))"
+  },
+  {
+    "COLUMN_NAME": "DailyProcessingCost",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "((0))"
+  },
+  {
+    "COLUMN_NAME": "FinalGrossProfit",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "((0))"
+  },
+  {
+    "COLUMN_NAME": "PreviousMonthQuantity",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "((0))"
+  },
+  {
+    "COLUMN_NAME": "PreviousMonthAmount",
+    "DATA_TYPE": "decimal",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "((0))"
+  }
+]

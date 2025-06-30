@@ -388,7 +388,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 combined.ClassCode, 
                 combined.ShippingMarkCode, 
                 combined.ShippingMarkName COLLATE Japanese_CI_AS,
-                COALESCE(pm.ProductName, combined.ProductName, '商品名未設定') AS ProductName,
+                COALESCE(pm.ProductName, '商' + combined.ProductCode) AS ProductName,
                 COALESCE(pm.UnitCode, '個') AS Unit,
                 COALESCE(pm.StandardPrice, 0.0000) AS StandardPrice,
                 COALESCE(pm.ProductCategory1, '') AS ProductCategory1,
@@ -403,14 +403,14 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 GETDATE(), 
                 ''
             FROM (
-                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, ProductName
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                 FROM SalesVouchers 
                 WHERE JobDate = @JobDate
                     AND (VoucherType = '51' OR VoucherType = '52')
                     AND (DetailType = '1' OR DetailType = '2')
                     AND Quantity != 0
                 UNION
-                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, ProductName
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                 FROM PurchaseVouchers 
                 WHERE JobDate = @JobDate
                     AND (VoucherType = '11' OR VoucherType = '12')
