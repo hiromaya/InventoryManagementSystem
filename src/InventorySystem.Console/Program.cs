@@ -15,6 +15,7 @@ using InventorySystem.Reports.Interfaces;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Models;
 using System.Data;
+using System.Linq;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using InventorySystem.Core.Interfaces.Services;
@@ -1659,71 +1660,104 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             
             // ========== 在庫マスタ最適化処理 ==========
             logger.LogInformation("========== 在庫マスタ最適化処理開始 ==========");
-            logger.LogInformation("JobDate: {JobDate:yyyy-MM-dd}, DataSetId: {DataSetId}", jobDate, department);
+            logger.LogInformation("DataSetId: {DataSetId}", department);
 
             try
             {
-                // サービスの取得を試みる
-                var optimizationService = scopedServices.GetService<IInventoryMasterOptimizationService>();
-                
-                if (optimizationService != null)
+                // 接続文字列の取得
+                var configuration = scopedServices.GetRequiredService<IConfiguration>();
+                var connectionString = configuration.GetConnectionString("DefaultConnection");
+                if (string.IsNullOrEmpty(connectionString))
                 {
-                    // サービスが登録されている場合
-                    logger.LogInformation("IInventoryMasterOptimizationServiceを使用して最適化を実行します");
-                    
-                    var result = await optimizationService.OptimizeAsync(jobDate, department);
-                    
-                    logger.LogInformation(
-                        "在庫マスタ最適化完了: " +
-                        "売上商品数={SalesCount}, 仕入商品数={PurchaseCount}, 在庫調整数={AdjustmentCount}, " +
-                        "処理済み={ProcessedCount}, 新規={InsertedCount}, 更新={UpdatedCount}, エラー={ErrorCount}",
-                        result.SalesProductCount,
-                        result.PurchaseProductCount,
-                        result.AdjustmentProductCount,
-                        result.ProcessedCount,
-                        result.InsertedCount,
-                        result.UpdatedCount,
-                        result.ErrorCount);
-                        
-                    if (result.IsSuccess)
-                    {
-                        Console.WriteLine($"✅ 在庫マスタ最適化完了: {result.ProcessedCount}件処理（新規{result.InsertedCount}件、更新{result.UpdatedCount}件）");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"⚠️ 在庫マスタ最適化完了（エラーあり）: {result.ErrorCount}件のエラーが発生しました");
-                    }
+                    throw new InvalidOperationException("接続文字列が設定されていません");
+                }
+                
+                using var connection = new SqlConnection(connectionString);
+                await connection.OpenAsync();
+                
+                // 今回の取込で登録されたすべての日付を取得
+                logger.LogInformation("取り込まれたデータの日付を確認中...");
+                
+                var importedDatesQuery = @"
+                    SELECT DISTINCT JobDate 
+                    FROM (
+                        SELECT JobDate FROM SalesVouchers WHERE DataSetId = @dataSetId
+                        UNION
+                        SELECT JobDate FROM PurchaseVouchers WHERE DataSetId = @dataSetId
+                        UNION
+                        SELECT JobDate FROM InventoryAdjustments WHERE DataSetId = @dataSetId
+                    ) AS AllDates
+                    ORDER BY JobDate";
+                
+                var importedDates = await connection.QueryAsync<DateTime>(
+                    importedDatesQuery,
+                    new { dataSetId = department });
+                
+                var dateList = importedDates.ToList();
+                
+                if (!dateList.Any())
+                {
+                    logger.LogWarning("取り込まれたデータが見つかりません。DataSetId={DataSetId}", department);
+                    Console.WriteLine("⚠️ 在庫マスタ最適化対象のデータがありません");
                 }
                 else
                 {
-                    // サービスが登録されていない場合は一時的なサービスインスタンスを作成
-                    logger.LogWarning("IInventoryMasterOptimizationServiceが未登録のため、一時的なインスタンスを作成します");
+                    logger.LogInformation("取り込まれた日付: {Count}日分 - {Dates}", 
+                        dateList.Count, 
+                        string.Join(", ", dateList.Select(d => d.ToString("yyyy-MM-dd"))));
                     
-                    var configuration = scopedServices.GetRequiredService<IConfiguration>();
-                    var tempLogger = scopedServices.GetRequiredService<ILogger<InventorySystem.Data.Services.InventoryMasterOptimizationService>>();
-                    var tempService = new InventorySystem.Data.Services.InventoryMasterOptimizationService(configuration, tempLogger);
+                    var totalProcessed = 0;
+                    var totalInserted = 0;
+                    var totalUpdated = 0;
+                    var totalErrors = 0;
                     
-                    var result = await tempService.OptimizeAsync(jobDate, department);
-                    
-                    logger.LogInformation(
-                        "一時的サービスによる在庫マスタ最適化完了: " +
-                        "売上商品数={SalesCount}, 仕入商品数={PurchaseCount}, 在庫調整数={AdjustmentCount}, " +
-                        "処理済み={ProcessedCount}, 新規={InsertedCount}, 更新={UpdatedCount}, エラー={ErrorCount}",
-                        result.SalesProductCount,
-                        result.PurchaseProductCount,
-                        result.AdjustmentProductCount,
-                        result.ProcessedCount,
-                        result.InsertedCount,
-                        result.UpdatedCount,
-                        result.ErrorCount);
-                        
-                    if (result.IsSuccess)
+                    // 各日付に対して最適化を実行
+                    foreach (var targetDate in dateList)
                     {
-                        Console.WriteLine($"✅ 在庫マスタ最適化完了: {result.ProcessedCount}件処理（新規{result.InsertedCount}件、更新{result.UpdatedCount}件）");
+                        try
+                        {
+                            logger.LogInformation("日付 {Date:yyyy-MM-dd} の在庫マスタ最適化を実行中...", targetDate);
+                            
+                            // インラインでMERGE文を実行
+                            var mergeResult = await ExecuteInventoryOptimizationForDate(
+                                connection, targetDate, department, logger);
+                            
+                            totalProcessed += mergeResult.ProcessedCount;
+                            totalInserted += mergeResult.InsertedCount;
+                            totalUpdated += mergeResult.UpdatedCount;
+                            
+                            logger.LogInformation(
+                                "日付 {Date:yyyy-MM-dd} 完了: 処理={Processed}, 新規={Inserted}, 更新={Updated}",
+                                targetDate, 
+                                mergeResult.ProcessedCount,
+                                mergeResult.InsertedCount, 
+                                mergeResult.UpdatedCount);
+                        }
+                        catch (Exception dateEx)
+                        {
+                            logger.LogError(dateEx, "日付 {Date:yyyy-MM-dd} の処理でエラーが発生しました", targetDate);
+                            totalErrors++;
+                            // エラーが発生しても次の日付の処理を続行
+                        }
+                    }
+                    
+                    // 最終結果の表示
+                    logger.LogInformation(
+                        "在庫マスタ最適化完了: 処理日数={DateCount}, 総処理={ProcessedCount}, " +
+                        "新規={InsertedCount}, 更新={UpdatedCount}, エラー={ErrorCount}",
+                        dateList.Count,
+                        totalProcessed,
+                        totalInserted,
+                        totalUpdated,
+                        totalErrors);
+                        
+                    if (totalErrors > 0)
+                    {
+                        Console.WriteLine($"⚠️ 在庫マスタ最適化完了（一部エラー）: {dateList.Count}日分、{totalProcessed}件処理、{totalErrors}件のエラー");
                     }
                     else
                     {
-                        Console.WriteLine($"⚠️ 在庫マスタ最適化完了（エラーあり）: {result.ErrorCount}件のエラーが発生しました");
+                        Console.WriteLine($"✅ 在庫マスタ最適化完了: {dateList.Count}日分、{totalProcessed}件処理（新規{totalInserted}件、更新{totalUpdated}件）");
                     }
                 }
             }
@@ -1735,21 +1769,11 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     sqlEx.Number, sqlEx.Class, sqlEx.State);
                     
                 Console.WriteLine($"❌ 在庫マスタ最適化でデータベースエラーが発生しました: {sqlEx.Message}");
-                
-                // SQL Serverのタイムアウトエラーの場合
-                if (sqlEx.Number == -2)
-                {
-                    Console.WriteLine("処理がタイムアウトしました。データ量が多い場合は、バッチ処理の実装を検討してください。");
-                }
-                
-                // 処理は継続する（エラーがあってもCSV取込は成功とする）
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "在庫マスタ最適化処理で予期しないエラーが発生しました");
                 Console.WriteLine($"❌ 在庫マスタ最適化でエラーが発生しました: {ex.Message}");
-                
-                // 処理は継続する（エラーがあってもCSV取込は成功とする）
             }
 
             logger.LogInformation("========== 在庫マスタ最適化処理終了 ==========");
@@ -1786,6 +1810,101 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             logger.LogError(ex, "フォルダ監視取込でエラーが発生しました");
         }
     }
+}
+
+/// <summary>
+/// 指定日付の在庫マスタ最適化を実行
+/// </summary>
+private static async Task<(int ProcessedCount, int InsertedCount, int UpdatedCount)> 
+    ExecuteInventoryOptimizationForDate(
+        SqlConnection connection, 
+        DateTime jobDate, 
+        string dataSetId,
+        ILogger logger)
+{
+    const string mergeSql = @"
+        -- 一時テーブルに今回処理するデータを格納
+        WITH SourceData AS (
+            -- 売上伝票から5項目キーを取得
+            SELECT DISTINCT 
+                ProductCode, 
+                GradeCode, 
+                ClassCode, 
+                ShippingMarkCode, 
+                ShippingMarkName
+            FROM SalesVouchers
+            WHERE JobDate = @jobDate
+            
+            UNION
+            
+            -- 仕入伝票から5項目キーを取得
+            SELECT DISTINCT 
+                ProductCode, 
+                GradeCode, 
+                ClassCode, 
+                ShippingMarkCode, 
+                ShippingMarkName
+            FROM PurchaseVouchers
+            WHERE JobDate = @jobDate
+            
+            UNION
+            
+            -- 在庫調整から5項目キーを取得
+            SELECT DISTINCT 
+                ProductCode, 
+                GradeCode, 
+                ClassCode, 
+                ShippingMarkCode, 
+                ShippingMarkName
+            FROM InventoryAdjustments
+            WHERE JobDate = @jobDate
+        )
+        MERGE InventoryMaster AS target
+        USING SourceData AS source
+        ON target.ProductCode = source.ProductCode
+            AND target.GradeCode = source.GradeCode
+            AND target.ClassCode = source.ClassCode
+            AND target.ShippingMarkCode = source.ShippingMarkCode
+            AND target.ShippingMarkName = source.ShippingMarkName
+        WHEN NOT MATCHED THEN
+            INSERT (
+                ProductCode, GradeCode, ClassCode, 
+                ShippingMarkCode, ShippingMarkName,
+                JobDate, DataSetId,
+                CurrentStock, PreviousDayStock,
+                CreatedDate, UpdatedDate
+            )
+            VALUES (
+                source.ProductCode, source.GradeCode, source.ClassCode,
+                source.ShippingMarkCode, source.ShippingMarkName,
+                @jobDate, @dataSetId,
+                0, 0,  -- 在庫数量は0で初期化
+                GETDATE(), GETDATE()
+            )
+        WHEN MATCHED AND (target.JobDate < @jobDate OR target.JobDate IS NULL) THEN
+            UPDATE SET 
+                JobDate = @jobDate,
+                DataSetId = @dataSetId,
+                UpdatedDate = GETDATE()
+        OUTPUT 
+            $action AS Action,
+            INSERTED.ProductCode;";
+    
+    var results = await connection.QueryAsync<dynamic>(
+        mergeSql,
+        new { jobDate, dataSetId },
+        commandTimeout: 300);
+    
+    var resultList = results.ToList();
+    var insertedCount = resultList.Count(r => r.Action == "INSERT");
+    var updatedCount = resultList.Count(r => r.Action == "UPDATE");
+    var processedCount = insertedCount + updatedCount;
+    
+    logger.LogDebug(
+        "MERGE完了 - JobDate: {JobDate}, Inserted: {Inserted}, Updated: {Updated}",
+        jobDate, insertedCount, updatedCount);
+    
+    return (processedCount, insertedCount, updatedCount);
 }
 
 /// <summary>
