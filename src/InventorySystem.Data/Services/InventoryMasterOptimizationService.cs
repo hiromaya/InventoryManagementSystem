@@ -212,15 +212,15 @@ namespace InventorySystem.Data.Services
                     FROM (
                         SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                         FROM SalesVouchers
-                        WHERE CONVERT(date, JobDate) = @jobDate AND Quantity <> 0
+                        WHERE CONVERT(date, JobDate) = @jobDate
                         UNION
                         SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                         FROM PurchaseVouchers
-                        WHERE CONVERT(date, JobDate) = @jobDate AND Quantity <> 0
+                        WHERE CONVERT(date, JobDate) = @jobDate
                         UNION
                         SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                         FROM InventoryAdjustments
-                        WHERE CONVERT(date, JobDate) = @jobDate AND Quantity <> 0
+                        WHERE CONVERT(date, JobDate) = @jobDate
                     ) AS products
                 ) AS source
                 ON target.ProductCode = source.ProductCode
@@ -258,12 +258,22 @@ namespace InventorySystem.Data.Services
                         0, 0, 0, 0, '9',
                         @dataSetId,
                         0, 0, 0, 0
-                    );";
+                    )
+                OUTPUT $action AS Action;";
             
-            return await connection.ExecuteAsync(
+            var results = await connection.QueryAsync<string>(
                 sql, 
                 new { jobDate, dataSetId }, 
                 transaction);
+                
+            var insertCount = results.Count(r => r == "INSERT");
+            var updateCount = results.Count(r => r == "UPDATE");
+            
+            _logger.LogInformation(
+                "在庫マスタMERGE完了 - 新規作成: {InsertCount}件, 更新: {UpdateCount}件", 
+                insertCount, updateCount);
+                
+            return insertCount + updateCount;
         }
 
         private async Task<int> CleanupOldJobDatesAsync(

@@ -1663,6 +1663,9 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             // ========== 在庫マスタ最適化処理 ==========
             await OptimizeInventoryMastersAsync(optimizationService, jobDate, logger);
             
+            // ========== アンマッチリスト処理 ==========
+            await ExecuteUnmatchListAfterImport(scopedServices, jobDate, logger);
+            
             // 処理結果のサマリを表示
             Console.WriteLine("\n=== フォルダ監視取込完了 ===");
             Console.WriteLine($"対象日付: {jobDate:yyyy-MM-dd}");
@@ -1756,6 +1759,64 @@ private static async Task OptimizeInventoryMastersAsync(IInventoryMasterOptimiza
         logger.LogError(ex, "在庫マスタの自動最適化中にエラーが発生しました");
         Console.WriteLine($"⚠️ 在庫マスタ最適化でエラーが発生しました: {ex.Message}");
         // エラーが発生してもCSVインポート自体は成功とする
+    }
+}
+
+/// <summary>
+/// インポート処理後のアンマッチリスト処理を実行
+/// </summary>
+private static async Task ExecuteUnmatchListAfterImport(IServiceProvider services, DateTime jobDate, ILogger<Program> logger)
+{
+    try
+    {
+        logger.LogInformation("アンマッチリスト処理を開始します");
+        Console.WriteLine("\n=== アンマッチリスト処理開始 ===");
+        
+        var unmatchListService = services.GetRequiredService<IUnmatchListService>();
+        var reportService = services.GetRequiredService<IUnmatchListReportService>();
+        var fileManagementService = services.GetRequiredService<IFileManagementService>();
+        
+        // アンマッチリスト処理実行
+        var result = await unmatchListService.ProcessUnmatchListAsync(jobDate);
+        
+        if (result.Success)
+        {
+            logger.LogInformation("アンマッチリスト処理が完了しました - アンマッチ件数: {Count}件", result.UnmatchCount);
+            Console.WriteLine($"✅ アンマッチリスト処理完了 - {result.UnmatchCount}件のアンマッチを検出");
+            
+            // PDF出力（0件でも生成）
+            try
+            {
+                var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, jobDate);
+                
+                if (pdfBytes != null && pdfBytes.Length > 0)
+                {
+                    // FileManagementServiceを使用してレポートパスを取得
+                    var pdfPath = await fileManagementService.GetReportOutputPathAsync("UnmatchList", jobDate, "pdf");
+                    
+                    await File.WriteAllBytesAsync(pdfPath, pdfBytes);
+                    
+                    logger.LogInformation("アンマッチリストPDFを保存しました: {Path}", pdfPath);
+                    Console.WriteLine($"  - PDFファイル: {Path.GetFileName(pdfPath)}");
+                }
+            }
+            catch (Exception pdfEx)
+            {
+                logger.LogError(pdfEx, "アンマッチリストPDF生成中にエラーが発生しました");
+                Console.WriteLine($"⚠️ PDF生成エラー: {pdfEx.Message}");
+            }
+        }
+        else
+        {
+            logger.LogError("アンマッチリスト処理が失敗しました: {ErrorMessage}", result.ErrorMessage);
+            Console.WriteLine($"❌ アンマッチリスト処理失敗: {result.ErrorMessage}");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "アンマッチリスト処理中にエラーが発生しました");
+        Console.WriteLine($"⚠️ アンマッチリスト処理でエラーが発生しました: {ex.Message}");
+        // エラーが発生してもインポート処理全体は成功とする
     }
 }
 
