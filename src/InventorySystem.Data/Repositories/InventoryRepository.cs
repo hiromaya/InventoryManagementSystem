@@ -21,7 +21,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
-                DataSetId, PreviousMonthQuantity, PreviousMonthAmount, PreviousDayQuantity, PreviousDayAmount
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             FROM InventoryMaster 
             WHERE JobDate = @JobDate
             ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
@@ -49,7 +49,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
-                DataSetId, PreviousMonthQuantity, PreviousMonthAmount, PreviousDayQuantity, PreviousDayAmount
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             FROM InventoryMaster 
             WHERE ProductCode = @ProductCode 
                 AND GradeCode = @GradeCode 
@@ -89,14 +89,14 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
-                DataSetId, PreviousMonthQuantity, PreviousMonthAmount, PreviousDayQuantity, PreviousDayAmount
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             ) VALUES (
                 @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
                 @ProductName, @Unit, @StandardPrice, @ProductCategory1, @ProductCategory2,
                 @JobDate, @CreatedDate, @UpdatedDate,
                 @CurrentStock, @CurrentStockAmount, @DailyStock, @DailyStockAmount,
                 @DailyFlag, @DailyGrossProfit, @DailyAdjustmentAmount, @DailyProcessingCost, @FinalGrossProfit,
-                @DataSetId, @PreviousMonthQuantity, @PreviousMonthAmount, @PreviousDayQuantity, @PreviousDayAmount
+                @DataSetId, @PreviousMonthQuantity, @PreviousMonthAmount
             )";
 
         try
@@ -135,9 +135,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 FinalGrossProfit = @FinalGrossProfit,
                 DataSetId = @DataSetId,
                 PreviousMonthQuantity = @PreviousMonthQuantity,
-                PreviousMonthAmount = @PreviousMonthAmount,
-                PreviousDayQuantity = @PreviousDayQuantity,
-                PreviousDayAmount = @PreviousDayAmount
+                PreviousMonthAmount = @PreviousMonthAmount
             WHERE ProductCode = @ProductCode 
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
@@ -210,14 +208,14 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
-                DataSetId, PreviousMonthQuantity, PreviousMonthAmount, PreviousDayQuantity, PreviousDayAmount
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             ) VALUES (
                 @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
                 @ProductName, @Unit, @StandardPrice, @ProductCategory1, @ProductCategory2,
                 @JobDate, @CreatedDate, @UpdatedDate,
                 @CurrentStock, @CurrentStockAmount, @DailyStock, @DailyStockAmount,
                 @DailyFlag, @DailyGrossProfit, @DailyAdjustmentAmount, @DailyProcessingCost, @FinalGrossProfit,
-                @DataSetId, @PreviousMonthQuantity, @PreviousMonthAmount, @PreviousDayQuantity, @PreviousDayAmount
+                @DataSetId, @PreviousMonthQuantity, @PreviousMonthAmount
             )";
 
         try
@@ -299,9 +297,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             inventory.FinalGrossProfit,
             inventory.DataSetId,
             inventory.PreviousMonthQuantity,
-            inventory.PreviousMonthAmount,
-            inventory.PreviousDayQuantity,
-            inventory.PreviousDayAmount
+            inventory.PreviousMonthAmount
         };
     }
     
@@ -385,7 +381,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, CreatedDate, UpdatedDate, DataSetId,
-                PreviousMonthQuantity, PreviousMonthAmount, PreviousDayQuantity, PreviousDayAmount
+                PreviousMonthQuantity, PreviousMonthAmount
             )
             SELECT DISTINCT
                 combined.ProductCode, 
@@ -408,9 +404,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 GETDATE(), 
                 '',
                 ISNULL(pmi.Quantity, 0.0000), -- 前月末在庫数量
-                ISNULL(pmi.Amount, 0.0000),   -- 前月末在庫金額
-                ISNULL(pmi.Quantity, 0.0000), -- 前日在庫数量（初期値として前月末と同じ）
-                ISNULL(pmi.Amount, 0.0000)    -- 前日在庫金額（初期値として前月末と同じ）
+                ISNULL(pmi.Amount, 0.0000)    -- 前月末在庫金額
             FROM (
                 SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                 FROM SalesVouchers 
@@ -523,7 +517,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
-                DataSetId, PreviousMonthQuantity, PreviousMonthAmount, PreviousDayQuantity, PreviousDayAmount
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             FROM InventoryMaster 
             WHERE ProductCode = @ProductCode 
                 AND GradeCode = @GradeCode 

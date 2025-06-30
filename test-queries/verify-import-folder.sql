@@ -1,15 +1,14 @@
 -- import-folderコマンド実行後の検証用SQL
 
--- 1. 前月末在庫と前日在庫が正しく設定されているか確認
+-- 1. 前月末在庫が正しく設定されているか確認
 SELECT 
     COUNT(*) as 総件数,
     COUNT(CASE WHEN PreviousMonthQuantity > 0 THEN 1 END) as 前月末在庫設定済み,
-    COUNT(CASE WHEN PreviousDayQuantity > 0 THEN 1 END) as 前日在庫設定済み,
-    COUNT(CASE WHEN PreviousMonthQuantity = PreviousDayQuantity THEN 1 END) as 一致件数
+    COUNT(CASE WHEN PreviousMonthAmount > 0 THEN 1 END) as 前月末金額設定済み
 FROM InventoryMaster
 WHERE JobDate = '2025-06-27';  -- 実行時のジョブ日付に変更
 
--- 2. 不整合チェック（前月末在庫と前日在庫が異なるレコード）
+-- 2. 前月末在庫の設定状況詳細
 SELECT 
     ProductCode,
     GradeCode,
@@ -17,20 +16,19 @@ SELECT
     ShippingMarkCode,
     ShippingMarkName,
     PreviousMonthQuantity,
-    PreviousDayQuantity,
     PreviousMonthAmount,
-    PreviousDayAmount
+    CurrentStock,
+    CurrentStockAmount
 FROM InventoryMaster
-WHERE (PreviousMonthQuantity != PreviousDayQuantity
-   OR PreviousMonthAmount != PreviousDayAmount)
-   AND JobDate = '2025-06-27';
+WHERE JobDate = '2025-06-27'
+  AND PreviousMonthQuantity > 0
+ORDER BY ProductCode;
 
 -- 3. 商品別の在庫状況サマリー
 SELECT 
     ProductCode,
     COUNT(*) as レコード数,
     SUM(PreviousMonthQuantity) as 前月末在庫数量合計,
-    SUM(PreviousDayQuantity) as 前日在庫数量合計,
     SUM(CurrentStock) as 現在在庫数量合計
 FROM InventoryMaster
 WHERE JobDate = '2025-06-27'
