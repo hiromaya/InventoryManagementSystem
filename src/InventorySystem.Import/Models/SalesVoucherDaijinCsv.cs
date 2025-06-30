@@ -85,7 +85,7 @@ public class SalesVoucherDaijinCsv
     public decimal Amount { get; set; }
     
     [Name("手入力項目(半角8文字)")]
-    [Index(157)]  // 158列目
+    [Index(152)]  // 153列目
     public string HandInputItem { get; set; } = string.Empty;
     
     [Name("１階層目行番号")]

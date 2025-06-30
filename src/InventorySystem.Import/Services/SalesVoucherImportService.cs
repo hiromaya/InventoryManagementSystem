@@ -100,6 +100,13 @@ public class SalesVoucherImportService
                         continue;
                     }
 
+                    // 商品コードがオール0の場合もスキップ（新仕様）
+                    if (CodeValidator.IsExcludedCode(record.ProductCode))
+                    {
+                        _logger.LogInformation("行{index}: 商品コードがオール0のためスキップします。伝票番号: {VoucherNumber}", index, record.VoucherNumber);
+                        continue;
+                    }
+
                     if (!record.IsValidSalesVoucher())
                     {
                         var error = $"行{index}: 不正な売上伝票データ - 伝票番号: {record.VoucherNumber}";

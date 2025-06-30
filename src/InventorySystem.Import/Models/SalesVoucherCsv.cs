@@ -137,13 +137,13 @@ public class SalesVoucherCsv
             return false;
         }
 
-        // 必須項目チェック
+        // 必須項目チェック（荷印名のチェックを修正）
         if (string.IsNullOrWhiteSpace(VoucherNumber) ||
             string.IsNullOrWhiteSpace(ProductCode) ||
             string.IsNullOrWhiteSpace(GradeCode) ||
             string.IsNullOrWhiteSpace(ClassCode) ||
             string.IsNullOrWhiteSpace(ShippingMarkCode) ||
-            string.IsNullOrWhiteSpace(ShippingMarkName))
+            string.IsNullOrEmpty(ShippingMarkName))  // WhiteSpaceではなくEmptyに変更（空白8文字も有効）
         {
             return false;
         }
