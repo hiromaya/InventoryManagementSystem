@@ -421,7 +421,12 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                     AND Quantity != 0
             ) AS combined
             LEFT JOIN ProductMaster pm ON pm.ProductCode = combined.ProductCode
-            LEFT JOIN PreviousMonthInventory pmi ON 
+            LEFT JOIN (
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                       PreviousMonthQuantity AS Quantity, PreviousMonthAmount AS Amount
+                FROM InventoryMaster
+                WHERE PreviousMonthQuantity IS NOT NULL OR PreviousMonthAmount IS NOT NULL
+            ) pmi ON 
                 pmi.ProductCode = combined.ProductCode
                 AND pmi.GradeCode = combined.GradeCode
                 AND pmi.ClassCode = combined.ClassCode
