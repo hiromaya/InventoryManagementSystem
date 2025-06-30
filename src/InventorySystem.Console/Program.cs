@@ -1664,7 +1664,8 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             await OptimizeInventoryMastersAsync(optimizationService, jobDate, logger);
             
             // ========== アンマッチリスト処理 ==========
-            await ExecuteUnmatchListAfterImport(scopedServices, jobDate, logger);
+            // 注意：アンマッチリスト処理は別途 create-unmatch-list コマンドで実行してください
+            // await ExecuteUnmatchListAfterImport(scopedServices, jobDate, logger);
             
             // 処理結果のサマリを表示
             Console.WriteLine("\n=== フォルダ監視取込完了 ===");
