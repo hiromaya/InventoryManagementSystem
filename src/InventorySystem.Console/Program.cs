@@ -1660,7 +1660,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             
             // ========== 在庫マスタ最適化処理 ==========
             logger.LogInformation("========== 在庫マスタ最適化処理開始 ==========");
-            logger.LogInformation("DataSetId: {DataSetId}", department);
+            logger.LogInformation("本日取り込まれたデータを対象に最適化を実行します（CreatedDate = {Today}）", DateTime.Today);
 
             try
             {
@@ -1678,27 +1678,29 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 // 今回の取込で登録されたすべての日付を取得
                 logger.LogInformation("取り込まれたデータの日付を確認中...");
                 
+                // CreatedDateが今日のデータから日付を取得（DataSetIdの形式に依存しない）
                 var importedDatesQuery = @"
-                    SELECT DISTINCT JobDate 
+                    SELECT DISTINCT CAST(JobDate AS DATE) as JobDate
                     FROM (
-                        SELECT JobDate FROM SalesVouchers WHERE DataSetId = @dataSetId
+                        SELECT JobDate FROM SalesVouchers 
+                        WHERE CAST(CreatedDate AS DATE) = CAST(GETDATE() AS DATE)
                         UNION
-                        SELECT JobDate FROM PurchaseVouchers WHERE DataSetId = @dataSetId
+                        SELECT JobDate FROM PurchaseVouchers 
+                        WHERE CAST(CreatedDate AS DATE) = CAST(GETDATE() AS DATE)
                         UNION
-                        SELECT JobDate FROM InventoryAdjustments WHERE DataSetId = @dataSetId
+                        SELECT JobDate FROM InventoryAdjustments 
+                        WHERE CAST(CreatedDate AS DATE) = CAST(GETDATE() AS DATE)
                     ) AS AllDates
                     ORDER BY JobDate";
                 
-                var importedDates = await connection.QueryAsync<DateTime>(
-                    importedDatesQuery,
-                    new { dataSetId = department });
+                var importedDates = await connection.QueryAsync<DateTime>(importedDatesQuery);
                 
                 var dateList = importedDates.ToList();
                 
                 if (!dateList.Any())
                 {
-                    logger.LogWarning("取り込まれたデータが見つかりません。DataSetId={DataSetId}", department);
-                    Console.WriteLine("⚠️ 在庫マスタ最適化対象のデータがありません");
+                    logger.LogWarning("本日取り込まれたデータが見つかりません。CreatedDate={Today}", DateTime.Today);
+                    Console.WriteLine("⚠️ 在庫マスタ最適化対象のデータがありません（本日取り込まれたデータなし）");
                 }
                 else
                 {
