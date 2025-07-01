@@ -287,6 +287,10 @@ try
             await ExecuteInitInventoryCommand(host.Services, commandArgs);
             break;
         
+        case "check-daily-close":
+            await ExecuteCheckDailyCloseAsync(host.Services, commandArgs);
+            break;
+        
         default:
             Console.WriteLine($"不明なコマンド: {command}");
             return 1;
@@ -1999,6 +2003,120 @@ private static async Task ExecuteUnmatchListAfterImport(IServiceProvider service
         logger.LogError(ex, "アンマッチリスト処理中にエラーが発生しました");
         Console.WriteLine($"⚠️ アンマッチリスト処理でエラーが発生しました: {ex.Message}");
         // エラーが発生してもインポート処理全体は成功とする
+    }
+}
+
+/// <summary>
+/// 日次終了処理の事前確認を実行
+/// </summary>
+private static async Task ExecuteCheckDailyCloseAsync(IServiceProvider services, string[] args)
+{
+    using (var scope = services.CreateScope())
+    {
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var dailyCloseService = scopedServices.GetRequiredService<IDailyCloseService>();
+        
+        // ジョブ日付を取得
+        DateTime jobDate;
+        if (args.Length >= 3 && DateTime.TryParse(args[2], out jobDate))
+        {
+            logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+        }
+        else
+        {
+            jobDate = DateTime.Today;
+            logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+        }
+        
+        try
+        {
+            Console.WriteLine("=== 日次終了処理 事前確認 ===");
+            Console.WriteLine($"対象日付: {jobDate:yyyy-MM-dd}");
+            Console.WriteLine($"現在時刻: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            Console.WriteLine();
+            
+            // 確認情報を取得
+            var confirmation = await dailyCloseService.GetConfirmationInfo(jobDate);
+            
+            // 商品日報情報
+            if (confirmation.DailyReport != null)
+            {
+                Console.WriteLine("【商品日報情報】");
+                Console.WriteLine($"  作成時刻: {confirmation.DailyReport.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+                Console.WriteLine($"  作成者: {confirmation.DailyReport.CreatedBy}");
+                Console.WriteLine($"  DatasetId: {confirmation.DailyReport.DatasetId}");
+                Console.WriteLine();
+            }
+            
+            // 最新CSV取込情報
+            if (confirmation.LatestCsvImport != null)
+            {
+                Console.WriteLine("【最新CSV取込情報】");
+                Console.WriteLine($"  取込時刻: {confirmation.LatestCsvImport.ImportedAt:yyyy-MM-dd HH:mm:ss}");
+                Console.WriteLine($"  取込者: {confirmation.LatestCsvImport.ImportedBy}");
+                Console.WriteLine($"  ファイル: {confirmation.LatestCsvImport.FileNames}");
+                Console.WriteLine();
+            }
+            
+            // データ件数サマリー
+            Console.WriteLine("【データ件数】");
+            Console.WriteLine($"  売上伝票: {confirmation.DataCounts.SalesCount:N0}件");
+            Console.WriteLine($"  仕入伝票: {confirmation.DataCounts.PurchaseCount:N0}件");
+            Console.WriteLine($"  在庫調整: {confirmation.DataCounts.AdjustmentCount:N0}件");
+            Console.WriteLine($"  CP在庫: {confirmation.DataCounts.CpInventoryCount:N0}件");
+            Console.WriteLine();
+            
+            // 金額サマリー
+            Console.WriteLine("【金額サマリー】");
+            Console.WriteLine($"  売上総額: {confirmation.Amounts.SalesAmount:C}");
+            Console.WriteLine($"  仕入総額: {confirmation.Amounts.PurchaseAmount:C}");
+            Console.WriteLine($"  推定粗利: {confirmation.Amounts.EstimatedGrossProfit:C}");
+            Console.WriteLine();
+            
+            // 検証結果
+            if (confirmation.ValidationResults.Any())
+            {
+                Console.WriteLine("【検証結果】");
+                foreach (var validation in confirmation.ValidationResults.OrderBy(v => v.Level))
+                {
+                    var prefix = validation.Level switch
+                    {
+                        ValidationLevel.Error => "❌ エラー",
+                        ValidationLevel.Warning => "⚠️  警告",
+                        ValidationLevel.Info => "ℹ️  情報",
+                        _ => "   "
+                    };
+                    
+                    Console.WriteLine($"{prefix}: {validation.Message}");
+                    if (!string.IsNullOrEmpty(validation.Detail))
+                    {
+                        Console.WriteLine($"         {validation.Detail}");
+                    }
+                }
+                Console.WriteLine();
+            }
+            
+            // 処理可否
+            Console.WriteLine("【処理可否判定】");
+            if (confirmation.CanProcess)
+            {
+                Console.WriteLine("✅ 日次終了処理を実行可能です");
+                Console.WriteLine();
+                Console.WriteLine("実行するには以下のコマンドを使用してください:");
+                Console.WriteLine($"  dotnet run daily-close {jobDate:yyyy-MM-dd}");
+            }
+            else
+            {
+                Console.WriteLine("❌ 日次終了処理を実行できません");
+                Console.WriteLine("上記のエラーを解決してから再度実行してください。");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "日次終了処理の事前確認でエラーが発生しました");
+            Console.WriteLine($"エラー: {ex.Message}");
+        }
     }
 }
 

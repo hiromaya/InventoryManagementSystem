@@ -1,3 +1,5 @@
+using InventorySystem.Core.Models;
+
 namespace InventorySystem.Core.Interfaces;
 
 /// <summary>
@@ -18,4 +20,11 @@ public interface IDailyCloseService
     /// <param name="jobDate">処理対象日付</param>
     /// <returns>完了している場合true</returns>
     Task<bool> IsDailyClosedAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// 日次終了処理の確認情報を取得
+    /// </summary>
+    /// <param name="jobDate">処理対象日付</param>
+    /// <returns>確認情報</returns>
+    Task<DailyCloseConfirmation> GetConfirmationInfo(DateTime jobDate);
 }

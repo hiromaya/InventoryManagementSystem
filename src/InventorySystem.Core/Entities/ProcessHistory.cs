@@ -51,6 +51,11 @@ public class ProcessHistory
     public string ExecutedBy { get; set; } = string.Empty;
     
     /// <summary>
+    /// データハッシュ値
+    /// </summary>
+    public string? DataHash { get; set; }
+    
+    /// <summary>
     /// データセット管理（ナビゲーションプロパティ）
     /// </summary>
     public DatasetManagement? Dataset { get; set; }

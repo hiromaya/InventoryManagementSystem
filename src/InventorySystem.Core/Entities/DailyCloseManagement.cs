@@ -39,4 +39,19 @@ public class DailyCloseManagement
     /// 処理者
     /// </summary>
     public string ProcessedBy { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// データハッシュ値
+    /// </summary>
+    public string? DataHash { get; set; }
+
+    /// <summary>
+    /// 検証ステータス（PASSED/FAILED/WARNING）
+    /// </summary>
+    public string? ValidationStatus { get; set; }
+
+    /// <summary>
+    /// 備考（データ件数等の情報）
+    /// </summary>
+    public string? Remarks { get; set; }
 }

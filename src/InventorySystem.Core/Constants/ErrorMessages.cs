@@ -34,4 +34,34 @@ public static class ErrorMessages
     /// データセット不整合エラー
     /// </summary>
     public const string DatasetInconsistentError = "データセットが見つかりません。データの整合性を確認してください。";
+    
+    /// <summary>
+    /// 日次終了処理は15:00以降にのみ実行可能です。
+    /// </summary>
+    public const string DailyCloseTimeTooEarly = "日次終了処理は15:00以降にのみ実行可能です。現在時刻: {0}";
+    
+    /// <summary>
+    /// 商品日報作成から30分以上経過する必要があります。
+    /// </summary>
+    public const string DailyReportTooRecent = "商品日報作成から30分以上経過する必要があります。商品日報作成時刻: {0}、経過時間: {1}分";
+    
+    /// <summary>
+    /// データが商品日報作成時から変更されています。
+    /// </summary>
+    public const string DataIntegrityError = "データが商品日報作成時から変更されています。商品日報作成後に以下のデータが変更されました: {0}";
+    
+    /// <summary>
+    /// CSV取込から5分以上経過する必要があります。
+    /// </summary>
+    public const string CsvImportTooRecent = "CSV取込から5分以上経過する必要があります。最新取込時刻: {0}、経過時間: {1}分";
+    
+    /// <summary>
+    /// 商品日報が作成されていません。
+    /// </summary>
+    public const string DailyReportNotFound = "対象日付の商品日報が作成されていません。先に商品日報を作成してください。";
+    
+    /// <summary>
+    /// 日次終了処理は既に実行されています。
+    /// </summary>
+    public const string DailyCloseAlreadyExecuted = "対象日付の日次終了処理は既に実行されています。実行時刻: {0}";
 }
