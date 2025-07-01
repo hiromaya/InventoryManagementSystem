@@ -8,4 +8,7 @@ public interface IPurchaseVoucherRepository
     Task<int> CreateAsync(PurchaseVoucher voucher);
     Task<int> BulkInsertAsync(IEnumerable<PurchaseVoucher> vouchers);
     Task<int> DeleteByJobDateAsync(DateTime jobDate);
+    Task<int> GetCountAsync(DateTime jobDate);
+    Task<decimal> GetTotalAmountAsync(DateTime jobDate);
+    Task<int> GetModifiedAfterAsync(DateTime jobDate, DateTime modifiedAfter);
 }

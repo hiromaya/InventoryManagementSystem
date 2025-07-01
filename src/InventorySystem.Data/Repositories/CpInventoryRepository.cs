@@ -502,4 +502,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             return defaultValue;
         }
     }
+    
+    public async Task<int> GetCountAsync(DateTime jobDate)
+    {
+        const string sql = "SELECT COUNT(*) FROM CpInventoryMaster WHERE JobDate = @jobDate";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteScalarAsync<int>(sql, new { jobDate });
+    }
 }

@@ -178,4 +178,32 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
             throw;
         }
     }
+    
+    public async Task<int> GetCountAsync(DateTime jobDate)
+    {
+        const string sql = "SELECT COUNT(*) FROM PurchaseVouchers WHERE JobDate = @jobDate";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteScalarAsync<int>(sql, new { jobDate });
+    }
+    
+    public async Task<decimal> GetTotalAmountAsync(DateTime jobDate)
+    {
+        const string sql = "SELECT ISNULL(SUM(Amount), 0) FROM PurchaseVouchers WHERE JobDate = @jobDate";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteScalarAsync<decimal>(sql, new { jobDate });
+    }
+    
+    public async Task<int> GetModifiedAfterAsync(DateTime jobDate, DateTime modifiedAfter)
+    {
+        const string sql = @"
+            SELECT COUNT(*) 
+            FROM PurchaseVouchers 
+            WHERE JobDate = @jobDate 
+            AND CreatedDate > @modifiedAfter";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteScalarAsync<int>(sql, new { jobDate, modifiedAfter });
+    }
 }

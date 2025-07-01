@@ -56,4 +56,14 @@ public interface IInventoryAdjustmentRepository
     /// ジョブ日付で在庫調整データを削除
     /// </summary>
     Task<int> DeleteByJobDateAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// ジョブ日付での件数を取得
+    /// </summary>
+    Task<int> GetCountAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// 指定日時以降に変更されたデータ件数を取得
+    /// </summary>
+    Task<int> GetModifiedAfterAsync(DateTime jobDate, DateTime modifiedAfter);
 }

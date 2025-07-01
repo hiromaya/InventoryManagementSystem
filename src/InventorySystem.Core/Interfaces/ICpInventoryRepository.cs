@@ -83,4 +83,9 @@ public interface ICpInventoryRepository
     /// 集計結果を取得する
     /// </summary>
     Task<InventorySystem.Core.Models.AggregationResult> GetAggregationResultAsync(string dataSetId);
+    
+    /// <summary>
+    /// ジョブ日付での件数を取得
+    /// </summary>
+    Task<int> GetCountAsync(DateTime jobDate);
 }

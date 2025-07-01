@@ -365,4 +365,24 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
             throw;
         }
     }
+    
+    public async Task<int> GetCountAsync(DateTime jobDate)
+    {
+        const string sql = "SELECT COUNT(*) FROM InventoryAdjustments WHERE JobDate = @jobDate";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteScalarAsync<int>(sql, new { jobDate });
+    }
+    
+    public async Task<int> GetModifiedAfterAsync(DateTime jobDate, DateTime modifiedAfter)
+    {
+        const string sql = @"
+            SELECT COUNT(*) 
+            FROM InventoryAdjustments 
+            WHERE JobDate = @jobDate 
+            AND CreatedDate > @modifiedAfter";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteScalarAsync<int>(sql, new { jobDate, modifiedAfter });
+    }
 }

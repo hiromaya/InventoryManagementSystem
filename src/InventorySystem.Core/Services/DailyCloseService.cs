@@ -484,9 +484,9 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         
         // 在庫調整データ
         var adjustments = await _adjustmentRepository.GetByJobDateAsync(jobDate);
-        foreach (var adjustment in adjustments.OrderBy(a => a.Id))
+        foreach (var adjustment in adjustments.OrderBy(a => a.VoucherId).ThenBy(a => a.LineNumber))
         {
-            dataBuilder.AppendLine($"ADJUST:{adjustment.Id},{adjustment.ProductCode},{adjustment.Quantity},{adjustment.Amount}");
+            dataBuilder.AppendLine($"ADJUST:{adjustment.VoucherId}-{adjustment.LineNumber},{adjustment.ProductCode},{adjustment.Quantity},{adjustment.Amount}");
         }
         
         var dataBytes = Encoding.UTF8.GetBytes(dataBuilder.ToString());
