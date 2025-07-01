@@ -38,8 +38,27 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
             using var connection = new SqlConnection(_connectionString);
             var now = DateTime.Now;
             
+            // デバッグログ追加: 保存前のデータ確認
+            var voucherList = vouchers.ToList();
+            _logger.LogDebug("BulkInsert開始: {Count}件", voucherList.Count);
+            
+            // 最初の5件のJobDateを確認
+            foreach (var voucher in voucherList.Take(5))
+            {
+                _logger.LogDebug("保存データ: VoucherNumber={Number}, JobDate={JobDate:yyyy-MM-dd}, VoucherDate={VoucherDate:yyyy-MM-dd}",
+                    voucher.VoucherNumber, voucher.JobDate, voucher.VoucherDate);
+            }
+            
+            // JobDateの分布を確認
+            var jobDateGroups = voucherList.GroupBy(v => v.JobDate.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() });
+            foreach (var group in jobDateGroups)
+            {
+                _logger.LogInformation("JobDate分布: {Date:yyyy-MM-dd} = {Count}件", group.Date, group.Count);
+            }
+            
             // LineNumberはすでにToEntityで設定されているため、そのまま使用
-            var parameters = vouchers.Select(voucher => new
+            var parameters = voucherList.Select(voucher => new
             {
                 voucher.VoucherId,  // すでに正しく設定されている
                 voucher.LineNumber, // すでに正しく設定されている

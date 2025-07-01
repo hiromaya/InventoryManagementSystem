@@ -118,6 +118,23 @@ public class SalesVoucherImportService
                     }
 
                     var salesVoucher = record.ToEntity(dataSetId);
+                    
+                    // デバッグログ追加: エンティティ変換後
+                    if (index <= 10)
+                    {
+                        _logger.LogDebug("Entity変換後: VoucherDate={VoucherDate:yyyy-MM-dd}, JobDate={JobDate:yyyy-MM-dd}, ImportJobDate={ImportJobDate:yyyy-MM-dd}", 
+                            salesVoucher.VoucherDate, salesVoucher.JobDate, jobDate);
+                    }
+                    
+                    // デバッグログ追加: JobDateの上書き前に確認
+                    if (salesVoucher.JobDate.Date != jobDate.Date)
+                    {
+                        _logger.LogWarning("JobDateの不一致: CSV={CsvJobDate:yyyy-MM-dd}, パラメータ={ParamJobDate:yyyy-MM-dd}",
+                            salesVoucher.JobDate, jobDate);
+                    }
+                    
+                    // JobDateをパラメータで上書き（重要な修正）
+                    salesVoucher.JobDate = jobDate;
                     salesVoucher.DepartmentCode = departmentCode;
                     salesVouchers.Add(salesVoucher);
                     importedCount++;
@@ -219,6 +236,11 @@ public class SalesVoucherImportService
         await csv.ReadAsync();
         csv.ReadHeader();
         
+        // デバッグログ追加: CSVヘッダー確認
+        var headers = csv.HeaderRecord;
+        _logger.LogDebug("CSVヘッダー数: {HeaderCount}, JobDate列インデックス: {JobDateIndex}", 
+            headers?.Length ?? 0, Array.IndexOf(headers ?? new string[0], "ジョブデート"));
+        
         var records = new List<SalesVoucherDaijinCsv>();
         var rowNumber = 1;
         
@@ -230,6 +252,13 @@ public class SalesVoucherImportService
                 var record = csv.GetRecord<SalesVoucherDaijinCsv>();
                 if (record != null)
                 {
+                    // デバッグログ追加: 各レコード読み込み時
+                    if (rowNumber <= 11)
+                    {
+                        _logger.LogDebug("CSV行{LineNumber}: VoucherDate='{VoucherDate}', JobDate='{JobDate}', VoucherNumber='{VoucherNumber}'", 
+                            rowNumber, record.VoucherDate, record.JobDate, record.VoucherNumber);
+                    }
+                    
                     // 最初の10件は詳細ログ出力（文字化け調査用）
                     if (rowNumber <= 11)
                     {

@@ -158,22 +158,64 @@ namespace InventorySystem.Data.Services
             using var transaction = connection.BeginTransaction();
             try
             {
-                _logger.LogInformation("在庫マスタ最適化開始: {JobDate:yyyy-MM-dd}", jobDate);
+                _logger.LogInformation("在庫マスタ最適化開始: JobDate={JobDate:yyyy-MM-dd}, DataSetId={DataSetId}", 
+                    jobDate, dataSetId);
+                
+                // デバッグログ追加: 売上伝票検索条件
+                _logger.LogDebug("売上伝票検索条件: CAST(JobDate AS DATE) = CAST('{JobDate:yyyy-MM-dd}' AS DATE)", jobDate);
+                
+                // SQLパラメータ確認
+                _logger.LogDebug("SQLパラメータ: @jobDate={JobDate}, Type={Type}", jobDate, jobDate.GetType().Name);
                 
                 // 1. 売上商品の取得
                 var salesProducts = await GetSalesProductsAsync(connection, transaction, jobDate);
                 result.SalesProductCount = salesProducts.Count;
                 _logger.LogInformation("売上商品数: {Count}件", salesProducts.Count);
                 
+                // デバッグログ追加: 売上商品が0件の場合の詳細確認
+                if (salesProducts.Count == 0)
+                {
+                    var allDates = await connection.QueryAsync<DateTime>(
+                        "SELECT DISTINCT CAST(JobDate AS DATE) as JobDate FROM SalesVouchers ORDER BY JobDate DESC", 
+                        null, transaction);
+                    _logger.LogWarning("売上伝票の全JobDate: {Dates}", 
+                        string.Join(", ", allDates.Select(d => d.ToString("yyyy-MM-dd"))));
+                        
+                    var recentCount = await connection.QueryScalarAsync<int>(
+                        "SELECT COUNT(*) FROM SalesVouchers WHERE CreatedDate >= DATEADD(day, -1, GETDATE())",
+                        null, transaction);
+                    _logger.LogWarning("直近24時間内の売上伝票件数: {Count}件", recentCount);
+                }
+                
                 // 2. 仕入商品の取得
+                _logger.LogDebug("仕入伝票検索条件: CAST(JobDate AS DATE) = CAST('{JobDate:yyyy-MM-dd}' AS DATE)", jobDate);
                 var purchaseProducts = await GetPurchaseProductsAsync(connection, transaction, jobDate);
                 result.PurchaseProductCount = purchaseProducts.Count;
                 _logger.LogInformation("仕入商品数: {Count}件", purchaseProducts.Count);
                 
+                if (purchaseProducts.Count == 0)
+                {
+                    var allDates = await connection.QueryAsync<DateTime>(
+                        "SELECT DISTINCT CAST(JobDate AS DATE) as JobDate FROM PurchaseVouchers ORDER BY JobDate DESC", 
+                        null, transaction);
+                    _logger.LogWarning("仕入伝票の全JobDate: {Dates}", 
+                        string.Join(", ", allDates.Select(d => d.ToString("yyyy-MM-dd"))));
+                }
+                
                 // 3. 在庫調整商品の取得
+                _logger.LogDebug("在庫調整検索条件: CAST(JobDate AS DATE) = CAST('{JobDate:yyyy-MM-dd}' AS DATE)", jobDate);
                 var adjustmentProducts = await GetAdjustmentProductsAsync(connection, transaction, jobDate);
                 result.AdjustmentProductCount = adjustmentProducts.Count;
                 _logger.LogInformation("在庫調整商品数: {Count}件", adjustmentProducts.Count);
+                
+                if (adjustmentProducts.Count == 0)
+                {
+                    var allDates = await connection.QueryAsync<DateTime>(
+                        "SELECT DISTINCT CAST(JobDate AS DATE) as JobDate FROM InventoryAdjustments ORDER BY JobDate DESC", 
+                        null, transaction);
+                    _logger.LogWarning("在庫調整の全JobDate: {Dates}", 
+                        string.Join(", ", allDates.Select(d => d.ToString("yyyy-MM-dd"))));
+                }
                 
                 // 4. すべての商品を統合（重複除去）
                 var allProducts = salesProducts

@@ -27,16 +27,22 @@ using InventorySystem.Reports.Services;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using System.Globalization;
 
 // Program クラスの定義
 public class Program
 {
     public static async Task<int> Main(string[] args)
     {
+        // カルチャー設定（日付処理の一貫性を保つため）
+        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+        CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+        
         // 実行環境情報の表示
 Console.WriteLine($"実行環境: {Environment.OSVersion}");
 Console.WriteLine($".NET Runtime: {Environment.Version}");
 Console.WriteLine($"実行ディレクトリ: {Environment.CurrentDirectory}");
+Console.WriteLine($"現在のカルチャー: {CultureInfo.CurrentCulture.Name} (InvariantCultureに統一)");
 
 // FastReportテストコマンドの早期処理
 if (args.Length > 0 && args[0] == "test-fastreport")
@@ -160,6 +166,9 @@ builder.Services.AddScoped<PreviousMonthInventoryImportService>();
 
 // 在庫マスタ最適化サービス
 builder.Services.AddScoped<IInventoryMasterOptimizationService, InventorySystem.Data.Services.InventoryMasterOptimizationService>();
+
+// 特殊日付範囲サービス
+builder.Services.AddScoped<ISpecialDateRangeService, SpecialDateRangeService>();
 
 var host = builder.Build();
 
@@ -1607,22 +1616,46 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     // ========== Phase 3: 伝票系ファイル ==========
                     else if (fileName.StartsWith("売上伝票"))
                     {
+                        // デバッグログ追加: 売上伝票インポート開始
+                        logger.LogDebug("売上伝票インポート開始: FileName={FileName}, JobDate={JobDate:yyyy-MM-dd}", 
+                            fileName, jobDate);
+                        
                         var dataSetId = await salesImportService.ImportAsync(file, jobDate, department);
+                        
+                        // デバッグログ追加: 売上伝票インポート完了
+                        logger.LogDebug("売上伝票インポート完了: DataSetId={DataSetId}", dataSetId);
+                        
                         Console.WriteLine($"✅ 売上伝票として処理完了 - データセットID: {dataSetId}");
                         processedCounts["売上伝票"] = 1; // TODO: 実際の件数を取得
                         // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     else if (fileName.StartsWith("仕入伝票"))
                     {
+                        // デバッグログ追加: 仕入伝票インポート開始
+                        logger.LogDebug("仕入伝票インポート開始: FileName={FileName}, JobDate={JobDate:yyyy-MM-dd}", 
+                            fileName, jobDate);
+                        
                         var dataSetId = await purchaseImportService.ImportAsync(file, jobDate, department);
+                        
+                        // デバッグログ追加: 仕入伝票インポート完了
+                        logger.LogDebug("仕入伝票インポート完了: DataSetId={DataSetId}", dataSetId);
+                        
                         Console.WriteLine($"✅ 仕入伝票として処理完了 - データセットID: {dataSetId}");
                         processedCounts["仕入伝票"] = 1; // TODO: 実際の件数を取得
                         // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     else if (fileName.StartsWith("受注伝票"))
                     {
+                        // デバッグログ追加: 受注伝票インポート開始
+                        logger.LogDebug("受注伝票インポート開始: FileName={FileName}, JobDate={JobDate:yyyy-MM-dd}", 
+                            fileName, jobDate);
+                        
                         // 受注伝票は在庫調整として処理
                         var dataSetId = await adjustmentImportService.ImportAsync(file, jobDate, department);
+                        
+                        // デバッグログ追加: 受注伝票インポート完了
+                        logger.LogDebug("受注伝票インポート完了: DataSetId={DataSetId}", dataSetId);
+                        
                         Console.WriteLine($"✅ 在庫調整として処理完了 - データセットID: {dataSetId}");
                         processedCounts["受注伝票（在庫調整）"] = 1; // TODO: 実際の件数を取得
                         // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み

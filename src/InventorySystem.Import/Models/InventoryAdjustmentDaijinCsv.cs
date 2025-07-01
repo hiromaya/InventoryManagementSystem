@@ -267,29 +267,44 @@ public class InventoryAdjustmentDaijinCsv
     }
 
     /// <summary>
-    /// 日付文字列をDateTimeに変換（YYYYMMDD形式対応）
+    /// 日付文字列をDateTimeに変換（ロケール非依存）
     /// </summary>
     private static DateTime ParseDate(string dateStr)
     {
         if (string.IsNullOrEmpty(dateStr))
-            return DateTime.Today;
-        
-        // YYYYMMDD形式の日付を解析
-        if (dateStr.Length == 8 && int.TryParse(dateStr, out _))
         {
-            if (DateTime.TryParseExact(dateStr, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
-            {
-                return date;
-            }
+            // 空の場合はエラーとして扱う（DateTime.TodayではなくMinValueを返す）
+            return DateTime.MinValue;
         }
         
-        // その他の形式も試す
-        if (DateTime.TryParse(dateStr, out var parsedDate))
+        // サポートする日付形式を定義（優先順）
+        string[] dateFormats = new[]
+        {
+            "yyyy/MM/dd",     // CSVで最も使用される形式（例：2025/06/30）
+            "yyyy-MM-dd",     // ISO形式
+            "yyyyMMdd",       // 8桁数値形式
+            "yyyy/M/d",       // 月日が1桁の場合
+            "yyyy-M-d",       // ISO形式で月日が1桁
+            "dd/MM/yyyy",     // ヨーロッパ形式（念のため）
+            "dd.MM.yyyy"      // ドイツ語圏形式（念のため）
+        };
+        
+        // InvariantCultureで複数形式を試行
+        if (DateTime.TryParseExact(dateStr.Trim(), dateFormats, 
+            CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
+            return date;
+        }
+        
+        // 最終手段：InvariantCultureで標準解析
+        if (DateTime.TryParse(dateStr.Trim(), CultureInfo.InvariantCulture, 
+            DateTimeStyles.None, out var parsedDate))
         {
             return parsedDate.Date;
         }
         
-        return DateTime.Today;
+        // 解析失敗
+        return DateTime.MinValue;
     }
 
     /// <summary>
