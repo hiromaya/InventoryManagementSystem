@@ -181,7 +181,7 @@ namespace InventorySystem.Data.Services
                     _logger.LogWarning("売上伝票の全JobDate: {Dates}", 
                         string.Join(", ", allDates.Select(d => d.ToString("yyyy-MM-dd"))));
                         
-                    var recentCount = await connection.QueryScalarAsync<int>(
+                    var recentCount = await connection.QuerySingleAsync<int>(
                         "SELECT COUNT(*) FROM SalesVouchers WHERE CreatedDate >= DATEADD(day, -1, GETDATE())",
                         null, transaction);
                     _logger.LogWarning("直近24時間内の売上伝票件数: {Count}件", recentCount);
