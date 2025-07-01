@@ -144,6 +144,7 @@ builder.Services.AddScoped<IDailyCloseManagementRepository>(provider =>
 builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
+builder.Services.AddScoped<ICpInventoryCreationService, CpInventoryCreationService>();
 // Report Services - プラットフォーム別実装
 #if WINDOWS
 builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
@@ -289,6 +290,10 @@ try
         
         case "check-daily-close":
             await ExecuteCheckDailyCloseAsync(host.Services, commandArgs);
+            break;
+            
+        case "create-cp-inventory":
+            await ExecuteCreateCpInventoryAsync(host.Services, commandArgs);
             break;
         
         default:
@@ -2117,6 +2122,95 @@ private static async Task ExecuteCheckDailyCloseAsync(IServiceProvider services,
         catch (Exception ex)
         {
             logger.LogError(ex, "日次終了処理の事前確認でエラーが発生しました");
+            Console.WriteLine($"エラー: {ex.Message}");
+        }
+    }
+}
+
+/// <summary>
+/// CP在庫マスタ作成コマンドを実行
+/// </summary>
+private static async Task ExecuteCreateCpInventoryAsync(IServiceProvider services, string[] args)
+{
+    using (var scope = services.CreateScope())
+    {
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var cpInventoryCreationService = scopedServices.GetRequiredService<ICpInventoryCreationService>();
+        
+        // ジョブ日付を取得
+        DateTime jobDate;
+        if (args.Length >= 3 && DateTime.TryParse(args[2], out jobDate))
+        {
+            logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+        }
+        else
+        {
+            jobDate = DateTime.Today;
+            logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+        }
+
+        // データセットIDを生成
+        var dataSetId = $"CP_INVENTORY_{DateTime.Now:yyyyMMdd_HHmmss}";
+        
+        try
+        {
+            Console.WriteLine("=== CP在庫マスタ作成 ===");
+            Console.WriteLine($"処理日付: {jobDate:yyyy-MM-dd}");
+            Console.WriteLine($"データセットID: {dataSetId}");
+            Console.WriteLine();
+            
+            // CP在庫マスタ作成実行
+            var result = await cpInventoryCreationService.CreateCpInventoryFromInventoryMasterAsync(jobDate, dataSetId);
+            
+            if (result.Success)
+            {
+                Console.WriteLine("=== 処理結果 ===");
+                Console.WriteLine($"削除された既存レコード: {result.DeletedCount}件");
+                Console.WriteLine($"在庫マスタからコピー: {result.CopiedCount}件");
+                Console.WriteLine();
+                
+                if (result.Warnings.Any())
+                {
+                    Console.WriteLine("⚠️ 警告:");
+                    foreach (var warning in result.Warnings)
+                    {
+                        Console.WriteLine($"  {warning}");
+                    }
+                    Console.WriteLine();
+                    
+                    // 未登録商品の詳細表示
+                    var missingResult = await cpInventoryCreationService.DetectMissingProductsAsync(jobDate);
+                    if (missingResult.MissingProducts.Any())
+                    {
+                        Console.WriteLine("未登録商品の詳細（最初の10件）:");
+                        foreach (var missing in missingResult.MissingProducts.Take(10))
+                        {
+                            Console.WriteLine($"  商品コード:{missing.ProductCode}, 等級:{missing.GradeCode}, 階級:{missing.ClassCode}, " +
+                                           $"荷印:{missing.ShippingMarkCode}, 荷印名:{missing.ShippingMarkName}, " +
+                                           $"検出元:{missing.FoundInVoucherType}");
+                        }
+                        if (missingResult.MissingProducts.Count > 10)
+                        {
+                            Console.WriteLine($"  他{missingResult.MissingProducts.Count - 10}件...");
+                        }
+                    }
+                }
+                
+                Console.WriteLine("✅ CP在庫マスタ作成が正常に完了しました");
+            }
+            else
+            {
+                Console.WriteLine("❌ CP在庫マスタ作成に失敗しました");
+                if (!string.IsNullOrEmpty(result.ErrorMessage))
+                {
+                    Console.WriteLine($"エラー: {result.ErrorMessage}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "CP在庫マスタ作成でエラーが発生しました");
             Console.WriteLine($"エラー: {ex.Message}");
         }
     }
