@@ -34,7 +34,7 @@ public class PurchaseVoucherDaijinCsv
     public string VoucherType { get; set; } = string.Empty;
     
     [Name("明細種")]
-    [Index(79)]  // 80列目
+    [Index(78)]  // 79列目（0ベースインデックス）
     public string DetailType { get; set; } = string.Empty;
     
     [Name("仕入先コード")]
@@ -223,6 +223,9 @@ public class PurchaseVoucherDaijinCsv
         }
 
         // 明細種別チェック（1:仕入, 2:返品, 3:単品値引, 4:値引を取込）
+        // 注意：要件定義書では明細種別4（値引）は「処理しない」とあるが、
+        // これは後の処理段階（商品勘定など）での話であり、
+        // CSVインポート時には取り込む必要がある
         if (DetailType != "1" && DetailType != "2" && DetailType != "3" && DetailType != "4")
         {
             return false;

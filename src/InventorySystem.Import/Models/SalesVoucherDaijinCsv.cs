@@ -34,7 +34,7 @@ public class SalesVoucherDaijinCsv
     public string VoucherType { get; set; } = string.Empty;
     
     [Name("明細種(1:売上,2:返品,4:値引)")]
-    [Index(83)]  // 84列目
+    [Index(82)]  // 83列目（0ベースインデックス）
     public string DetailType { get; set; } = string.Empty;
     
     [Name("得意先コード")]
@@ -222,8 +222,11 @@ public class SalesVoucherDaijinCsv
             return false;
         }
 
-        // 明細種別チェック（1:商品, 2:返品, 4:値引のみ取込）
-        if (DetailType != "1" && DetailType != "2" && DetailType != "4")
+        // 明細種別チェック（1:商品, 2:返品, 3:単品値引, 4:値引を取込）
+        // 注意：要件定義書では明細種別4（値引）は「処理しない」とあるが、
+        // これは後の処理段階（商品勘定など）での話であり、
+        // CSVインポート時には取り込む必要がある
+        if (DetailType != "1" && DetailType != "2" && DetailType != "3" && DetailType != "4")
         {
             return false;
         }
