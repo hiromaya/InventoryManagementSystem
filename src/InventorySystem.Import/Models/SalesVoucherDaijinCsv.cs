@@ -257,6 +257,70 @@ public class SalesVoucherDaijinCsv
     }
 
     /// <summary>
+    /// バリデーションエラーの詳細を取得
+    /// </summary>
+    public string GetValidationError()
+    {
+        // 伝票種別チェック（51:掛売, 52:現売のみ取込）
+        if (VoucherType != "51" && VoucherType != "52")
+        {
+            return $"無効な伝票種別: {VoucherType} (許可: 51, 52)";
+        }
+
+        // 明細種別チェック（1:商品, 2:返品, 3:単品値引, 4:値引を取込）
+        if (DetailType != "1" && DetailType != "2" && DetailType != "3" && DetailType != "4")
+        {
+            return $"無効な明細種別: {DetailType} (許可: 1, 2, 3, 4)";
+        }
+
+        // 数量0は除外
+        if (Quantity == 0)
+        {
+            return "数量が0";
+        }
+
+        // 商品コード00000は除外
+        if (ProductCodeValidator.IsExcludedProductCode(ProductCode))
+        {
+            return $"除外商品コード: {ProductCode}";
+        }
+
+        // 必須項目チェック
+        if (string.IsNullOrWhiteSpace(VoucherNumber))
+        {
+            return "伝票番号が空";
+        }
+        if (string.IsNullOrWhiteSpace(ProductCode))
+        {
+            return "商品コードが空";
+        }
+        if (string.IsNullOrWhiteSpace(GradeCode))
+        {
+            return "等級コードが空";
+        }
+        if (string.IsNullOrWhiteSpace(ClassCode))
+        {
+            return "階級コードが空";
+        }
+        if (string.IsNullOrWhiteSpace(ShippingMarkCode))
+        {
+            return "荷印コードが空";
+        }
+
+        return "有効（エラーなし）";
+    }
+
+    /// <summary>
+    /// デバッグ用の詳細情報を取得
+    /// </summary>
+    public string GetDebugInfo()
+    {
+        return $"伝票種別={VoucherType}, 明細種別={DetailType}, 数量={Quantity}, " +
+               $"商品コード={ProductCode}, 得意先コード={CustomerCode}, " +
+               $"等級コード={GradeCode}, 階級コード={ClassCode}, 荷印コード={ShippingMarkCode}";
+    }
+
+    /// <summary>
     /// 日付文字列をDateTimeに変換（YYYYMMDD形式対応）
     /// </summary>
     private static DateTime ParseDate(string dateStr)

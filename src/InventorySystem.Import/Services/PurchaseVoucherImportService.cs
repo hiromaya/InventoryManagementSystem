@@ -82,9 +82,11 @@ public class PurchaseVoucherImportService
                 {
                     if (!record.IsValidPurchaseVoucher())
                     {
-                        var error = $"行{index}: 不正な仕入伝票データ - 伝票番号: {record.VoucherNumber}";
+                        var validationError = record.GetValidationError();
+                        var debugInfo = record.GetDebugInfo();
+                        var error = $"行{index}: 不正な仕入伝票データ - 伝票番号: {record.VoucherNumber}, 理由: {validationError}";
                         errorMessages.Add(error);
-                        _logger.LogWarning(error);
+                        _logger.LogWarning("{Error}, データ詳細: {DebugInfo}", error, debugInfo);
                         continue;
                     }
 

@@ -109,9 +109,11 @@ public class SalesVoucherImportService
 
                     if (!record.IsValidSalesVoucher())
                     {
-                        var error = $"行{index}: 不正な売上伝票データ - 伝票番号: {record.VoucherNumber}";
+                        var validationError = record.GetValidationError();
+                        var debugInfo = record.GetDebugInfo();
+                        var error = $"行{index}: 不正な売上伝票データ - 伝票番号: {record.VoucherNumber}, 理由: {validationError}";
                         errorMessages.Add(error);
-                        _logger.LogWarning(error);
+                        _logger.LogWarning("{Error}, データ詳細: {DebugInfo}", error, debugInfo);
                         continue;
                     }
 
