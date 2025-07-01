@@ -1583,11 +1583,18 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         {
                             await fileService.MoveToProcessedAsync(file, department);
                             logger.LogInformation("前月末在庫を初期在庫として処理完了: {Count}件", result.ProcessedRecords);
+                            
+                            // 処理実績に記録（最終サマリーに表示するため）
+                            processedCounts["前月末在庫"] = result.ProcessedRecords;
+                            Console.WriteLine($"✅ 前月末在庫として処理完了 - {result.ProcessedRecords}件");
                         }
                         else
                         {
                             await fileService.MoveToErrorAsync(file, department, result.Message);
                             logger.LogError("前月末在庫の処理に失敗: {Message}", result.Message);
+                            
+                            // エラーカウント増加
+                            errorCount++;
                         }
                         
                         continue;

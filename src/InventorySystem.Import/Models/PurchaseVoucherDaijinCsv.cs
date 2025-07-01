@@ -222,8 +222,8 @@ public class PurchaseVoucherDaijinCsv
             return false;
         }
 
-        // 明細種別チェック（1:仕入, 2:返品, 4:値引のみ取込）
-        if (DetailType != "1" && DetailType != "2" && DetailType != "4")
+        // 明細種別チェック（1:仕入, 2:返品, 3:単品値引, 4:値引を取込）
+        if (DetailType != "1" && DetailType != "2" && DetailType != "3" && DetailType != "4")
         {
             return false;
         }
