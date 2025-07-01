@@ -227,9 +227,9 @@ public class UnmatchListService : IUnmatchListService
                 _logger.LogDebug("アンマッチ項目作成: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}', カテゴリ={Category}", 
                     unmatchItem.CustomerName, unmatchItem.ProductName, unmatchItem.Key.ShippingMarkName, unmatchItem.Category);
             }
-            else if (cpInventory.PreviousDayStock >= 0 && cpInventory.DailyStock == 0)
+            else if (cpInventory.PreviousDayStock >= 0 && cpInventory.DailyStock <= 0)
             {
-                // 在庫0エラー
+                // 在庫0以下エラー（マイナス在庫含む）
                 var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "在庫0",
                     cpInventory.GetAdjustedProductCategory1());
                 unmatchItems.Add(unmatchItem);
@@ -275,9 +275,9 @@ public class UnmatchListService : IUnmatchListService
                 unmatchItem.AlertType2 = "該当無";
                 unmatchItems.Add(unmatchItem);
             }
-            else if (cpInventory.DailyStock == 0)
+            else if (cpInventory.DailyStock <= 0)
             {
-                // 在庫0エラー
+                // 在庫0以下エラー（マイナス在庫含む）
                 var unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "在庫0",
                     cpInventory.GetAdjustedProductCategory1());
                 unmatchItems.Add(unmatchItem);
@@ -382,9 +382,9 @@ public class UnmatchListService : IUnmatchListService
                 unmatchItem.AlertType2 = "該当無";
                 unmatchItems.Add(unmatchItem);
             }
-            else if (cpInventory.DailyStock == 0)
+            else if (cpInventory.DailyStock <= 0)
             {
-                // 在庫0エラー
+                // 在庫0以下エラー（マイナス在庫含む）
                 var unmatchItem = UnmatchItem.FromInventoryAdjustment(adjustment, "在庫0",
                     cpInventory.GetAdjustedProductCategory1());
                 unmatchItems.Add(unmatchItem);
