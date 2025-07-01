@@ -161,6 +161,7 @@
 - **2025-06-30: 荷印名（手入力）の処理詳細を追加**
 - **2025-07-01: FastReportの使用方針を追加**
 - **2025-07-01: CSVマッピング仕様を詳細化（正確な列番号とIndex、ジョブデートを追加）**
+- **2025-07-01: import-folderコマンドの処理ルールを追加**
 
 ---
 
@@ -558,3 +559,129 @@ dotnet run -- check-daily-close 2025-06-30
 - 日次終了処理の修正時は必ず`ValidateDataIntegrity`メソッドも確認
 - 新しい検証ルールを追加する場合は`DataValidationResult`クラスを使用
 - エラーメッセージは`ErrorMessages`定数クラスに定義
+
+## 📌 import-folderコマンドの処理ルール
+
+### 1. 基本仕様
+- **目的**: 指定フォルダ内のすべてのCSVファイルを適切な順序で一括インポート
+- **構文**: `dotnet run -- import-folder <部門名> <ジョブ日付>`
+- **対象フォルダ**: `D:\InventoryImport\<部門名>\Import\`
+
+### 2. ファイル処理順序（重要）
+```
+1. マスタ系ファイル（必ず最初）
+2. 前月末在庫（マスタの後、伝票の前）
+3. 伝票系ファイル（最後）
+```
+
+### 3. ファイル認識パターン
+
+#### マスタ系（優先度1）
+- `*等級汎用マスター*.csv` → Contains("等級汎用マスター")
+- `*階級汎用マスター*.csv` → Contains("階級汎用マスター")
+- `*荷印汎用マスター*.csv` → Contains("荷印汎用マスター")
+- `*産地汎用マスター*.csv` → Contains("産地汎用マスター")
+- `商品.csv` → FileName == "商品.csv"
+- `得意先.csv` → FileName == "得意先.csv"
+- `仕入先.csv` → FileName == "仕入先.csv"
+
+**注意**: ファイル名に全角数字（１、２、３、４）が含まれるため、Contains判定を使用
+
+#### 初期在庫（優先度2）
+- `前月末在庫.csv` → FileName == "前月末在庫.csv"
+
+#### 伝票系（優先度3）
+- `売上伝票*.csv` → StartsWith("売上伝票")
+- `仕入伝票*.csv` → StartsWith("仕入伝票")
+- `在庫調整*.csv` → StartsWith("在庫調整")
+- `受注伝票*.csv` → StartsWith("受注伝票") ※在庫調整として処理
+
+### 4. 処理実装の注意点
+
+#### 4.1 マスタ処理の分岐
+```csharp
+// 等級・階級マスタ：リポジトリ直接利用（現状）
+await _gradeMasterRepository.BulkDeleteAsync();
+await _gradeMasterRepository.BulkInsertAsync(gradeMasters);
+
+// 商品・得意先・仕入先：サービス経由
+await _productMasterImportService.ImportAsync(filePath);
+
+// 荷印・産地：未実装時は警告してスキップ
+_logger.LogWarning("荷印マスタインポートサービスが未実装のためスキップ");
+```
+
+#### 4.2 エラーハンドリング
+- エラーファイルは `D:\InventoryImport\<部門名>\Error\` へ移動
+- エラーが発生しても他のファイル処理は継続
+- エラーログファイル（.error.txt）も生成
+
+#### 4.3 アンマッチリスト処理
+- **重要**: import-folderコマンドからアンマッチリスト自動実行は削除済み
+- 必要な場合は別途 `create-unmatch-list` コマンドを実行
+
+### 5. 実装時の必須確認事項
+
+#### 5.1 前提条件
+- [ ] PreviousMonthInventoryテーブルが存在すること
+- [ ] 各種マスタテーブルが作成済みであること
+- [ ] UTF-8 with BOMのCSVファイルに対応していること
+
+#### 5.2 処理順序の保証
+- [ ] GetFileProcessOrderメソッドで処理順序を制御
+- [ ] マスタ→初期在庫→伝票の順序を厳守
+
+#### 5.3 データ整合性
+- [ ] マスタデータは全削除→新規登録（トランザクション使用）
+- [ ] 伝票データは重複チェック後に追加
+- [ ] JobDateをすべての伝票データに設定
+
+### 6. 既知の問題と対処
+
+#### 6.1 マスタ未登録データ
+- 等級コード「000」：マスタ未登録だが72件使用中
+- 荷印コード「8001」：新規荷印で88件使用中
+- 対処：インポート後にアンマッチリストで確認
+
+#### 6.2 未実装サービス
+- IShippingMarkMasterImportService（荷印）
+- IRegionMasterImportService（産地）
+- 対処：警告表示してスキップ、将来実装予定
+
+### 7. テスト用コマンド例
+
+```bash
+# 基本的な実行
+dotnet run -- import-folder DeptA 2025-06-27
+
+# 実行後の確認
+dotnet run -- create-unmatch-list 2025-06-27
+
+# データ確認SQL
+SELECT COUNT(*) as マスタ件数, 'GradeMaster' as テーブル名 FROM GradeMaster
+UNION ALL SELECT COUNT(*), 'ClassMaster' FROM ClassMaster
+UNION ALL SELECT COUNT(*), 'ProductMaster' FROM ProductMaster;
+```
+
+### 8. ログ出力形式
+
+```
+=== CSVファイル一括インポート開始 ===
+[1/15] 処理中: 等級汎用マスター１.csv
+✅ 等級マスタをインポートしました（218件）
+⚠️ 荷印マスタインポートサービスが未実装のためスキップ
+❌ エラー: ファイル処理に失敗しました
+=== インポート完了 ===
+成功: 12件、スキップ: 2件、エラー: 1件
+```
+
+### 9. 禁止事項
+- ❌ 処理順序を無視したインポート
+- ❌ アンマッチリストの自動実行（削除済み）
+- ❌ エラー時の処理中断（継続すること）
+- ❌ マスタデータの追加のみ更新（全削除→新規登録を使用）
+
+---
+
+**最終更新**: 2025-07-01  
+**対象バージョン**: InventoryManagementSystem v2.0
