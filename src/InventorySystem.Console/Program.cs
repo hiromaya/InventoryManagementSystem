@@ -1829,72 +1829,67 @@ private static async Task<(int ProcessedCount, int InsertedCount, int UpdatedCou
         ILogger logger)
 {
     const string mergeSql = @"
-        -- 一時テーブルに今回処理するデータを格納
-        WITH SourceData AS (
-            -- 売上伝票から5項目キーを取得
-            SELECT DISTINCT 
-                ProductCode, 
-                GradeCode, 
-                ClassCode, 
-                ShippingMarkCode, 
-                ShippingMarkName
-            FROM SalesVouchers
-            WHERE JobDate = @jobDate
-            
-            UNION
-            
-            -- 仕入伝票から5項目キーを取得
-            SELECT DISTINCT 
-                ProductCode, 
-                GradeCode, 
-                ClassCode, 
-                ShippingMarkCode, 
-                ShippingMarkName
-            FROM PurchaseVouchers
-            WHERE JobDate = @jobDate
-            
-            UNION
-            
-            -- 在庫調整から5項目キーを取得
-            SELECT DISTINCT 
-                ProductCode, 
-                GradeCode, 
-                ClassCode, 
-                ShippingMarkCode, 
-                ShippingMarkName
-            FROM InventoryAdjustments
-            WHERE JobDate = @jobDate
-        )
         MERGE InventoryMaster AS target
-        USING SourceData AS source
+        USING (
+            SELECT DISTINCT
+                ProductCode,
+                GradeCode,
+                ClassCode,
+                ShippingMarkCode,
+                ShippingMarkName
+            FROM (
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                FROM SalesVouchers
+                WHERE CONVERT(date, JobDate) = @jobDate
+                UNION
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                FROM PurchaseVouchers
+                WHERE CONVERT(date, JobDate) = @jobDate
+                UNION
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                FROM InventoryAdjustments
+                WHERE CONVERT(date, JobDate) = @jobDate
+            ) AS products
+        ) AS source
         ON target.ProductCode = source.ProductCode
             AND target.GradeCode = source.GradeCode
             AND target.ClassCode = source.ClassCode
             AND target.ShippingMarkCode = source.ShippingMarkCode
             AND target.ShippingMarkName = source.ShippingMarkName
-        WHEN NOT MATCHED THEN
-            INSERT (
-                ProductCode, GradeCode, ClassCode, 
-                ShippingMarkCode, ShippingMarkName,
-                JobDate, DataSetId,
-                CurrentStock, PreviousDayStock,
-                CreatedDate, UpdatedDate
-            )
-            VALUES (
-                source.ProductCode, source.GradeCode, source.ClassCode,
-                source.ShippingMarkCode, source.ShippingMarkName,
-                @jobDate, @dataSetId,
-                0, 0,  -- 在庫数量は0で初期化
-                GETDATE(), GETDATE()
-            )
-        WHEN MATCHED AND (target.JobDate < @jobDate OR target.JobDate IS NULL) THEN
+        WHEN MATCHED AND target.JobDate <> @jobDate THEN
             UPDATE SET 
                 JobDate = @jobDate,
-                DataSetId = @dataSetId,
-                UpdatedDate = GETDATE()
-        OUTPUT 
-            $action AS Action,
-            INSERTED.ProductCode;";
+                UpdatedDate = GETDATE(),
+                DataSetId = @dataSetId
+        WHEN NOT MATCHED THEN
+            INSERT (
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+                JobDate, CreatedDate, UpdatedDate,
+                CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount, DailyFlag,
+                DataSetId, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
+                PreviousMonthQuantity, PreviousMonthAmount
+            )
+            VALUES (
+                source.ProductCode,
+                source.GradeCode,
+                source.ClassCode,
+                source.ShippingMarkCode,
+                source.ShippingMarkName,
+                '商品名未設定',
+                'PCS',
+                0,
+                '',
+                '',
+                @jobDate,
+                GETDATE(),
+                GETDATE(),
+                0, 0, 0, 0, '9',
+                @dataSetId,
+                0, 0, 0, 0,
+                0, 0  -- PreviousMonthQuantity, PreviousMonthAmount
+            )
+        OUTPUT $action AS Action;";
     
     var results = await connection.QueryAsync<dynamic>(
         mergeSql,
