@@ -241,7 +241,7 @@ namespace InventorySystem.Data.Services
                     ShippingMarkCode,
                     ShippingMarkName
                 FROM SalesVouchers
-                WHERE CONVERT(date, JobDate) = @jobDate";
+                WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)";
             
             var products = await connection.QueryAsync<ProductKey>(
                 sql, 
@@ -264,7 +264,7 @@ namespace InventorySystem.Data.Services
                     ShippingMarkCode,
                     ShippingMarkName
                 FROM PurchaseVouchers
-                WHERE CONVERT(date, JobDate) = @jobDate";
+                WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)";
             
             var products = await connection.QueryAsync<ProductKey>(
                 sql, 
@@ -287,7 +287,7 @@ namespace InventorySystem.Data.Services
                     ShippingMarkCode,
                     ShippingMarkName
                 FROM InventoryAdjustments
-                WHERE CONVERT(date, JobDate) = @jobDate";
+                WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)";
             
             var products = await connection.QueryAsync<ProductKey>(
                 sql, 
@@ -316,15 +316,15 @@ namespace InventorySystem.Data.Services
                     FROM (
                         SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                         FROM SalesVouchers
-                        WHERE CONVERT(date, JobDate) = @jobDate
+                        WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                         UNION
                         SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                         FROM PurchaseVouchers
-                        WHERE CONVERT(date, JobDate) = @jobDate
+                        WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                         UNION
                         SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                         FROM InventoryAdjustments
-                        WHERE CONVERT(date, JobDate) = @jobDate
+                        WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                     ) AS products
                 ) AS source
                 ON target.ProductCode = source.ProductCode
@@ -395,15 +395,15 @@ namespace InventorySystem.Data.Services
                         SELECT 1 FROM (
                             SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                             FROM SalesVouchers
-                            WHERE CONVERT(date, JobDate) = @jobDate
+                            WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                             UNION
                             SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                             FROM PurchaseVouchers
-                            WHERE CONVERT(date, JobDate) = @jobDate
+                            WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                             UNION
                             SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                             FROM InventoryAdjustments
-                            WHERE CONVERT(date, JobDate) = @jobDate
+                            WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                         ) AS v
                         WHERE v.ProductCode = InventoryMaster.ProductCode
                             AND v.GradeCode = InventoryMaster.GradeCode
