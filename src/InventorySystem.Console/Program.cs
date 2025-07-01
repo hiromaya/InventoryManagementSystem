@@ -1687,20 +1687,20 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     var result = await optimizationService.OptimizeAsync(jobDate, dataSetId);
                     stopwatch.Stop();
                     
-                    processedCounts["在庫マスタ最適化"] = result.CreatedCount + result.UpdatedCount;
+                    processedCounts["在庫マスタ最適化"] = result.InsertedCount + result.UpdatedCount;
                     
                     // カバレッジ率を計算（簡易版）
                     var coverageRate = result.ProcessedCount > 0 ? 
-                        (double)(result.CreatedCount + result.UpdatedCount) / result.ProcessedCount : 0.0;
+                        (double)(result.InsertedCount + result.UpdatedCount) / result.ProcessedCount : 0.0;
                     
                     Console.WriteLine($"✅ 在庫マスタ最適化完了 ({stopwatch.ElapsedMilliseconds}ms)");
-                    Console.WriteLine($"   - 新規作成: {result.CreatedCount}件");
+                    Console.WriteLine($"   - 新規作成: {result.InsertedCount}件");
                     Console.WriteLine($"   - JobDate更新: {result.UpdatedCount}件");  
                     Console.WriteLine($"   - カバレッジ率: {coverageRate:P1}");
                     
                     logger.LogInformation(
                         "在庫マスタ最適化完了 - 新規: {Created}, 更新: {Updated}, カバレッジ: {Coverage:P1}, 処理時間: {ElapsedMs}ms",
-                        result.CreatedCount, result.UpdatedCount, coverageRate, stopwatch.ElapsedMilliseconds);
+                        result.InsertedCount, result.UpdatedCount, coverageRate, stopwatch.ElapsedMilliseconds);
                 }
                 catch (Exception ex)
                 {
