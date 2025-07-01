@@ -1419,8 +1419,8 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         var classRepo = scopedServices.GetService<IClassMasterRepository>();
         var inventoryRepo = scopedServices.GetRequiredService<IInventoryRepository>();
         
-        // 在庫マスタ最適化サービス（オプション - 後で追加）
-        // var optimizationService = scopedServices.GetService<IInventoryMasterOptimizationService>();
+        // 在庫マスタ最適化サービス
+        var optimizationService = scopedServices.GetService<IInventoryMasterOptimizationService>();
         
         var department = args[2];
         DateTime jobDate = args.Length >= 4 && DateTime.TryParse(args[3], out var date) ? date : DateTime.Today;
@@ -1674,127 +1674,46 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 Console.WriteLine(); // 各ファイル処理後に改行
             }
             
-            // ========== 在庫マスタ最適化処理 ==========
-            logger.LogInformation("========== 在庫マスタ最適化処理開始 ==========");
-            logger.LogInformation("本日取り込まれたデータを対象に最適化を実行します（CreatedDate = {Today}）", DateTime.Today);
+            // ========== Phase 4: 在庫マスタ最適化 ==========
+            Console.WriteLine("\n========== Phase 4: 在庫マスタ最適化 ==========");
+            Console.WriteLine("売上・仕入・在庫調整伝票から在庫マスタを自動生成します...\n");
 
-            try
+            if (optimizationService != null)
             {
-                // 接続文字列の取得
-                var configuration = scopedServices.GetRequiredService<IConfiguration>();
-                var connectionString = configuration.GetConnectionString("DefaultConnection");
-                if (string.IsNullOrEmpty(connectionString))
+                try
                 {
-                    throw new InvalidOperationException("接続文字列が設定されていません");
-                }
-                
-                using var connection = new SqlConnection(connectionString);
-                await connection.OpenAsync();
-                
-                // 今回の取込で登録されたすべての日付を取得
-                logger.LogInformation("取り込まれたデータの日付を確認中...");
-                
-                // CreatedDateが今日のデータから日付を取得（DataSetIdの形式に依存しない）
-                var importedDatesQuery = @"
-                    SELECT DISTINCT CAST(JobDate AS DATE) as JobDate
-                    FROM (
-                        SELECT JobDate FROM SalesVouchers 
-                        WHERE CAST(CreatedDate AS DATE) = CAST(GETDATE() AS DATE)
-                        UNION
-                        SELECT JobDate FROM PurchaseVouchers 
-                        WHERE CAST(CreatedDate AS DATE) = CAST(GETDATE() AS DATE)
-                        UNION
-                        SELECT JobDate FROM InventoryAdjustments 
-                        WHERE CAST(CreatedDate AS DATE) = CAST(GETDATE() AS DATE)
-                    ) AS AllDates
-                    ORDER BY JobDate";
-                
-                var importedDates = await connection.QueryAsync<DateTime>(importedDatesQuery);
-                
-                var dateList = importedDates.ToList();
-                
-                if (!dateList.Any())
-                {
-                    logger.LogWarning("本日取り込まれたデータが見つかりません。CreatedDate={Today}", DateTime.Today);
-                    Console.WriteLine("⚠️ 在庫マスタ最適化対象のデータがありません（本日取り込まれたデータなし）");
-                }
-                else
-                {
-                    logger.LogInformation("取り込まれた日付: {Count}日分 - {Dates}", 
-                        dateList.Count, 
-                        string.Join(", ", dateList.Select(d => d.ToString("yyyy-MM-dd"))));
+                    var stopwatch = Stopwatch.StartNew();
+                    var dataSetId = $"AUTO_OPTIMIZE_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}";
+                    var result = await optimizationService.OptimizeAsync(jobDate, dataSetId);
+                    stopwatch.Stop();
                     
-                    var totalProcessed = 0;
-                    var totalInserted = 0;
-                    var totalUpdated = 0;
-                    var totalErrors = 0;
+                    processedCounts["在庫マスタ最適化"] = result.CreatedCount + result.UpdatedCount;
                     
-                    // 各日付に対して最適化を実行
-                    foreach (var targetDate in dateList)
-                    {
-                        try
-                        {
-                            logger.LogInformation("日付 {Date:yyyy-MM-dd} の在庫マスタ最適化を実行中...", targetDate);
-                            
-                            // インラインでMERGE文を実行
-                            var mergeResult = await ExecuteInventoryOptimizationForDate(
-                                connection, targetDate, department, logger);
-                            
-                            totalProcessed += mergeResult.ProcessedCount;
-                            totalInserted += mergeResult.InsertedCount;
-                            totalUpdated += mergeResult.UpdatedCount;
-                            
-                            logger.LogInformation(
-                                "日付 {Date:yyyy-MM-dd} 完了: 処理={Processed}, 新規={Inserted}, 更新={Updated}",
-                                targetDate, 
-                                mergeResult.ProcessedCount,
-                                mergeResult.InsertedCount, 
-                                mergeResult.UpdatedCount);
-                        }
-                        catch (Exception dateEx)
-                        {
-                            logger.LogError(dateEx, "日付 {Date:yyyy-MM-dd} の処理でエラーが発生しました", targetDate);
-                            totalErrors++;
-                            // エラーが発生しても次の日付の処理を続行
-                        }
-                    }
+                    // カバレッジ率を計算（簡易版）
+                    var coverageRate = result.ProcessedCount > 0 ? 
+                        (double)(result.CreatedCount + result.UpdatedCount) / result.ProcessedCount : 0.0;
                     
-                    // 最終結果の表示
+                    Console.WriteLine($"✅ 在庫マスタ最適化完了 ({stopwatch.ElapsedMilliseconds}ms)");
+                    Console.WriteLine($"   - 新規作成: {result.CreatedCount}件");
+                    Console.WriteLine($"   - JobDate更新: {result.UpdatedCount}件");  
+                    Console.WriteLine($"   - カバレッジ率: {coverageRate:P1}");
+                    
                     logger.LogInformation(
-                        "在庫マスタ最適化完了: 処理日数={DateCount}, 総処理={ProcessedCount}, " +
-                        "新規={InsertedCount}, 更新={UpdatedCount}, エラー={ErrorCount}",
-                        dateList.Count,
-                        totalProcessed,
-                        totalInserted,
-                        totalUpdated,
-                        totalErrors);
-                        
-                    if (totalErrors > 0)
-                    {
-                        Console.WriteLine($"⚠️ 在庫マスタ最適化完了（一部エラー）: {dateList.Count}日分、{totalProcessed}件処理、{totalErrors}件のエラー");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"✅ 在庫マスタ最適化完了: {dateList.Count}日分、{totalProcessed}件処理（新規{totalInserted}件、更新{totalUpdated}件）");
-                    }
+                        "在庫マスタ最適化完了 - 新規: {Created}, 更新: {Updated}, カバレッジ: {Coverage:P1}, 処理時間: {ElapsedMs}ms",
+                        result.CreatedCount, result.UpdatedCount, coverageRate, stopwatch.ElapsedMilliseconds);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "在庫マスタ最適化でエラーが発生しました");
+                    Console.WriteLine($"❌ 在庫マスタ最適化エラー: {ex.Message}");
+                    errorCount++;
                 }
             }
-            catch (SqlException sqlEx)
+            else
             {
-                logger.LogError(sqlEx, 
-                    "在庫マスタ最適化処理でSQLエラーが発生しました。" +
-                    "エラーコード: {Number}, 重大度: {Class}, 状態: {State}", 
-                    sqlEx.Number, sqlEx.Class, sqlEx.State);
-                    
-                Console.WriteLine($"❌ 在庫マスタ最適化でデータベースエラーが発生しました: {sqlEx.Message}");
+                logger.LogWarning("在庫マスタ最適化サービスが登録されていません");
+                Console.WriteLine("⚠️ 在庫マスタ最適化サービスが未実装のためスキップ");
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "在庫マスタ最適化処理で予期しないエラーが発生しました");
-                Console.WriteLine($"❌ 在庫マスタ最適化でエラーが発生しました: {ex.Message}");
-            }
-
-            logger.LogInformation("========== 在庫マスタ最適化処理終了 ==========");
             
             // ========== アンマッチリスト処理 ==========
             // 注意：アンマッチリスト処理は別途 create-unmatch-list コマンドで実行してください
