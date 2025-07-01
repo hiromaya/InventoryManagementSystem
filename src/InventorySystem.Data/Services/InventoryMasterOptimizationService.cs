@@ -184,6 +184,13 @@ namespace InventorySystem.Data.Services
                 
                 _logger.LogInformation("統合商品数（重複除去後）: {Count}件", allProducts.Count);
                 
+                // 事前チェック：処理対象データの確認
+                if (salesProducts.Count == 0 && purchaseProducts.Count == 0 && adjustmentProducts.Count == 0)
+                {
+                    _logger.LogWarning("処理対象の伝票データが見つかりません。JobDate: {JobDate}", jobDate);
+                    return result;
+                }
+                
                 // 5. MERGE文で一括処理
                 var mergeResults = await MergeInventoryMasterAsync(connection, transaction, jobDate, dataSetId);
                 result.InsertedCount = mergeResults.insertCount;
@@ -234,8 +241,7 @@ namespace InventorySystem.Data.Services
                     ShippingMarkCode,
                     ShippingMarkName
                 FROM SalesVouchers
-                WHERE CONVERT(date, JobDate) = @jobDate
-                    AND Quantity <> 0";
+                WHERE CONVERT(date, JobDate) = @jobDate";
             
             var products = await connection.QueryAsync<ProductKey>(
                 sql, 
@@ -258,8 +264,7 @@ namespace InventorySystem.Data.Services
                     ShippingMarkCode,
                     ShippingMarkName
                 FROM PurchaseVouchers
-                WHERE CONVERT(date, JobDate) = @jobDate
-                    AND Quantity <> 0";
+                WHERE CONVERT(date, JobDate) = @jobDate";
             
             var products = await connection.QueryAsync<ProductKey>(
                 sql, 
@@ -282,8 +287,7 @@ namespace InventorySystem.Data.Services
                     ShippingMarkCode,
                     ShippingMarkName
                 FROM InventoryAdjustments
-                WHERE CONVERT(date, JobDate) = @jobDate
-                    AND Quantity <> 0";
+                WHERE CONVERT(date, JobDate) = @jobDate";
             
             var products = await connection.QueryAsync<ProductKey>(
                 sql, 
@@ -328,7 +332,7 @@ namespace InventorySystem.Data.Services
                     AND target.ClassCode = source.ClassCode
                     AND target.ShippingMarkCode = source.ShippingMarkCode
                     AND target.ShippingMarkName = source.ShippingMarkName
-                WHEN MATCHED AND target.JobDate <> @jobDate THEN
+                WHEN MATCHED THEN
                     UPDATE SET 
                         JobDate = @jobDate,
                         UpdatedDate = GETDATE(),
