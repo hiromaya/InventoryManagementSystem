@@ -8,142 +8,138 @@
   
   <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" FirstPageSource="15" OtherPagesSource="15" Margins.Left="10" Margins.Right="10" Margins.Top="10" Margins.Bottom="10">
     
-    <!-- ページヘッダー -->
-    <PageHeaderBand Name="PageHeader1" Width="1587.6" Height="113.4" Fill.Color="White">
+    <!-- ページヘッダー（アンマッチリストと同じ形式） -->
+    <PageHeaderBand Name="PageHeader1" Width="1512" Height="80" Fill.Color="White">
       
-      <!-- 作成日時（左上） -->
-      <TextObject Name="CreateDateText" Left="0" Top="0" Width="400" Height="18.9" 
-                   Text="作成日：[CreateDateTime]" Font="MS Gothic, 9pt" Fill.Color="White"/>
+      <!-- 作成日時（左上）- アンマッチリストと同じ位置 -->
+      <TextObject Name="CreateDateText" Left="0" Top="0" Width="300" Height="20" 
+                   Text="作成日：[CreateDateTime]" Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
       
-      <!-- ページ番号（右上） -->
-      <TextObject Name="PageNumberText" Left="1187.6" Top="0" Width="400" Height="18.9" 
-                   Text="[PageNumber] 頁" HorzAlign="Right" Font="MS Gothic, 9pt" Fill.Color="White"/>
+      <!-- ページ番号（右上）- アンマッチリストと同じ位置 -->
+      <TextObject Name="PageNumberText" Left="1212" Top="0" Width="300" Height="20" 
+                   Text="[PageNumber] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
       
       <!-- タイトル -->
-      <TextObject Name="Title" Left="0" Top="28.35" Width="1587.6" Height="18.9" 
+      <TextObject Name="Title" Left="0" Top="20" Width="1512" Height="25" 
                    Text="※　[ReportDate]　商　品　日　報　※" 
-                   HorzAlign="Center" Font="MS Gothic, 12pt, style=Bold" Fill.Color="White"/>
+                   HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 14pt" Fill.Color="White"/>
       
-      <!-- 日計・月計のセクションヘッダー -->
-      <TextObject Name="DailyHeader" Left="189" Top="56.7" Width="756" Height="18.9" 
-                   Text="&lt;- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 日　　計 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -&gt;" 
-                   HorzAlign="Center" Font="MS Gothic, 9pt" Fill.Color="White"/>
+      <!-- 列ヘッダー行（枠線なし、アンマッチリスト形式） -->
+      <TextObject Name="ColProductName" Left="0" Top="50" Width="150" Height="30" 
+                   Text="商品名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
       
-      <TextObject Name="MonthlyHeader" Left="945" Top="56.7" Width="315" Height="18.9" 
-                   Text="&lt;- - - - - - - - - - - - - - - - 月　　計 - - - - - - - - - - - - - - - -&gt;" 
-                   HorzAlign="Center" Font="MS Gothic, 9pt" Fill.Color="White"/>
+      <!-- 日計セクション -->
+      <TextObject Name="ColPrevStock" Left="150" Top="50" Width="50" Height="30" 
+                   Text="前残" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColPurchase" Left="200" Top="50" Width="50" Height="30" 
+                   Text="当仕入" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColPurchaseDiscount" Left="250" Top="50" Width="60" Height="30" 
+                   Text="仕入値引" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColStockAdjust" Left="310" Top="50" Width="60" Height="30" 
+                   Text="在庫調整" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColProcessing" Left="370" Top="50" Width="50" Height="30" 
+                   Text="加工費" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColTransfer" Left="420" Top="50" Width="50" Height="30" 
+                   Text="振替" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColIncentive" Left="470" Top="50" Width="50" Height="30" 
+                   Text="奨励金" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColGrossProfit1" Left="520" Top="50" Width="60" Height="30" 
+                   Text="1粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColGrossProfitRate1" Left="580" Top="50" Width="50" Height="30" 
+                   Text="1粗利率" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColGrossProfit2" Left="630" Top="50" Width="60" Height="30" 
+                   Text="2粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColGrossProfitRate2" Left="690" Top="50" Width="50" Height="30" 
+                   Text="2粗利率" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColDailySales" Left="740" Top="50" Width="60" Height="30" 
+                   Text="売上数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
       
-      <!-- 列ヘッダー行1 -->
-      <TextObject Name="ColProductName" Left="0" Top="75.6" Width="189" Height="37.8" 
-                   Border.Lines="All" Text="商品名" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt" Fill.Color="White"/>
-      
-      <!-- 日計セクション（12列） -->
-      <TextObject Name="ColPrevStock" Left="189" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="前残" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColPurchase" Left="252" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="当仕入" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColPurchaseDiscount" Left="315" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="仕入値引" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColStockAdjust" Left="378" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="在庫調整" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColProcessing" Left="441" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="加工費" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColTransfer" Left="504" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="振替" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColIncentive" Left="567" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="奨励金" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColGrossProfit1" Left="630" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="1粗利益" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColGrossProfitRate1" Left="693" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="1粗利率" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColGrossProfit2" Left="756" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="2粗利益" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColGrossProfitRate2" Left="819" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="2粗利率" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColDailySales" Left="882" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="売上数量" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      
-      <!-- 月計セクション（5列） -->
-      <TextObject Name="ColMonthlySales" Left="945" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="売上金額" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColMonthlyGrossProfit1" Left="1008" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="1粗利益" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColMonthlyGrossProfitRate1" Left="1071" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="1粗利率" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColMonthlyGrossProfit2" Left="1134" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="2粗利益" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColMonthlyGrossProfitRate2" Left="1197" Top="75.6" Width="63" Height="37.8" 
-                   Border.Lines="All" Text="2粗利率" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt" Fill.Color="White"/>
+      <!-- 月計セクション -->
+      <TextObject Name="ColMonthlySales" Left="800" Top="50" Width="70" Height="30" 
+                   Text="売上金額" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColMonthlyGrossProfit1" Left="870" Top="50" Width="70" Height="30" 
+                   Text="1粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColMonthlyGrossProfitRate1" Left="940" Top="50" Width="60" Height="30" 
+                   Text="1粗利率" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColMonthlyGrossProfit2" Left="1000" Top="50" Width="70" Height="30" 
+                   Text="2粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColMonthlyGrossProfitRate2" Left="1070" Top="50" Width="60" Height="30" 
+                   Text="2粗利率" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
       
     </PageHeaderBand>
     
     <!-- データ部分（動的に生成） -->
-    <DataBand Name="Data1" Width="1587.6" Height="945">
+    <DataBand Name="Data1" Width="1512" Height="945">
       <!-- データ行は動的に生成されるため、テンプレートでは定義しない -->
     </DataBand>
     
     <!-- 合計行 -->
-    <ReportSummaryBand Name="ReportSummary1" Width="1587.6" Height="18.9">
-      <TextObject Name="TotalLabel" Left="0" Top="0" Width="189" Height="18.9" 
-                   Border.Lines="All" Text="※　合　　計　※" HorzAlign="Center" 
-                   Font="MS Gothic, 10pt, style=Bold" Fill.Color="LightGray"/>
+    <ReportSummaryBand Name="ReportSummary1" Width="1512" Height="20">
+      <TextObject Name="TotalLabel" Left="0" Top="0" Width="150" Height="20" 
+                   Text="※　合　　計　※" HorzAlign="Center" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt, style=Bold" Fill.Color="White"/>
       
-      <!-- 日計合計（12列） -->
-      <TextObject Name="TotalPrevStock" Left="189" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalPurchase" Left="252" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalPurchaseDiscount" Left="315" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalStockAdjust" Left="378" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalProcessing" Left="441" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalTransfer" Left="504" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalIncentive" Left="567" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalGrossProfit1" Left="630" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalGrossProfitRate1" Left="693" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalGrossProfit2" Left="756" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalGrossProfitRate2" Left="819" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalDailySales" Left="882" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
+      <!-- 日計合計 -->
+      <TextObject Name="TotalPrevStock" Left="150" Top="0" Width="50" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalPurchase" Left="200" Top="0" Width="50" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalPurchaseDiscount" Left="250" Top="0" Width="60" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalStockAdjust" Left="310" Top="0" Width="60" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalProcessing" Left="370" Top="0" Width="50" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalTransfer" Left="420" Top="0" Width="50" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalIncentive" Left="470" Top="0" Width="50" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalGrossProfit1" Left="520" Top="0" Width="60" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalGrossProfitRate1" Left="580" Top="0" Width="50" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalGrossProfit2" Left="630" Top="0" Width="60" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalGrossProfitRate2" Left="690" Top="0" Width="50" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalDailySales" Left="740" Top="0" Width="60" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
       
-      <!-- 月計合計（5列） -->
-      <TextObject Name="TotalMonthlySales" Left="945" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalMonthlyGrossProfit1" Left="1008" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalMonthlyGrossProfitRate1" Left="1071" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalMonthlyGrossProfit2" Left="1134" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
-      <TextObject Name="TotalMonthlyGrossProfitRate2" Left="1197" Top="0" Width="63" Height="18.9" 
-                   Border.Lines="All" Text="" HorzAlign="Right" 
-                   Font="MS Gothic, 9pt" Fill.Color="White" Padding="0,0,2,0"/>
+      <!-- 月計合計 -->
+      <TextObject Name="TotalMonthlySales" Left="800" Top="0" Width="70" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalMonthlyGrossProfit1" Left="870" Top="0" Width="70" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalMonthlyGrossProfitRate1" Left="940" Top="0" Width="60" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalMonthlyGrossProfit2" Left="1000" Top="0" Width="70" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="TotalMonthlyGrossProfitRate2" Left="1070" Top="0" Width="60" Height="20" 
+                   Text="" HorzAlign="Right" VertAlign="Center"
+                   Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
       
     </ReportSummaryBand>
+    
+    <!-- ページフッター（アンマッチリストと同じ形式） -->
+    <PageFooterBand Name="PageFooter1" Width="1512" Height="20">
+      <TextObject Name="Footer" Width="1512" Height="20" Text="在庫管理システム - 商品日報" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
+    </PageFooterBand>
     
   </ReportPage>
 </Report>

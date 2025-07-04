@@ -239,9 +239,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 Top = y,
                 Width = 189f,
                 Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
                 Text = item.ProductName ?? "",
-                Font = new Font("MS Gothic", 9)
+                Font = new Font("MS Gothic", 8)
             };
             dataBand.Objects.Add(nameText);
             
@@ -323,7 +322,6 @@ namespace InventorySystem.Reports.FastReport.Services
                 Top = y,
                 Width = 63f,
                 Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
                 Text = text,
                 Font = new Font("MS Gothic", 8),
                 HorzAlign = FR.HorzAlign.Right
@@ -344,9 +342,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 Top = y,
                 Width = 189f,
                 Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
                 Text = $"＊　{category}　計　＊",
-                Font = new Font("MS Gothic", 9, FontStyle.Bold),
+                Font = new Font("MS Gothic", 8, FontStyle.Bold),
                 HorzAlign = FR.HorzAlign.Center
             };
             dataBand.Objects.Add(labelText);
