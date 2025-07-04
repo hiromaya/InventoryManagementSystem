@@ -26,9 +26,11 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             _logger = logger;
             
-            // テンプレートファイルのパス設定
-            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            _templatePath = Path.Combine(baseDir, "Reports", "Templates", "DailyReport.frx");
+            // テンプレートファイルのパス設定（アンマッチリストと同じパス構成）
+            var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            _templatePath = Path.Combine(baseDirectory, "FastReport", "Templates", "DailyReport.frx");
+            
+            _logger.LogInformation("テンプレートパス: {Path}", _templatePath);
             
             // テンプレートが存在しない場合のエラーハンドリング
             if (!File.Exists(_templatePath))

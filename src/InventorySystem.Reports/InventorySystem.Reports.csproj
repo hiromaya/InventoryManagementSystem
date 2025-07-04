@@ -66,9 +66,6 @@
     <None Update="FastReport\Templates\*.frx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Templates\*.frx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
   <!-- Exclude FastReport files from compilation on non-Windows platforms -->
