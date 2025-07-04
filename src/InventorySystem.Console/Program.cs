@@ -640,6 +640,7 @@ try
         var logger = scopedServices.GetRequiredService<ILogger<Program>>();
         var dailyReportService = scopedServices.GetRequiredService<InventorySystem.Core.Interfaces.IDailyReportService>();
         var reportService = scopedServices.GetRequiredService<InventorySystem.Reports.Interfaces.IDailyReportService>();
+        var fileManagementService = scopedServices.GetRequiredService<IFileManagementService>();
         
         // ジョブ日付を取得（引数から、またはデフォルト値）
         DateTime jobDate;
