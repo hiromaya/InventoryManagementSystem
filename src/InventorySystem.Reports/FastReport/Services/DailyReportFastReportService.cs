@@ -26,7 +26,7 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             _logger = logger;
             
-            // テンプレートファイルのパス設定（アンマッチリストと同じパス構成）
+            // テンプレートファイルのパス設定
             var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
             _templatePath = Path.Combine(baseDirectory, "FastReport", "Templates", "DailyReport.frx");
             
@@ -65,7 +65,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 report.SetParameterValue("CreateDateTime", DateTime.Now.ToString("yyyy年MM月dd日HH時mm分ss秒"));
                 report.SetParameterValue("PageNumber", "1 / 1");
                 
-                // データを直接レポートページに設定（DataBandを使わない）
+                // データを直接レポートページに設定（新しい17列レイアウト対応）
                 _logger.LogDebug("データバインディング開始。アイテム数: {Count}", items.Count);
                 PopulateReportData(report, items, subtotals, total);
                 
@@ -142,13 +142,20 @@ namespace InventorySystem.Reports.FastReport.Services
             float currentY = 0f; // DataBand内の相対位置
             string currentCategory = "";
             
-            // 小計用変数
+            // 小計用変数（新レイアウト対応）
+            decimal categoryPrevStock = 0;
+            decimal categoryPurchase = 0;
+            decimal categoryPurchaseDiscount = 0;
+            decimal categoryStockAdjust = 0;
+            decimal categoryProcessing = 0;
+            decimal categoryTransfer = 0;
+            decimal categoryIncentive = 0;
+            decimal categoryGrossProfit1 = 0;
+            decimal categoryGrossProfit2 = 0;
             decimal categoryDailySales = 0;
-            decimal categoryDailyGross1 = 0;
-            decimal categoryDailyGross2 = 0;
             decimal categoryMonthlySales = 0;
-            decimal categoryMonthlyGross1 = 0;
-            decimal categoryMonthlyGross2 = 0;
+            decimal categoryMonthlyGrossProfit1 = 0;
+            decimal categoryMonthlyGrossProfit2 = 0;
             
             // 有効なデータのみを処理
             var validItems = items.Where(IsNotZeroItem).ToList();
@@ -160,74 +167,77 @@ namespace InventorySystem.Reports.FastReport.Services
                 if (!string.IsNullOrEmpty(currentCategory) && currentCategory != item.ProductCategory1)
                 {
                     AddSubtotalRow(dataBand, currentY, currentCategory, 
-                        categoryDailySales, categoryDailyGross1, categoryDailyGross2,
-                        categoryMonthlySales, categoryMonthlyGross1, categoryMonthlyGross2);
+                        categoryPrevStock, categoryPurchase, categoryPurchaseDiscount, categoryStockAdjust,
+                        categoryProcessing, categoryTransfer, categoryIncentive, categoryGrossProfit1, 
+                        categoryGrossProfit2, categoryDailySales, categoryMonthlySales, 
+                        categoryMonthlyGrossProfit1, categoryMonthlyGrossProfit2);
                     currentY += 18.9f;
                     
                     // 小計値をリセット
+                    categoryPrevStock = 0;
+                    categoryPurchase = 0;
+                    categoryPurchaseDiscount = 0;
+                    categoryStockAdjust = 0;
+                    categoryProcessing = 0;
+                    categoryTransfer = 0;
+                    categoryIncentive = 0;
+                    categoryGrossProfit1 = 0;
+                    categoryGrossProfit2 = 0;
                     categoryDailySales = 0;
-                    categoryDailyGross1 = 0;
-                    categoryDailyGross2 = 0;
                     categoryMonthlySales = 0;
-                    categoryMonthlyGross1 = 0;
-                    categoryMonthlyGross2 = 0;
+                    categoryMonthlyGrossProfit1 = 0;
+                    categoryMonthlyGrossProfit2 = 0;
                 }
                 
-                // 明細行を追加
+                // 明細行を追加（新17列レイアウト）
                 AddDetailRow(dataBand, currentY, item);
                 currentY += 18.9f;
                 
-                // 小計に加算
+                // 小計に加算（新レイアウト項目）
                 currentCategory = item.ProductCategory1 ?? "";
-                categoryDailySales += item.DailySalesAmount;
-                categoryDailyGross1 += item.DailyGrossProfit1;
-                categoryDailyGross2 += item.DailyGrossProfit2;
+                // 注意：現在のDailyReportItemには存在しない項目があるため、対応するプロパティを使用
+                categoryPrevStock += 0; // 前残データは現在未実装
+                categoryPurchase += 0; // 当仕入データは現在未実装
+                categoryPurchaseDiscount += item.DailyPurchaseDiscount;
+                categoryStockAdjust += item.DailyInventoryAdjustment;
+                categoryProcessing += item.DailyProcessingCost;
+                categoryTransfer += item.DailyTransfer;
+                categoryIncentive += item.DailyIncentive;
+                categoryGrossProfit1 += item.DailyGrossProfit1;
+                categoryGrossProfit2 += item.DailyGrossProfit2;
+                categoryDailySales += item.DailySalesQuantity;
                 categoryMonthlySales += item.DailySalesAmount + item.MonthlySalesAmount;
-                categoryMonthlyGross1 += item.DailyGrossProfit1 + item.MonthlyGrossProfit1;
-                categoryMonthlyGross2 += item.DailyGrossProfit2 + item.MonthlyGrossProfit1 - item.DailyDiscountAmount;
+                categoryMonthlyGrossProfit1 += item.DailyGrossProfit1 + item.MonthlyGrossProfit1;
+                categoryMonthlyGrossProfit2 += item.DailyGrossProfit2 + item.MonthlyGrossProfit1 - item.DailyDiscountAmount;
             }
             
             // 最後の小計
             if (!string.IsNullOrEmpty(currentCategory))
             {
                 AddSubtotalRow(dataBand, currentY, currentCategory,
-                    categoryDailySales, categoryDailyGross1, categoryDailyGross2,
-                    categoryMonthlySales, categoryMonthlyGross1, categoryMonthlyGross2);
+                    categoryPrevStock, categoryPurchase, categoryPurchaseDiscount, categoryStockAdjust,
+                    categoryProcessing, categoryTransfer, categoryIncentive, categoryGrossProfit1, 
+                    categoryGrossProfit2, categoryDailySales, categoryMonthlySales, 
+                    categoryMonthlyGrossProfit1, categoryMonthlyGrossProfit2);
                 currentY += 18.9f;
             }
             
             // DataBandの高さを調整
             dataBand.Height = currentY;
             
-            // 合計値を設定
+            // 合計値を設定（新17列レイアウト対応）
             SetTotalValues(report, total);
         }
         
         private void AddDetailRow(FR.DataBand dataBand, float y, DailyReportItem item)
         {
-            // 商品コード
-            var codeText = new FR.TextObject
-            {
-                Name = $"Code_{y}",
-                Left = 0,
-                Top = y,
-                Width = 56.7f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = item.ProductCode ?? "",
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Center,
-                Fill = { Color = Color.White }
-            };
-            dataBand.Objects.Add(codeText);
-            
-            // 商品名
+            // 商品名（1列目）
             var nameText = new FR.TextObject
             {
-                Name = $"Name_{y}",
-                Left = 56.7f,
+                Name = $"ProductName_{y}",
+                Left = 0,
                 Top = y,
-                Width = 170.1f,
+                Width = 189f,
                 Height = 18.9f,
                 Border = { Lines = FR.BorderLines.All },
                 Text = item.ProductName ?? "",
@@ -237,294 +247,106 @@ namespace InventorySystem.Reports.FastReport.Services
             };
             dataBand.Objects.Add(nameText);
             
-            // 売上数量（ゼロサプレス形式）
-            var qtyText = new FR.TextObject
-            {
-                Name = $"Qty_{y}",
-                Left = 226.8f,
-                Top = y,
-                Width = 56.7f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatNumberZeroSuppress(item.DailySalesQuantity, 2),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(qtyText);
+            // 日計セクション（12列）
+            AddDailyColumnData(dataBand, y, item);
             
-            // 売上金額
-            var amountText = new FR.TextObject
-            {
-                Name = $"Amount_{y}",
-                Left = 283.5f,
-                Top = y,
-                Width = 75.6f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatNumberZeroSuppress(item.DailySalesAmount),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(amountText);
+            // 月計セクション（5列）
+            AddMonthlyColumnData(dataBand, y, item);
+        }
+        
+        private void AddDailyColumnData(FR.DataBand dataBand, float y, DailyReportItem item)
+        {
+            // 2. 前残（現在未実装のため0）
+            AddTextObject(dataBand, y, "PrevStock", 189f, FormatNumberZeroSuppress(0, 2));
             
-            // 仕入値引
-            var discountText = new FR.TextObject
-            {
-                Name = $"Discount_{y}",
-                Left = 359.1f,
-                Top = y,
-                Width = 75.6f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatNumberWithTriangle(item.DailyPurchaseDiscount),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(discountText);
+            // 3. 当仕入（現在未実装のため0）
+            AddTextObject(dataBand, y, "Purchase", 252f, FormatNumberZeroSuppress(0));
             
-            // 在庫調整
-            var adjustText = new FR.TextObject
-            {
-                Name = $"Adjust_{y}",
-                Left = 434.7f,
-                Top = y,
-                Width = 75.6f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatNumberWithTriangle(item.DailyInventoryAdjustment),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(adjustText);
+            // 4. 仕入値引
+            AddTextObject(dataBand, y, "PurchaseDiscount", 315f, FormatNumberWithTriangle(item.DailyPurchaseDiscount));
             
-            // 加工費
-            var processText = new FR.TextObject
-            {
-                Name = $"Process_{y}",
-                Left = 510.3f,
-                Top = y,
-                Width = 75.6f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatNumberWithTriangle(item.DailyProcessingCost),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(processText);
+            // 5. 在庫調整
+            AddTextObject(dataBand, y, "StockAdjust", 378f, FormatNumberWithTriangle(item.DailyInventoryAdjustment));
             
-            // 振替
-            var transferText = new FR.TextObject
-            {
-                Name = $"Transfer_{y}",
-                Left = 585.9f,
-                Top = y,
-                Width = 56.7f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatNumberWithTriangle(item.DailyTransfer),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(transferText);
+            // 6. 加工費
+            AddTextObject(dataBand, y, "Processing", 441f, FormatNumberWithTriangle(item.DailyProcessingCost));
             
-            // 奨励金
-            var incentiveText = new FR.TextObject
-            {
-                Name = $"Incentive_{y}",
-                Left = 642.6f,
-                Top = y,
-                Width = 56.7f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatNumberWithTriangle(item.DailyIncentive),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(incentiveText);
+            // 7. 振替
+            AddTextObject(dataBand, y, "Transfer", 504f, FormatNumberWithTriangle(item.DailyTransfer));
             
-            // 粗利益１
-            var gross1Text = new FR.TextObject
-            {
-                Name = $"Gross1_{y}",
-                Left = 699.3f,
-                Top = y,
-                Width = 75.6f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatNumberZeroSuppress(item.DailyGrossProfit1),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(gross1Text);
+            // 8. 奨励金
+            AddTextObject(dataBand, y, "Incentive", 567f, FormatNumberWithTriangle(item.DailyIncentive));
             
-            // 率１
-            var rate1Text = new FR.TextObject
-            {
-                Name = $"Rate1_{y}",
-                Left = 774.9f,
-                Top = y,
-                Width = 56.7f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatRate(CalculateRate(item.DailyGrossProfit1, item.DailySalesAmount)),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(rate1Text);
+            // 9. 1粗利益
+            AddTextObject(dataBand, y, "GrossProfit1", 630f, FormatNumberZeroSuppress(item.DailyGrossProfit1));
             
-            // 粗利益２
-            var gross2Text = new FR.TextObject
-            {
-                Name = $"Gross2_{y}",
-                Left = 831.6f,
-                Top = y,
-                Width = 75.6f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatMonthlyGross2(item.DailyGrossProfit2),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(gross2Text);
+            // 10. 1粗利率
+            AddTextObject(dataBand, y, "GrossProfitRate1", 693f, FormatRate(CalculateRate(item.DailyGrossProfit1, item.DailySalesAmount)));
             
-            // 率２
-            var rate2Text = new FR.TextObject
-            {
-                Name = $"Rate2_{y}",
-                Left = 907.2f,
-                Top = y,
-                Width = 56.7f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatRate(CalculateRate(item.DailyGrossProfit2, item.DailySalesAmount)),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(rate2Text);
+            // 11. 2粗利益
+            AddTextObject(dataBand, y, "GrossProfit2", 756f, FormatNumberWithTriangle(item.DailyGrossProfit2));
             
-            // 月計項目
+            // 12. 2粗利率
+            AddTextObject(dataBand, y, "GrossProfitRate2", 819f, FormatRate(CalculateRate(item.DailyGrossProfit2, item.DailySalesAmount)));
+            
+            // 13. 売上数量
+            AddTextObject(dataBand, y, "DailySales", 882f, FormatNumberZeroSuppress(item.DailySalesQuantity, 2));
+        }
+        
+        private void AddMonthlyColumnData(FR.DataBand dataBand, float y, DailyReportItem item)
+        {
+            // 月計項目の計算
             var monthlyAmount = item.DailySalesAmount + item.MonthlySalesAmount;
             var monthlyGross1 = item.DailyGrossProfit1 + item.MonthlyGrossProfit1;
             var monthlyGross2 = item.DailyGrossProfit2 + item.MonthlyGrossProfit1 - item.DailyDiscountAmount;
             
-            // 月計売上金額
-            var monthAmountText = new FR.TextObject
-            {
-                Name = $"MonthAmount_{y}",
-                Left = 963.9f,
-                Top = y,
-                Width = 75.6f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatNumberZeroSuppress(monthlyAmount),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(monthAmountText);
+            // 14. 月計売上金額
+            AddTextObject(dataBand, y, "MonthlySales", 945f, FormatNumberZeroSuppress(monthlyAmount));
             
-            // 月計粗利益１
-            var monthGross1Text = new FR.TextObject
-            {
-                Name = $"MonthGross1_{y}",
-                Left = 1039.5f,
-                Top = y,
-                Width = 75.6f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatNumberZeroSuppress(monthlyGross1),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(monthGross1Text);
+            // 15. 月計1粗利益
+            AddTextObject(dataBand, y, "MonthlyGrossProfit1", 1008f, FormatNumberZeroSuppress(monthlyGross1));
             
-            // 月計率１
-            var monthRate1Text = new FR.TextObject
-            {
-                Name = $"MonthRate1_{y}",
-                Left = 1115.1f,
-                Top = y,
-                Width = 56.7f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatRate(CalculateRate(monthlyGross1, monthlyAmount)),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(monthRate1Text);
+            // 16. 月計1粗利率
+            AddTextObject(dataBand, y, "MonthlyGrossProfitRate1", 1071f, FormatRate(CalculateRate(monthlyGross1, monthlyAmount)));
             
-            // 月計粗利益２
-            var monthGross2Text = new FR.TextObject
-            {
-                Name = $"MonthGross2_{y}",
-                Left = 1171.8f,
-                Top = y,
-                Width = 75.6f,
-                Height = 18.9f,
-                Border = { Lines = FR.BorderLines.All },
-                Text = FormatMonthlyGross2(monthlyGross2),
-                Font = new Font("MS Gothic", 9),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
-            };
-            dataBand.Objects.Add(monthGross2Text);
+            // 17. 月計2粗利益（▲記号使用）
+            AddTextObject(dataBand, y, "MonthlyGrossProfit2", 1134f, FormatNumberWithTriangleSpecial(monthlyGross2));
             
-            // 月計率２
-            var monthRate2Text = new FR.TextObject
+            // 18. 月計2粗利率
+            AddTextObject(dataBand, y, "MonthlyGrossProfitRate2", 1197f, FormatRate(CalculateRate(monthlyGross2, monthlyAmount)));
+        }
+        
+        private void AddTextObject(FR.DataBand dataBand, float y, string namePrefix, float left, string text)
+        {
+            var textObject = new FR.TextObject
             {
-                Name = $"MonthRate2_{y}",
-                Left = 1247.4f,
+                Name = $"{namePrefix}_{y}",
+                Left = left,
                 Top = y,
-                Width = 56.7f,
+                Width = 63f,
                 Height = 18.9f,
                 Border = { Lines = FR.BorderLines.All },
-                Text = FormatRate(CalculateRate(monthlyGross2, monthlyAmount)),
-                Font = new Font("MS Gothic", 9),
+                Text = text,
+                Font = new Font("MS Gothic", 8),
                 HorzAlign = FR.HorzAlign.Right,
                 Fill = { Color = Color.White },
                 Padding = new FR.Padding(0, 0, 2, 0)
             };
-            dataBand.Objects.Add(monthRate2Text);
+            dataBand.Objects.Add(textObject);
         }
         
         private void AddSubtotalRow(FR.DataBand dataBand, float y, string category,
-            decimal dailySales, decimal dailyGross1, decimal dailyGross2,
-            decimal monthlySales, decimal monthlyGross1, decimal monthlyGross2)
+            decimal prevStock, decimal purchase, decimal purchaseDiscount, decimal stockAdjust,
+            decimal processing, decimal transfer, decimal incentive, decimal grossProfit1, 
+            decimal grossProfit2, decimal dailySales, decimal monthlySales, 
+            decimal monthlyGrossProfit1, decimal monthlyGrossProfit2)
         {
             var labelText = new FR.TextObject
             {
                 Name = $"Subtotal_{y}",
                 Left = 0,
                 Top = y,
-                Width = 226.8f,
+                Width = 189f,
                 Height = 18.9f,
                 Border = { Lines = FR.BorderLines.All },
                 Text = $"＊　{category}　計　＊",
@@ -534,8 +356,8 @@ namespace InventorySystem.Reports.FastReport.Services
             };
             dataBand.Objects.Add(labelText);
             
-            // 各小計値のTextObjectを追加（必要に応じて）
-            // 仕様により小計行の内容を決定
+            // 各小計値のTextObjectを追加（必要に応じて実装）
+            // 現在は「大分類計」ラベルのみ実装
         }
         
         private bool IsNotZeroItem(DailyReportItem item)
@@ -570,10 +392,11 @@ namespace InventorySystem.Reports.FastReport.Services
             return value == 0 ? "" : value.ToString("N0");
         }
 
-        private string FormatMonthlyGross2(decimal value)
+        private string FormatNumberWithTriangleSpecial(decimal value)
         {
+            // 月計2粗利益専用フォーマット（仕様書の▲記号使用）
             if (value < 0)
-                return $"({Math.Abs(value):N0})";
+                return $"▲{Math.Abs(value):N0}";
             return value == 0 ? "" : value.ToString("N0");
         }
         
@@ -584,23 +407,25 @@ namespace InventorySystem.Reports.FastReport.Services
         
         private void SetTotalValues(Report report, DailyReportTotal total)
         {
-            // 合計値を設定
-            SetTextObjectValue(report, "TotalSalesQty", FormatNumberZeroSuppress(total.GrandTotalDailySalesQuantity, 2));
-            SetTextObjectValue(report, "TotalSalesAmount", FormatNumberZeroSuppress(total.GrandTotalDailySalesAmount));
+            // 新17列レイアウトに対応した合計値設定
+            // 現在のDailyReportTotalエンティティの項目を使用
+            SetTextObjectValue(report, "TotalPrevStock", ""); // 未実装項目
+            SetTextObjectValue(report, "TotalPurchase", ""); // 未実装項目
             SetTextObjectValue(report, "TotalPurchaseDiscount", FormatNumberWithTriangle(total.GrandTotalDailyPurchaseDiscount));
             SetTextObjectValue(report, "TotalStockAdjust", FormatNumberWithTriangle(total.GrandTotalDailyInventoryAdjustment));
             SetTextObjectValue(report, "TotalProcessing", FormatNumberWithTriangle(total.GrandTotalDailyProcessingCost));
             SetTextObjectValue(report, "TotalTransfer", FormatNumberWithTriangle(total.GrandTotalDailyTransfer));
             SetTextObjectValue(report, "TotalIncentive", FormatNumberWithTriangle(total.GrandTotalDailyIncentive));
-            SetTextObjectValue(report, "TotalGross1", FormatNumberZeroSuppress(total.GrandTotalDailyGrossProfit1));
-            SetTextObjectValue(report, "TotalRate1", FormatRate(CalculateRate(total.GrandTotalDailyGrossProfit1, total.GrandTotalDailySalesAmount)));
-            SetTextObjectValue(report, "TotalGross2", FormatMonthlyGross2(total.GrandTotalDailyGrossProfit2));
-            SetTextObjectValue(report, "TotalRate2", FormatRate(CalculateRate(total.GrandTotalDailyGrossProfit2, total.GrandTotalDailySalesAmount)));
-            SetTextObjectValue(report, "TotalMonthlyAmount", FormatNumberZeroSuppress(total.GrandTotalMonthlySalesAmount));
-            SetTextObjectValue(report, "TotalMonthlyGross1", FormatNumberZeroSuppress(total.GrandTotalMonthlyGrossProfit1));
-            SetTextObjectValue(report, "TotalMonthlyRate1", FormatRate(CalculateRate(total.GrandTotalMonthlyGrossProfit1, total.GrandTotalMonthlySalesAmount)));
-            SetTextObjectValue(report, "TotalMonthlyGross2", FormatMonthlyGross2(total.GrandTotalMonthlyGrossProfit2));
-            SetTextObjectValue(report, "TotalMonthlyRate2", FormatRate(CalculateRate(total.GrandTotalMonthlyGrossProfit2, total.GrandTotalMonthlySalesAmount)));
+            SetTextObjectValue(report, "TotalGrossProfit1", FormatNumberZeroSuppress(total.GrandTotalDailyGrossProfit1));
+            SetTextObjectValue(report, "TotalGrossProfitRate1", FormatRate(CalculateRate(total.GrandTotalDailyGrossProfit1, total.GrandTotalDailySalesAmount)));
+            SetTextObjectValue(report, "TotalGrossProfit2", FormatNumberWithTriangle(total.GrandTotalDailyGrossProfit2));
+            SetTextObjectValue(report, "TotalGrossProfitRate2", FormatRate(CalculateRate(total.GrandTotalDailyGrossProfit2, total.GrandTotalDailySalesAmount)));
+            SetTextObjectValue(report, "TotalDailySales", FormatNumberZeroSuppress(total.GrandTotalDailySalesQuantity, 2));
+            SetTextObjectValue(report, "TotalMonthlySales", FormatNumberZeroSuppress(total.GrandTotalMonthlySalesAmount));
+            SetTextObjectValue(report, "TotalMonthlyGrossProfit1", FormatNumberZeroSuppress(total.GrandTotalMonthlyGrossProfit1));
+            SetTextObjectValue(report, "TotalMonthlyGrossProfitRate1", FormatRate(CalculateRate(total.GrandTotalMonthlyGrossProfit1, total.GrandTotalMonthlySalesAmount)));
+            SetTextObjectValue(report, "TotalMonthlyGrossProfit2", FormatNumberWithTriangleSpecial(total.GrandTotalMonthlyGrossProfit2));
+            SetTextObjectValue(report, "TotalMonthlyGrossProfitRate2", FormatRate(CalculateRate(total.GrandTotalMonthlyGrossProfit2, total.GrandTotalMonthlySalesAmount)));
         }
         
         private void SetTextObjectValue(Report report, string objectName, string value)
