@@ -6,6 +6,7 @@ using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using FastReport;
 using FastReport.Export.Pdf;
 using FastReport.Data;
@@ -18,10 +19,22 @@ namespace InventorySystem.Reports.FastReport.Services
     public class DailyReportFastReportService : IDailyReportService
     {
         private readonly ILogger<DailyReportFastReportService> _logger;
+        private readonly string _templatePath;
         
         public DailyReportFastReportService(ILogger<DailyReportFastReportService> logger)
         {
             _logger = logger;
+            
+            // テンプレートファイルのパス設定
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            _templatePath = Path.Combine(baseDir, "Reports", "Templates", "DailyReport.frx");
+            
+            // テンプレートが存在しない場合のエラーハンドリング
+            if (!File.Exists(_templatePath))
+            {
+                _logger.LogError("商品日報テンプレートファイルが見つかりません: {Path}", _templatePath);
+                throw new FileNotFoundException($"商品日報テンプレートファイルが見つかりません: {_templatePath}");
+            }
         }
         
         public byte[] GenerateDailyReport(
@@ -32,97 +45,36 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             try
             {
+                _logger.LogInformation("商品日報PDF生成開始: 日付={ReportDate}, 明細数={Count}", 
+                    reportDate, items.Count);
+                
                 using var report = new Report();
-            
-            // A3横設定
-            var page = new ReportPage
-            {
-                Name = "Page1",
-                PaperWidth = 420f,  // A3
-                PaperHeight = 297f,
-                Landscape = true,
-                LeftMargin = 10f,
-                RightMargin = 10f,
-                TopMargin = 10f,
-                BottomMargin = 10f
-            };
-            report.Pages.Add(page);
-            
-            // レポートタイトル
-            CreateReportTitle(page, reportDate);
-            
-            // カラムヘッダー
-            CreateColumnHeaders(page);
-            
-            // データ部分
-            CreateDataSection(page, report, items);
-            
-            // 小計部分
-            CreateSubtotalSection(page, subtotals);
-            
-            // 合計部分
-            CreateTotalSection(page, total);
-            
-            // レポート生成
-            // 【重要】スクリプトを完全に無効化
-            try
-            {
-                // ScriptLanguageプロパティをリフレクションで探す
-                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
-                if (scriptLanguageProperty != null)
-                {
-                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
-                    if (scriptLanguageType.IsEnum)
-                    {
-                        // FastReport.ScriptLanguage.None を設定
-                        var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
-                        if (noneValue != null)
-                        {
-                            scriptLanguageProperty.SetValue(report, noneValue);
-                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
-                        }
-                    }
-                }
                 
-                // Prepareを直接呼び出す
+                // テンプレートを読み込む
+                _logger.LogDebug("テンプレートファイルを読み込んでいます: {TemplatePath}", _templatePath);
+                report.Load(_templatePath);
+                
+                // スクリプトを完全に無効化
+                SetScriptLanguageToNone(report);
+                
+                // データセットの準備
+                var dataSet = PrepareDataSet(items, subtotals, total);
+                
+                // データソースの登録
+                report.RegisterData(dataSet);
+                
+                // パラメータの設定
+                report.SetParameterValue("ReportDate", reportDate);
+                
+                // 小計・合計の動的設定
+                ConfigureSubtotalsAndTotals(report, subtotals, total);
+                
+                // レポートの準備
+                _logger.LogDebug("レポートを準備しています...");
                 report.Prepare();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning($"レポート生成でエラーが発生しました: {ex.Message}");
                 
-                // エラーが発生した場合の最小限のフォールバック
-                try
-                {
-                    // 内部のScriptプロパティをnullに設定
-                    var scriptProperty = report.GetType().GetProperty("Script", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    if (scriptProperty != null)
-                    {
-                        scriptProperty.SetValue(report, null);
-                    }
-                    
-                    report.Prepare();
-                }
-                catch (Exception fallbackEx)
-                {
-                    _logger.LogError(fallbackEx, "フォールバック処理も失敗しました");
-                    throw;
-                }
-            }
-            
-            // PDF出力
-            using var pdfExport = new PDFExport
-            {
-                EmbeddingFonts = true,
-                Title = $"商品日報_{reportDate:yyyyMMdd}",
-                Subject = "商品日報",
-                Creator = "在庫管理システム"
-            };
-            
-            using var stream = new MemoryStream();
-            report.Export(pdfExport, stream);
-            
-            return stream.ToArray();
+                // PDF出力
+                return ExportToPdf(report, reportDate);
             }
             catch (Exception ex)
             {
@@ -131,257 +83,269 @@ namespace InventorySystem.Reports.FastReport.Services
             }
         }
         
-        private void CreateReportTitle(ReportPage page, DateTime reportDate)
+        private void SetScriptLanguageToNone(Report report)
         {
-            var titleBand = new ReportTitleBand
+            try
             {
-                Name = "ReportTitle",
-                Height = 60f
-            };
-            page.ReportTitle = titleBand;
-            
-            var titleText = new TextObject
-            {
-                Name = "Title",
-                Bounds = new RectangleF(0, 10, page.PaperWidth - 20, 30),
-                Text = "商　品　日　報",
-                Font = new Font("MS Gothic", 20, FontStyle.Bold),
-                HorzAlign = HorzAlign.Center
-            };
-            titleBand.Objects.Add(titleText);
-            
-            var dateText = new TextObject
-            {
-                Name = "ReportDate",
-                Bounds = new RectangleF(0, 40, page.PaperWidth - 20, 20),
-                Text = $"{reportDate:yyyy年MM月dd日}",
-                Font = new Font("MS Gothic", 12),
-                HorzAlign = HorzAlign.Center
-            };
-            titleBand.Objects.Add(dateText);
-        }
-        
-        private void CreateColumnHeaders(ReportPage page)
-        {
-            var headerBand = new PageHeaderBand
-            {
-                Name = "PageHeader",
-                Height = 80f
-            };
-            page.PageHeader = headerBand;
-            
-            // 日計・月計の大ヘッダー
-            CreateMainHeaders(headerBand);
-            
-            // 詳細ヘッダー
-            CreateDetailHeaders(headerBand);
-        }
-        
-        private void CreateMainHeaders(PageHeaderBand headerBand)
-        {
-            var dailyHeader = new TextObject
-            {
-                Name = "DailyHeader",
-                Bounds = new RectangleF(120, 10, 200, 20),
-                Text = "日計",
-                Font = new Font("MS Gothic", 12, FontStyle.Bold),
-                HorzAlign = HorzAlign.Center,
-                Border = { Lines = BorderLines.All }
-            };
-            headerBand.Objects.Add(dailyHeader);
-            
-            var monthlyHeader = new TextObject
-            {
-                Name = "MonthlyHeader",
-                Bounds = new RectangleF(320, 10, 80, 20),
-                Text = "月計",
-                Font = new Font("MS Gothic", 12, FontStyle.Bold),
-                HorzAlign = HorzAlign.Center,
-                Border = { Lines = BorderLines.All }
-            };
-            headerBand.Objects.Add(monthlyHeader);
-        }
-        
-        private void CreateDetailHeaders(PageHeaderBand headerBand)
-        {
-            var headers = new[]
-            {
-                "商品名", "売上数量", "売上金額", "仕入値引", "在庫調整", "加工費", "振替", "奨励金", 
-                "１粗利益", "１粗利率", "２粗利益", "２粗利率", "売上金額", "１粗利益", "１粗利率", "２粗利益", "２粗利率"
-            };
-            
-            var widths = new[] { 120, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
-            
-            float xPos = 0;
-            for (int i = 0; i < headers.Length; i++)
-            {
-                var header = new TextObject
+                // リフレクションを使用してScriptLanguageプロパティを取得
+                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                if (scriptLanguageProperty != null)
                 {
-                    Name = $"Header{i}",
-                    Bounds = new RectangleF(xPos, 30, widths[i], 40),
-                    Text = headers[i],
-                    Font = new Font("MS Gothic", 8, FontStyle.Bold),
-                    HorzAlign = HorzAlign.Center,
-                    VertAlign = VertAlign.Center,
-                    Border = { Lines = BorderLines.All },
-                    WordWrap = true
-                };
-                headerBand.Objects.Add(header);
-                xPos += widths[i];
-            }
-        }
-        
-        private void CreateDataSection(ReportPage page, Report report, List<DailyReportItem> items)
-        {
-            // データソースの登録
-            var dataTable = CreateDataTable(items);
-            report.RegisterData(dataTable, "DailyReportItems");
-            
-            var dataBand = new DataBand
-            {
-                Name = "DataBand",
-                DataSource = report.GetDataSource("DailyReportItems"),
-                Height = 20f
-            };
-            page.Bands.Add(dataBand);
-            
-            // データフィールドの作成
-            CreateDataFields(dataBand);
-        }
-        
-        private DataTable CreateDataTable(List<DailyReportItem> items)
-        {
-            var table = new DataTable("DailyReportItems");
-            
-            // カラム定義
-            table.Columns.Add("ProductName", typeof(string));
-            table.Columns.Add("DailySalesQuantity", typeof(decimal));
-            table.Columns.Add("DailySalesAmount", typeof(decimal));
-            table.Columns.Add("DailyPurchaseDiscount", typeof(decimal));
-            table.Columns.Add("DailyInventoryAdjustment", typeof(decimal));
-            table.Columns.Add("DailyProcessingCost", typeof(decimal));
-            table.Columns.Add("DailyTransfer", typeof(decimal));
-            table.Columns.Add("DailyIncentive", typeof(decimal));
-            table.Columns.Add("DailyGrossProfit1", typeof(decimal));
-            table.Columns.Add("DailyGrossProfitRate1", typeof(decimal));
-            table.Columns.Add("DailyGrossProfit2", typeof(decimal));
-            table.Columns.Add("DailyGrossProfitRate2", typeof(decimal));
-            table.Columns.Add("MonthlySalesAmount", typeof(decimal));
-            table.Columns.Add("MonthlyGrossProfit1", typeof(decimal));
-            table.Columns.Add("MonthlyGrossProfitRate1", typeof(decimal));
-            table.Columns.Add("MonthlyGrossProfit2", typeof(decimal));
-            table.Columns.Add("MonthlyGrossProfitRate2", typeof(decimal));
-            
-            // データ追加（オール0の明細は除外）
-            foreach (var item in items.Where(i => !i.IsAllZero()))
-            {
-                table.Rows.Add(
-                    item.ProductName,
-                    item.DailySalesQuantity,
-                    item.DailySalesAmount,
-                    item.DailyPurchaseDiscount,
-                    item.DailyInventoryAdjustment,
-                    item.DailyProcessingCost,
-                    item.DailyTransfer,
-                    item.DailyIncentive,
-                    item.DailyGrossProfit1,
-                    item.DailyGrossProfitRate1,
-                    item.DailyGrossProfit2,
-                    item.DailyGrossProfitRate2,
-                    item.MonthlySalesAmount,
-                    item.MonthlyGrossProfit1,
-                    item.MonthlyGrossProfitRate1,
-                    item.MonthlyGrossProfit2,
-                    item.MonthlyGrossProfitRate2
-                );
-            }
-            
-            return table;
-        }
-        
-        private void CreateDataFields(DataBand dataBand)
-        {
-            var fields = new[]
-            {
-                "ProductName", "DailySalesQuantity", "DailySalesAmount", "DailyPurchaseDiscount",
-                "DailyInventoryAdjustment", "DailyProcessingCost", "DailyTransfer", "DailyIncentive",
-                "DailyGrossProfit1", "DailyGrossProfitRate1", "DailyGrossProfit2", "DailyGrossProfitRate2",
-                "MonthlySalesAmount", "MonthlyGrossProfit1", "MonthlyGrossProfitRate1", 
-                "MonthlyGrossProfit2", "MonthlyGrossProfitRate2"
-            };
-            
-            var widths = new[] { 120, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
-            
-            float xPos = 0;
-            for (int i = 0; i < fields.Length; i++)
-            {
-                var field = new TextObject
-                {
-                    Name = $"Field{i}",
-                    Bounds = new RectangleF(xPos, 0, widths[i], 20),
-                    Text = $"[DailyReportItems.{fields[i]}]",
-                    Font = new Font("MS Gothic", 8),
-                    HorzAlign = i == 0 ? HorzAlign.Left : HorzAlign.Right,
-                    Border = { Lines = BorderLines.All }
-                };
-                
-                // 数値フィールドのフォーマット設定
-                if (i > 0)
-                {
-                    if (fields[i].Contains("Rate"))
+                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                    if (scriptLanguageType.IsEnum)
                     {
-                        // 率の場合：小数点2桁表示
-                        field.Text = $"[Format([DailyReportItems.{fields[i]}], \"N2\")]";
-                    }
-                    else
-                    {
-                        // 金額の場合：整数表示、桁区切りあり
-                        field.Text = $"[Format([DailyReportItems.{fields[i]}], \"N0\")]";
+                        // FastReport.ScriptLanguage.None を設定
+                        var noneValue = Enum.GetValues(scriptLanguageType)
+                            .Cast<object>()
+                            .FirstOrDefault(v => v.ToString() == "None");
+                        
+                        if (noneValue != null)
+                        {
+                            scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                        }
                     }
                 }
                 
-                dataBand.Objects.Add(field);
-                xPos += widths[i];
+                // Scriptプロパティをnullに設定（追加の安全策）
+                var scriptProperty = report.GetType().GetProperty("Script", 
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                if (scriptProperty != null)
+                {
+                    scriptProperty.SetValue(report, null);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+                // エラーが発生しても処理を継続
             }
         }
         
-        private void CreateSubtotalSection(ReportPage page, List<DailyReportSubtotal> subtotals)
+        private DataSet PrepareDataSet(
+            List<DailyReportItem> items, 
+            List<DailyReportSubtotal> subtotals, 
+            DailyReportTotal total)
         {
-            // 小計処理は簡略化（実装が複雑になるため）
-            // 実際の実装では GroupHeaderBand と GroupFooterBand を使用
+            var dataSet = new DataSet("DailyReport");
+            
+            // メインデータテーブル
+            var mainTable = new DataTable("DailyReportData");
+            
+            // 列定義
+            mainTable.Columns.Add("ProductCategory", typeof(string));
+            mainTable.Columns.Add("ProductCode", typeof(string));
+            mainTable.Columns.Add("ProductName", typeof(string));
+            mainTable.Columns.Add("DailySalesQuantity", typeof(decimal));
+            mainTable.Columns.Add("DailySalesAmount", typeof(decimal));
+            mainTable.Columns.Add("PurchaseDiscount", typeof(decimal));
+            mainTable.Columns.Add("StockAdjustment", typeof(decimal));
+            mainTable.Columns.Add("ProcessingCost", typeof(decimal));
+            mainTable.Columns.Add("Transfer", typeof(decimal));
+            mainTable.Columns.Add("Incentive", typeof(decimal));
+            mainTable.Columns.Add("DailyGrossProfit1", typeof(decimal));
+            mainTable.Columns.Add("GrossProfitRate1", typeof(decimal));
+            mainTable.Columns.Add("DailyGrossProfit2", typeof(decimal));
+            mainTable.Columns.Add("GrossProfitRate2", typeof(decimal));
+            mainTable.Columns.Add("MonthlyAmount", typeof(decimal));
+            mainTable.Columns.Add("MonthlyGross1", typeof(decimal));
+            mainTable.Columns.Add("MonthlyRate1", typeof(decimal));
+            mainTable.Columns.Add("MonthlyGross2", typeof(decimal));
+            mainTable.Columns.Add("MonthlyGross2Display", typeof(string));
+            mainTable.Columns.Add("MonthlyRate2", typeof(decimal));
+            
+            // データ行の追加（ゼロ明細を除外）
+            foreach (var item in items.Where(IsNotZeroItem))
+            {
+                var row = mainTable.NewRow();
+                
+                // 基本項目
+                row["ProductCategory"] = item.ProductCategory ?? "";
+                row["ProductCode"] = item.ProductCode ?? "";
+                row["ProductName"] = item.ProductName ?? "";
+                
+                // 日計項目
+                row["DailySalesQuantity"] = item.DailySalesQuantity;
+                row["DailySalesAmount"] = item.DailySalesAmount;
+                row["PurchaseDiscount"] = item.DailyPurchaseDiscount;
+                row["StockAdjustment"] = item.DailyStockAdjustmentAmount;
+                row["ProcessingCost"] = item.DailyProcessingCost;
+                row["Transfer"] = item.DailyTransferAmount;
+                row["Incentive"] = item.DailyIncentiveAmount;
+                row["DailyGrossProfit1"] = item.DailyGrossProfit1;
+                row["GrossProfitRate1"] = CalculateRate(item.DailyGrossProfit1, item.DailySalesAmount);
+                row["DailyGrossProfit2"] = item.DailyGrossProfit2;
+                row["GrossProfitRate2"] = CalculateRate(item.DailyGrossProfit2, item.DailySalesAmount);
+                
+                // 月計項目
+                var monthlyAmount = item.DailySalesAmount + item.MonthlySalesAmount;
+                var monthlyGross1 = item.DailyGrossProfit1 + item.MonthlyGrossProfit;
+                var monthlyGross2 = item.DailyGrossProfit2 + item.MonthlyGrossProfit - item.MonthlyDiscountAmount;
+                
+                row["MonthlyAmount"] = monthlyAmount;
+                row["MonthlyGross1"] = monthlyGross1;
+                row["MonthlyRate1"] = CalculateRate(monthlyGross1, monthlyAmount);
+                row["MonthlyGross2"] = Math.Abs(monthlyGross2);
+                row["MonthlyGross2Display"] = FormatMonthlyGross2(monthlyGross2);
+                row["MonthlyRate2"] = CalculateRate(monthlyGross2, monthlyAmount);
+                
+                mainTable.Rows.Add(row);
+            }
+            
+            dataSet.Tables.Add(mainTable);
+            return dataSet;
         }
         
-        private void CreateTotalSection(ReportPage page, DailyReportTotal total)
+        private bool IsNotZeroItem(DailyReportItem item)
         {
-            var summaryBand = new ReportSummaryBand
+            // すべての数値項目が0でない場合のみ表示
+            return item.DailySalesQuantity != 0 ||
+                   item.DailySalesAmount != 0 ||
+                   item.DailyGrossProfit1 != 0 ||
+                   item.DailyGrossProfit2 != 0 ||
+                   item.MonthlySalesAmount != 0 ||
+                   item.MonthlyGrossProfit != 0;
+        }
+        
+        private decimal CalculateRate(decimal profit, decimal amount)
+        {
+            if (amount == 0) return 0;
+            return Math.Round((profit * 100) / amount, 2);
+        }
+        
+        private string FormatMonthlyGross2(decimal value)
+        {
+            if (value < 0)
             {
-                Name = "ReportSummary",
-                Height = 40f
-            };
-            page.ReportSummary = summaryBand;
+                return $"▲{Math.Abs(value):N0}";
+            }
+            return value.ToString("N0");
+        }
+        
+        private void ConfigureSubtotalsAndTotals(Report report, List<DailyReportSubtotal> subtotals, DailyReportTotal total)
+        {
+            // グループフッター（小計）の設定
+            var groupFooter = report.FindObject("GroupFooter1") as FastReport.GroupFooterBand;
+            if (groupFooter != null)
+            {
+                // C#側で小計データを管理
+                var subtotalDict = subtotals.ToDictionary(s => s.ProductCategory);
+                
+                // データ更新時のイベントハンドラー
+                var databand = report.FindObject("Data1") as FastReport.DataBand;
+                if (databand != null)
+                {
+                    string currentCategory = "";
+                    var categoryData = new List<DataRow>();
+                    
+                    databand.BeforePrint += (sender, e) =>
+                    {
+                        var category = report.GetColumnValue("DailyReportData.ProductCategory")?.ToString() ?? "";
+                        if (category != currentCategory && !string.IsNullOrEmpty(currentCategory))
+                        {
+                            // カテゴリが変わったら小計を設定
+                            UpdateSubtotal(report, currentCategory, categoryData);
+                            categoryData.Clear();
+                        }
+                        currentCategory = category;
+                    };
+                }
+            }
             
-            var totalLabel = new TextObject
-            {
-                Name = "TotalLabel",
-                Bounds = new RectangleF(0, 10, 120, 20),
-                Text = total.TotalName,
-                Font = new Font("MS Gothic", 10, FontStyle.Bold),
-                HorzAlign = HorzAlign.Center,
-                Border = { Lines = BorderLines.All }
-            };
-            summaryBand.Objects.Add(totalLabel);
+            // 合計の設定
+            UpdateTotal(report, total);
+        }
+        
+        private void UpdateSubtotal(Report report, string category, List<DataRow> categoryData)
+        {
+            if (categoryData.Count == 0) return;
             
-            // 合計値の表示（簡略化）
-            var totalSales = new TextObject
+            // 小計を計算
+            var subtotal = new
             {
-                Name = "TotalSales",
-                Bounds = new RectangleF(140, 10, 60, 20),
-                Text = total.GrandTotalDailySalesAmount.ToString("#,##0"),
-                Font = new Font("MS Gothic", 8),
-                HorzAlign = HorzAlign.Right,
-                Border = { Lines = BorderLines.All }
+                SalesQty = categoryData.Sum(r => (decimal)r["DailySalesQuantity"]),
+                SalesAmount = categoryData.Sum(r => (decimal)r["DailySalesAmount"]),
+                PurchaseDiscount = categoryData.Sum(r => (decimal)r["PurchaseDiscount"]),
+                StockAdjustment = categoryData.Sum(r => (decimal)r["StockAdjustment"]),
+                ProcessingCost = categoryData.Sum(r => (decimal)r["ProcessingCost"]),
+                Transfer = categoryData.Sum(r => (decimal)r["Transfer"]),
+                Incentive = categoryData.Sum(r => (decimal)r["Incentive"]),
+                Gross1 = categoryData.Sum(r => (decimal)r["DailyGrossProfit1"]),
+                Gross2 = categoryData.Sum(r => (decimal)r["DailyGrossProfit2"]),
+                MonthlyAmount = categoryData.Sum(r => (decimal)r["MonthlyAmount"]),
+                MonthlyGross1 = categoryData.Sum(r => (decimal)r["MonthlyGross1"]),
+                MonthlyGross2 = categoryData.Sum(r => (decimal)r["MonthlyGross2"])
             };
-            summaryBand.Objects.Add(totalSales);
+            
+            // 小計オブジェクトに値を設定
+            SetTextObjectValue(report, "SubtotalSalesQty", subtotal.SalesQty.ToString("N2"));
+            SetTextObjectValue(report, "SubtotalSalesAmount", subtotal.SalesAmount.ToString("N0"));
+            SetTextObjectValue(report, "SubtotalPurchaseDiscount", subtotal.PurchaseDiscount.ToString("N0"));
+            SetTextObjectValue(report, "SubtotalStockAdjust", subtotal.StockAdjustment.ToString("N0"));
+            SetTextObjectValue(report, "SubtotalProcessing", subtotal.ProcessingCost.ToString("N0"));
+            SetTextObjectValue(report, "SubtotalTransfer", subtotal.Transfer.ToString("N0"));
+            SetTextObjectValue(report, "SubtotalIncentive", subtotal.Incentive.ToString("N0"));
+            SetTextObjectValue(report, "SubtotalGross1", subtotal.Gross1.ToString("N0"));
+            SetTextObjectValue(report, "SubtotalRate1", CalculateRate(subtotal.Gross1, subtotal.SalesAmount).ToString("N2") + "%");
+            SetTextObjectValue(report, "SubtotalGross2", subtotal.Gross2.ToString("N0"));
+            SetTextObjectValue(report, "SubtotalRate2", CalculateRate(subtotal.Gross2, subtotal.SalesAmount).ToString("N2") + "%");
+            SetTextObjectValue(report, "SubtotalMonthlyAmount", subtotal.MonthlyAmount.ToString("N0"));
+            SetTextObjectValue(report, "SubtotalMonthlyGross1", subtotal.MonthlyGross1.ToString("N0"));
+            SetTextObjectValue(report, "SubtotalMonthlyRate1", CalculateRate(subtotal.MonthlyGross1, subtotal.MonthlyAmount).ToString("N2") + "%");
+            SetTextObjectValue(report, "SubtotalMonthlyGross2", FormatMonthlyGross2(subtotal.MonthlyGross2));
+            SetTextObjectValue(report, "SubtotalMonthlyRate2", CalculateRate(subtotal.MonthlyGross2, subtotal.MonthlyAmount).ToString("N2") + "%");
+        }
+        
+        private void UpdateTotal(Report report, DailyReportTotal total)
+        {
+            // 合計値を設定
+            SetTextObjectValue(report, "TotalSalesQty", total.TotalSalesQuantity.ToString("N2"));
+            SetTextObjectValue(report, "TotalSalesAmount", total.TotalAmount.ToString("N0"));
+            SetTextObjectValue(report, "TotalPurchaseDiscount", total.TotalPurchaseDiscount.ToString("N0"));
+            SetTextObjectValue(report, "TotalStockAdjust", total.TotalStockAdjustment.ToString("N0"));
+            SetTextObjectValue(report, "TotalProcessing", total.TotalProcessingCost.ToString("N0"));
+            SetTextObjectValue(report, "TotalTransfer", total.TotalTransfer.ToString("N0"));
+            SetTextObjectValue(report, "TotalIncentive", total.TotalIncentive.ToString("N0"));
+            SetTextObjectValue(report, "TotalGross1", total.TotalGrossProfit1.ToString("N0"));
+            SetTextObjectValue(report, "TotalRate1", CalculateRate(total.TotalGrossProfit1, total.TotalAmount).ToString("N2") + "%");
+            SetTextObjectValue(report, "TotalGross2", total.TotalGrossProfit2.ToString("N0"));
+            SetTextObjectValue(report, "TotalRate2", CalculateRate(total.TotalGrossProfit2, total.TotalAmount).ToString("N2") + "%");
+            SetTextObjectValue(report, "TotalMonthlyAmount", total.TotalMonthlyAmount.ToString("N0"));
+            SetTextObjectValue(report, "TotalMonthlyGross1", total.TotalMonthlyGrossProfit1.ToString("N0"));
+            SetTextObjectValue(report, "TotalMonthlyRate1", CalculateRate(total.TotalMonthlyGrossProfit1, total.TotalMonthlyAmount).ToString("N2") + "%");
+            SetTextObjectValue(report, "TotalMonthlyGross2", FormatMonthlyGross2(total.TotalMonthlyGrossProfit2));
+            SetTextObjectValue(report, "TotalMonthlyRate2", CalculateRate(total.TotalMonthlyGrossProfit2, total.TotalMonthlyAmount).ToString("N2") + "%");
+        }
+        
+        private void SetTextObjectValue(Report report, string objectName, string value)
+        {
+            var textObject = report.FindObject(objectName) as FastReport.TextObject;
+            if (textObject != null)
+            {
+                textObject.Text = value;
+            }
+        }
+        
+        private byte[] ExportToPdf(Report report, DateTime reportDate)
+        {
+            using var pdfExport = new PDFExport
+            {
+                EmbeddingFonts = true,
+                Title = $"商品日報_{reportDate:yyyyMMdd}",
+                Subject = "商品日報",
+                Creator = "在庫管理システム",
+                OpenAfterExport = false,
+                // 日本語フォント対応
+                UseFileCache = true,
+                ImageDpi = 300,
+                JpegQuality = 95
+            };
+            
+            using var stream = new MemoryStream();
+            report.Export(pdfExport, stream);
+            
+            _logger.LogInformation("商品日報PDF生成完了: サイズ={Size}bytes", stream.Length);
+            return stream.ToArray();
         }
     }
 }
