@@ -60,19 +60,15 @@ namespace InventorySystem.Reports.FastReport.Services
                 // スクリプトを完全に無効化
                 SetScriptLanguageToNone(report);
                 
-                // データセットの準備
-                var dataSet = PrepareDataSet(items, subtotals, total);
+                // デバッグ用ログ
+                _logger.LogDebug("テンプレート読み込み完了。スクリプト言語: {ScriptLanguage}", 
+                    report.GetType().GetProperty("ScriptLanguage")?.GetValue(report));
                 
-                // データソースの登録
-                report.RegisterData(dataSet);
+                // データを手動でTextObjectに設定
+                _logger.LogDebug("データバインディング開始。アイテム数: {Count}", items.Count);
+                BindDataManually(report, items, subtotals, total, reportDate);
                 
-                // パラメータの設定
-                report.SetParameterValue("ReportDate", reportDate);
-                
-                // 小計・合計の動的設定
-                ConfigureSubtotalsAndTotals(report, subtotals, total);
-                
-                // レポートの準備
+                // レポートの準備（データソース登録なし）
                 _logger.LogDebug("レポートを準備しています...");
                 report.Prepare();
                 
@@ -125,78 +121,69 @@ namespace InventorySystem.Reports.FastReport.Services
             }
         }
         
-        private System.Data.DataSet PrepareDataSet(
-            List<DailyReportItem> items, 
-            List<DailyReportSubtotal> subtotals, 
-            DailyReportTotal total)
+        private void BindDataManually(Report report, List<DailyReportItem> items, 
+            List<DailyReportSubtotal> subtotals, DailyReportTotal total, DateTime reportDate)
         {
-            var dataSet = new System.Data.DataSet("DailyReport");
+            // ヘッダー情報の設定
+            SetTextObjectValue(report, "ReportDateText", reportDate.ToString("yyyy年MM月dd日"));
+            SetTextObjectValue(report, "PageInfo", "1 / 1");
             
-            // メインデータテーブル
-            var mainTable = new DataTable("DailyReportData");
-            
-            // 列定義
-            mainTable.Columns.Add("ProductCategory", typeof(string));
-            mainTable.Columns.Add("ProductCode", typeof(string));
-            mainTable.Columns.Add("ProductName", typeof(string));
-            mainTable.Columns.Add("DailySalesQuantity", typeof(decimal));
-            mainTable.Columns.Add("DailySalesAmount", typeof(decimal));
-            mainTable.Columns.Add("PurchaseDiscount", typeof(decimal));
-            mainTable.Columns.Add("StockAdjustment", typeof(decimal));
-            mainTable.Columns.Add("ProcessingCost", typeof(decimal));
-            mainTable.Columns.Add("Transfer", typeof(decimal));
-            mainTable.Columns.Add("Incentive", typeof(decimal));
-            mainTable.Columns.Add("DailyGrossProfit1", typeof(decimal));
-            mainTable.Columns.Add("GrossProfitRate1", typeof(decimal));
-            mainTable.Columns.Add("DailyGrossProfit2", typeof(decimal));
-            mainTable.Columns.Add("GrossProfitRate2", typeof(decimal));
-            mainTable.Columns.Add("MonthlyAmount", typeof(decimal));
-            mainTable.Columns.Add("MonthlyGross1", typeof(decimal));
-            mainTable.Columns.Add("MonthlyRate1", typeof(decimal));
-            mainTable.Columns.Add("MonthlyGross2", typeof(decimal));
-            mainTable.Columns.Add("MonthlyGross2Display", typeof(string));
-            mainTable.Columns.Add("MonthlyRate2", typeof(decimal));
-            
-            // データ行の追加（ゼロ明細を除外）
+            // データ行の設定（ゼロ明細を除外）
+            int rowIndex = 0;
             foreach (var item in items.Where(IsNotZeroItem))
             {
-                var row = mainTable.NewRow();
+                if (rowIndex >= 50) break; // 最大50行
                 
-                // 基本項目
-                row["ProductCategory"] = item.ProductCategory1 ?? "";
-                row["ProductCode"] = item.ProductCode ?? "";
-                row["ProductName"] = item.ProductName ?? "";
+                // 商品分類
+                SetTextObjectValue(report, $"ProductCategory_{rowIndex}", item.ProductCategory1 ?? "");
+                // 商品コード
+                SetTextObjectValue(report, $"ProductCode_{rowIndex}", item.ProductCode ?? "");
+                // 商品名
+                SetTextObjectValue(report, $"ProductName_{rowIndex}", item.ProductName ?? "");
                 
                 // 日計項目
-                row["DailySalesQuantity"] = item.DailySalesQuantity;
-                row["DailySalesAmount"] = item.DailySalesAmount;
-                row["PurchaseDiscount"] = item.DailyPurchaseDiscount;
-                row["StockAdjustment"] = item.DailyInventoryAdjustment;
-                row["ProcessingCost"] = item.DailyProcessingCost;
-                row["Transfer"] = item.DailyTransfer;
-                row["Incentive"] = item.DailyIncentive;
-                row["DailyGrossProfit1"] = item.DailyGrossProfit1;
-                row["GrossProfitRate1"] = CalculateRate(item.DailyGrossProfit1, item.DailySalesAmount);
-                row["DailyGrossProfit2"] = item.DailyGrossProfit2;
-                row["GrossProfitRate2"] = CalculateRate(item.DailyGrossProfit2, item.DailySalesAmount);
+                SetTextObjectValue(report, $"DailySalesQuantity_{rowIndex}", 
+                    item.DailySalesQuantity.ToString("N2"));
+                SetTextObjectValue(report, $"DailySalesAmount_{rowIndex}", 
+                    item.DailySalesAmount.ToString("N0"));
+                SetTextObjectValue(report, $"PurchaseDiscount_{rowIndex}", 
+                    FormatNumberWithTriangle(item.DailyPurchaseDiscount));
+                SetTextObjectValue(report, $"StockAdjustment_{rowIndex}", 
+                    FormatNumberWithTriangle(item.DailyInventoryAdjustment));
+                SetTextObjectValue(report, $"ProcessingCost_{rowIndex}", 
+                    FormatNumberWithTriangle(item.DailyProcessingCost));
+                SetTextObjectValue(report, $"Transfer_{rowIndex}", 
+                    FormatNumberWithTriangle(item.DailyTransfer));
+                SetTextObjectValue(report, $"Incentive_{rowIndex}", 
+                    FormatNumberWithTriangle(item.DailyIncentive));
+                SetTextObjectValue(report, $"DailyGrossProfit1_{rowIndex}", 
+                    item.DailyGrossProfit1.ToString("N0"));
+                SetTextObjectValue(report, $"GrossProfitRate1_{rowIndex}", 
+                    CalculateRate(item.DailyGrossProfit1, item.DailySalesAmount).ToString("N2") + "%");
+                SetTextObjectValue(report, $"DailyGrossProfit2_{rowIndex}", 
+                    FormatMonthlyGross2(item.DailyGrossProfit2));
+                SetTextObjectValue(report, $"GrossProfitRate2_{rowIndex}", 
+                    CalculateRate(item.DailyGrossProfit2, item.DailySalesAmount).ToString("N2") + "%");
                 
                 // 月計項目
                 var monthlyAmount = item.DailySalesAmount + item.MonthlySalesAmount;
                 var monthlyGross1 = item.DailyGrossProfit1 + item.MonthlyGrossProfit1;
                 var monthlyGross2 = item.DailyGrossProfit2 + item.MonthlyGrossProfit1 - item.DailyDiscountAmount;
                 
-                row["MonthlyAmount"] = monthlyAmount;
-                row["MonthlyGross1"] = monthlyGross1;
-                row["MonthlyRate1"] = CalculateRate(monthlyGross1, monthlyAmount);
-                row["MonthlyGross2"] = Math.Abs(monthlyGross2);
-                row["MonthlyGross2Display"] = FormatMonthlyGross2(monthlyGross2);
-                row["MonthlyRate2"] = CalculateRate(monthlyGross2, monthlyAmount);
-                
-                mainTable.Rows.Add(row);
+                SetTextObjectValue(report, $"MonthlyAmount_{rowIndex}", monthlyAmount.ToString("N0"));
+                SetTextObjectValue(report, $"MonthlyGross1_{rowIndex}", monthlyGross1.ToString("N0"));
+                SetTextObjectValue(report, $"MonthlyRate1_{rowIndex}", 
+                    CalculateRate(monthlyGross1, monthlyAmount).ToString("N2") + "%");
+                SetTextObjectValue(report, $"MonthlyGross2_{rowIndex}", 
+                    FormatMonthlyGross2(monthlyGross2));
+                SetTextObjectValue(report, $"MonthlyRate2_{rowIndex}", 
+                    CalculateRate(monthlyGross2, monthlyAmount).ToString("N2") + "%");
+                    
+                rowIndex++;
             }
             
-            dataSet.Tables.Add(mainTable);
-            return dataSet;
+            // 合計の設定
+            UpdateTotal(report, total);
         }
         
         private bool IsNotZeroItem(DailyReportItem item)
@@ -225,79 +212,18 @@ namespace InventorySystem.Reports.FastReport.Services
             return value.ToString("N0");
         }
         
-        private void ConfigureSubtotalsAndTotals(Report report, List<DailyReportSubtotal> subtotals, DailyReportTotal total)
+        private string FormatNumberWithTriangle(decimal value)
         {
-            // グループフッター（小計）の設定
-            var groupFooter = report.FindObject("GroupFooter1") as FR.GroupFooterBand;
-            if (groupFooter != null)
+            if (value < 0)
             {
-                // C#側で小計データを管理
-                var subtotalDict = subtotals.ToDictionary(s => s.ProductCategory1);
-                
-                // データ更新時のイベントハンドラー
-                var databand = report.FindObject("Data1") as FR.DataBand;
-                if (databand != null)
-                {
-                    string currentCategory = "";
-                    var categoryData = new List<System.Data.DataRow>();
-                    
-                    databand.BeforePrint += (sender, e) =>
-                    {
-                        var category = report.GetColumnValue("DailyReportData.ProductCategory")?.ToString() ?? "";
-                        if (category != currentCategory && !string.IsNullOrEmpty(currentCategory))
-                        {
-                            // カテゴリが変わったら小計を設定
-                            UpdateSubtotal(report, currentCategory, categoryData);
-                            categoryData.Clear();
-                        }
-                        currentCategory = category;
-                    };
-                }
+                return "▲" + Math.Abs(value).ToString("N0");
             }
-            
-            // 合計の設定
-            UpdateTotal(report, total);
+            return value.ToString("N0");
         }
         
-        private void UpdateSubtotal(Report report, string category, List<System.Data.DataRow> categoryData)
-        {
-            if (categoryData.Count == 0) return;
-            
-            // 小計を計算
-            var subtotal = new
-            {
-                SalesQty = categoryData.Sum(r => (decimal)r["DailySalesQuantity"]),
-                SalesAmount = categoryData.Sum(r => (decimal)r["DailySalesAmount"]),
-                PurchaseDiscount = categoryData.Sum(r => (decimal)r["PurchaseDiscount"]),
-                StockAdjustment = categoryData.Sum(r => (decimal)r["StockAdjustment"]),
-                ProcessingCost = categoryData.Sum(r => (decimal)r["ProcessingCost"]),
-                Transfer = categoryData.Sum(r => (decimal)r["Transfer"]),
-                Incentive = categoryData.Sum(r => (decimal)r["Incentive"]),
-                Gross1 = categoryData.Sum(r => (decimal)r["DailyGrossProfit1"]),
-                Gross2 = categoryData.Sum(r => (decimal)r["DailyGrossProfit2"]),
-                MonthlyAmount = categoryData.Sum(r => (decimal)r["MonthlyAmount"]),
-                MonthlyGross1 = categoryData.Sum(r => (decimal)r["MonthlyGross1"]),
-                MonthlyGross2 = categoryData.Sum(r => (decimal)r["MonthlyGross2"])
-            };
-            
-            // 小計オブジェクトに値を設定
-            SetTextObjectValue(report, "SubtotalSalesQty", subtotal.SalesQty.ToString("N2"));
-            SetTextObjectValue(report, "SubtotalSalesAmount", subtotal.SalesAmount.ToString("N0"));
-            SetTextObjectValue(report, "SubtotalPurchaseDiscount", subtotal.PurchaseDiscount.ToString("N0"));
-            SetTextObjectValue(report, "SubtotalStockAdjust", subtotal.StockAdjustment.ToString("N0"));
-            SetTextObjectValue(report, "SubtotalProcessing", subtotal.ProcessingCost.ToString("N0"));
-            SetTextObjectValue(report, "SubtotalTransfer", subtotal.Transfer.ToString("N0"));
-            SetTextObjectValue(report, "SubtotalIncentive", subtotal.Incentive.ToString("N0"));
-            SetTextObjectValue(report, "SubtotalGross1", subtotal.Gross1.ToString("N0"));
-            SetTextObjectValue(report, "SubtotalRate1", CalculateRate(subtotal.Gross1, subtotal.SalesAmount).ToString("N2") + "%");
-            SetTextObjectValue(report, "SubtotalGross2", subtotal.Gross2.ToString("N0"));
-            SetTextObjectValue(report, "SubtotalRate2", CalculateRate(subtotal.Gross2, subtotal.SalesAmount).ToString("N2") + "%");
-            SetTextObjectValue(report, "SubtotalMonthlyAmount", subtotal.MonthlyAmount.ToString("N0"));
-            SetTextObjectValue(report, "SubtotalMonthlyGross1", subtotal.MonthlyGross1.ToString("N0"));
-            SetTextObjectValue(report, "SubtotalMonthlyRate1", CalculateRate(subtotal.MonthlyGross1, subtotal.MonthlyAmount).ToString("N2") + "%");
-            SetTextObjectValue(report, "SubtotalMonthlyGross2", FormatMonthlyGross2(subtotal.MonthlyGross2));
-            SetTextObjectValue(report, "SubtotalMonthlyRate2", CalculateRate(subtotal.MonthlyGross2, subtotal.MonthlyAmount).ToString("N2") + "%");
-        }
+        // このメソッドは不要になったので削除
+        
+        // このメソッドは不要になったので削除
         
         private void UpdateTotal(Report report, DailyReportTotal total)
         {

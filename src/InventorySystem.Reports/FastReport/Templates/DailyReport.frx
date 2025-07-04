@@ -1,35 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Report ScriptLanguage="None" ReportInfo.Created="01/01/2025 12:00:00" ReportInfo.Modified="01/01/2025 12:00:00" ReportInfo.CreatorVersion="2023.1.0.0">
-  <Dictionary>
-    <TableDataSource Name="DailyReportData" ReferenceName="DailyReport.DailyReportData" DataType="System.Int32" Enabled="true">
-      <Column Name="ProductCategory" DataType="System.String"/>
-      <Column Name="ProductCode" DataType="System.String"/>
-      <Column Name="ProductName" DataType="System.String"/>
-      <Column Name="DailySalesQuantity" DataType="System.Decimal"/>
-      <Column Name="DailySalesAmount" DataType="System.Decimal"/>
-      <Column Name="PurchaseDiscount" DataType="System.Decimal"/>
-      <Column Name="StockAdjustment" DataType="System.Decimal"/>
-      <Column Name="ProcessingCost" DataType="System.Decimal"/>
-      <Column Name="Transfer" DataType="System.Decimal"/>
-      <Column Name="Incentive" DataType="System.Decimal"/>
-      <Column Name="DailyGrossProfit1" DataType="System.Decimal"/>
-      <Column Name="GrossProfitRate1" DataType="System.Decimal"/>
-      <Column Name="DailyGrossProfit2" DataType="System.Decimal"/>
-      <Column Name="GrossProfitRate2" DataType="System.Decimal"/>
-      <Column Name="MonthlyAmount" DataType="System.Decimal"/>
-      <Column Name="MonthlyGross1" DataType="System.Decimal"/>
-      <Column Name="MonthlyRate1" DataType="System.Decimal"/>
-      <Column Name="MonthlyGross2" DataType="System.Decimal"/>
-      <Column Name="MonthlyGross2Display" DataType="System.String"/>
-      <Column Name="MonthlyRate2" DataType="System.Decimal"/>
-    </TableDataSource>
-    <Parameter Name="ReportDate" DataType="System.DateTime"/>
-  </Dictionary>
-  <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="9" LeftMargin="10" TopMargin="10" RightMargin="10" BottomMargin="10" Guides="">
+  <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="9" LeftMargin="10" TopMargin="10" RightMargin="10" BottomMargin="10">
+    <!-- レポートタイトル -->
     <ReportTitleBand Name="ReportTitle1" Width="1436.4" Height="47.25">
-      <TextObject Name="Text1" Width="1436.4" Height="28.35" Text="商 品 日 報" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 16pt, style=Bold"/>
-      <TextObject Name="Text2" Top="28.35" Width="1436.4" Height="18.9" Text="[Format('{0:yyyy年MM月dd日}', [ReportDate])]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 11pt"/>
+      <TextObject Name="Title" Width="1436.4" Height="28.35" Text="商 品 日 報" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 16pt, style=Bold"/>
+      <TextObject Name="ReportDateText" Top="28.35" Width="1436.4" Height="18.9" Text="" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 11pt"/>
     </ReportTitleBand>
+    
+    <!-- ページヘッダー -->
     <PageHeaderBand Name="PageHeader1" Top="51.25" Width="1436.4" Height="56.7">
       <!-- ヘッダー1行目 -->
       <TextObject Name="Header1" Width="56.7" Height="28.35" Border.Lines="All" Text="分類" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt"/>
@@ -68,58 +46,33 @@
       <TextObject Name="Header19" Left="1266.3" Top="18.9" Width="170.1" Height="37.8" Border.Lines="All" Text="備考" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 8pt"/>
     </PageHeaderBand>
     
-    <GroupHeaderBand Name="GroupHeader1" Top="111.95" Width="1436.4" Height="0" Condition="[DailyReportData.ProductCategory]">
-      <DataBand Name="Data1" Top="115.95" Width="1436.4" Height="18.9" DataSource="DailyReportData">
-        <TextObject Name="Text3" Width="56.7" Height="18.9" Border.Lines="All" Text="[DailyReportData.ProductCategory]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt"/>
-        <TextObject Name="Text4" Left="56.7" Width="75.6" Height="18.9" Border.Lines="All" Text="[DailyReportData.ProductCode]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt"/>
-        <TextObject Name="Text5" Left="132.3" Width="170.1" Height="18.9" Border.Lines="All" Text="[DailyReportData.ProductName]" Padding="2, 0, 2, 0" VertAlign="Center" Font="MS Gothic, 8pt"/>
-        
-        <!-- 日計データ -->
-        <TextObject Name="Text6" Left="302.4" Width="56.7" Height="18.9" Border.Lines="All" Text="[DailyReportData.DailySalesQuantity]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text7" Left="359.1" Width="66.15" Height="18.9" Border.Lines="All" Text="[DailyReportData.DailySalesAmount]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text8" Left="425.25" Width="56.7" Height="18.9" Border.Lines="All" Text="[DailyReportData.PurchaseDiscount]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text9" Left="481.95" Width="56.7" Height="18.9" Border.Lines="All" Text="[DailyReportData.StockAdjustment]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text10" Left="538.65" Width="56.7" Height="18.9" Border.Lines="All" Text="[DailyReportData.ProcessingCost]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text11" Left="595.35" Width="56.7" Height="18.9" Border.Lines="All" Text="[DailyReportData.Transfer]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text12" Left="652.05" Width="56.7" Height="18.9" Border.Lines="All" Text="[DailyReportData.Incentive]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text13" Left="708.75" Width="56.7" Height="18.9" Border.Lines="All" Text="[DailyReportData.DailyGrossProfit1]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text14" Left="765.45" Width="47.25" Height="18.9" Border.Lines="All" Text="[DailyReportData.GrossProfitRate1]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 8pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text15" Left="812.7" Width="56.7" Height="18.9" Border.Lines="All" Text="[DailyReportData.DailyGrossProfit2]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text16" Left="869.4" Width="56.7" Height="18.9" Border.Lines="All" Text="[DailyReportData.GrossProfitRate2]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 8pt" Padding="0, 0, 2, 0"/>
-        
-        <!-- 月計データ -->
-        <TextObject Name="Text17" Left="926.1" Width="75.6" Height="18.9" Border.Lines="All" Text="[DailyReportData.MonthlyAmount]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text18" Left="1001.7" Width="75.6" Height="18.9" Border.Lines="All" Text="[DailyReportData.MonthlyGross1]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text19" Left="1077.3" Width="56.7" Height="18.9" Border.Lines="All" Text="[DailyReportData.MonthlyRate1]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 8pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text20" Left="1134" Width="75.6" Height="18.9" Border.Lines="All" Text="[DailyReportData.MonthlyGross2Display]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text21" Left="1209.6" Width="56.7" Height="18.9" Border.Lines="All" Text="[DailyReportData.MonthlyRate2]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 8pt" Padding="0, 0, 2, 0"/>
-        <TextObject Name="Text22" Left="1266.3" Width="170.1" Height="18.9" Border.Lines="All" Text="" VertAlign="Center" Font="MS Gothic, 9pt"/>
-      </DataBand>
-      <GroupFooterBand Name="GroupFooter1" Top="138.85" Width="1436.4" Height="18.9">
-        <!-- 小計行 -->
-        <TextObject Name="SubtotalLabel" Width="302.4" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="小　計" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold"/>
-        <TextObject Name="SubtotalSalesQty" Left="302.4" Width="56.7" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalSalesAmount" Left="359.1" Width="66.15" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalPurchaseDiscount" Left="425.25" Width="56.7" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalStockAdjust" Left="481.95" Width="56.7" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalProcessing" Left="538.65" Width="56.7" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalTransfer" Left="595.35" Width="56.7" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalIncentive" Left="652.05" Width="56.7" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalGross1" Left="708.75" Width="56.7" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalRate1" Left="765.45" Width="47.25" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 8pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalGross2" Left="812.7" Width="56.7" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalRate2" Left="869.4" Width="56.7" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 8pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalMonthlyAmount" Left="926.1" Width="75.6" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalMonthlyGross1" Left="1001.7" Width="75.6" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalMonthlyRate1" Left="1077.3" Width="56.7" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 8pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalMonthlyGross2" Left="1134" Width="75.6" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalMonthlyRate2" Left="1209.6" Width="56.7" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 8pt, style=Bold" Padding="0, 0, 2, 0"/>
-        <TextObject Name="SubtotalRemarks" Left="1266.3" Width="170.1" Height="18.9" Border.Lines="All" Fill.Color="LightGray" Text="" VertAlign="Center" Font="MS Gothic, 9pt"/>
-      </GroupFooterBand>
-    </GroupHeaderBand>
+    <!-- データ部分（固定レイアウト、最大50行） -->
+    <ChildBand Name="DataArea" Top="111.95" Width="1436.4" Height="900">
+      <!-- Row 0 -->
+      <TextObject Name="ProductCategory_0" Top="0" Width="56.7" Height="18.9" Border.Lines="All" Text="" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="ProductCode_0" Left="56.7" Top="0" Width="75.6" Height="18.9" Border.Lines="All" Text="" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt"/>
+      <TextObject Name="ProductName_0" Left="132.3" Top="0" Width="170.1" Height="18.9" Border.Lines="All" Text="" Padding="2, 0, 2, 0" VertAlign="Center" Font="MS Gothic, 8pt"/>
+      <TextObject Name="DailySalesQuantity_0" Left="302.4" Top="0" Width="56.7" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="DailySalesAmount_0" Left="359.1" Top="0" Width="66.15" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="PurchaseDiscount_0" Left="425.25" Top="0" Width="56.7" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="StockAdjustment_0" Left="481.95" Top="0" Width="56.7" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="ProcessingCost_0" Left="538.65" Top="0" Width="56.7" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="Transfer_0" Left="595.35" Top="0" Width="56.7" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="Incentive_0" Left="652.05" Top="0" Width="56.7" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="DailyGrossProfit1_0" Left="708.75" Top="0" Width="56.7" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="GrossProfitRate1_0" Left="765.45" Top="0" Width="47.25" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 8pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="DailyGrossProfit2_0" Left="812.7" Top="0" Width="56.7" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="GrossProfitRate2_0" Left="869.4" Top="0" Width="56.7" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 8pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="MonthlyAmount_0" Left="926.1" Top="0" Width="75.6" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="MonthlyGross1_0" Left="1001.7" Top="0" Width="75.6" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="MonthlyRate1_0" Left="1077.3" Top="0" Width="56.7" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 8pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="MonthlyGross2_0" Left="1134" Top="0" Width="75.6" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="MonthlyRate2_0" Left="1209.6" Top="0" Width="56.7" Height="18.9" Border.Lines="All" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 8pt" Padding="0, 0, 2, 0"/>
+      <TextObject Name="Remarks_0" Left="1266.3" Top="0" Width="170.1" Height="18.9" Border.Lines="All" Text="" VertAlign="Center" Font="MS Gothic, 9pt"/>
+    </ChildBand>
     
-    <ReportSummaryBand Name="ReportSummary1" Top="161.75" Width="1436.4" Height="18.9">
-      <!-- 合計行 -->
+    <!-- 合計行 -->
+    <ReportSummaryBand Name="ReportSummary1" Top="1015.95" Width="1436.4" Height="18.9">
       <TextObject Name="TotalLabel" Width="302.4" Height="18.9" Border.Lines="All" Fill.Color="DarkGray" Text="合　計" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 10pt, style=Bold" TextFill.Color="White"/>
       <TextObject Name="TotalSalesQty" Left="302.4" Width="56.7" Height="18.9" Border.Lines="All" Fill.Color="DarkGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" TextFill.Color="White" Padding="0, 0, 2, 0"/>
       <TextObject Name="TotalSalesAmount" Left="359.1" Width="66.15" Height="18.9" Border.Lines="All" Fill.Color="DarkGray" Text="" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" TextFill.Color="White" Padding="0, 0, 2, 0"/>
@@ -140,8 +93,9 @@
       <TextObject Name="TotalRemarks" Left="1266.3" Width="170.1" Height="18.9" Border.Lines="All" Fill.Color="DarkGray" Text="" VertAlign="Center" Font="MS Gothic, 9pt" TextFill.Color="White"/>
     </ReportSummaryBand>
     
-    <PageFooterBand Name="PageFooter1" Top="184.65" Width="1436.4" Height="18.9">
-      <TextObject Name="PageInfo" Width="1436.4" Height="18.9" Text="[Page] / [TotalPages]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt"/>
+    <!-- ページフッター -->
+    <PageFooterBand Name="PageFooter1" Top="1038.85" Width="1436.4" Height="18.9">
+      <TextObject Name="PageInfo" Width="1436.4" Height="18.9" Text="" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt"/>
     </PageFooterBand>
   </ReportPage>
 </Report>
