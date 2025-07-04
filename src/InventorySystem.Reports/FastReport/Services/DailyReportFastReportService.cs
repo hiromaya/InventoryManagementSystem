@@ -241,10 +241,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 Height = 18.9f,
                 Border = { Lines = FR.BorderLines.All },
                 Text = item.ProductName ?? "",
-                Font = new Font("MS Gothic", 9),
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(2, 0, 2, 0)
+                Font = new Font("MS Gothic", 9)
             };
+            nameText.Fill.Color = Color.White;
             dataBand.Objects.Add(nameText);
             
             // 日計セクション（12列）
@@ -328,10 +327,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 Border = { Lines = FR.BorderLines.All },
                 Text = text,
                 Font = new Font("MS Gothic", 8),
-                HorzAlign = FR.HorzAlign.Right,
-                Fill = { Color = Color.White },
-                Padding = new FR.Padding(0, 0, 2, 0)
+                HorzAlign = FR.HorzAlign.Right
             };
+            textObject.Fill.Color = Color.White;
             dataBand.Objects.Add(textObject);
         }
         
@@ -351,9 +349,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 Border = { Lines = FR.BorderLines.All },
                 Text = $"＊　{category}　計　＊",
                 Font = new Font("MS Gothic", 9, FontStyle.Bold),
-                HorzAlign = FR.HorzAlign.Center,
-                Fill = { Color = Color.LightGray }
+                HorzAlign = FR.HorzAlign.Center
             };
+            labelText.Fill.Color = Color.LightGray;
             dataBand.Objects.Add(labelText);
             
             // 各小計値のTextObjectを追加（必要に応じて実装）
