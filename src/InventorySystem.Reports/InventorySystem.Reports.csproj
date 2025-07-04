@@ -8,12 +8,13 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <UseWindowsForms>true</UseWindowsForms>
-    <DefineConstants>WINDOWS</DefineConstants>
+    <DefineConstants Condition="'$(OS)' == 'Windows_NT'">WINDOWS</DefineConstants>
+    <DefineConstants Condition="'$(OS)' != 'Windows_NT'">LINUX</DefineConstants>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
-  <!-- FastReport.NET Trial DLL参照 -->
-  <ItemGroup>
+  <!-- FastReport.NET Trial DLL参照 (Windows only) -->
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
     <Reference Include="FastReport">
       <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.dll</HintPath>
       <Private>true</Private>
@@ -52,8 +53,8 @@
     <ProjectReference Include="../InventorySystem.Data/InventorySystem.Data.csproj" />
   </ItemGroup>
 
-  <!-- ビルド後にFastReport DLLをコピー -->
-  <Target Name="CopyFastReportFiles" AfterTargets="Build">
+  <!-- ビルド後にFastReport DLLをコピー (Windows only) -->
+  <Target Name="CopyFastReportFiles" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT'">
     <ItemGroup>
       <FastReportFiles Include="C:\Program Files (x86)\FastReports\FastReport .NET Trial\*.dll" />
     </ItemGroup>
@@ -68,6 +69,12 @@
     <None Update="Templates\*.frx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <!-- Exclude FastReport files from compilation on non-Windows platforms -->
+  <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
+    <Compile Remove="FastReport\**\*.cs" />
+    <Compile Remove="Tests\FastReportTest.cs" />
   </ItemGroup>
 
 </Project>

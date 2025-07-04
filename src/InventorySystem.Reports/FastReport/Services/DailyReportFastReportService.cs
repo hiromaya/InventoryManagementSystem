@@ -11,6 +11,7 @@ using FastReport;
 using FastReport.Export.Pdf;
 using FastReport.Data;
 using InventorySystem.Core.Entities;
+using FR = FastReport;
 using InventorySystem.Reports.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -160,7 +161,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 var row = mainTable.NewRow();
                 
                 // 基本項目
-                row["ProductCategory"] = item.ProductCategory ?? "";
+                row["ProductCategory"] = item.ProductCategory1 ?? "";
                 row["ProductCode"] = item.ProductCode ?? "";
                 row["ProductName"] = item.ProductName ?? "";
                 
@@ -168,10 +169,10 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["DailySalesQuantity"] = item.DailySalesQuantity;
                 row["DailySalesAmount"] = item.DailySalesAmount;
                 row["PurchaseDiscount"] = item.DailyPurchaseDiscount;
-                row["StockAdjustment"] = item.DailyStockAdjustmentAmount;
+                row["StockAdjustment"] = item.DailyInventoryAdjustment;
                 row["ProcessingCost"] = item.DailyProcessingCost;
-                row["Transfer"] = item.DailyTransferAmount;
-                row["Incentive"] = item.DailyIncentiveAmount;
+                row["Transfer"] = item.DailyTransfer;
+                row["Incentive"] = item.DailyIncentive;
                 row["DailyGrossProfit1"] = item.DailyGrossProfit1;
                 row["GrossProfitRate1"] = CalculateRate(item.DailyGrossProfit1, item.DailySalesAmount);
                 row["DailyGrossProfit2"] = item.DailyGrossProfit2;
@@ -179,8 +180,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // 月計項目
                 var monthlyAmount = item.DailySalesAmount + item.MonthlySalesAmount;
-                var monthlyGross1 = item.DailyGrossProfit1 + item.MonthlyGrossProfit;
-                var monthlyGross2 = item.DailyGrossProfit2 + item.MonthlyGrossProfit - item.MonthlyDiscountAmount;
+                var monthlyGross1 = item.DailyGrossProfit1 + item.MonthlyGrossProfit1;
+                var monthlyGross2 = item.DailyGrossProfit2 + item.MonthlyGrossProfit1 - item.DailyDiscountAmount;
                 
                 row["MonthlyAmount"] = monthlyAmount;
                 row["MonthlyGross1"] = monthlyGross1;
@@ -204,7 +205,7 @@ namespace InventorySystem.Reports.FastReport.Services
                    item.DailyGrossProfit1 != 0 ||
                    item.DailyGrossProfit2 != 0 ||
                    item.MonthlySalesAmount != 0 ||
-                   item.MonthlyGrossProfit != 0;
+                   item.MonthlyGrossProfit1 != 0;
         }
         
         private decimal CalculateRate(decimal profit, decimal amount)
@@ -225,18 +226,18 @@ namespace InventorySystem.Reports.FastReport.Services
         private void ConfigureSubtotalsAndTotals(Report report, List<DailyReportSubtotal> subtotals, DailyReportTotal total)
         {
             // グループフッター（小計）の設定
-            var groupFooter = report.FindObject("GroupFooter1") as FastReport.GroupFooterBand;
+            var groupFooter = report.FindObject("GroupFooter1") as FR.GroupFooterBand;
             if (groupFooter != null)
             {
                 // C#側で小計データを管理
-                var subtotalDict = subtotals.ToDictionary(s => s.ProductCategory);
+                var subtotalDict = subtotals.ToDictionary(s => s.ProductCategory1);
                 
                 // データ更新時のイベントハンドラー
-                var databand = report.FindObject("Data1") as FastReport.DataBand;
+                var databand = report.FindObject("Data1") as FR.DataBand;
                 if (databand != null)
                 {
                     string currentCategory = "";
-                    var categoryData = new List<DataRow>();
+                    var categoryData = new List<System.Data.DataRow>();
                     
                     databand.BeforePrint += (sender, e) =>
                     {
@@ -256,7 +257,7 @@ namespace InventorySystem.Reports.FastReport.Services
             UpdateTotal(report, total);
         }
         
-        private void UpdateSubtotal(Report report, string category, List<DataRow> categoryData)
+        private void UpdateSubtotal(Report report, string category, List<System.Data.DataRow> categoryData)
         {
             if (categoryData.Count == 0) return;
             
@@ -299,27 +300,27 @@ namespace InventorySystem.Reports.FastReport.Services
         private void UpdateTotal(Report report, DailyReportTotal total)
         {
             // 合計値を設定
-            SetTextObjectValue(report, "TotalSalesQty", total.TotalSalesQuantity.ToString("N2"));
-            SetTextObjectValue(report, "TotalSalesAmount", total.TotalAmount.ToString("N0"));
-            SetTextObjectValue(report, "TotalPurchaseDiscount", total.TotalPurchaseDiscount.ToString("N0"));
-            SetTextObjectValue(report, "TotalStockAdjust", total.TotalStockAdjustment.ToString("N0"));
-            SetTextObjectValue(report, "TotalProcessing", total.TotalProcessingCost.ToString("N0"));
-            SetTextObjectValue(report, "TotalTransfer", total.TotalTransfer.ToString("N0"));
-            SetTextObjectValue(report, "TotalIncentive", total.TotalIncentive.ToString("N0"));
-            SetTextObjectValue(report, "TotalGross1", total.TotalGrossProfit1.ToString("N0"));
-            SetTextObjectValue(report, "TotalRate1", CalculateRate(total.TotalGrossProfit1, total.TotalAmount).ToString("N2") + "%");
-            SetTextObjectValue(report, "TotalGross2", total.TotalGrossProfit2.ToString("N0"));
-            SetTextObjectValue(report, "TotalRate2", CalculateRate(total.TotalGrossProfit2, total.TotalAmount).ToString("N2") + "%");
-            SetTextObjectValue(report, "TotalMonthlyAmount", total.TotalMonthlyAmount.ToString("N0"));
-            SetTextObjectValue(report, "TotalMonthlyGross1", total.TotalMonthlyGrossProfit1.ToString("N0"));
-            SetTextObjectValue(report, "TotalMonthlyRate1", CalculateRate(total.TotalMonthlyGrossProfit1, total.TotalMonthlyAmount).ToString("N2") + "%");
-            SetTextObjectValue(report, "TotalMonthlyGross2", FormatMonthlyGross2(total.TotalMonthlyGrossProfit2));
-            SetTextObjectValue(report, "TotalMonthlyRate2", CalculateRate(total.TotalMonthlyGrossProfit2, total.TotalMonthlyAmount).ToString("N2") + "%");
+            SetTextObjectValue(report, "TotalSalesQty", total.GrandTotalDailySalesQuantity.ToString("N2"));
+            SetTextObjectValue(report, "TotalSalesAmount", total.GrandTotalDailySalesAmount.ToString("N0"));
+            SetTextObjectValue(report, "TotalPurchaseDiscount", total.GrandTotalDailyPurchaseDiscount.ToString("N0"));
+            SetTextObjectValue(report, "TotalStockAdjust", total.GrandTotalDailyInventoryAdjustment.ToString("N0"));
+            SetTextObjectValue(report, "TotalProcessing", total.GrandTotalDailyProcessingCost.ToString("N0"));
+            SetTextObjectValue(report, "TotalTransfer", total.GrandTotalDailyTransfer.ToString("N0"));
+            SetTextObjectValue(report, "TotalIncentive", total.GrandTotalDailyIncentive.ToString("N0"));
+            SetTextObjectValue(report, "TotalGross1", total.GrandTotalDailyGrossProfit1.ToString("N0"));
+            SetTextObjectValue(report, "TotalRate1", CalculateRate(total.GrandTotalDailyGrossProfit1, total.GrandTotalDailySalesAmount).ToString("N2") + "%");
+            SetTextObjectValue(report, "TotalGross2", total.GrandTotalDailyGrossProfit2.ToString("N0"));
+            SetTextObjectValue(report, "TotalRate2", CalculateRate(total.GrandTotalDailyGrossProfit2, total.GrandTotalDailySalesAmount).ToString("N2") + "%");
+            SetTextObjectValue(report, "TotalMonthlyAmount", total.GrandTotalMonthlySalesAmount.ToString("N0"));
+            SetTextObjectValue(report, "TotalMonthlyGross1", total.GrandTotalMonthlyGrossProfit1.ToString("N0"));
+            SetTextObjectValue(report, "TotalMonthlyRate1", CalculateRate(total.GrandTotalMonthlyGrossProfit1, total.GrandTotalMonthlySalesAmount).ToString("N2") + "%");
+            SetTextObjectValue(report, "TotalMonthlyGross2", FormatMonthlyGross2(total.GrandTotalMonthlyGrossProfit2));
+            SetTextObjectValue(report, "TotalMonthlyRate2", CalculateRate(total.GrandTotalMonthlyGrossProfit2, total.GrandTotalMonthlySalesAmount).ToString("N2") + "%");
         }
         
         private void SetTextObjectValue(Report report, string objectName, string value)
         {
-            var textObject = report.FindObject(objectName) as FastReport.TextObject;
+            var textObject = report.FindObject(objectName) as FR.TextObject;
             if (textObject != null)
             {
                 textObject.Text = value;
@@ -336,8 +337,6 @@ namespace InventorySystem.Reports.FastReport.Services
                 Creator = "在庫管理システム",
                 OpenAfterExport = false,
                 // 日本語フォント対応
-                UseFileCache = true,
-                ImageDpi = 300,
                 JpegQuality = 95
             };
             
