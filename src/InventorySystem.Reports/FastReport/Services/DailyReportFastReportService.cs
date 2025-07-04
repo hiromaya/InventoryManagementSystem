@@ -243,7 +243,6 @@ namespace InventorySystem.Reports.FastReport.Services
                 Text = item.ProductName ?? "",
                 Font = new Font("MS Gothic", 9)
             };
-            nameText.Fill.Color = Color.White;
             dataBand.Objects.Add(nameText);
             
             // 日計セクション（12列）
@@ -329,7 +328,6 @@ namespace InventorySystem.Reports.FastReport.Services
                 Font = new Font("MS Gothic", 8),
                 HorzAlign = FR.HorzAlign.Right
             };
-            textObject.Fill.Color = Color.White;
             dataBand.Objects.Add(textObject);
         }
         
@@ -351,7 +349,6 @@ namespace InventorySystem.Reports.FastReport.Services
                 Font = new Font("MS Gothic", 9, FontStyle.Bold),
                 HorzAlign = FR.HorzAlign.Center
             };
-            labelText.Fill.Color = Color.LightGray;
             dataBand.Objects.Add(labelText);
             
             // 各小計値のTextObjectを追加（必要に応じて実装）
