@@ -122,12 +122,12 @@ namespace InventorySystem.Reports.FastReport.Services
             }
         }
         
-        private DataSet PrepareDataSet(
+        private System.Data.DataSet PrepareDataSet(
             List<DailyReportItem> items, 
             List<DailyReportSubtotal> subtotals, 
             DailyReportTotal total)
         {
-            var dataSet = new DataSet("DailyReport");
+            var dataSet = new System.Data.DataSet("DailyReport");
             
             // メインデータテーブル
             var mainTable = new DataTable("DailyReportData");
