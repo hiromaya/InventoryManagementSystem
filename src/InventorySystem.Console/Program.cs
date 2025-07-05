@@ -19,7 +19,9 @@ using System.Linq;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using InventorySystem.Core.Interfaces.Services;
+#if WINDOWS
 using InventorySystem.Reports.FastReport.Services;
+#endif
 using InventorySystem.Reports.Services;
 using System.Diagnostics;
 using System.Reflection;
@@ -182,10 +184,14 @@ builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
 builder.Services.AddScoped<ICpInventoryCreationService, CpInventoryCreationService>();
-// Report Services - Windows環境でFastReportを強制使用（2025-07-05 一時修正）
-// TODO: ビルド環境の問題が解決したら条件付きコンパイルに戻す
+// Report Services
+#if WINDOWS
 builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
 builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, DailyReportFastReportService>();
+#else
+builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
+builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, PlaceholderDailyReportService>();
+#endif
 builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
 builder.Services.AddScoped<InventoryAdjustmentImportService>();

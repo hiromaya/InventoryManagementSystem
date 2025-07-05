@@ -464,6 +464,16 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             DailyWalkingAmount = row.DailyWalkingAmount ?? 0m,
             DailyIncentiveAmount = row.DailyIncentiveAmount ?? 0m,
             DailyDiscountAmount = row.DailyDiscountAmount ?? 0m,
+            // 月計項目
+            MonthlySalesQuantity = row.MonthlySalesQuantity ?? 0m,
+            MonthlySalesAmount = row.MonthlySalesAmount ?? 0m,
+            MonthlySalesReturnQuantity = row.MonthlySalesReturnQuantity ?? 0m,
+            MonthlySalesReturnAmount = row.MonthlySalesReturnAmount ?? 0m,
+            MonthlyPurchaseQuantity = row.MonthlyPurchaseQuantity ?? 0m,
+            MonthlyPurchaseAmount = row.MonthlyPurchaseAmount ?? 0m,
+            MonthlyGrossProfit = row.MonthlyGrossProfit ?? 0m,
+            MonthlyWalkingAmount = row.MonthlyWalkingAmount ?? 0m,
+            MonthlyIncentiveAmount = row.MonthlyIncentiveAmount ?? 0m,
             DataSetId = row.DataSetId ?? string.Empty
         };
     }

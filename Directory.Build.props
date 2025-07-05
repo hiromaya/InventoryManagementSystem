@@ -6,6 +6,6 @@
   
   <!-- Linux環境で自動的にLINUXシンボルを定義 -->
   <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
-    <DefineConstants>$(DefineConstants);LINUX</DefineConstants>
+    <DefineConstants>LINUX</DefineConstants>
   </PropertyGroup>
 </Project>

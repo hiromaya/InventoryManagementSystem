@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <DefineConstants Condition="'$(OS)' == 'Windows_NT'">WINDOWS</DefineConstants>
+    <DefineConstants Condition="'$(OS)' != 'Windows_NT'">LINUX</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
