@@ -1,0 +1,9 @@
+<Project>
+  <!-- ビルド時に必ずWINDOWSシンボルを強制定義 -->
+  <Target Name="ForceWindowsDefines" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+    </PropertyGroup>
+    <Message Text="FastReportモード: WINDOWSシンボルを強制的に定義しました" Importance="high" />
+  </Target>
+</Project>
