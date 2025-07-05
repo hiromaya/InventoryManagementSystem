@@ -28,6 +28,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using System.Globalization;
+using System.Runtime.InteropServices;
 
 // Program クラスの定義
 public class Program
@@ -37,6 +38,39 @@ public class Program
         // カルチャー設定（日付処理の一貫性を保つため）
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
         CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+        
+        // ===== PDF生成診断情報 開始 =====
+        Console.WriteLine("=== PDF Generation Diagnostics ===");
+        Console.WriteLine($"Runtime Identifier: {RuntimeInformation.RuntimeIdentifier}");
+        Console.WriteLine($"OS Description: {RuntimeInformation.OSDescription}");
+        Console.WriteLine($"Process Architecture: {RuntimeInformation.ProcessArchitecture}");
+        Console.WriteLine($"Framework: {RuntimeInformation.FrameworkDescription}");
+        Console.WriteLine($"Current Directory: {Environment.CurrentDirectory}");
+
+        #if WINDOWS
+        Console.WriteLine("WINDOWS symbol: DEFINED ✓ - FastReport services will be used");
+        #else
+        Console.WriteLine("WINDOWS symbol: NOT DEFINED ✗ - Placeholder services will be used");
+        #endif
+
+        // アセンブリ情報の表示
+        var assembly = Assembly.GetExecutingAssembly();
+        Console.WriteLine($"Assembly: {assembly.GetName().Name} v{assembly.GetName().Version}");
+
+        // FastReport DLLの存在確認
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        var fastReportDll = Path.Combine(baseDir, "FastReport.dll");
+        if (File.Exists(fastReportDll))
+        {
+            var fileInfo = new FileInfo(fastReportDll);
+            Console.WriteLine($"FastReport.dll: Found ✓ (Size: {fileInfo.Length:N0} bytes)");
+        }
+        else
+        {
+            Console.WriteLine($"FastReport.dll: NOT FOUND ✗ at {fastReportDll}");
+        }
+        Console.WriteLine("=================================\n");
+        // ===== PDF生成診断情報 終了 =====
         
         // 実行環境情報の表示
 Console.WriteLine($"実行環境: {Environment.OSVersion}");
@@ -383,6 +417,12 @@ try
                 Console.WriteLine("アンマッチ件数が0件です。0件のPDFを生成します");
             }
             
+            // ===== サービス診断情報 開始 =====
+            logger.LogInformation("=== Service Diagnostics ===");
+            logger.LogInformation($"Service Type: {reportService.GetType().FullName}");
+            logger.LogInformation($"Assembly: {reportService.GetType().Assembly.GetName().Name}");
+            // ===== サービス診断情報 終了 =====
+            
             Console.WriteLine("PDF生成中...");
             var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, jobDate);
             
@@ -395,6 +435,37 @@ try
                 
                 Console.WriteLine($"PDFファイルを保存しました: {pdfPath}");
                 Console.WriteLine($"ファイルサイズ: {pdfBytes.Length / 1024.0:F2} KB");
+                
+                // ===== PDF検証 開始 =====
+                if (File.Exists(pdfPath))
+                {
+                    var fileInfo = new FileInfo(pdfPath);
+                    logger.LogInformation($"PDF generated: {fileInfo.Name} (Size: {fileInfo.Length:N0} bytes)");
+                    
+                    // PDFヘッダーの確認
+                    try
+                    {
+                        using var fs = new FileStream(pdfPath, FileMode.Open, FileAccess.Read);
+                        var header = new byte[10];
+                        fs.Read(header, 0, Math.Min(10, (int)fs.Length));
+                        var headerString = System.Text.Encoding.ASCII.GetString(header);
+                        logger.LogInformation($"PDF header: {headerString}");
+                        
+                        if (!headerString.StartsWith("%PDF"))
+                        {
+                            logger.LogWarning("Invalid PDF header detected!");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to read PDF header");
+                    }
+                }
+                else
+                {
+                    logger.LogError($"PDF file not found after generation: {pdfPath}");
+                }
+                // ===== PDF検証 終了 =====
                 
                 // Windows環境では自動でPDFを開く
                 #if WINDOWS

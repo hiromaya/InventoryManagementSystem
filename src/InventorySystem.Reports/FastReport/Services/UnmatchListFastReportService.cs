@@ -35,6 +35,25 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             try
             {
+                // ===== FastReport診断情報 開始 =====
+                _logger.LogInformation("=== FastReport Service Diagnostics ===");
+                _logger.LogInformation("FastReport service is being executed");
+                var itemsList = unmatchItems?.ToList() ?? new List<UnmatchItem>();
+                _logger.LogInformation($"Data count: {itemsList.Count}");
+                _logger.LogInformation($"Job date: {jobDate:yyyy-MM-dd}");
+
+                // FastReportのバージョン情報を取得
+                try
+                {
+                    var fastReportAssembly = typeof(FastReport.Report).Assembly;
+                    _logger.LogInformation($"FastReport Version: {fastReportAssembly.GetName().Version}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to get FastReport version");
+                }
+                // ===== FastReport診断情報 終了 =====
+                
                 // テンプレートファイルの存在確認
                 if (!File.Exists(_templatePath))
                 {
