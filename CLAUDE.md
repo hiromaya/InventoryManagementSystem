@@ -163,6 +163,7 @@
 - **2025-07-01: CSVマッピング仕様を詳細化（正確な列番号とIndex、ジョブデートを追加）**
 - **2025-07-01: import-folderコマンドの処理ルールを追加**
 - **2025-07-05: 環境別ビルドエラー対応ルールを追加（Windows環境優先）**
+- **2025-07-05: FastReport必須仕様を追加（最重要）**
 
 ---
 
@@ -707,3 +708,73 @@ UNION ALL SELECT COUNT(*), 'ProductMaster' FROM ProductMaster;
 
 **最終更新**: 2025-07-01  
 **対象バージョン**: InventoryManagementSystem v2.0
+
+## FastReport必須仕様（最重要）
+
+### FastReportは絶対に削除・置換禁止
+
+このプロジェクトでは、FastReport.NETが**必須のコンポーネント**です。以下のルールを厳守してください：
+
+#### 1. FastReportサービスの保護
+- `UnmatchListFastReportService.cs`と`DailyReportFastReportService.cs`は**絶対に削除しない**
+- PlaceholderサービスはLinux開発環境用の一時的な代替であり、本番環境では使用しない
+- Program.csのDI登録で、Windows環境では必ずFastReportサービスを使用する
+
+#### 2. ビルドエラー時の対応
+ビルドエラーが発生しても、以下の対応は**絶対に行わない**：
+- ❌ FastReportサービスの削除
+- ❌ PlaceholderサービスへのDI登録の変更
+- ❌ FastReport関連のusingディレクティブの削除
+- ❌ #if WINDOWS ブロックの削除
+
+**正しい対応方法**：
+- ✅ 条件付きコンパイル（#if WINDOWS）で囲む
+- ✅ Linux環境では Placeholder サービスを使用
+- ✅ Windows環境では必ず FastReport サービスを使用
+
+#### 3. FastReport DLL管理
+```xml
+<!-- InventorySystem.Reports.csproj で必須 -->
+<ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <Reference Include="FastReport">
+        <HintPath>C:\Program Files (x86)\FastReports\FastReport .NET Trial\FastReport.dll</HintPath>
+        <Private>true</Private>
+    </Reference>
+</ItemGroup>
+```
+
+#### 4. エラー処理の原則
+FastReport関連でエラーが発生した場合：
+1. **削除や置換ではなく、条件付きコンパイルで対応**
+2. **エラーメッセージを明確に記録**
+3. **FastReportが必須である旨をコメントで明記**
+
+#### 5. コード例（必須パターン）
+```csharp
+// Program.cs の DI登録（このパターンを維持）
+#if WINDOWS
+    builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
+    builder.Services.AddScoped<IDailyReportService, DailyReportFastReportService>();
+#else
+    builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
+    builder.Services.AddScoped<IDailyReportService, PlaceholderDailyReportService>();
+#endif
+```
+
+#### 6. 禁止事項の明示
+以下のような変更は**いかなる理由があっても禁止**：
+```csharp
+// ❌ 絶対にこのような変更をしない
+builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
+// ❌ #if WINDOWS を削除しない
+// ❌ FastReportサービスクラスを削除しない
+```
+
+### FastReport関連ファイルの保護リスト
+以下のファイルは**削除・大幅変更禁止**：
+- `/src/InventorySystem.Reports/FastReport/Services/UnmatchListFastReportService.cs`
+- `/src/InventorySystem.Reports/FastReport/Services/DailyReportFastReportService.cs`
+- `/src/InventorySystem.Reports/FastReport/Services/FastReportService.cs`
+- `/src/InventorySystem.Reports/FastReport/Templates/*.frx`
+
+**理由**: FastReportはこのシステムの中核機能であり、PDF帳票生成の唯一の本番実装です。
