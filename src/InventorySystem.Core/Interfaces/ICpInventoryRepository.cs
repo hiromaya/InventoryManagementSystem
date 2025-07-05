@@ -88,4 +88,19 @@ public interface ICpInventoryRepository
     /// ジョブ日付での件数を取得
     /// </summary>
     Task<int> GetCountAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// 月計売上を更新する
+    /// </summary>
+    Task<int> UpdateMonthlySalesAsync(DateTime monthStartDate, DateTime jobDate);
+    
+    /// <summary>
+    /// 月計仕入を更新する
+    /// </summary>
+    Task<int> UpdateMonthlyPurchaseAsync(DateTime monthStartDate, DateTime jobDate);
+    
+    /// <summary>
+    /// 月計粗利益を計算する
+    /// </summary>
+    Task<int> CalculateMonthlyGrossProfitAsync(DateTime jobDate);
 }

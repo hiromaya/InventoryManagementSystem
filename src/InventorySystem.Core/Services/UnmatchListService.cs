@@ -90,6 +90,11 @@ public class UnmatchListService : IUnmatchListService
             _logger.LogInformation("当日データ集計開始");
             await AggregateDailyDataWithValidationAsync(dataSetId, jobDate);
             _logger.LogInformation("当日データ集計完了");
+            
+            // 月計データを集計
+            _logger.LogInformation("月計データ集計開始");
+            await AggregateMonthlyDataAsync(jobDate);
+            _logger.LogInformation("月計データ集計完了");
 
             // 集計結果の検証
             var aggregationResult = await ValidateAggregationResultAsync(dataSetId);
@@ -631,6 +636,35 @@ public class UnmatchListService : IUnmatchListService
         catch (Exception ex)
         {
             _logger.LogError(ex, "当日データ集計中にエラーが発生しました");
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 月計データを集計する
+    /// </summary>
+    private async Task AggregateMonthlyDataAsync(DateTime jobDate)
+    {
+        try
+        {
+            // 月初日を計算
+            var monthStartDate = new DateTime(jobDate.Year, jobDate.Month, 1);
+            
+            // 売上月計の集計
+            var monthlySalesUpdated = await _cpInventoryRepository.UpdateMonthlySalesAsync(monthStartDate, jobDate);
+            _logger.LogInformation("売上月計を集計しました。更新件数: {Count}件", monthlySalesUpdated);
+            
+            // 仕入月計の集計
+            var monthlyPurchaseUpdated = await _cpInventoryRepository.UpdateMonthlyPurchaseAsync(monthStartDate, jobDate);
+            _logger.LogInformation("仕入月計を集計しました。更新件数: {Count}件", monthlyPurchaseUpdated);
+            
+            // 月計粗利益の計算
+            var monthlyGrossProfitUpdated = await _cpInventoryRepository.CalculateMonthlyGrossProfitAsync(jobDate);
+            _logger.LogInformation("月計粗利益を計算しました。更新件数: {Count}件", monthlyGrossProfitUpdated);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "月計データ集計中にエラーが発生しました");
             throw;
         }
     }

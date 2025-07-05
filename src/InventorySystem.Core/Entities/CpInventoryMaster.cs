@@ -63,6 +63,17 @@ public class CpInventoryMaster
     public decimal DailyIncentiveAmount { get; set; }            // 当日奨励金
     public decimal DailyDiscountAmount { get; set; }             // 当日仕入値引き額
     
+    // 月計項目（月初から当日までの累計）
+    public decimal MonthlySalesQuantity { get; set; }           // 月計売上数量
+    public decimal MonthlySalesAmount { get; set; }             // 月計売上金額
+    public decimal MonthlySalesReturnQuantity { get; set; }     // 月計売上返品数量
+    public decimal MonthlySalesReturnAmount { get; set; }       // 月計売上返品金額
+    public decimal MonthlyPurchaseQuantity { get; set; }        // 月計仕入数量
+    public decimal MonthlyPurchaseAmount { get; set; }          // 月計仕入金額
+    public decimal MonthlyGrossProfit { get; set; }             // 月計粗利益
+    public decimal MonthlyWalkingAmount { get; set; }           // 月計歩引き額
+    public decimal MonthlyIncentiveAmount { get; set; }         // 月計奨励金
+    
     // データセットID管理
     public string DataSetId { get; set; } = string.Empty;       // データセットID
     

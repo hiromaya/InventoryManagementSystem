@@ -510,4 +510,85 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         using var connection = CreateConnection();
         return await connection.ExecuteScalarAsync<int>(sql, new { jobDate });
     }
+    
+    /// <summary>
+    /// 売上月計を更新
+    /// </summary>
+    public async Task<int> UpdateMonthlySalesAsync(DateTime monthStartDate, DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE cp
+            SET 
+                cp.MonthlySalesQuantity = ISNULL(s.Quantity, 0),
+                cp.MonthlySalesAmount = ISNULL(s.Amount, 0),
+                cp.MonthlySalesReturnQuantity = ISNULL(s.ReturnQuantity, 0),
+                cp.MonthlySalesReturnAmount = ISNULL(s.ReturnAmount, 0)
+            FROM CP_InventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    SUM(CASE WHEN DetailType = 1 THEN Quantity ELSE 0 END) as Quantity,
+                    SUM(CASE WHEN DetailType = 1 THEN Amount ELSE 0 END) as Amount,
+                    SUM(CASE WHEN DetailType = 2 THEN Quantity ELSE 0 END) as ReturnQuantity,
+                    SUM(CASE WHEN DetailType = 2 THEN Amount ELSE 0 END) as ReturnAmount
+                FROM SalesVouchers
+                WHERE JobDate >= @monthStartDate AND JobDate <= @jobDate
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            ) s ON cp.ProductCode = s.ProductCode 
+                AND cp.GradeCode = s.GradeCode 
+                AND cp.ClassCode = s.ClassCode 
+                AND cp.ShippingMarkCode = s.ShippingMarkCode 
+                AND cp.ShippingMarkName = s.ShippingMarkName
+            WHERE cp.JobDate = @jobDate";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteAsync(sql, new { monthStartDate, jobDate });
+    }
+
+    /// <summary>
+    /// 仕入月計を更新
+    /// </summary>
+    public async Task<int> UpdateMonthlyPurchaseAsync(DateTime monthStartDate, DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE cp
+            SET 
+                cp.MonthlyPurchaseQuantity = ISNULL(p.Quantity, 0),
+                cp.MonthlyPurchaseAmount = ISNULL(p.Amount, 0)
+            FROM CP_InventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    SUM(Quantity) as Quantity,
+                    SUM(Amount) as Amount
+                FROM PurchaseVouchers
+                WHERE JobDate >= @monthStartDate AND JobDate <= @jobDate
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            ) p ON cp.ProductCode = p.ProductCode 
+                AND cp.GradeCode = p.GradeCode 
+                AND cp.ClassCode = p.ClassCode 
+                AND cp.ShippingMarkCode = p.ShippingMarkCode 
+                AND cp.ShippingMarkName = p.ShippingMarkName
+            WHERE cp.JobDate = @jobDate";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteAsync(sql, new { monthStartDate, jobDate });
+    }
+
+    /// <summary>
+    /// 月計粗利益を計算
+    /// </summary>
+    public async Task<int> CalculateMonthlyGrossProfitAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE CP_InventoryMaster
+            SET 
+                MonthlyGrossProfit = (MonthlySalesAmount + MonthlySalesReturnAmount) 
+                                   - (MonthlyPurchaseAmount * (DailyUnitPrice / NULLIF(StandardPrice, 0)))
+            WHERE JobDate = @jobDate 
+              AND StandardPrice > 0";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteAsync(sql, new { jobDate });
+    }
 }

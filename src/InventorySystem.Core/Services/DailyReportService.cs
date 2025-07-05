@@ -217,7 +217,12 @@ public class DailyReportService : IDailyReportService
                 DailyTransfer = group.Sum(cp => cp.DailyTransferAmount),
                 DailyIncentive = group.Sum(cp => cp.DailyIncentiveAmount),
                 DailyGrossProfit1 = group.Sum(cp => cp.DailyGrossProfit),
-                DailyDiscountAmount = group.Sum(cp => cp.DailyDiscountAmount)
+                DailyDiscountAmount = group.Sum(cp => cp.DailyDiscountAmount),
+                
+                // 月計項目（実データを設定）
+                MonthlySalesAmount = group.Sum(cp => cp.MonthlySalesAmount + cp.MonthlySalesReturnAmount),
+                MonthlyGrossProfit1 = group.Sum(cp => cp.MonthlyGrossProfit),
+                MonthlyGrossProfit2 = group.Sum(cp => cp.MonthlyGrossProfit - cp.MonthlyWalkingAmount)
             };
 
             // ２粗利益計算（１粗利益－歩引額）
@@ -226,9 +231,10 @@ public class DailyReportService : IDailyReportService
             // 粗利率計算（0除算対策）
             item.DailyGrossProfitRate1 = DailyReportItem.CalculateGrossProfitRate(item.DailyGrossProfit1, item.DailySalesAmount);
             item.DailyGrossProfitRate2 = DailyReportItem.CalculateGrossProfitRate(item.DailyGrossProfit2, item.DailySalesAmount);
-
-            // 月計データを仮設定
-            item.SetTemporaryMonthlyData();
+            
+            // 月計粗利率計算
+            item.MonthlyGrossProfitRate1 = DailyReportItem.CalculateGrossProfitRate(item.MonthlyGrossProfit1, item.MonthlySalesAmount);
+            item.MonthlyGrossProfitRate2 = DailyReportItem.CalculateGrossProfitRate(item.MonthlyGrossProfit2, item.MonthlySalesAmount);
 
             // データがある場合は追加（すでにフィルタリング済み）
             reportItems.Add(item);
