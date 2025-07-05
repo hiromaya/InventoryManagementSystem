@@ -23,15 +23,15 @@
                    Text="[Page#] / [TotalPages#] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
       
       <!-- 第2段：日計・月計の大見出し -->
-      <!-- 日計の見出し -->
-      <TextObject Name="DailyHeaderText" Left="200" Top="30" Width="770" Height="25" 
-                   Text="日　　　　　　計" 
-                   HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 10pt, style=Bold" Fill.Color="White"/>
+      <!-- 日計の破線枠 -->
+      <TextObject Name="DailyHeaderLine" Left="200" Top="30" Width="770" Height="25" 
+                   Text="&lt;- - - - - - - - - - - - - - - - - 日　　　　　　計 - - - - - - - - - - - - - - - - - - - - - &gt;" 
+                   HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 10pt" Fill.Color="White"/>
       
-      <!-- 月計の見出し -->
-      <TextObject Name="MonthlyHeaderText" Left="970" Top="30" Width="405" Height="25" 
-                   Text="月　　　　計" 
-                   HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 10pt, style=Bold" Fill.Color="White"/>
+      <!-- 月計の破線枠 -->
+      <TextObject Name="MonthlyHeaderLine" Left="970" Top="30" Width="405" Height="25" 
+                   Text="&lt;- - - - - - - - - - - 月　　　　計 - - - - - - - - - - - - - - - &gt;" 
+                   HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 10pt" Fill.Color="White"/>
       
       <!-- 第3段：項目見出し -->
       <!-- 商品名（通常の1行） -->
@@ -73,10 +73,6 @@
                    Text="２粗利益" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
       <TextObject Name="ColMonthlyGrossProfitRate2" Left="1340" Top="60" Width="70" Height="25" 
                    Text="２粗利率" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      
-      <!-- ヘッダー下線 -->
-      <LineObject Name="HeaderLine" Left="0" Top="95" Width="1512" Height="0" 
-                  Diagonal="false" Fill.Color="Black"/>
       
     </PageHeaderBand>
     

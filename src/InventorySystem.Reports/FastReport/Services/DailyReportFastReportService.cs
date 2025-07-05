@@ -70,7 +70,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 PopulateReportData(report, items, subtotals, total);
                 
                 // レポートの準備
-                _logger.LogDebug("レポートを準備しています...");
+                _logger.LogInformation("レポートを生成しています...");
                 report.Prepare();
                 
                 // PDF出力
