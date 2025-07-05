@@ -251,14 +251,14 @@ namespace InventorySystem.Reports.FastReport.Services
             AddTextObject(dataBand, y, "Incentive", 620f, FormatNumberWithMinus(item.DailyIncentive), 70f);
             AddTextObject(dataBand, y, "GrossProfit1", 690f, FormatNumber(item.DailyGrossProfit1), 70f);
             AddTextObject(dataBand, y, "GrossProfitRate1", 760f, FormatRate(CalculateRate(item.DailyGrossProfit1, item.DailySalesAmount)), 70f);
-            AddTextObject(dataBand, y, "GrossProfit2", 830f, FormatNumberWithMinus(item.DailyGrossProfit2), 70f);
+            AddTextObject(dataBand, y, "GrossProfit2", 830f, FormatNumberWithTriangle(item.DailyGrossProfit2), 70f);  // ▲記号使用
             AddTextObject(dataBand, y, "GrossProfitRate2", 900f, FormatRate(CalculateRate(item.DailyGrossProfit2, item.DailySalesAmount)), 70f);
             
             // 月計セクション（5列）- 新しい列位置に対応
             AddTextObject(dataBand, y, "MonthlySalesAmount", 970f, FormatNumber(item.MonthlySalesAmount), 85f);
             AddTextObject(dataBand, y, "MonthlyGrossProfit1", 1055f, FormatNumber(item.MonthlyGrossProfit1), 85f);
             AddTextObject(dataBand, y, "MonthlyGrossProfitRate1", 1140f, FormatRate(CalculateRate(item.MonthlyGrossProfit1, item.MonthlySalesAmount)), 75f);
-            AddTextObject(dataBand, y, "MonthlyGrossProfit2", 1215f, FormatNumberWithMinus(item.MonthlyGrossProfit2), 85f);
+            AddTextObject(dataBand, y, "MonthlyGrossProfit2", 1215f, FormatNumberWithTriangle(item.MonthlyGrossProfit2), 85f);  // ▲記号使用
             AddTextObject(dataBand, y, "MonthlyGrossProfitRate2", 1300f, FormatRate(CalculateRate(item.MonthlyGrossProfit2, item.MonthlySalesAmount)), 75f);
         }
         
@@ -331,12 +331,12 @@ namespace InventorySystem.Reports.FastReport.Services
             AddTextObjectOld(dataBand, y, "SubtotalIncentive", 620f, FormatNumberWithMinus(incentive));
             AddTextObjectOld(dataBand, y, "SubtotalGrossProfit1", 690f, FormatNumber(grossProfit1));
             AddTextObjectOld(dataBand, y, "SubtotalGrossProfitRate1", 760f, FormatRate(CalculateRate(grossProfit1, dailySalesAmount)));
-            AddTextObjectOld(dataBand, y, "SubtotalGrossProfit2", 830f, FormatNumberWithMinus(grossProfit2));
+            AddTextObjectOld(dataBand, y, "SubtotalGrossProfit2", 830f, FormatNumberWithTriangle(grossProfit2));  // ▲記号使用
             AddTextObjectOld(dataBand, y, "SubtotalGrossProfitRate2", 900f, FormatRate(CalculateRate(grossProfit2, dailySalesAmount)));
             AddTextObjectOld(dataBand, y, "SubtotalMonthlySalesAmount", 970f, FormatNumber(monthlySalesAmount));
             AddTextObjectOld(dataBand, y, "SubtotalMonthlyGrossProfit1", 1055f, FormatNumber(monthlyGrossProfit1));
             AddTextObjectOld(dataBand, y, "SubtotalMonthlyGrossProfitRate1", 1140f, FormatRate(CalculateRate(monthlyGrossProfit1, monthlySalesAmount)));
-            AddTextObjectOld(dataBand, y, "SubtotalMonthlyGrossProfit2", 1215f, FormatNumberWithMinus(monthlyGrossProfit2));
+            AddTextObjectOld(dataBand, y, "SubtotalMonthlyGrossProfit2", 1215f, FormatNumberWithTriangle(monthlyGrossProfit2));  // ▲記号使用
             AddTextObjectOld(dataBand, y, "SubtotalMonthlyGrossProfitRate2", 1300f, FormatRate(CalculateRate(monthlyGrossProfit2, monthlySalesAmount)));
         }
         
@@ -362,7 +362,14 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             if (value == 0) return "";
             
+            // 小数点以下の桁数に応じたフォーマット
             var format = decimals > 0 ? $"#,##0.{new string('0', decimals)}" : "#,##0";
+            
+            if (value < 0)
+            {
+                // マイナス値は末尾に"-"を付ける
+                return $"{Math.Abs(value).ToString(format)}-";
+            }
             return value.ToString(format);
         }
 
@@ -375,9 +382,25 @@ namespace InventorySystem.Reports.FastReport.Services
             return value.ToString("N0");
         }
         
+        private string FormatNumberWithTriangle(decimal value)
+        {
+            if (value == 0) return "";
+            
+            // 特定の条件で▲記号を使用（2粗利益など）
+            if (value < 0)
+                return $"▲{Math.Abs(value):N0}";
+            return value.ToString("N0");
+        }
+        
         private string FormatRate(decimal rate)
         {
-            return rate == 0 ? "" : rate.ToString("N2") + "%";
+            if (rate == 0) return "";
+            
+            // 率もマイナスの場合は末尾に"-"
+            if (rate < 0)
+                return $"{Math.Abs(rate):N2}%-";
+            
+            return rate.ToString("N2") + "%";
         }
         
         private void SetTotalValues(Report report, DailyReportTotal total)
@@ -392,12 +415,12 @@ namespace InventorySystem.Reports.FastReport.Services
             SetTextObjectValue(report, "TotalIncentive", FormatNumberWithMinus(total.GrandTotalDailyIncentive));
             SetTextObjectValue(report, "TotalGrossProfit1", FormatNumber(total.GrandTotalDailyGrossProfit1));
             SetTextObjectValue(report, "TotalGrossProfitRate1", FormatRate(CalculateRate(total.GrandTotalDailyGrossProfit1, total.GrandTotalDailySalesAmount)));
-            SetTextObjectValue(report, "TotalGrossProfit2", FormatNumberWithMinus(total.GrandTotalDailyGrossProfit2));
+            SetTextObjectValue(report, "TotalGrossProfit2", FormatNumberWithTriangle(total.GrandTotalDailyGrossProfit2));  // ▲記号使用
             SetTextObjectValue(report, "TotalGrossProfitRate2", FormatRate(CalculateRate(total.GrandTotalDailyGrossProfit2, total.GrandTotalDailySalesAmount)));
             SetTextObjectValue(report, "TotalMonthlySalesAmount", FormatNumber(total.GrandTotalMonthlySalesAmount));
             SetTextObjectValue(report, "TotalMonthlyGrossProfit1", FormatNumber(total.GrandTotalMonthlyGrossProfit1));
             SetTextObjectValue(report, "TotalMonthlyGrossProfitRate1", FormatRate(CalculateRate(total.GrandTotalMonthlyGrossProfit1, total.GrandTotalMonthlySalesAmount)));
-            SetTextObjectValue(report, "TotalMonthlyGrossProfit2", FormatNumberWithMinus(total.GrandTotalMonthlyGrossProfit2));
+            SetTextObjectValue(report, "TotalMonthlyGrossProfit2", FormatNumberWithTriangle(total.GrandTotalMonthlyGrossProfit2));  // ▲記号使用
             SetTextObjectValue(report, "TotalMonthlyGrossProfitRate2", FormatRate(CalculateRate(total.GrandTotalMonthlyGrossProfit2, total.GrandTotalMonthlySalesAmount)));
         }
         

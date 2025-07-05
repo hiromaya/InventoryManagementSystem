@@ -8,78 +8,75 @@
   
   <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" FirstPageSource="15" OtherPagesSource="15" Margins.Left="10" Margins.Right="10" Margins.Top="10" Margins.Bottom="10">
     
-    <!-- ページヘッダー -->
-    <PageHeaderBand Name="PageHeader1" Width="1512" Height="100" Fill.Color="White">
+    <!-- ページヘッダー（3段構成） -->
+    <PageHeaderBand Name="PageHeader1" Width="1512" Height="120" Fill.Color="White">
       
-      <!-- 作成日時（左上） -->
-      <TextObject Name="CreateDateText" Left="0" Top="0" Width="300" Height="20" 
+      <!-- 第1段：ページヘッダー情報 -->
+      <TextObject Name="CreateDateText" Left="0" Top="0" Width="400" Height="20" 
                    Text="作成日：[CreateDateTime]" Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
       
-      <!-- ページ番号（右上） -->
-      <TextObject Name="PageNumberText" Left="1212" Top="0" Width="300" Height="20" 
-                   Text="[PageNumber] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
-      
-      <!-- タイトル -->
-      <TextObject Name="Title" Left="0" Top="20" Width="1512" Height="25" 
+      <TextObject Name="Title" Left="0" Top="0" Width="1512" Height="20" 
                    Text="※　[ReportDate]　商　品　日　報　※" 
                    HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 14pt" Fill.Color="White"/>
       
-      <!-- ヘッダー構造（2段構成） -->
-      <!-- 1段目：商品名（2段結合）、日計、月計の大見出し -->
-      <TextObject Name="ColProductNameHeader" Left="0" Top="50" Width="200" Height="45" 
-                   Text="商品名" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <TextObject Name="PageNumberText" Left="1212" Top="0" Width="300" Height="20" 
+                   Text="[PageNumber] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
       
-      <!-- 日計大見出し -->
-      <TextObject Name="DailyHeader" Left="200" Top="50" Width="770" Height="22" 
-                   Text="日計" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <!-- 第2段：日計・月計の大見出し（破線枠） -->
+      <!-- 日計の破線枠 -->
+      <TextObject Name="DailyHeaderLine" Left="200" Top="30" Width="770" Height="25" 
+                   Text="&lt;- - - - - - - - - - - - - - - - - 日　　　　　　計 - - - - - - - - - - - - - - - - - - - - - &gt;" 
+                   HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 10pt" Fill.Color="White"/>
       
-      <!-- 月計大見出し -->
-      <TextObject Name="MonthlyHeader" Left="970" Top="50" Width="350" Height="22" 
-                   Text="月計" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <!-- 月計の破線枠 -->
+      <TextObject Name="MonthlyHeaderLine" Left="970" Top="30" Width="405" Height="25" 
+                   Text="&lt;- - - - - - - - - - - 月　　　　計 - - - - - - - - - - - - - - - &gt;" 
+                   HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 10pt" Fill.Color="White"/>
       
-      <!-- 日計→月計の矢印 -->
-      <TextObject Name="ArrowDailyToMonthly" Left="940" Top="50" Width="30" Height="22" 
-                   Text="→" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
+      <!-- 第3段：項目見出し -->
+      <!-- 商品名（通常の1行） -->
+      <TextObject Name="ColProductName" Left="0" Top="60" Width="200" Height="25" 
+                   Text="商　品　名" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 9pt" Fill.Color="White"/>
       
-      <!-- 2段目：具体的な項目名（日計セクション11列） -->
-      <TextObject Name="ColDailySalesQty" Left="200" Top="72" Width="70" Height="23" 
+      <!-- 日計項目（11列） -->
+      <TextObject Name="ColDailySalesQty" Left="200" Top="60" Width="70" Height="25" 
                    Text="売上数量" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColDailySalesAmount" Left="270" Top="72" Width="70" Height="23" 
+      <TextObject Name="ColDailySalesAmount" Left="270" Top="60" Width="70" Height="25" 
                    Text="売上金額" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColPurchaseDiscount" Left="340" Top="72" Width="70" Height="23" 
+      <TextObject Name="ColPurchaseDiscount" Left="340" Top="60" Width="70" Height="25" 
                    Text="仕入値引" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColStockAdjust" Left="410" Top="72" Width="70" Height="23" 
+      <TextObject Name="ColStockAdjust" Left="410" Top="60" Width="70" Height="25" 
                    Text="在庫調整" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColProcessing" Left="480" Top="72" Width="70" Height="23" 
-                   Text="加工費" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColTransfer" Left="550" Top="72" Width="70" Height="23" 
-                   Text="振替" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColIncentive" Left="620" Top="72" Width="70" Height="23" 
-                   Text="奨励金" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColGrossProfit1" Left="690" Top="72" Width="70" Height="23" 
-                   Text="1粗利益" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColGrossProfitRate1" Left="760" Top="72" Width="70" Height="23" 
-                   Text="1粗利率" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColGrossProfit2" Left="830" Top="72" Width="70" Height="23" 
-                   Text="2粗利益" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColGrossProfitRate2" Left="900" Top="72" Width="70" Height="23" 
-                   Text="2粗利率" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColProcessing" Left="480" Top="60" Width="70" Height="25" 
+                   Text="　加工費" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColTransfer" Left="550" Top="60" Width="70" Height="25" 
+                   Text="　振　替" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColIncentive" Left="620" Top="60" Width="70" Height="25" 
+                   Text="　奨励金" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColGrossProfit1" Left="690" Top="60" Width="70" Height="25" 
+                   Text="１粗利益" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColGrossProfitRate1" Left="760" Top="60" Width="70" Height="25" 
+                   Text="１粗利率" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColGrossProfit2" Left="830" Top="60" Width="70" Height="25" 
+                   Text="２粗利益" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColGrossProfitRate2" Left="900" Top="60" Width="70" Height="25" 
+                   Text="２粗利率" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
       
-      <!-- 2段目：具体的な項目名（月計セクション5列） -->
-      <TextObject Name="ColMonthlySalesAmount" Left="970" Top="72" Width="85" Height="23" 
+      <!-- 月計項目（5列） -->
+      <TextObject Name="ColMonthlySalesAmount" Left="970" Top="60" Width="85" Height="25" 
                    Text="売上金額" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColMonthlyGrossProfit1" Left="1055" Top="72" Width="85" Height="23" 
-                   Text="1粗利益" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColMonthlyGrossProfitRate1" Left="1140" Top="72" Width="75" Height="23" 
-                   Text="1粗利率" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColMonthlyGrossProfit2" Left="1215" Top="72" Width="85" Height="23" 
-                   Text="2粗利益" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
-      <TextObject Name="ColMonthlyGrossProfitRate2" Left="1300" Top="72" Width="75" Height="23" 
-                   Text="2粗利率" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColMonthlyGrossProfit1" Left="1055" Top="60" Width="85" Height="25" 
+                   Text="１粗利益" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColMonthlyGrossProfitRate1" Left="1140" Top="60" Width="75" Height="25" 
+                   Text="１粗利率" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColMonthlyGrossProfit2" Left="1215" Top="60" Width="85" Height="25" 
+                   Text="２粗利益" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
+      <TextObject Name="ColMonthlyGrossProfitRate2" Left="1300" Top="60" Width="75" Height="25" 
+                   Text="２粗利率" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
       
-      <!-- 月計最終列の右端調整（合計1512pxに） -->
-      <TextObject Name="ColEnd" Left="1375" Top="72" Width="137" Height="23" 
-                   Text="" Fill.Color="White"/>
+      <!-- ヘッダー下線 -->
+      <LineObject Name="HeaderLine" Left="0" Top="95" Width="1512" Height="0" 
+                  Diagonal="false" Fill.Color="Black"/>
       
     </PageHeaderBand>
     
@@ -146,6 +143,12 @@
                    Text="" HorzAlign="Right" VertAlign="Center"
                    Font="ＭＳ ゴシック, 8pt" Fill.Color="White"/>
       
+      <!-- 合計行の上下線 -->
+      <LineObject Name="TotalLineTop" Left="0" Top="0" Width="1512" Height="0" 
+                  Diagonal="false" Fill.Color="Black"/>
+      <LineObject Name="TotalLineBottom" Left="0" Top="20" Width="1512" Height="0" 
+                  Diagonal="false" Fill.Color="Black" StartCap.Width="2"/>
+                  
     </ReportSummaryBand>
     
     <!-- ページフッター -->
