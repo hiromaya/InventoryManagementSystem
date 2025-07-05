@@ -45,7 +45,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 // FastReportのバージョン情報を取得
                 try
                 {
-                    var fastReportAssembly = typeof(FastReport.Report).Assembly;
+                    var fastReportAssembly = typeof(FR.Report).Assembly;
                     _logger.LogInformation($"FastReport Version: {fastReportAssembly.GetName().Version}");
                 }
                 catch (Exception ex)
