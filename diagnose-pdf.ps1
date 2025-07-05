@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+# 修正日: 2025-07-05
+# 修正内容: シンタックスエラーとエンコーディング問題を修正
+
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 # PDF生成問題診断スクリプト
 
 Write-Host "PDF生成環境診断" -ForegroundColor Cyan
