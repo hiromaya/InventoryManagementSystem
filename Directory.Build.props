@@ -1,0 +1,11 @@
+<Project>
+  <!-- Windows環境で自動的にWINDOWSシンボルを定義 -->
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+  </PropertyGroup>
+  
+  <!-- Linux環境で自動的にLINUXシンボルを定義 -->
+  <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
+    <DefineConstants>$(DefineConstants);LINUX</DefineConstants>
+  </PropertyGroup>
+</Project>
