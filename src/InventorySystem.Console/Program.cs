@@ -545,7 +545,7 @@ try
     
     try
     {
-        var dataSetId = await importService.ImportAsync(filePath, jobDate);
+        var dataSetId = await importService.ImportAsync(filePath, jobDate, jobDate);
         var result = await importService.GetImportResultAsync(dataSetId);
         
         stopwatch.Stop();
@@ -610,7 +610,7 @@ try
         
         try
         {
-            var dataSetId = await importService.ImportAsync(filePath, jobDate);
+            var dataSetId = await importService.ImportAsync(filePath, jobDate, jobDate);
             var result = await importService.GetImportResultAsync(dataSetId);
             
             stopwatch.Stop();
@@ -675,7 +675,7 @@ try
         
         try
         {
-            var dataSetId = await importService.ImportAsync(filePath, jobDate);
+            var dataSetId = await importService.ImportAsync(filePath, jobDate, jobDate);
             var result = await importService.GetImportResultAsync(dataSetId);
             
             stopwatch.Stop();
@@ -1672,7 +1672,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     {
                         if (productImportService != null)
                         {
-                            var result = await productImportService.ImportFromCsvAsync(file, jobDate);
+                            var result = await productImportService.ImportFromCsvAsync(file, startDate ?? DateTime.Today);
                             Console.WriteLine($"✅ 商品マスタとして処理完了 - {result.ImportedCount}件");
                             processedCounts["商品マスタ"] = result.ImportedCount;
                         }
@@ -1688,7 +1688,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     {
                         if (customerImportService != null)
                         {
-                            var result = await customerImportService.ImportFromCsvAsync(file, jobDate);
+                            var result = await customerImportService.ImportFromCsvAsync(file, startDate ?? DateTime.Today);
                             Console.WriteLine($"✅ 得意先マスタとして処理完了 - {result.ImportedCount}件");
                             processedCounts["得意先マスタ"] = result.ImportedCount;
                         }
@@ -1704,7 +1704,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     {
                         if (supplierImportService != null)
                         {
-                            var result = await supplierImportService.ImportFromCsvAsync(file, jobDate);
+                            var result = await supplierImportService.ImportFromCsvAsync(file, startDate ?? DateTime.Today);
                             Console.WriteLine($"✅ 仕入先マスタとして処理完了 - {result.ImportedCount}件");
                             processedCounts["仕入先マスタ"] = result.ImportedCount;
                         }
@@ -1730,7 +1730,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                             continue;
                         }
                         
-                        var result = await previousMonthService.ImportAsync(jobDate);
+                        var result = await previousMonthService.ImportAsync(startDate ?? DateTime.Today);
                         
                         if (result.IsSuccess)
                         {
