@@ -1470,7 +1470,10 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
     if (args.Length < 3)
     {
         Console.WriteLine("エラー: 部門コードが指定されていません");
-        Console.WriteLine("使用方法: dotnet run import-folder <dept> [YYYY-MM-DD]");
+        Console.WriteLine("使用方法:");
+        Console.WriteLine("  単一日付: dotnet run import-folder <dept> <YYYY-MM-DD>");
+        Console.WriteLine("  期間指定: dotnet run import-folder <dept> <開始日 YYYY-MM-DD> <終了日 YYYY-MM-DD>");
+        Console.WriteLine("  全期間  : dotnet run import-folder <dept>");
         return;
     }
     
@@ -1503,21 +1506,86 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         var optimizationService = scopedServices.GetService<IInventoryMasterOptimizationService>();
         
         var department = args[2];
-        DateTime jobDate = args.Length >= 4 && DateTime.TryParse(args[3], out var date) ? date : DateTime.Today;
+        DateTime? startDate = null;
+        DateTime? endDate = null;
         
-        Console.WriteLine($"=== フォルダ監視取込開始 ===");
+        // 日付引数の解析
+        if (args.Length >= 4)
+        {
+            if (DateTime.TryParse(args[3], out var date1))
+            {
+                startDate = date1;
+                
+                if (args.Length >= 5 && DateTime.TryParse(args[4], out var date2))
+                {
+                    // 期間指定
+                    endDate = date2;
+                    
+                    if (endDate < startDate)
+                    {
+                        Console.WriteLine("エラー: 終了日は開始日以降である必要があります");
+                        return;
+                    }
+                    
+                    logger.LogInformation("期間指定モード: {StartDate} ～ {EndDate}", 
+                        startDate.Value.ToString("yyyy-MM-dd"), 
+                        endDate.Value.ToString("yyyy-MM-dd"));
+                }
+                else
+                {
+                    // 単一日付指定
+                    endDate = startDate;
+                    logger.LogInformation("単一日付モード: {Date}", startDate.Value.ToString("yyyy-MM-dd"));
+                }
+            }
+            else
+            {
+                Console.WriteLine($"エラー: 無効な日付形式: {args[3]}");
+                return;
+            }
+        }
+        else
+        {
+            // 全期間モード
+            logger.LogInformation("全期間モード: 日付フィルタなし");
+        }
+        
+        Console.WriteLine($"=== CSVファイル一括インポート開始 ===");
         Console.WriteLine($"部門: {department}");
-        Console.WriteLine($"ジョブ日付: {jobDate:yyyy-MM-dd}");
+        
+        if (startDate.HasValue && endDate.HasValue)
+        {
+            if (startDate.Value.Date == endDate.Value.Date)
+            {
+                Console.WriteLine($"対象日付: {startDate.Value:yyyy-MM-dd}");
+            }
+            else
+            {
+                Console.WriteLine($"対象期間: {startDate.Value:yyyy-MM-dd} ～ {endDate.Value:yyyy-MM-dd}");
+                Console.WriteLine($"期間日数: {(endDate.Value - startDate.Value).Days + 1}日間");
+            }
+        }
+        else
+        {
+            Console.WriteLine("対象期間: 全期間（日付フィルタなし）");
+        }
         
         var errorCount = 0;
         var processedCounts = new Dictionary<string, int>();
         
         try
         {
-            // 重複データクリア処理
-            Console.WriteLine("\n既存データのクリア中...");
-            await ClearExistingVoucherData(scopedServices, jobDate, department);
-            Console.WriteLine("✅ 既存データクリア完了");
+            // 重複データクリア処理（日付範囲指定時はスキップ）
+            if (startDate.HasValue && endDate.HasValue && startDate.Value == endDate.Value)
+            {
+                Console.WriteLine("\n既存データのクリア中...");
+                await ClearExistingVoucherData(scopedServices, startDate.Value, department);
+                Console.WriteLine("✅ 既存データクリア完了");
+            }
+            else if (!startDate.HasValue)
+            {
+                Console.WriteLine("\n⚠️ 全期間モードまたは期間指定モードでは既存データクリアをスキップします");
+            }
             
             // ファイル一覧の取得
             var files = await fileService.GetPendingFilesAsync(department);
@@ -1688,10 +1756,10 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     else if (fileName.StartsWith("売上伝票"))
                     {
                         // デバッグログ追加: 売上伝票インポート開始
-                        logger.LogDebug("売上伝票インポート開始: FileName={FileName}, JobDate={JobDate:yyyy-MM-dd}", 
-                            fileName, jobDate);
+                        logger.LogDebug("売上伝票インポート開始: FileName={FileName}, StartDate={StartDate:yyyy-MM-dd}, EndDate={EndDate:yyyy-MM-dd}", 
+                            fileName, startDate, endDate);
                         
-                        var dataSetId = await salesImportService.ImportAsync(file, jobDate, department);
+                        var dataSetId = await salesImportService.ImportAsync(file, startDate, endDate, department);
                         
                         // デバッグログ追加: 売上伝票インポート完了
                         logger.LogDebug("売上伝票インポート完了: DataSetId={DataSetId}", dataSetId);
@@ -1703,10 +1771,10 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     else if (fileName.StartsWith("仕入伝票"))
                     {
                         // デバッグログ追加: 仕入伝票インポート開始
-                        logger.LogDebug("仕入伝票インポート開始: FileName={FileName}, JobDate={JobDate:yyyy-MM-dd}", 
-                            fileName, jobDate);
+                        logger.LogDebug("仕入伝票インポート開始: FileName={FileName}, StartDate={StartDate:yyyy-MM-dd}, EndDate={EndDate:yyyy-MM-dd}", 
+                            fileName, startDate, endDate);
                         
-                        var dataSetId = await purchaseImportService.ImportAsync(file, jobDate, department);
+                        var dataSetId = await purchaseImportService.ImportAsync(file, startDate, endDate, department);
                         
                         // デバッグログ追加: 仕入伝票インポート完了
                         logger.LogDebug("仕入伝票インポート完了: DataSetId={DataSetId}", dataSetId);
@@ -1718,11 +1786,11 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     else if (fileName.StartsWith("受注伝票"))
                     {
                         // デバッグログ追加: 受注伝票インポート開始
-                        logger.LogDebug("受注伝票インポート開始: FileName={FileName}, JobDate={JobDate:yyyy-MM-dd}", 
-                            fileName, jobDate);
+                        logger.LogDebug("受注伝票インポート開始: FileName={FileName}, StartDate={StartDate:yyyy-MM-dd}, EndDate={EndDate:yyyy-MM-dd}", 
+                            fileName, startDate, endDate);
                         
                         // 受注伝票は在庫調整として処理
-                        var dataSetId = await adjustmentImportService.ImportAsync(file, jobDate, department);
+                        var dataSetId = await adjustmentImportService.ImportAsync(file, startDate, endDate, department);
                         
                         // デバッグログ追加: 受注伝票インポート完了
                         logger.LogDebug("受注伝票インポート完了: DataSetId={DataSetId}", dataSetId);
@@ -1733,7 +1801,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     }
                     else if (fileName.StartsWith("在庫調整"))
                     {
-                        var dataSetId = await adjustmentImportService.ImportAsync(file, jobDate, department);
+                        var dataSetId = await adjustmentImportService.ImportAsync(file, startDate, endDate, department);
                         Console.WriteLine($"✅ 在庫調整として処理完了 - データセットID: {dataSetId}");
                         processedCounts["在庫調整"] = 1; // TODO: 実際の件数を取得
                         // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
@@ -1782,29 +1850,36 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             Console.WriteLine("\n========== Phase 4: 在庫マスタ最適化 ==========");
             Console.WriteLine("売上・仕入・在庫調整伝票から在庫マスタを自動生成します...\n");
 
-            if (optimizationService != null)
+            if (optimizationService != null && startDate.HasValue && endDate.HasValue)
             {
                 try
                 {
-                    var stopwatch = Stopwatch.StartNew();
-                    var dataSetId = $"AUTO_OPTIMIZE_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}";
-                    var result = await optimizationService.OptimizeAsync(jobDate, dataSetId);
-                    stopwatch.Stop();
+                    // 期間内の各日付に対して最適化を実行
+                    var currentDate = startDate.Value;
+                    while (currentDate <= endDate.Value)
+                    {
+                        var stopwatch = Stopwatch.StartNew();
+                        var dataSetId = $"AUTO_OPTIMIZE_{currentDate:yyyyMMdd}_{DateTime.Now:HHmmss}";
+                        var result = await optimizationService.OptimizeAsync(currentDate, dataSetId);
+                        stopwatch.Stop();
                     
-                    processedCounts["在庫マスタ最適化"] = result.InsertedCount + result.UpdatedCount;
-                    
-                    // カバレッジ率を計算（簡易版）
-                    var coverageRate = result.ProcessedCount > 0 ? 
-                        (double)(result.InsertedCount + result.UpdatedCount) / result.ProcessedCount : 0.0;
-                    
-                    Console.WriteLine($"✅ 在庫マスタ最適化完了 ({stopwatch.ElapsedMilliseconds}ms)");
-                    Console.WriteLine($"   - 新規作成: {result.InsertedCount}件");
-                    Console.WriteLine($"   - JobDate更新: {result.UpdatedCount}件");  
-                    Console.WriteLine($"   - カバレッジ率: {coverageRate:P1}");
-                    
-                    logger.LogInformation(
-                        "在庫マスタ最適化完了 - 新規: {Created}, 更新: {Updated}, カバレッジ: {Coverage:P1}, 処理時間: {ElapsedMs}ms",
-                        result.InsertedCount, result.UpdatedCount, coverageRate, stopwatch.ElapsedMilliseconds);
+                        processedCounts[$"在庫マスタ最適化_{currentDate:yyyy-MM-dd}"] = result.InsertedCount + result.UpdatedCount;
+                        
+                        // カバレッジ率を計算（簡易版）
+                        var coverageRate = result.ProcessedCount > 0 ? 
+                            (double)(result.InsertedCount + result.UpdatedCount) / result.ProcessedCount : 0.0;
+                        
+                        Console.WriteLine($"✅ 在庫マスタ最適化完了 [{currentDate:yyyy-MM-dd}] ({stopwatch.ElapsedMilliseconds}ms)");
+                        Console.WriteLine($"   - 新規作成: {result.InsertedCount}件");
+                        Console.WriteLine($"   - JobDate更新: {result.UpdatedCount}件");  
+                        Console.WriteLine($"   - カバレッジ率: {coverageRate:P1}");
+                        
+                        logger.LogInformation(
+                            "在庫マスタ最適化完了 - 日付: {Date}, 新規: {Created}, 更新: {Updated}, カバレッジ: {Coverage:P1}, 処理時間: {ElapsedMs}ms",
+                            currentDate, result.InsertedCount, result.UpdatedCount, coverageRate, stopwatch.ElapsedMilliseconds);
+                        
+                        currentDate = currentDate.AddDays(1);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1815,8 +1890,16 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             }
             else
             {
-                logger.LogWarning("在庫マスタ最適化サービスが登録されていません");
-                Console.WriteLine("⚠️ 在庫マスタ最適化サービスが未実装のためスキップ");
+                if (optimizationService == null)
+                {
+                    logger.LogWarning("在庫マスタ最適化サービスが登録されていません");
+                    Console.WriteLine("⚠️ 在庫マスタ最適化サービスが未実装のためスキップ");
+                }
+                else if (!startDate.HasValue || !endDate.HasValue)
+                {
+                    logger.LogWarning("在庫マスタ最適化には日付指定が必要です");
+                    Console.WriteLine("⚠️ 在庫マスタ最適化には日付指定が必要です");
+                }
             }
             
             // ========== アンマッチリスト処理 ==========
@@ -1825,7 +1908,21 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             
             // 処理結果のサマリを表示
             Console.WriteLine("\n=== フォルダ監視取込完了 ===");
-            Console.WriteLine($"対象日付: {jobDate:yyyy-MM-dd}");
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                if (startDate.Value == endDate.Value)
+                {
+                    Console.WriteLine($"対象日付: {startDate.Value:yyyy-MM-dd}");
+                }
+                else
+                {
+                    Console.WriteLine($"対象期間: {startDate.Value:yyyy-MM-dd} ～ {endDate.Value:yyyy-MM-dd}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("対象期間: 全期間");
+            }
             Console.WriteLine($"部門: {department}");
             Console.WriteLine($"処理ファイル数: {sortedFiles.Count}");
             

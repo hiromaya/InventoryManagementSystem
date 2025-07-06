@@ -33,10 +33,11 @@ public class PurchaseVoucherImportService
     /// CSVファイルから仕入伝票データを取込む
     /// </summary>
     /// <param name="filePath">取込対象CSVファイルパス</param>
-    /// <param name="jobDate">ジョブ日付</param>
+    /// <param name="startDate">フィルタ開始日付（nullの場合は全期間）</param>
+    /// <param name="endDate">フィルタ終了日付（nullの場合は全期間）</param>
     /// <param name="departmentCode">部門コード（省略時は使用しない）</param>
     /// <returns>データセットID</returns>
-    public async Task<string> ImportAsync(string filePath, DateTime jobDate, string? departmentCode = null)
+    public async Task<string> ImportAsync(string filePath, DateTime? startDate, DateTime? endDate, string? departmentCode = null)
     {
         if (!File.Exists(filePath))
         {
@@ -47,8 +48,8 @@ public class PurchaseVoucherImportService
         var importedCount = 0;
         var errorMessages = new List<string>();
 
-        _logger.LogInformation("仕入伝票CSV取込開始: {FilePath}, DataSetId: {DataSetId}, Department: {DepartmentCode}", 
-            filePath, dataSetId, departmentCode ?? "未指定");
+        _logger.LogInformation("仕入伝票CSV取込開始: {FilePath}, DataSetId: {DataSetId}, Department: {DepartmentCode}, StartDate: {StartDate}, EndDate: {EndDate}", 
+            filePath, dataSetId, departmentCode ?? "未指定", startDate?.ToString("yyyy-MM-dd") ?? "全期間", endDate?.ToString("yyyy-MM-dd") ?? "全期間");
 
         try
         {
@@ -63,7 +64,7 @@ public class PurchaseVoucherImportService
                 RecordCount = 0,
                 Status = DataSetStatus.Processing,
                 FilePath = filePath,
-                JobDate = jobDate,
+                JobDate = startDate ?? DateTime.Today,
                 DepartmentCode = departmentCode,
                 UpdatedAt = DateTime.Now
             };
@@ -92,22 +93,25 @@ public class PurchaseVoucherImportService
 
                     var purchaseVoucher = record.ToEntity(dataSetId);
                     
+                    // 日付フィルタリング（JobDate基準）
+                    if (startDate.HasValue && purchaseVoucher.JobDate.Date < startDate.Value.Date)
+                    {
+                        _logger.LogDebug("行{index}: JobDateが開始日以前のためスキップ - JobDate: {JobDate:yyyy-MM-dd}", index, purchaseVoucher.JobDate);
+                        continue;
+                    }
+                    
+                    if (endDate.HasValue && purchaseVoucher.JobDate.Date > endDate.Value.Date)
+                    {
+                        _logger.LogDebug("行{index}: JobDateが終了日以後のためスキップ - JobDate: {JobDate:yyyy-MM-dd}", index, purchaseVoucher.JobDate);
+                        continue;
+                    }
+                    
                     // デバッグログ追加: エンティティ変換後
                     if (index <= 10)
                     {
-                        _logger.LogDebug("Entity変換後: VoucherDate={VoucherDate:yyyy-MM-dd}, JobDate={JobDate:yyyy-MM-dd}, ImportJobDate={ImportJobDate:yyyy-MM-dd}", 
-                            purchaseVoucher.VoucherDate, purchaseVoucher.JobDate, jobDate);
+                        _logger.LogDebug("Entity変換後: VoucherDate={VoucherDate:yyyy-MM-dd}, JobDate={JobDate:yyyy-MM-dd}", 
+                            purchaseVoucher.VoucherDate, purchaseVoucher.JobDate);
                     }
-                    
-                    // デバッグログ追加: JobDateの上書き前に確認
-                    if (purchaseVoucher.JobDate.Date != jobDate.Date)
-                    {
-                        _logger.LogWarning("JobDateの不一致: CSV={CsvJobDate:yyyy-MM-dd}, パラメータ={ParamJobDate:yyyy-MM-dd}",
-                            purchaseVoucher.JobDate, jobDate);
-                    }
-                    
-                    // JobDateをパラメータで上書き（重要な修正）
-                    purchaseVoucher.JobDate = jobDate;
                     
                     purchaseVouchers.Add(purchaseVoucher);
                     importedCount++;
