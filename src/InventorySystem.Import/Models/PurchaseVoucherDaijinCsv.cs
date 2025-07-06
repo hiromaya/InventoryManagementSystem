@@ -50,7 +50,7 @@ public class PurchaseVoucherDaijinCsv
     public string ProductCode { get; set; } = string.Empty;
     
     [Name("商品名")]
-    [Index(140)]  // 141列目
+    [Index(139)]  // 140列目
     public string ProductName { get; set; } = string.Empty;
     
     [Name("等級コード")]

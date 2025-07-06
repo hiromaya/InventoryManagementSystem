@@ -50,7 +50,7 @@ public class InventoryAdjustmentDaijinCsv
     public string ProductCode { get; set; } = string.Empty;
     
     [Name("商品名")]
-    [Index(147)]  // 148列目
+    [Index(145)]  // 146列目
     public string ProductName { get; set; } = string.Empty;
     
     [Name("等級コード")]
