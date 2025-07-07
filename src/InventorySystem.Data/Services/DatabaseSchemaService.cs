@@ -257,15 +257,34 @@ BEGIN
             ProductName, ProductCategory1, ProductCategory2, Unit, StandardPrice,
             JobDate, DataSetId,
             PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice, DailyFlag,
+            -- 日計売上関連
             DailySalesQuantity, DailySalesAmount, DailySalesReturnQuantity, DailySalesReturnAmount,
+            -- 日計仕入関連
             DailyPurchaseQuantity, DailyPurchaseAmount, DailyPurchaseReturnQuantity, DailyPurchaseReturnAmount,
+            -- 日計在庫調整関連
             DailyInventoryAdjustmentQuantity, DailyInventoryAdjustmentAmount,
+            -- 日計加工・振替関連
             DailyProcessingQuantity, DailyProcessingAmount,
             DailyTransferQuantity, DailyTransferAmount,
+            -- 日計出入荷関連
             DailyReceiptQuantity, DailyReceiptAmount,
             DailyShipmentQuantity, DailyShipmentAmount,
+            -- 日計粗利関連
             DailyGrossProfit, DailyWalkingAmount, DailyIncentiveAmount, DailyDiscountAmount,
+            -- 日計在庫関連
             DailyStock, DailyStockAmount, DailyUnitPrice,
+            -- 月計売上関連
+            MonthlySalesQuantity, MonthlySalesAmount, MonthlySalesReturnQuantity, MonthlySalesReturnAmount,
+            -- 月計仕入関連
+            MonthlyPurchaseQuantity, MonthlyPurchaseAmount, MonthlyPurchaseReturnQuantity, MonthlyPurchaseReturnAmount,
+            -- 月計在庫調整関連
+            MonthlyInventoryAdjustmentQuantity, MonthlyInventoryAdjustmentAmount,
+            -- 月計加工・振替関連
+            MonthlyProcessingQuantity, MonthlyProcessingAmount,
+            MonthlyTransferQuantity, MonthlyTransferAmount,
+            -- 月計粗利関連
+            MonthlyGrossProfit, MonthlyWalkingAmount, MonthlyIncentiveAmount,
+            -- 作成日時
             CreatedDate, UpdatedDate
         )
         SELECT 
@@ -283,7 +302,10 @@ BEGIN
             im.CurrentStockAmount AS PreviousDayStockAmount, 
             CASE WHEN im.CurrentStock = 0 THEN 0 ELSE im.CurrentStockAmount / im.CurrentStock END AS PreviousDayUnitPrice,
             '9' AS DailyFlag,
+            -- 日計データ（22項目）
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            -- 月計データ（17項目）
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             GETDATE(), GETDATE()
         FROM InventoryMaster im
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
