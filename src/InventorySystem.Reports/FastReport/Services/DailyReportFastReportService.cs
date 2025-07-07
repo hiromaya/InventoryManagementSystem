@@ -156,8 +156,11 @@ namespace InventorySystem.Reports.FastReport.Services
             decimal categoryMonthlyGrossProfit1 = 0;
             decimal categoryMonthlyGrossProfit2 = 0;
             
-            // 有効なデータのみを処理
-            var validItems = items.Where(IsNotZeroItem).ToList();
+            // 有効なデータのみを処理し、商品分類でソート
+            var validItems = items.Where(IsNotZeroItem)
+                .OrderBy(item => item.ProductCategory1 ?? "")
+                .ThenBy(item => item.ProductCode)
+                .ToList();
             _logger.LogDebug("有効なデータ数: {Count}", validItems.Count);
             
             foreach (var item in validItems)
@@ -165,6 +168,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 商品分類が変わったら小計行を出力
                 if (!string.IsNullOrEmpty(currentCategory) && currentCategory != item.ProductCategory1)
                 {
+                    _logger.LogDebug("商品分類変更検出: {OldCategory} → {NewCategory}", currentCategory, item.ProductCategory1);
                     AddSubtotalRow(dataBand, currentY, currentCategory, 
                         categoryDailySalesQty, categoryDailySalesAmount, categoryPurchaseDiscount, 
                         categoryStockAdjust, categoryProcessing, categoryTransfer, categoryIncentive,
@@ -210,6 +214,7 @@ namespace InventorySystem.Reports.FastReport.Services
             // 最後の小計
             if (!string.IsNullOrEmpty(currentCategory))
             {
+                _logger.LogDebug("最後の商品分類の小計を出力: {Category}", currentCategory);
                 AddSubtotalRow(dataBand, currentY, currentCategory,
                     categoryDailySalesQty, categoryDailySalesAmount, categoryPurchaseDiscount, 
                     categoryStockAdjust, categoryProcessing, categoryTransfer, categoryIncentive,
@@ -227,13 +232,13 @@ namespace InventorySystem.Reports.FastReport.Services
         
         private void AddDetailRow(FR.DataBand dataBand, float y, DailyReportItem item)
         {
-            // 商品名（1列目）- 94.5px幅（25mm）
+            // 商品名（1列目）
             var nameText = new FR.TextObject
             {
                 Name = $"ProductName_{y}",
                 Left = 0,
                 Top = y,
-                Width = 94.5f,
+                Width = 171.65f,
                 Height = 18.9f,
                 Text = item.ProductName ?? "",
                 Font = new Font("MS Gothic", 8),
@@ -241,25 +246,25 @@ namespace InventorySystem.Reports.FastReport.Services
             };
             dataBand.Objects.Add(nameText);
             
-            // 日計セクション（11列）- テンプレートの列位置に完全に一致
-            AddTextObject(dataBand, y, "DailySalesQty", 94.5f, FormatNumber(item.DailySalesQuantity, 2), 56.7f);  // 数量は小数2桁
-            AddTextObject(dataBand, y, "DailySalesAmount", 151.2f, FormatNumber(item.DailySalesAmount), 75.6f);  // 売上金額は75.6px幅
-            AddTextObject(dataBand, y, "PurchaseDiscount", 226.8f, FormatNumberWithMinus(item.DailyPurchaseDiscount), 56.7f);
-            AddTextObject(dataBand, y, "StockAdjust", 283.5f, FormatNumberWithMinus(item.DailyInventoryAdjustment), 56.7f);
-            AddTextObject(dataBand, y, "Processing", 340.2f, FormatNumberWithMinus(item.DailyProcessingCost), 56.7f);
-            AddTextObject(dataBand, y, "Transfer", 396.9f, FormatNumberWithMinus(item.DailyTransfer), 56.7f);
-            AddTextObject(dataBand, y, "Incentive", 453.6f, FormatNumberWithMinus(item.DailyIncentive), 56.7f);
-            AddTextObject(dataBand, y, "GrossProfit1", 510.3f, FormatNumber(item.DailyGrossProfit1), 75.6f);  // 1粗利益は75.6px幅
-            AddTextObject(dataBand, y, "GrossProfitRate1", 585.9f, FormatRate(CalculateRate(item.DailyGrossProfit1, item.DailySalesAmount)), 47.3f);
-            AddTextObject(dataBand, y, "GrossProfit2", 633.2f, FormatNumberWithTriangle(item.DailyGrossProfit2), 75.6f);  // 2粗利益は75.6px幅、▲記号使用
-            AddTextObject(dataBand, y, "GrossProfitRate2", 708.8f, FormatRate(CalculateRate(item.DailyGrossProfit2, item.DailySalesAmount)), 47.3f);
+            // 日計セクション（11列）
+            AddTextObject(dataBand, y, "DailySalesQty", 171.65f, FormatNumber(item.DailySalesQuantity, 2), 75f);  // 数量は小数2桁
+            AddTextObject(dataBand, y, "DailySalesAmount", 246.65f, FormatNumber(item.DailySalesAmount), 80f);  // 売上金額
+            AddTextObject(dataBand, y, "PurchaseDiscount", 326.65f, FormatNumberWithMinus(item.DailyPurchaseDiscount), 75f);
+            AddTextObject(dataBand, y, "StockAdjust", 401.65f, FormatNumberWithMinus(item.DailyInventoryAdjustment), 75f);
+            AddTextObject(dataBand, y, "Processing", 476.65f, FormatNumberWithMinus(item.DailyProcessingCost), 75f);
+            AddTextObject(dataBand, y, "Transfer", 551.65f, FormatNumberWithMinus(item.DailyTransfer), 75f);
+            AddTextObject(dataBand, y, "Incentive", 626.65f, FormatNumberWithMinus(item.DailyIncentive), 75f);
+            AddTextObject(dataBand, y, "GrossProfit1", 701.65f, FormatNumber(item.DailyGrossProfit1), 85f);  // 1粗利益
+            AddTextObject(dataBand, y, "GrossProfitRate1", 786.65f, FormatRate(CalculateRate(item.DailyGrossProfit1, item.DailySalesAmount)), 60f);
+            AddTextObject(dataBand, y, "GrossProfit2", 846.65f, FormatNumberWithTriangle(item.DailyGrossProfit2), 85f);  // 2粗利益、▲記号使用
+            AddTextObject(dataBand, y, "GrossProfitRate2", 931.65f, FormatRate(CalculateRate(item.DailyGrossProfit2, item.DailySalesAmount)), 60f);
             
-            // 月計セクション（5列）- テンプレートの列位置に完全に一致
-            AddTextObject(dataBand, y, "MonthlySalesAmount", 756.1f, FormatNumber(item.MonthlySalesAmount), 85f);
-            AddTextObject(dataBand, y, "MonthlyGrossProfit1", 841.1f, FormatNumber(item.MonthlyGrossProfit1), 75.6f);
-            AddTextObject(dataBand, y, "MonthlyGrossProfitRate1", 916.7f, FormatRate(CalculateRate(item.MonthlyGrossProfit1, item.MonthlySalesAmount)), 47.3f);
-            AddTextObject(dataBand, y, "MonthlyGrossProfit2", 964f, FormatNumberWithTriangle(item.MonthlyGrossProfit2), 75.6f);  // ▲記号使用
-            AddTextObject(dataBand, y, "MonthlyGrossProfitRate2", 1039.6f, FormatRate(CalculateRate(item.MonthlyGrossProfit2, item.MonthlySalesAmount)), 47.3f);
+            // 月計セクション（5列）
+            AddTextObject(dataBand, y, "MonthlySalesAmount", 991.65f, FormatNumber(item.MonthlySalesAmount), 132.25f);
+            AddTextObject(dataBand, y, "MonthlyGrossProfit1", 1123.9f, FormatNumber(item.MonthlyGrossProfit1), 103.9f);
+            AddTextObject(dataBand, y, "MonthlyGrossProfitRate1", 1227.8f, FormatRate(CalculateRate(item.MonthlyGrossProfit1, item.MonthlySalesAmount)), 60f);
+            AddTextObject(dataBand, y, "MonthlyGrossProfit2", 1287.8f, FormatNumberWithTriangle(item.MonthlyGrossProfit2), 146.7f);  // ▲記号使用
+            AddTextObject(dataBand, y, "MonthlyGrossProfitRate2", 1434.5f, FormatRate(CalculateRate(item.MonthlyGrossProfit2, item.MonthlySalesAmount)), 79.45f);
         }
         
         private void AddTextObject(FR.DataBand dataBand, float y, string namePrefix, float left, string text, float width)
@@ -291,7 +296,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 Name = $"Subtotal_{y}",
                 Left = 0,
                 Top = y,
-                Width = 94.5f,
+                Width = 171.65f,
                 Height = 18.9f,
                 Text = "＊　大分類計　＊",
                 Font = new Font("MS Gothic", 8, FontStyle.Bold),
@@ -300,23 +305,23 @@ namespace InventorySystem.Reports.FastReport.Services
             };
             dataBand.Objects.Add(labelText);
             
-            // 各小計値を追加（テンプレートの列位置に完全に一致）
-            AddTextObject(dataBand, y, "SubtotalDailySalesQty", 94.5f, FormatNumber(dailySalesQty, 2), 56.7f);  // 数量は小数2桁
-            AddTextObject(dataBand, y, "SubtotalDailySalesAmount", 151.2f, FormatNumber(dailySalesAmount), 75.6f);
-            AddTextObject(dataBand, y, "SubtotalPurchaseDiscount", 226.8f, FormatNumberWithMinus(purchaseDiscount), 56.7f);
-            AddTextObject(dataBand, y, "SubtotalStockAdjust", 283.5f, FormatNumberWithMinus(stockAdjust), 56.7f);
-            AddTextObject(dataBand, y, "SubtotalProcessing", 340.2f, FormatNumberWithMinus(processing), 56.7f);
-            AddTextObject(dataBand, y, "SubtotalTransfer", 396.9f, FormatNumberWithMinus(transfer), 56.7f);
-            AddTextObject(dataBand, y, "SubtotalIncentive", 453.6f, FormatNumberWithMinus(incentive), 56.7f);
-            AddTextObject(dataBand, y, "SubtotalGrossProfit1", 510.3f, FormatNumber(grossProfit1), 75.6f);
-            AddTextObject(dataBand, y, "SubtotalGrossProfitRate1", 585.9f, FormatRate(CalculateRate(grossProfit1, dailySalesAmount)), 47.3f);
-            AddTextObject(dataBand, y, "SubtotalGrossProfit2", 633.2f, FormatNumberWithTriangle(grossProfit2), 75.6f);  // ▲記号使用
-            AddTextObject(dataBand, y, "SubtotalGrossProfitRate2", 708.8f, FormatRate(CalculateRate(grossProfit2, dailySalesAmount)), 47.3f);
-            AddTextObject(dataBand, y, "SubtotalMonthlySalesAmount", 756.1f, FormatNumber(monthlySalesAmount), 85f);
-            AddTextObject(dataBand, y, "SubtotalMonthlyGrossProfit1", 841.1f, FormatNumber(monthlyGrossProfit1), 75.6f);
-            AddTextObject(dataBand, y, "SubtotalMonthlyGrossProfitRate1", 916.7f, FormatRate(CalculateRate(monthlyGrossProfit1, monthlySalesAmount)), 47.3f);
-            AddTextObject(dataBand, y, "SubtotalMonthlyGrossProfit2", 964f, FormatNumberWithTriangle(monthlyGrossProfit2), 75.6f);  // ▲記号使用
-            AddTextObject(dataBand, y, "SubtotalMonthlyGrossProfitRate2", 1039.6f, FormatRate(CalculateRate(monthlyGrossProfit2, monthlySalesAmount)), 47.3f);
+            // 各小計値を追加
+            AddTextObject(dataBand, y, "SubtotalDailySalesQty", 171.65f, FormatNumber(dailySalesQty, 2), 75f);  // 数量は小数2桁
+            AddTextObject(dataBand, y, "SubtotalDailySalesAmount", 246.65f, FormatNumber(dailySalesAmount), 80f);
+            AddTextObject(dataBand, y, "SubtotalPurchaseDiscount", 326.65f, FormatNumberWithMinus(purchaseDiscount), 75f);
+            AddTextObject(dataBand, y, "SubtotalStockAdjust", 401.65f, FormatNumberWithMinus(stockAdjust), 75f);
+            AddTextObject(dataBand, y, "SubtotalProcessing", 476.65f, FormatNumberWithMinus(processing), 75f);
+            AddTextObject(dataBand, y, "SubtotalTransfer", 551.65f, FormatNumberWithMinus(transfer), 75f);
+            AddTextObject(dataBand, y, "SubtotalIncentive", 626.65f, FormatNumberWithMinus(incentive), 75f);
+            AddTextObject(dataBand, y, "SubtotalGrossProfit1", 701.65f, FormatNumber(grossProfit1), 85f);
+            AddTextObject(dataBand, y, "SubtotalGrossProfitRate1", 786.65f, FormatRate(CalculateRate(grossProfit1, dailySalesAmount)), 60f);
+            AddTextObject(dataBand, y, "SubtotalGrossProfit2", 846.65f, FormatNumberWithTriangle(grossProfit2), 85f);  // ▲記号使用
+            AddTextObject(dataBand, y, "SubtotalGrossProfitRate2", 931.65f, FormatRate(CalculateRate(grossProfit2, dailySalesAmount)), 60f);
+            AddTextObject(dataBand, y, "SubtotalMonthlySalesAmount", 991.65f, FormatNumber(monthlySalesAmount), 132.25f);
+            AddTextObject(dataBand, y, "SubtotalMonthlyGrossProfit1", 1123.9f, FormatNumber(monthlyGrossProfit1), 103.9f);
+            AddTextObject(dataBand, y, "SubtotalMonthlyGrossProfitRate1", 1227.8f, FormatRate(CalculateRate(monthlyGrossProfit1, monthlySalesAmount)), 60f);
+            AddTextObject(dataBand, y, "SubtotalMonthlyGrossProfit2", 1287.8f, FormatNumberWithTriangle(monthlyGrossProfit2), 146.7f);  // ▲記号使用
+            AddTextObject(dataBand, y, "SubtotalMonthlyGrossProfitRate2", 1434.5f, FormatRate(CalculateRate(monthlyGrossProfit2, monthlySalesAmount)), 79.45f);
         }
         
         private bool IsNotZeroItem(DailyReportItem item)
