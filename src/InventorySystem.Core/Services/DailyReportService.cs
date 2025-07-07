@@ -71,6 +71,21 @@ public class DailyReportService : IDailyReportService
                 await _cpInventoryRepository.CalculateDailyStockAsync(dataSetId);
                 await _cpInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
                 _logger.LogInformation("当日在庫計算完了");
+                
+                // 処理2-4: 在庫単価計算
+                _logger.LogInformation("在庫単価計算開始");
+                await _cpInventoryRepository.CalculateInventoryUnitPriceAsync(dataSetId);
+                _logger.LogInformation("在庫単価計算完了");
+
+                // 処理2-5: 粗利計算
+                _logger.LogInformation("粗利計算開始");
+                await _cpInventoryRepository.CalculateGrossProfitAsync(dataSetId, reportDate);
+                _logger.LogInformation("粗利計算完了");
+
+                // 月計計算
+                _logger.LogInformation("月計計算開始");
+                await _cpInventoryRepository.CalculateMonthlyTotalsAsync(dataSetId, reportDate);
+                _logger.LogInformation("月計計算完了");
             }
             else
             {

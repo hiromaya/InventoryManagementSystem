@@ -640,4 +640,298 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         using var connection = CreateConnection();
         return await connection.ExecuteAsync(sql, new { monthStartDate, jobDate });
     }
+    
+    /// <summary>
+    /// 在庫単価を計算する（移動平均法）
+    /// </summary>
+    public async Task<int> CalculateInventoryUnitPriceAsync(string dataSetId)
+    {
+        const string sql = @"
+            UPDATE CpInventoryMaster
+            SET
+                -- ①仮在庫数 = 前日在庫数 + 当日入荷数（仕入-仕返）
+                DailyReceiptQuantity = DailyPurchaseQuantity - DailyPurchaseReturnQuantity,
+                -- ②仮在庫金額 = 前日在庫金額 + 当日入荷金額
+                DailyReceiptAmount = DailyPurchaseAmount - DailyPurchaseReturnAmount,
+                -- ③当日在庫単価 = 仮在庫金額 ÷ 仮在庫数（0除算対策、小数第5位四捨五入）
+                DailyUnitPrice = CASE 
+                    WHEN (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity) = 0 THEN 0
+                    ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) / 
+                               (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity), 4)
+                END,
+                -- ④当日在庫数 = 前日在庫数 + 当日入荷数 - 当日出荷数
+                DailyStock = PreviousDayStock + 
+                             (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) - 
+                             (DailySalesQuantity - DailySalesReturnQuantity) -
+                             DailyInventoryAdjustmentQuantity - 
+                             DailyProcessingQuantity -
+                             DailyTransferQuantity,
+                -- ⑤当日在庫金額 = 当日在庫数 × 当日在庫単価（小数第5位四捨五入）
+                DailyStockAmount = ROUND(
+                    (PreviousDayStock + 
+                     (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) - 
+                     (DailySalesQuantity - DailySalesReturnQuantity) -
+                     DailyInventoryAdjustmentQuantity - 
+                     DailyProcessingQuantity -
+                     DailyTransferQuantity) * 
+                    CASE 
+                        WHEN (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity) = 0 THEN 0
+                        ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) / 
+                                   (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity), 4)
+                    END, 4),
+                UpdatedDate = GETDATE()
+            WHERE DataSetId = @DataSetId";
+        
+        using var connection = CreateConnection();
+        
+        // 在庫単価計算
+        var updateCount = await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+        
+        // 粗利益の調整（在庫調整金額と加工費を減算）
+        const string adjustGrossProfitSql = @"
+            UPDATE CpInventoryMaster
+            SET DailyGrossProfit = DailyGrossProfit - DailyInventoryAdjustmentAmount - DailyProcessingAmount,
+                UpdatedDate = GETDATE()
+            WHERE DataSetId = @DataSetId";
+        
+        await connection.ExecuteAsync(adjustGrossProfitSql, new { DataSetId = dataSetId });
+        
+        return updateCount;
+    }
+    
+    /// <summary>
+    /// 粗利益を計算する（売上伝票1行ごと）
+    /// </summary>
+    public async Task<int> CalculateGrossProfitAsync(string dataSetId, DateTime jobDate)
+    {
+        using var connection = CreateConnection();
+        
+        // Step 1: 売上伝票の単価が0の場合、金額÷数量で単価を計算
+        const string updateUnitPriceSql = @"
+            UPDATE SalesVouchers
+            SET UnitPrice = CASE 
+                WHEN UnitPrice = 0 AND Quantity != 0 THEN ROUND(Amount / Quantity, 4)
+                ELSE UnitPrice
+            END
+            WHERE JobDate = @JobDate AND UnitPrice = 0 AND Quantity != 0";
+        
+        await connection.ExecuteAsync(updateUnitPriceSql, new { JobDate = jobDate });
+        
+        // Step 2: 売上伝票1行ごとの粗利益計算
+        const string calculateGrossProfitSql = @"
+            UPDATE sv
+            SET sv.GrossProfit = ROUND((sv.UnitPrice - ISNULL(cp.DailyUnitPrice, 0)) * sv.Quantity, 4)
+            FROM SalesVouchers sv
+            INNER JOIN CpInventoryMaster cp ON 
+                sv.ProductCode = cp.ProductCode AND
+                sv.GradeCode = cp.GradeCode AND
+                sv.ClassCode = cp.ClassCode AND
+                sv.ShippingMarkCode = cp.ShippingMarkCode AND
+                sv.ShippingMarkName COLLATE Japanese_CI_AS = cp.ShippingMarkName COLLATE Japanese_CI_AS
+            WHERE sv.JobDate = @JobDate 
+                AND cp.DataSetId = @DataSetId
+                AND sv.VoucherType IN ('51', '52')
+                AND sv.DetailType IN ('1', '2', '3')";
+        
+        await connection.ExecuteAsync(calculateGrossProfitSql, new { JobDate = jobDate, DataSetId = dataSetId });
+        
+        // Step 3: CP在庫Mの当日粗利益に集計
+        const string aggregateGrossProfitSql = @"
+            UPDATE cp
+            SET cp.DailyGrossProfit = ISNULL(profit.TotalGrossProfit, 0),
+                cp.UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    SUM(ISNULL(GrossProfit, 0)) as TotalGrossProfit
+                FROM SalesVouchers
+                WHERE JobDate = @JobDate
+                    AND VoucherType IN ('51', '52')
+                    AND DetailType IN ('1', '2', '3')
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            ) profit ON 
+                cp.ProductCode = profit.ProductCode AND
+                cp.GradeCode = profit.GradeCode AND
+                cp.ClassCode = profit.ClassCode AND
+                cp.ShippingMarkCode = profit.ShippingMarkCode AND
+                cp.ShippingMarkName COLLATE Japanese_CI_AS = profit.ShippingMarkName COLLATE Japanese_CI_AS
+            WHERE cp.DataSetId = @DataSetId";
+        
+        var updateCount = await connection.ExecuteAsync(aggregateGrossProfitSql, new { JobDate = jobDate, DataSetId = dataSetId });
+        
+        // Step 4: 歩引き金額計算
+        const string calculateWalkingAmountSql = @"
+            UPDATE cp
+            SET cp.DailyWalkingAmount = ISNULL(walk.WalkingAmount, 0),
+                cp.UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName,
+                    SUM(ROUND(sv.Amount * ISNULL(c.GeneralNumeric1, 0) / 100, 0)) as WalkingAmount
+                FROM SalesVouchers sv
+                INNER JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
+                WHERE sv.JobDate = @JobDate
+                    AND sv.VoucherType IN ('51', '52')
+                    AND sv.DetailType IN ('1', '2', '3')
+                GROUP BY sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName
+            ) walk ON 
+                cp.ProductCode = walk.ProductCode AND
+                cp.GradeCode = walk.GradeCode AND
+                cp.ClassCode = walk.ClassCode AND
+                cp.ShippingMarkCode = walk.ShippingMarkCode AND
+                cp.ShippingMarkName COLLATE Japanese_CI_AS = walk.ShippingMarkName COLLATE Japanese_CI_AS
+            WHERE cp.DataSetId = @DataSetId";
+        
+        await connection.ExecuteAsync(calculateWalkingAmountSql, new { JobDate = jobDate, DataSetId = dataSetId });
+        
+        // Step 5: 奨励金計算
+        const string calculateIncentiveAmountSql = @"
+            UPDATE cp
+            SET cp.DailyIncentiveAmount = ISNULL(inc.IncentiveAmount, 0),
+                cp.UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName,
+                    SUM(ROUND(pv.Amount * 0.01, 0)) as IncentiveAmount
+                FROM PurchaseVouchers pv
+                INNER JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
+                WHERE pv.JobDate = @JobDate
+                    AND pv.VoucherType IN ('11', '12')
+                    AND pv.DetailType IN ('1', '3')
+                    AND s.SupplierCategory1 = '01'
+                GROUP BY pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName
+            ) inc ON 
+                cp.ProductCode = inc.ProductCode AND
+                cp.GradeCode = inc.GradeCode AND
+                cp.ClassCode = inc.ClassCode AND
+                cp.ShippingMarkCode = inc.ShippingMarkCode AND
+                cp.ShippingMarkName COLLATE Japanese_CI_AS = inc.ShippingMarkName COLLATE Japanese_CI_AS
+            WHERE cp.DataSetId = @DataSetId";
+        
+        await connection.ExecuteAsync(calculateIncentiveAmountSql, new { JobDate = jobDate, DataSetId = dataSetId });
+        
+        // Step 6: 仕入値引き計算
+        const string calculateDiscountAmountSql = @"
+            UPDATE cp
+            SET cp.DailyDiscountAmount = ISNULL(disc.DiscountAmount, 0),
+                cp.UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    SUM(ABS(Amount)) as DiscountAmount
+                FROM PurchaseVouchers
+                WHERE JobDate = @JobDate
+                    AND VoucherType IN ('11', '12')
+                    AND DetailType = '3'
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            ) disc ON 
+                cp.ProductCode = disc.ProductCode AND
+                cp.GradeCode = disc.GradeCode AND
+                cp.ClassCode = disc.ClassCode AND
+                cp.ShippingMarkCode = disc.ShippingMarkCode AND
+                cp.ShippingMarkName COLLATE Japanese_CI_AS = disc.ShippingMarkName COLLATE Japanese_CI_AS
+            WHERE cp.DataSetId = @DataSetId";
+        
+        await connection.ExecuteAsync(calculateDiscountAmountSql, new { JobDate = jobDate, DataSetId = dataSetId });
+        
+        return updateCount;
+    }
+    
+    /// <summary>
+    /// 月計合計を計算する
+    /// </summary>
+    public async Task<int> CalculateMonthlyTotalsAsync(string dataSetId, DateTime jobDate)
+    {
+        using var connection = CreateConnection();
+        
+        // 月初日を計算
+        var monthStartDate = new DateTime(jobDate.Year, jobDate.Month, 1);
+        
+        // 月計粗利益の計算
+        const string calculateMonthlyGrossProfitSql = @"
+            UPDATE cp
+            SET cp.MonthlyGrossProfit = ISNULL(profit.TotalGrossProfit, 0),
+                cp.UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    SUM(ISNULL(GrossProfit, 0)) as TotalGrossProfit
+                FROM SalesVouchers
+                WHERE JobDate >= @MonthStartDate AND JobDate <= @JobDate
+                    AND VoucherType IN ('51', '52')
+                    AND DetailType IN ('1', '2', '3')
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            ) profit ON 
+                cp.ProductCode = profit.ProductCode AND
+                cp.GradeCode = profit.GradeCode AND
+                cp.ClassCode = profit.ClassCode AND
+                cp.ShippingMarkCode = profit.ShippingMarkCode AND
+                cp.ShippingMarkName COLLATE Japanese_CI_AS = profit.ShippingMarkName COLLATE Japanese_CI_AS
+            WHERE cp.DataSetId = @DataSetId";
+        
+        var updateCount = await connection.ExecuteAsync(calculateMonthlyGrossProfitSql, 
+            new { MonthStartDate = monthStartDate, JobDate = jobDate, DataSetId = dataSetId });
+        
+        // 月計歩引き金額計算
+        const string calculateMonthlyWalkingAmountSql = @"
+            UPDATE cp
+            SET cp.MonthlyWalkingAmount = ISNULL(walk.WalkingAmount, 0),
+                cp.UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName,
+                    SUM(ROUND(sv.Amount * ISNULL(c.GeneralNumeric1, 0) / 100, 0)) as WalkingAmount
+                FROM SalesVouchers sv
+                INNER JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
+                WHERE sv.JobDate >= @MonthStartDate AND sv.JobDate <= @JobDate
+                    AND sv.VoucherType IN ('51', '52')
+                    AND sv.DetailType IN ('1', '2', '3')
+                GROUP BY sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName
+            ) walk ON 
+                cp.ProductCode = walk.ProductCode AND
+                cp.GradeCode = walk.GradeCode AND
+                cp.ClassCode = walk.ClassCode AND
+                cp.ShippingMarkCode = walk.ShippingMarkCode AND
+                cp.ShippingMarkName COLLATE Japanese_CI_AS = walk.ShippingMarkName COLLATE Japanese_CI_AS
+            WHERE cp.DataSetId = @DataSetId";
+        
+        await connection.ExecuteAsync(calculateMonthlyWalkingAmountSql, 
+            new { MonthStartDate = monthStartDate, JobDate = jobDate, DataSetId = dataSetId });
+        
+        // 月計奨励金計算
+        const string calculateMonthlyIncentiveAmountSql = @"
+            UPDATE cp
+            SET cp.MonthlyIncentiveAmount = ISNULL(inc.IncentiveAmount, 0),
+                cp.UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName,
+                    SUM(ROUND(pv.Amount * 0.01, 0)) as IncentiveAmount
+                FROM PurchaseVouchers pv
+                INNER JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
+                WHERE pv.JobDate >= @MonthStartDate AND pv.JobDate <= @JobDate
+                    AND pv.VoucherType IN ('11', '12')
+                    AND pv.DetailType IN ('1', '3')
+                    AND s.SupplierCategory1 = '01'
+                GROUP BY pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName
+            ) inc ON 
+                cp.ProductCode = inc.ProductCode AND
+                cp.GradeCode = inc.GradeCode AND
+                cp.ClassCode = inc.ClassCode AND
+                cp.ShippingMarkCode = inc.ShippingMarkCode AND
+                cp.ShippingMarkName COLLATE Japanese_CI_AS = inc.ShippingMarkName COLLATE Japanese_CI_AS
+            WHERE cp.DataSetId = @DataSetId";
+        
+        await connection.ExecuteAsync(calculateMonthlyIncentiveAmountSql, 
+            new { MonthStartDate = monthStartDate, JobDate = jobDate, DataSetId = dataSetId });
+        
+        return updateCount;
+    }
 }

@@ -108,4 +108,19 @@ public interface ICpInventoryRepository
     /// 在庫調整月計を更新する
     /// </summary>
     Task<int> UpdateMonthlyInventoryAdjustmentAsync(DateTime monthStartDate, DateTime jobDate);
+    
+    /// <summary>
+    /// 在庫単価を計算する（移動平均法）
+    /// </summary>
+    Task<int> CalculateInventoryUnitPriceAsync(string dataSetId);
+    
+    /// <summary>
+    /// 粗利益を計算する（売上伝票1行ごと）
+    /// </summary>
+    Task<int> CalculateGrossProfitAsync(string dataSetId, DateTime jobDate);
+    
+    /// <summary>
+    /// 月計合計を計算する
+    /// </summary>
+    Task<int> CalculateMonthlyTotalsAsync(string dataSetId, DateTime jobDate);
 }
