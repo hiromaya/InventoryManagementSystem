@@ -64,6 +64,13 @@ public class SalesVoucherImportService
     /// <returns>データセットID</returns>
     public async Task<string> ImportAsync(string filePath, DateTime? startDate, DateTime? endDate, string? departmentCode = null, bool preserveCsvDates = false)
     {
+        // preserveCsvDatesパラメータは廃止予定
+        if (!preserveCsvDates)
+        {
+            _logger.LogWarning("preserveCsvDates=falseは廃止予定です。JobDateの改変は仕様違反のため、" +
+                              "今後は常にCSVの汎用日付2の値を使用します。");
+        }
+        
         if (!File.Exists(filePath))
         {
             throw new FileNotFoundException($"CSVファイルが見つかりません: {filePath}");
@@ -139,43 +146,23 @@ public class SalesVoucherImportService
 
                     var salesVoucher = record.ToEntity(dataSetId);
                     
-                    // preserveCsvDatesモードの処理
-                    if (preserveCsvDates)
+                    // 日付フィルタリング処理（JobDateの改変は行わない）
+                    if (startDate.HasValue && salesVoucher.JobDate.Date < startDate.Value.Date)
                     {
-                        // CSVのJobDateを保持して日付フィルタリング
-                        if (startDate.HasValue && salesVoucher.JobDate.Date < startDate.Value.Date)
-                        {
-                            _logger.LogDebug("行{index}: JobDateが開始日以前のためスキップ - JobDate: {JobDate:yyyy-MM-dd}", index, salesVoucher.JobDate);
-                            skippedCount++;
-                            continue;
-                        }
-                        
-                        if (endDate.HasValue && salesVoucher.JobDate.Date > endDate.Value.Date)
-                        {
-                            _logger.LogDebug("行{index}: JobDateが終了日以後のためスキップ - JobDate: {JobDate:yyyy-MM-dd}", index, salesVoucher.JobDate);
-                            skippedCount++;
-                            continue;
-                        }
-                        // JobDateはCSVの値をそのまま使用
+                        _logger.LogDebug("行{index}: JobDateが開始日以前のためスキップ - JobDate: {JobDate:yyyy-MM-dd}", index, salesVoucher.JobDate);
+                        skippedCount++;
+                        continue;
                     }
-                    else
+
+                    if (endDate.HasValue && salesVoucher.JobDate.Date > endDate.Value.Date)
                     {
-                        // 既存の動作：JobDateを指定日付で上書き
-                        if (startDate.HasValue && endDate.HasValue)
-                        {
-                            // 期間指定の場合、対応する日付を計算（単一日付の場合はその日付を使用）
-                            if (startDate.Value.Date == endDate.Value.Date)
-                            {
-                                salesVoucher.JobDate = startDate.Value;
-                            }
-                            else
-                            {
-                                // 期間指定の場合、VoucherDateを基に適切なJobDateを設定
-                                // （現状は開始日を使用、将来的には改善の余地あり）
-                                salesVoucher.JobDate = startDate.Value;
-                            }
-                        }
+                        _logger.LogDebug("行{index}: JobDateが終了日以後のためスキップ - JobDate: {JobDate:yyyy-MM-dd}", index, salesVoucher.JobDate);
+                        skippedCount++;
+                        continue;
                     }
+
+                    // JobDateはCSVの値をそのまま使用（改変しない）
+                    _logger.LogDebug("行{index}: JobDate={JobDate:yyyy-MM-dd} (CSVの値を保持)", index, salesVoucher.JobDate);
                     
                     // デバッグログ追加: エンティティ変換後
                     if (index <= 10)
@@ -224,7 +211,7 @@ public class SalesVoucherImportService
             await _dataSetRepository.UpdateRecordCountAsync(dataSetId, importedCount);
             
             // 統計情報のログ出力
-            if (preserveCsvDates && dateStatistics.Any())
+            if (dateStatistics.Any())
             {
                 _logger.LogInformation("日付別取込件数:");
                 foreach (var kvp in dateStatistics.OrderBy(x => x.Key))
