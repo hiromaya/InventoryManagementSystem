@@ -33,7 +33,8 @@
       "Bash(python3:*)",
       "Bash(ls:*)",
       "Bash(/home/hiroki/.claude/analyze_file.sh:*)",
-      "Bash(/home/hiroki/.claude/analyze_pdf.sh:*)"
+      "Bash(/home/hiroki/.claude/analyze_pdf.sh:*)",
+      "Bash(docker exec:*)"
     ],
     "deny": []
   }

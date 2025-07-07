@@ -19,9 +19,6 @@ using System.Linq;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using InventorySystem.Core.Interfaces.Services;
-#if WINDOWS
-using InventorySystem.Reports.FastReport.Services;
-#endif
 using InventorySystem.Reports.Services;
 using System.Diagnostics;
 using System.Reflection;
@@ -191,8 +188,8 @@ builder.Services.AddScoped<IInventoryListService, InventoryListService>();
 builder.Services.AddScoped<ICpInventoryCreationService, CpInventoryCreationService>();
 // Report Services
 #if WINDOWS
-builder.Services.AddScoped<IUnmatchListReportService, UnmatchListFastReportService>();
-builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, DailyReportFastReportService>();
+builder.Services.AddScoped<IUnmatchListReportService, InventorySystem.Reports.FastReport.Services.UnmatchListFastReportService>();
+builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, InventorySystem.Reports.FastReport.Services.DailyReportFastReportService>();
 #else
 builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
 builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, PlaceholderDailyReportService>();
