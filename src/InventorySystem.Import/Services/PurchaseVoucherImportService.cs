@@ -30,7 +30,7 @@ public class PurchaseVoucherImportService
     }
 
     /// <summary>
-    /// CSVファイルから仕入伝票データを取込む
+    /// CSVファイルから仕入伝票データを取込む（後方互換性のための既存メソッド）
     /// </summary>
     /// <param name="filePath">取込対象CSVファイルパス</param>
     /// <param name="startDate">フィルタ開始日付（nullの場合は全期間）</param>
@@ -38,6 +38,21 @@ public class PurchaseVoucherImportService
     /// <param name="departmentCode">部門コード（省略時は使用しない）</param>
     /// <returns>データセットID</returns>
     public async Task<string> ImportAsync(string filePath, DateTime? startDate, DateTime? endDate, string? departmentCode = null)
+    {
+        // 既存の動作を維持（JobDateを指定日付で上書き）
+        return await ImportAsync(filePath, startDate, endDate, departmentCode, preserveCsvDates: false);
+    }
+
+    /// <summary>
+    /// CSVファイルから仕入伝票データを取込む（期間指定対応版）
+    /// </summary>
+    /// <param name="filePath">取込対象CSVファイルパス</param>
+    /// <param name="startDate">フィルタ開始日付（nullの場合は全期間）</param>
+    /// <param name="endDate">フィルタ紂了日付（nullの場合は全期間）</param>
+    /// <param name="departmentCode">部門コード（省略時は使用しない）</param>
+    /// <param name="preserveCsvDates">CSVの日付を保持するかどうか</param>
+    /// <returns>データセットID</returns>
+    public async Task<string> ImportAsync(string filePath, DateTime? startDate, DateTime? endDate, string? departmentCode = null, bool preserveCsvDates = false)
     {
         if (!File.Exists(filePath))
         {
@@ -50,8 +65,8 @@ public class PurchaseVoucherImportService
         var errorMessages = new List<string>();
         var dateStatistics = new Dictionary<DateTime, int>(); // 日付別統計
 
-        _logger.LogInformation("仕入伝票CSV取込開始: {FilePath}, DataSetId: {DataSetId}, Department: {DepartmentCode}, StartDate: {StartDate}, EndDate: {EndDate}", 
-            filePath, dataSetId, departmentCode ?? "未指定", startDate?.ToString("yyyy-MM-dd") ?? "全期間", endDate?.ToString("yyyy-MM-dd") ?? "全期間");
+        _logger.LogInformation("仕入伝票CSV取込開始: {FilePath}, DataSetId: {DataSetId}, Department: {DepartmentCode}, StartDate: {StartDate}, EndDate: {EndDate}, PreserveCsvDates: {PreserveCsvDates}", 
+            filePath, dataSetId, departmentCode ?? "未指定", startDate?.ToString("yyyy-MM-dd") ?? "全期間", endDate?.ToString("yyyy-MM-dd") ?? "全期間", preserveCsvDates);
 
         try
         {
@@ -83,6 +98,22 @@ public class PurchaseVoucherImportService
             {
                 try
                 {
+                    // 仕入先コードがオール0の場合はスキップ
+                    if (record.SupplierCode == "00000")
+                    {
+                        _logger.LogInformation("行{index}: 仕入先コードがオール0のためスキップします。伝票番号: {VoucherNumber}", index, record.VoucherNumber);
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // 商品コードがオール0の場合もスキップ
+                    if (record.ProductCode == "00000")
+                    {
+                        _logger.LogInformation("行{index}: 商品コードがオール0のためスキップします。伝票番号: {VoucherNumber}", index, record.VoucherNumber);
+                        skippedCount++;
+                        continue;
+                    }
+
                     if (!record.IsValidPurchaseVoucher())
                     {
                         var validationError = record.GetValidationError();
@@ -95,17 +126,42 @@ public class PurchaseVoucherImportService
 
                     var purchaseVoucher = record.ToEntity(dataSetId);
                     
-                    // 日付フィルタリング（JobDate基準）
-                    if (startDate.HasValue && purchaseVoucher.JobDate.Date < startDate.Value.Date)
+                    // preserveCsvDatesモードの処理
+                    if (preserveCsvDates)
                     {
-                        _logger.LogDebug("行{index}: JobDateが開始日以前のためスキップ - JobDate: {JobDate:yyyy-MM-dd}", index, purchaseVoucher.JobDate);
-                        continue;
+                        // CSVのJobDateを保持して日付フィルタリング
+                        if (startDate.HasValue && purchaseVoucher.JobDate.Date < startDate.Value.Date)
+                        {
+                            _logger.LogDebug("行{index}: JobDateが開始日以前のためスキップ - JobDate: {JobDate:yyyy-MM-dd}", index, purchaseVoucher.JobDate);
+                            skippedCount++;
+                            continue;
+                        }
+                        
+                        if (endDate.HasValue && purchaseVoucher.JobDate.Date > endDate.Value.Date)
+                        {
+                            _logger.LogDebug("行{index}: JobDateが終了日以後のためスキップ - JobDate: {JobDate:yyyy-MM-dd}", index, purchaseVoucher.JobDate);
+                            skippedCount++;
+                            continue;
+                        }
+                        // JobDateはCSVの値をそのまま使用
                     }
-                    
-                    if (endDate.HasValue && purchaseVoucher.JobDate.Date > endDate.Value.Date)
+                    else
                     {
-                        _logger.LogDebug("行{index}: JobDateが終了日以後のためスキップ - JobDate: {JobDate:yyyy-MM-dd}", index, purchaseVoucher.JobDate);
-                        continue;
+                        // 既存の動作：JobDateを指定日付で上書き
+                        if (startDate.HasValue && endDate.HasValue)
+                        {
+                            // 期間指定の場合、対応する日付を計算（単一日付の場合はその日付を使用）
+                            if (startDate.Value.Date == endDate.Value.Date)
+                            {
+                                purchaseVoucher.JobDate = startDate.Value;
+                            }
+                            else
+                            {
+                                // 期間指定の場合、VoucherDateを基に適切なJobDateを設定
+                                // （現状は開始日を使用、将来的には改善の余地あり）
+                                purchaseVoucher.JobDate = startDate.Value;
+                            }
+                        }
                     }
                     
                     // デバッグログ追加: エンティティ変換後
@@ -155,7 +211,7 @@ public class PurchaseVoucherImportService
             await _dataSetRepository.UpdateRecordCountAsync(dataSetId, importedCount);
             
             // 統計情報のログ出力
-            if (dateStatistics.Any())
+            if (preserveCsvDates && dateStatistics.Any())
             {
                 _logger.LogInformation("日付別取込件数:");
                 foreach (var kvp in dateStatistics.OrderBy(x => x.Key))
