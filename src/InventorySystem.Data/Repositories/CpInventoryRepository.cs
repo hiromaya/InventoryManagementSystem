@@ -769,7 +769,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             LEFT JOIN (
                 SELECT 
                     sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName,
-                    SUM(ROUND(sv.Amount * ISNULL(c.GeneralNumeric1, 0) / 100, 0)) as WalkingAmount
+                    SUM(ROUND(sv.Amount * ISNULL(c.WalkingRate, 0) / 100, 0)) as WalkingAmount
                 FROM SalesVouchers sv
                 INNER JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
                 WHERE sv.JobDate = @JobDate
@@ -886,7 +886,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             LEFT JOIN (
                 SELECT 
                     sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName,
-                    SUM(ROUND(sv.Amount * ISNULL(c.GeneralNumeric1, 0) / 100, 0)) as WalkingAmount
+                    SUM(ROUND(sv.Amount * ISNULL(c.WalkingRate, 0) / 100, 0)) as WalkingAmount
                 FROM SalesVouchers sv
                 INNER JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
                 WHERE sv.JobDate >= @MonthStartDate AND sv.JobDate <= @JobDate
