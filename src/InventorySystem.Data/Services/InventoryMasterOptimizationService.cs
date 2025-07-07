@@ -350,11 +350,16 @@ namespace InventorySystem.Data.Services
                 MERGE InventoryMaster AS target
                 USING (
                     SELECT DISTINCT
-                        ProductCode,
-                        GradeCode,
-                        ClassCode,
-                        ShippingMarkCode,
-                        ShippingMarkName
+                        products.ProductCode,
+                        products.GradeCode,
+                        products.ClassCode,
+                        products.ShippingMarkCode,
+                        products.ShippingMarkName,
+                        COALESCE(pm.ProductName, '商' + products.ProductCode) AS ProductName,
+                        COALESCE(pm.UnitCode, 'PCS') AS Unit,
+                        COALESCE(pm.StandardPrice, 0) AS StandardPrice,
+                        COALESCE(pm.ProductCategory1, '') AS ProductCategory1,
+                        COALESCE(pm.ProductCategory2, '') AS ProductCategory2
                     FROM (
                         SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
                         FROM SalesVouchers
@@ -368,6 +373,7 @@ namespace InventorySystem.Data.Services
                         FROM InventoryAdjustments
                         WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                     ) AS products
+                    LEFT JOIN ProductMaster pm ON pm.ProductCode = products.ProductCode
                 ) AS source
                 ON target.ProductCode = source.ProductCode
                     AND target.GradeCode = source.GradeCode
@@ -393,11 +399,11 @@ namespace InventorySystem.Data.Services
                         source.ClassCode,
                         source.ShippingMarkCode,
                         source.ShippingMarkName,
-                        '商品名未設定',
-                        'PCS',
-                        0,
-                        '',
-                        '',
+                        source.ProductName,
+                        source.Unit,
+                        source.StandardPrice,
+                        source.ProductCategory1,
+                        source.ProductCategory2,
                         @jobDate,
                         GETDATE(),
                         GETDATE(),
@@ -418,8 +424,35 @@ namespace InventorySystem.Data.Services
             _logger.LogInformation(
                 "在庫マスタMERGE完了 - 新規作成: {InsertCount}件, 更新: {UpdateCount}件", 
                 insertCount, updateCount);
+            
+            // 既存の「商品名未設定」データを修正
+            var fixedCount = await FixProductNamesAsync(connection, transaction);
+            if (fixedCount > 0)
+            {
+                _logger.LogInformation("「商品名未設定」データを修正しました: {Count}件", fixedCount);
+            }
                 
             return (insertCount, updateCount);
+        }
+
+        private async Task<int> FixProductNamesAsync(
+            SqlConnection connection,
+            SqlTransaction transaction)
+        {
+            // 既存の「商品名未設定」データを商品マスタから正しい商品名に修正
+            const string sql = @"
+                UPDATE im
+                SET im.ProductName = COALESCE(pm.ProductName, '商' + im.ProductCode),
+                    im.Unit = COALESCE(pm.UnitCode, im.Unit),
+                    im.StandardPrice = COALESCE(pm.StandardPrice, im.StandardPrice),
+                    im.ProductCategory1 = COALESCE(pm.ProductCategory1, im.ProductCategory1),
+                    im.ProductCategory2 = COALESCE(pm.ProductCategory2, im.ProductCategory2),
+                    im.UpdatedDate = GETDATE()
+                FROM InventoryMaster im
+                LEFT JOIN ProductMaster pm ON pm.ProductCode = im.ProductCode
+                WHERE im.ProductName = '商品名未設定'";
+
+            return await connection.ExecuteAsync(sql, transaction: transaction);
         }
 
         private async Task<int> CleanupOldJobDatesAsync(
