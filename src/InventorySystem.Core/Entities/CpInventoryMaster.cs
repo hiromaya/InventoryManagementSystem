@@ -70,6 +70,14 @@ public class CpInventoryMaster
     public decimal MonthlySalesReturnAmount { get; set; }       // 月計売上返品金額
     public decimal MonthlyPurchaseQuantity { get; set; }        // 月計仕入数量
     public decimal MonthlyPurchaseAmount { get; set; }          // 月計仕入金額
+    public decimal MonthlyPurchaseReturnQuantity { get; set; }  // 月計仕入返品数量
+    public decimal MonthlyPurchaseReturnAmount { get; set; }    // 月計仕入返品金額
+    public decimal MonthlyInventoryAdjustmentQuantity { get; set; } // 月計在庫調整数量
+    public decimal MonthlyInventoryAdjustmentAmount { get; set; } // 月計在庫調整金額
+    public decimal MonthlyProcessingQuantity { get; set; }      // 月計加工数量
+    public decimal MonthlyProcessingAmount { get; set; }        // 月計加工金額
+    public decimal MonthlyTransferQuantity { get; set; }        // 月計振替数量
+    public decimal MonthlyTransferAmount { get; set; }          // 月計振替金額
     public decimal MonthlyGrossProfit { get; set; }             // 月計粗利益
     public decimal MonthlyWalkingAmount { get; set; }           // 月計歩引き額
     public decimal MonthlyIncentiveAmount { get; set; }         // 月計奨励金

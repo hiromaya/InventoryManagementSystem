@@ -647,6 +647,8 @@ public class UnmatchListService : IUnmatchListService
     {
         try
         {
+            _logger.LogInformation("月計データ集計開始");
+            
             // 月初日を計算
             var monthStartDate = new DateTime(jobDate.Year, jobDate.Month, 1);
             
@@ -658,9 +660,15 @@ public class UnmatchListService : IUnmatchListService
             var monthlyPurchaseUpdated = await _cpInventoryRepository.UpdateMonthlyPurchaseAsync(monthStartDate, jobDate);
             _logger.LogInformation("仕入月計を集計しました。更新件数: {Count}件", monthlyPurchaseUpdated);
             
+            // 在庫調整月計の集計
+            var adjustmentUpdateCount = await _cpInventoryRepository.UpdateMonthlyInventoryAdjustmentAsync(monthStartDate, jobDate);
+            _logger.LogInformation("在庫調整月計を集計しました。更新件数: {Count}件", adjustmentUpdateCount);
+            
             // 月計粗利益の計算
             var monthlyGrossProfitUpdated = await _cpInventoryRepository.CalculateMonthlyGrossProfitAsync(jobDate);
             _logger.LogInformation("月計粗利益を計算しました。更新件数: {Count}件", monthlyGrossProfitUpdated);
+            
+            _logger.LogInformation("月計データ集計完了");
         }
         catch (Exception ex)
         {

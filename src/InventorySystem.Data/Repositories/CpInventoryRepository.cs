@@ -532,15 +532,16 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 cp.MonthlySalesQuantity = ISNULL(s.Quantity, 0),
                 cp.MonthlySalesAmount = ISNULL(s.Amount, 0),
                 cp.MonthlySalesReturnQuantity = ISNULL(s.ReturnQuantity, 0),
-                cp.MonthlySalesReturnAmount = ISNULL(s.ReturnAmount, 0)
+                cp.MonthlySalesReturnAmount = ISNULL(s.ReturnAmount, 0),
+                cp.UpdatedDate = GETDATE()
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
                     ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                    SUM(CASE WHEN DetailType = 1 THEN Quantity ELSE 0 END) as Quantity,
-                    SUM(CASE WHEN DetailType = 1 THEN Amount ELSE 0 END) as Amount,
-                    SUM(CASE WHEN DetailType = 2 THEN Quantity ELSE 0 END) as ReturnQuantity,
-                    SUM(CASE WHEN DetailType = 2 THEN Amount ELSE 0 END) as ReturnAmount
+                    SUM(CASE WHEN DetailType = '1' THEN Quantity ELSE 0 END) as Quantity,
+                    SUM(CASE WHEN DetailType = '1' THEN Amount ELSE 0 END) as Amount,
+                    SUM(CASE WHEN DetailType = '2' THEN Quantity ELSE 0 END) as ReturnQuantity,
+                    SUM(CASE WHEN DetailType = '2' THEN Amount ELSE 0 END) as ReturnAmount
                 FROM SalesVouchers
                 WHERE JobDate >= @monthStartDate AND JobDate <= @jobDate
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
@@ -564,7 +565,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             UPDATE cp
             SET 
                 cp.MonthlyPurchaseQuantity = ISNULL(p.Quantity, 0),
-                cp.MonthlyPurchaseAmount = ISNULL(p.Amount, 0)
+                cp.MonthlyPurchaseAmount = ISNULL(p.Amount, 0),
+                cp.UpdatedDate = GETDATE()
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
@@ -593,12 +595,49 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         const string sql = @"
             UPDATE CpInventoryMaster
             SET 
-                MonthlyGrossProfit = (MonthlySalesAmount + MonthlySalesReturnAmount) 
-                                   - (MonthlyPurchaseAmount * (DailyUnitPrice / NULLIF(StandardPrice, 0)))
-            WHERE JobDate = @jobDate 
-              AND StandardPrice > 0";
+                MonthlyGrossProfit = (MonthlySalesAmount - MonthlySalesReturnAmount) 
+                                   - (MonthlyPurchaseAmount * 
+                                      CASE 
+                                        WHEN StandardPrice > 0 THEN (DailyUnitPrice / StandardPrice)
+                                        ELSE 0
+                                      END),
+                UpdatedDate = GETDATE()
+            WHERE JobDate = @jobDate";
         
         using var connection = CreateConnection();
         return await connection.ExecuteAsync(sql, new { jobDate });
+    }
+
+    /// <summary>
+    /// 在庫調整月計を更新
+    /// </summary>
+    public async Task<int> UpdateMonthlyInventoryAdjustmentAsync(DateTime monthStartDate, DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE cp
+            SET 
+                cp.MonthlyInventoryAdjustmentQuantity = ISNULL(a.Quantity, 0),
+                cp.MonthlyInventoryAdjustmentAmount = ISNULL(a.Amount, 0),
+                cp.UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    SUM(Quantity) as Quantity,
+                    SUM(Amount) as Amount
+                FROM InventoryAdjustments
+                WHERE JobDate >= @monthStartDate AND JobDate <= @jobDate
+                    AND VoucherType IN ('71', '72')
+                    AND DetailType IN ('1', '3', '4')
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            ) a ON cp.ProductCode = a.ProductCode 
+                AND cp.GradeCode = a.GradeCode 
+                AND cp.ClassCode = a.ClassCode 
+                AND cp.ShippingMarkCode = a.ShippingMarkCode 
+                AND cp.ShippingMarkName = a.ShippingMarkName
+            WHERE cp.JobDate = @jobDate";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteAsync(sql, new { monthStartDate, jobDate });
     }
 }

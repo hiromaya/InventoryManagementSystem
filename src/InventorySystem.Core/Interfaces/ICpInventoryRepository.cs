@@ -103,4 +103,9 @@ public interface ICpInventoryRepository
     /// 月計粗利益を計算する
     /// </summary>
     Task<int> CalculateMonthlyGrossProfitAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// 在庫調整月計を更新する
+    /// </summary>
+    Task<int> UpdateMonthlyInventoryAdjustmentAsync(DateTime monthStartDate, DateTime jobDate);
 }
