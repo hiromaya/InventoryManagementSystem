@@ -163,6 +163,7 @@ public class SalesVoucherDaijinCsv
             ProductCategory1 = ProductCategory1?.Trim(),
             ProductCategory2 = ProductCategory2?.Trim(),
             ProductCategory3 = ProductCategory3?.Trim(),
+            GrossProfit = null,  // 初期値はnull（商品日報処理で計算して更新）
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };

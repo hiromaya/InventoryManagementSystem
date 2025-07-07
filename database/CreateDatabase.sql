@@ -156,6 +156,7 @@ BEGIN
         UnitPrice DECIMAL(12,4) NOT NULL,           -- 単価
         Amount DECIMAL(12,4) NOT NULL,              -- 金額
         InventoryUnitPrice DECIMAL(12,4) NOT NULL DEFAULT 0, -- 在庫単価
+        GrossProfit DECIMAL(16,4) NULL,             -- 粗利益（商品日報で計算）
         CreatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),   -- 作成日
         DataSetId NVARCHAR(100),                    -- データセットID
         
