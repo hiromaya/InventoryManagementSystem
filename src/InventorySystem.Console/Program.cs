@@ -28,6 +28,7 @@ using System.Reflection;
 using System.Text;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using InventorySystem.Data.Services;
 
 // Program クラスの定義
 public class Program
@@ -134,6 +135,10 @@ builder.Services.AddScoped<IDataSetRepository>(provider =>
 // CSV取込専用リポジトリ
 builder.Services.AddScoped<SalesVoucherCsvRepository>(provider => 
     new SalesVoucherCsvRepository(connectionString, provider.GetRequiredService<ILogger<SalesVoucherCsvRepository>>()));
+
+// スキーマ更新サービス
+builder.Services.AddScoped<DatabaseSchemaService>(provider =>
+    new DatabaseSchemaService(connectionString, provider.GetRequiredService<ILogger<DatabaseSchemaService>>()));
 builder.Services.AddScoped<PurchaseVoucherCsvRepository>(provider => 
     new PurchaseVoucherCsvRepository(connectionString, provider.GetRequiredService<ILogger<PurchaseVoucherCsvRepository>>()));
 
@@ -1482,6 +1487,27 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
     {
         var scopedServices = scope.ServiceProvider;
         var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        
+        // スキーマ更新を最初に実行
+        var connectionString = scopedServices.GetRequiredService<IConfiguration>()
+            .GetConnectionString("DefaultConnection");
+        var schemaService = new DatabaseSchemaService(
+            connectionString, 
+            scopedServices.GetRequiredService<ILogger<DatabaseSchemaService>>());
+        
+        try
+        {
+            Console.WriteLine("データベーススキーマを確認しています...");
+            await schemaService.UpdateSchemaAsync();
+            Console.WriteLine("スキーマの確認が完了しました。");
+            Console.WriteLine();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"スキーマ更新エラー: {ex.Message}");
+            logger.LogError(ex, "スキーマ更新中にエラーが発生しました");
+            throw;
+        }
         
         // ファイル管理サービス
         var fileService = scopedServices.GetRequiredService<IFileManagementService>();
