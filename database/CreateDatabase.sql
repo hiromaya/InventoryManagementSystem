@@ -120,6 +120,33 @@ BEGIN
         DailyIncentiveAmount DECIMAL(12,4) NOT NULL DEFAULT 0,     -- 当日奨励金
         DailyDiscountAmount DECIMAL(12,4) NOT NULL DEFAULT 0,      -- 当日仕入値引き額
         
+        -- 月計売上関連
+        MonthlySalesQuantity DECIMAL(18,4) NOT NULL DEFAULT 0,        -- 月計売上数量
+        MonthlySalesAmount DECIMAL(18,4) NOT NULL DEFAULT 0,          -- 月計売上金額
+        MonthlySalesReturnQuantity DECIMAL(18,4) NOT NULL DEFAULT 0,  -- 月計売上返品数量
+        MonthlySalesReturnAmount DECIMAL(18,4) NOT NULL DEFAULT 0,    -- 月計売上返品金額
+        
+        -- 月計仕入関連
+        MonthlyPurchaseQuantity DECIMAL(18,4) NOT NULL DEFAULT 0,     -- 月計仕入数量
+        MonthlyPurchaseAmount DECIMAL(18,4) NOT NULL DEFAULT 0,       -- 月計仕入金額
+        MonthlyPurchaseReturnQuantity DECIMAL(18,4) NOT NULL DEFAULT 0, -- 月計仕入返品数量
+        MonthlyPurchaseReturnAmount DECIMAL(18,4) NOT NULL DEFAULT 0,   -- 月計仕入返品金額
+        
+        -- 月計在庫調整関連
+        MonthlyInventoryAdjustmentQuantity DECIMAL(18,4) NOT NULL DEFAULT 0, -- 月計在庫調整数量
+        MonthlyInventoryAdjustmentAmount DECIMAL(18,4) NOT NULL DEFAULT 0,   -- 月計在庫調整金額
+        
+        -- 月計加工・振替関連
+        MonthlyProcessingQuantity DECIMAL(18,4) NOT NULL DEFAULT 0,   -- 月計加工数量
+        MonthlyProcessingAmount DECIMAL(18,4) NOT NULL DEFAULT 0,     -- 月計加工金額
+        MonthlyTransferQuantity DECIMAL(18,4) NOT NULL DEFAULT 0,     -- 月計振替数量
+        MonthlyTransferAmount DECIMAL(18,4) NOT NULL DEFAULT 0,       -- 月計振替金額
+        
+        -- 月計粗利益関連
+        MonthlyGrossProfit DECIMAL(18,4) NOT NULL DEFAULT 0,          -- 月計粗利益
+        MonthlyWalkingAmount DECIMAL(18,4) NOT NULL DEFAULT 0,        -- 月計歩引き額
+        MonthlyIncentiveAmount DECIMAL(18,4) NOT NULL DEFAULT 0,      -- 月計奨励金
+        
         CONSTRAINT PK_CpInventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, DataSetId)
     );
     PRINT 'CpInventoryMaster テーブルを作成しました';

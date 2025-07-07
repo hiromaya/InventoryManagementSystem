@@ -30,6 +30,7 @@ public class DatabaseSchemaService
             await AddGrossProfitColumnsAsync();
             await UpdateVoucherIdSizeAsync();
             await AddProductNameColumnAsync();
+            await AddMonthlyColumnsAsync();
             
             _logger.LogInformation("データベーススキーマの更新が完了しました。");
         }
@@ -163,6 +164,62 @@ public class DatabaseSchemaService
                 ALTER TABLE [dbo].[SalesVouchers]
                 ADD [ProductName] NVARCHAR(100) NULL");
             _logger.LogInformation("ProductNameカラムを追加しました。");
+        }
+    }
+    
+    /// <summary>
+    /// 月計カラムの追加
+    /// </summary>
+    private async Task AddMonthlyColumnsAsync()
+    {
+        using var connection = new SqlConnection(_connectionString);
+        
+        // 追加する月計カラムのリスト
+        var monthlyColumns = new[]
+        {
+            // 月計売上関連
+            ("MonthlySalesQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            ("MonthlySalesAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            ("MonthlySalesReturnQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            ("MonthlySalesReturnAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            
+            // 月計仕入関連
+            ("MonthlyPurchaseQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            ("MonthlyPurchaseAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            ("MonthlyPurchaseReturnQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            ("MonthlyPurchaseReturnAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            
+            // 月計在庫調整関連
+            ("MonthlyInventoryAdjustmentQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            ("MonthlyInventoryAdjustmentAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            
+            // 月計加工・振替関連
+            ("MonthlyProcessingQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            ("MonthlyProcessingAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            ("MonthlyTransferQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            ("MonthlyTransferAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            
+            // 月計粗利益関連
+            ("MonthlyGrossProfit", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            ("MonthlyWalkingAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
+            ("MonthlyIncentiveAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0")
+        };
+        
+        foreach (var (columnName, columnDefinition) in monthlyColumns)
+        {
+            var columnExists = await connection.ExecuteScalarAsync<int>($@"
+                SELECT COUNT(*) 
+                FROM sys.columns 
+                WHERE object_id = OBJECT_ID(N'[dbo].[CpInventoryMaster]') 
+                AND name = '{columnName}'") > 0;
+
+            if (!columnExists)
+            {
+                _logger.LogInformation($"CpInventoryMasterテーブルに{columnName}カラムを追加します...");
+                await connection.ExecuteAsync($@"
+                    ALTER TABLE [dbo].[CpInventoryMaster]
+                    ADD [{columnName}] {columnDefinition}");
+            }
         }
     }
 }
