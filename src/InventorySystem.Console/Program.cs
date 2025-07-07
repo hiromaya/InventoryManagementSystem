@@ -1843,8 +1843,10 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         logger.LogDebug("仕入伝票インポート完了: DataSetId={DataSetId}", dataSetId);
                         
                         Console.WriteLine($"✅ 仕入伝票として処理完了 - データセットID: {dataSetId}");
-                        // 件数はログから推定（ImportResultメソッドが未実装の場合）
-                        processedCounts["仕入伝票"] += 1; // ファイル数をカウント
+                        // インポート結果を取得（データセットIDから件数取得）
+                        var purchaseResult = await purchaseImportService.GetImportResultAsync(dataSetId);
+                        processedCounts["仕入伝票"] = purchaseResult.ImportedCount;
+                        fileStatistics[fileName] = (purchaseResult.ImportedCount, 0); // TODO: スキップ数取得
                         // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     else if (fileName.StartsWith("受注伝票"))
@@ -1860,14 +1862,20 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         logger.LogDebug("受注伝票インポート完了: DataSetId={DataSetId}", dataSetId);
                         
                         Console.WriteLine($"✅ 在庫調整として処理完了 - データセットID: {dataSetId}");
-                        processedCounts["受注伝票（在庫調整）"] += 1;
+                        // インポート結果を取得（データセットIDから件数取得）
+                        var adjustmentResult = await adjustmentImportService.GetImportResultAsync(dataSetId);
+                        processedCounts["受注伝票（在庫調整）"] = adjustmentResult.ImportedCount;
+                        fileStatistics[fileName] = (adjustmentResult.ImportedCount, 0); // TODO: スキップ数取得
                         // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     else if (fileName.StartsWith("在庫調整"))
                     {
                         var dataSetId = await adjustmentImportService.ImportAsync(file, startDate, endDate, department, preserveCsvDates);
                         Console.WriteLine($"✅ 在庫調整として処理完了 - データセットID: {dataSetId}");
-                        processedCounts["在庫調整"] += 1;
+                        // インポート結果を取得（データセットIDから件数取得）
+                        var inventoryAdjustmentResult = await adjustmentImportService.GetImportResultAsync(dataSetId);
+                        processedCounts["在庫調整"] = inventoryAdjustmentResult.ImportedCount;
+                        fileStatistics[fileName] = (inventoryAdjustmentResult.ImportedCount, 0); // TODO: スキップ数取得
                         // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     // ========== 未対応ファイル ==========
