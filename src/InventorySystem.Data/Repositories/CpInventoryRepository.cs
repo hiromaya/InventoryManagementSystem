@@ -533,7 +533,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 cp.MonthlySalesAmount = ISNULL(s.Amount, 0),
                 cp.MonthlySalesReturnQuantity = ISNULL(s.ReturnQuantity, 0),
                 cp.MonthlySalesReturnAmount = ISNULL(s.ReturnAmount, 0)
-            FROM CP_InventoryMaster cp
+            FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
                     ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
@@ -565,7 +565,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             SET 
                 cp.MonthlyPurchaseQuantity = ISNULL(p.Quantity, 0),
                 cp.MonthlyPurchaseAmount = ISNULL(p.Amount, 0)
-            FROM CP_InventoryMaster cp
+            FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
                     ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
@@ -591,7 +591,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     public async Task<int> CalculateMonthlyGrossProfitAsync(DateTime jobDate)
     {
         const string sql = @"
-            UPDATE CP_InventoryMaster
+            UPDATE CpInventoryMaster
             SET 
                 MonthlyGrossProfit = (MonthlySalesAmount + MonthlySalesReturnAmount) 
                                    - (MonthlyPurchaseAmount * (DailyUnitPrice / NULLIF(StandardPrice, 0)))
