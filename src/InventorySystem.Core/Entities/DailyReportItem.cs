@@ -20,6 +20,26 @@ public class DailyReportItem
     /// </summary>
     public string ProductName { get; set; } = string.Empty;
     
+    /// <summary>
+    /// 等級コード
+    /// </summary>
+    public string GradeCode { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 階級コード
+    /// </summary>
+    public string ClassCode { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 荷印コード
+    /// </summary>
+    public string ShippingMarkCode { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 荷印名
+    /// </summary>
+    public string ShippingMarkName { get; set; } = string.Empty;
+    
     // === 日計項目（11項目） ===
     
     /// <summary>

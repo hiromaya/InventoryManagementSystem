@@ -217,11 +217,16 @@ public class DailyReportService : IDailyReportService
 
         foreach (var group in groupedData)
         {
+            var firstCp = group.First();
             var item = new DailyReportItem
             {
                 ProductCode = group.Key.ProductCode,
                 ProductCategory1 = group.Key.ProductCategory1 ?? string.Empty,
-                ProductName = group.First().ProductName ?? group.Key.ProductCode, // 仮実装
+                ProductName = firstCp.ProductName ?? group.Key.ProductCode,
+                GradeCode = firstCp.Key.GradeCode,
+                ClassCode = firstCp.Key.ClassCode,
+                ShippingMarkCode = firstCp.Key.ShippingMarkCode,
+                ShippingMarkName = firstCp.Key.ShippingMarkName,
 
                 // 日計項目（集計）
                 DailySalesQuantity = group.Sum(cp => cp.DailySalesQuantity),
@@ -258,10 +263,14 @@ public class DailyReportService : IDailyReportService
                 item.ProductCode, item.DailySalesAmount);
         }
 
-        // ソート：商品分類1 → 商品コード
+        // ソート：商品分類1 → 商品コード → 荷印コード → 荷印名 → 等級コード → 階級コード
         var sortedItems = reportItems
-            .OrderBy(item => item.ProductCategory1)
-            .ThenBy(item => item.ProductCode)
+            .OrderBy(item => item.ProductCategory1)      // 商品分類1（担当者コード）
+            .ThenBy(item => item.ProductCode)            // 商品コード
+            .ThenBy(item => item.ShippingMarkCode)       // 荷印コード
+            .ThenBy(item => item.ShippingMarkName)       // 荷印名
+            .ThenBy(item => item.GradeCode)              // 等級コード
+            .ThenBy(item => item.ClassCode)              // 階級コード
             .ToList();
 
         _logger.LogInformation("商品日報データ取得完了 - 件数: {Count}", sortedItems.Count);

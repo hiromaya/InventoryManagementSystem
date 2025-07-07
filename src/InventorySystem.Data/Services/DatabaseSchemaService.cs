@@ -31,6 +31,7 @@ public class DatabaseSchemaService
             await UpdateVoucherIdSizeAsync();
             await AddProductNameColumnAsync();
             await AddMonthlyColumnsAsync();
+            await CreateStoredProceduresAsync();
             
             _logger.LogInformation("データベーススキーマの更新が完了しました。");
         }
@@ -220,6 +221,88 @@ public class DatabaseSchemaService
                     ALTER TABLE [dbo].[CpInventoryMaster]
                     ADD [{columnName}] {columnDefinition}");
             }
+        }
+    }
+    
+    /// <summary>
+    /// 必要なストアドプロシージャの作成
+    /// </summary>
+    private async Task CreateStoredProceduresAsync()
+    {
+        using var connection = new SqlConnection(_connectionString);
+        
+        // ストアドプロシージャが存在するかチェック
+        var procedureExists = await connection.ExecuteScalarAsync<int>(@"
+            SELECT COUNT(*) 
+            FROM sys.objects 
+            WHERE type = 'P' AND name = 'sp_CreateCpInventoryFromInventoryMasterWithProductInfo'") > 0;
+
+        if (!procedureExists)
+        {
+            _logger.LogInformation("CP在庫マスタ作成用ストアドプロシージャを作成します...");
+            
+            var procedureSql = @"
+CREATE PROCEDURE sp_CreateCpInventoryFromInventoryMasterWithProductInfo
+    @DataSetId NVARCHAR(50),
+    @JobDate DATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRANSACTION;
+    
+    BEGIN TRY
+        INSERT INTO CpInventoryMaster (
+            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+            ProductName, ProductCategory1, ProductCategory2, Unit, StandardPrice,
+            JobDate, DataSetId,
+            PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice, DailyFlag,
+            DailySalesQuantity, DailySalesAmount, DailySalesReturnQuantity, DailySalesReturnAmount,
+            DailyPurchaseQuantity, DailyPurchaseAmount, DailyPurchaseReturnQuantity, DailyPurchaseReturnAmount,
+            DailyInventoryAdjustmentQuantity, DailyInventoryAdjustmentAmount,
+            DailyProcessingQuantity, DailyProcessingAmount,
+            DailyTransferQuantity, DailyTransferAmount,
+            DailyReceiptQuantity, DailyReceiptAmount,
+            DailyShipmentQuantity, DailyShipmentAmount,
+            DailyGrossProfit, DailyWalkingAmount, DailyIncentiveAmount, DailyDiscountAmount,
+            DailyStock, DailyStockAmount, DailyUnitPrice,
+            CreatedDate, UpdatedDate
+        )
+        SELECT 
+            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ShippingMarkName,
+            im.ProductName, 
+            CASE 
+                WHEN LEFT(im.ShippingMarkName, 4) = '9aaa' THEN '8'
+                WHEN LEFT(im.ShippingMarkName, 4) = '1aaa' THEN '6'
+                WHEN LEFT(im.ShippingMarkName, 4) = '0999' THEN '6'
+                ELSE ISNULL(pm.ProductCategory1, '00')
+            END AS ProductCategory1,
+            ISNULL(pm.ProductCategory2, '00') AS ProductCategory2,
+            im.Unit, im.StandardPrice, im.JobDate, @DataSetId,
+            im.CurrentStock AS PreviousDayStock, 
+            im.CurrentStockAmount AS PreviousDayStockAmount, 
+            CASE WHEN im.CurrentStock = 0 THEN 0 ELSE im.CurrentStockAmount / im.CurrentStock END AS PreviousDayUnitPrice,
+            '9' AS DailyFlag,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            GETDATE(), GETDATE()
+        FROM InventoryMaster im
+        LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
+        WHERE im.JobDate = @JobDate;
+        
+        SELECT @@ROWCOUNT AS CreatedCount;
+        
+        COMMIT TRANSACTION;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END";
+            
+            await connection.ExecuteAsync(procedureSql);
+            _logger.LogInformation("CP在庫マスタ作成用ストアドプロシージャを作成しました。");
         }
     }
 }

@@ -15,33 +15,13 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
 
     public async Task<int> CreateCpInventoryFromInventoryMasterAsync(string dataSetId, DateTime jobDate)
     {
-        const string sql = """
-            INSERT INTO CpInventoryMaster (
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
-                JobDate, CreatedDate, UpdatedDate,
-                PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice,
-                DailyStock, DailyStockAmount, DailyUnitPrice,
-                DailyFlag, DataSetId
-            )
-            SELECT 
-                ProductCode, 
-                GradeCode, 
-                ClassCode, 
-                ShippingMarkCode, 
-                -- 文字化け対策：COLLATE指定
-                ShippingMarkName COLLATE Japanese_CI_AS,
-                ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
-                @JobDate, GETDATE(), GETDATE(),
-                CurrentStock, CurrentStockAmount, CASE WHEN CurrentStock > 0 THEN CurrentStockAmount / CurrentStock ELSE 0 END,
-                CurrentStock, CurrentStockAmount, CASE WHEN CurrentStock > 0 THEN CurrentStockAmount / CurrentStock ELSE 0 END,
-                '9', @DataSetId
-            FROM InventoryMaster
-            WHERE JobDate = @JobDate
-            """;
+        // 商品マスタと結合して商品分類を正しく取得し、荷印名による特殊処理を適用するストアドプロシージャを使用
+        const string sql = "EXEC sp_CreateCpInventoryFromInventoryMasterWithProductInfo @DataSetId, @JobDate";
 
         using var connection = new SqlConnection(_connectionString);
-        return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId, JobDate = jobDate });
+        var result = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, new { DataSetId = dataSetId, JobDate = jobDate });
+        
+        return result?.CreatedCount ?? 0;
     }
 
     public async Task<int> ClearDailyAreaAsync(string dataSetId)
