@@ -46,7 +46,9 @@ public class PurchaseVoucherImportService
 
         var dataSetId = GenerateDataSetId();
         var importedCount = 0;
+        var skippedCount = 0;
         var errorMessages = new List<string>();
+        var dateStatistics = new Dictionary<DateTime, int>(); // 日付別統計
 
         _logger.LogInformation("仕入伝票CSV取込開始: {FilePath}, DataSetId: {DataSetId}, Department: {DepartmentCode}, StartDate: {StartDate}, EndDate: {EndDate}", 
             filePath, dataSetId, departmentCode ?? "未指定", startDate?.ToString("yyyy-MM-dd") ?? "全期間", endDate?.ToString("yyyy-MM-dd") ?? "全期間");
@@ -115,6 +117,17 @@ public class PurchaseVoucherImportService
                     
                     purchaseVouchers.Add(purchaseVoucher);
                     importedCount++;
+                    
+                    // 日付別統計を収集
+                    var jobDateKey = purchaseVoucher.JobDate.Date;
+                    if (dateStatistics.ContainsKey(jobDateKey))
+                    {
+                        dateStatistics[jobDateKey]++;
+                    }
+                    else
+                    {
+                        dateStatistics[jobDateKey] = 1;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -140,6 +153,19 @@ public class PurchaseVoucherImportService
 
             // データセットステータス更新
             await _dataSetRepository.UpdateRecordCountAsync(dataSetId, importedCount);
+            
+            // 統計情報のログ出力
+            if (dateStatistics.Any())
+            {
+                _logger.LogInformation("日付別取込件数:");
+                foreach (var kvp in dateStatistics.OrderBy(x => x.Key))
+                {
+                    _logger.LogInformation("  {Date:yyyy-MM-dd}: {Count}件", kvp.Key, kvp.Value);
+                }
+            }
+            
+            _logger.LogInformation("仕入伝票CSV取込結果: 成功{Success}件, スキップ{Skipped}件, エラー{Error}件", 
+                importedCount, skippedCount, errorMessages.Count);
             
             if (errorMessages.Any())
             {

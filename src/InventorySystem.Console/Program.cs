@@ -1473,6 +1473,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         Console.WriteLine("使用方法:");
         Console.WriteLine("  単一日付: dotnet run import-folder <dept> <YYYY-MM-DD>");
         Console.WriteLine("  期間指定: dotnet run import-folder <dept> <開始日 YYYY-MM-DD> <終了日 YYYY-MM-DD>");
+        Console.WriteLine("  CSV日付保持: dotnet run import-folder <dept> --preserve-csv-dates [--start-date <YYYY-MM-DD>] [--end-date <YYYY-MM-DD>]");
         Console.WriteLine("  全期間  : dotnet run import-folder <dept>");
         return;
     }
@@ -1508,49 +1509,102 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         var department = args[2];
         DateTime? startDate = null;
         DateTime? endDate = null;
+        bool preserveCsvDates = false;
         
-        // 日付引数の解析
-        if (args.Length >= 4)
+        // オプション引数の解析
+        int argIndex = 3;
+        while (argIndex < args.Length)
         {
-            if (DateTime.TryParse(args[3], out var date1))
+            if (args[argIndex] == "--preserve-csv-dates")
             {
-                startDate = date1;
-                
-                if (args.Length >= 5 && DateTime.TryParse(args[4], out var date2))
+                preserveCsvDates = true;
+                argIndex++;
+            }
+            else if (args[argIndex] == "--start-date" && argIndex + 1 < args.Length)
+            {
+                if (DateTime.TryParse(args[argIndex + 1], out var date))
                 {
-                    // 期間指定
-                    endDate = date2;
-                    
-                    if (endDate < startDate)
-                    {
-                        Console.WriteLine("エラー: 終了日は開始日以降である必要があります");
-                        return;
-                    }
-                    
-                    logger.LogInformation("期間指定モード: {StartDate} ～ {EndDate}", 
-                        startDate.Value.ToString("yyyy-MM-dd"), 
-                        endDate.Value.ToString("yyyy-MM-dd"));
+                    startDate = date;
+                    argIndex += 2;
                 }
                 else
                 {
-                    // 単一日付指定
+                    Console.WriteLine($"エラー: 無効な開始日付形式: {args[argIndex + 1]}");
+                    return;
+                }
+            }
+            else if (args[argIndex] == "--end-date" && argIndex + 1 < args.Length)
+            {
+                if (DateTime.TryParse(args[argIndex + 1], out var date))
+                {
+                    endDate = date;
+                    argIndex += 2;
+                }
+                else
+                {
+                    Console.WriteLine($"エラー: 無効な終了日付形式: {args[argIndex + 1]}");
+                    return;
+                }
+            }
+            else if (DateTime.TryParse(args[argIndex], out var date))
+            {
+                // 従来の日付指定方式（後方互換性）
+                startDate = date;
+                if (argIndex + 1 < args.Length && DateTime.TryParse(args[argIndex + 1], out var date2))
+                {
+                    endDate = date2;
+                    argIndex += 2;
+                }
+                else
+                {
                     endDate = startDate;
-                    logger.LogInformation("単一日付モード: {Date}", startDate.Value.ToString("yyyy-MM-dd"));
+                    argIndex++;
                 }
             }
             else
             {
-                Console.WriteLine($"エラー: 無効な日付形式: {args[3]}");
+                Console.WriteLine($"エラー: 無効な引数: {args[argIndex]}");
                 return;
+            }
+        }
+        
+        // 日付範囲の検証
+        if (startDate.HasValue && endDate.HasValue && endDate < startDate)
+        {
+            Console.WriteLine("エラー: 終了日は開始日以降である必要があります");
+            return;
+        }
+        
+        // モードのログ出力
+        if (preserveCsvDates)
+        {
+            logger.LogInformation("CSVの日付保持モード: StartDate={StartDate}, EndDate={EndDate}", 
+                startDate?.ToString("yyyy-MM-dd") ?? "指定なし", 
+                endDate?.ToString("yyyy-MM-dd") ?? "指定なし");
+        }
+        else if (startDate.HasValue && endDate.HasValue)
+        {
+            if (startDate.Value == endDate.Value)
+            {
+                logger.LogInformation("単一日付モード: {Date}", startDate.Value.ToString("yyyy-MM-dd"));
+            }
+            else
+            {
+                logger.LogInformation("期間指定モード: {StartDate} ～ {EndDate}", 
+                    startDate.Value.ToString("yyyy-MM-dd"), 
+                    endDate.Value.ToString("yyyy-MM-dd"));
             }
         }
         else
         {
-            // 全期間モード
             logger.LogInformation("全期間モード: 日付フィルタなし");
         }
         
         Console.WriteLine($"=== CSVファイル一括インポート開始 ===");
+        if (preserveCsvDates)
+        {
+            Console.WriteLine("モード: 期間指定（CSVの日付を保持）");
+        }
         Console.WriteLine($"部門: {department}");
         
         if (startDate.HasValue && endDate.HasValue)
@@ -1565,6 +1619,10 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 Console.WriteLine($"期間日数: {(endDate.Value - startDate.Value).Days + 1}日間");
             }
         }
+        else if (preserveCsvDates)
+        {
+            Console.WriteLine("対象期間: CSVファイル内の全日付");
+        }
         else
         {
             Console.WriteLine("対象期間: 全期間（日付フィルタなし）");
@@ -1572,6 +1630,8 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         
         var errorCount = 0;
         var processedCounts = new Dictionary<string, int>();
+        var dateStatisticsTotal = new Dictionary<DateTime, int>(); // 全体の日付別統計
+        var fileStatistics = new Dictionary<string, (int processed, int skipped)>(); // ファイル別統計
         
         try
         {
@@ -1730,7 +1790,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                             continue;
                         }
                         
-                        var result = await previousMonthService.ImportAsync(startDate ?? DateTime.Today);
+                        var result = await previousMonthService.ImportAsync(startDate ?? DateTime.Today, endDate, preserveCsvDates);
                         
                         if (result.IsSuccess)
                         {
@@ -1756,54 +1816,58 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     else if (fileName.StartsWith("売上伝票"))
                     {
                         // デバッグログ追加: 売上伝票インポート開始
-                        logger.LogDebug("売上伝票インポート開始: FileName={FileName}, StartDate={StartDate:yyyy-MM-dd}, EndDate={EndDate:yyyy-MM-dd}", 
-                            fileName, startDate, endDate);
+                        logger.LogDebug("売上伝票インポート開始: FileName={FileName}, StartDate={StartDate:yyyy-MM-dd}, EndDate={EndDate:yyyy-MM-dd}, PreserveCsvDates={PreserveCsvDates}", 
+                            fileName, startDate, endDate, preserveCsvDates);
                         
-                        var dataSetId = await salesImportService.ImportAsync(file, startDate, endDate, department);
+                        var dataSetId = await salesImportService.ImportAsync(file, startDate, endDate, department, preserveCsvDates);
                         
                         // デバッグログ追加: 売上伝票インポート完了
                         logger.LogDebug("売上伝票インポート完了: DataSetId={DataSetId}", dataSetId);
                         
                         Console.WriteLine($"✅ 売上伝票として処理完了 - データセットID: {dataSetId}");
-                        processedCounts["売上伝票"] = 1; // TODO: 実際の件数を取得
+                        // インポート結果を取得（データセットIDから件数取得）
+                        var salesResult = await salesImportService.GetImportResultAsync(dataSetId);
+                        processedCounts["売上伝票"] = salesResult.ImportedCount;
+                        fileStatistics[fileName] = (salesResult.ImportedCount, 0); // TODO: スキップ数取得
                         // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     else if (fileName.StartsWith("仕入伝票"))
                     {
                         // デバッグログ追加: 仕入伝票インポート開始
-                        logger.LogDebug("仕入伝票インポート開始: FileName={FileName}, StartDate={StartDate:yyyy-MM-dd}, EndDate={EndDate:yyyy-MM-dd}", 
-                            fileName, startDate, endDate);
+                        logger.LogDebug("仕入伝票インポート開始: FileName={FileName}, StartDate={StartDate:yyyy-MM-dd}, EndDate={EndDate:yyyy-MM-dd}, PreserveCsvDates={PreserveCsvDates}", 
+                            fileName, startDate, endDate, preserveCsvDates);
                         
-                        var dataSetId = await purchaseImportService.ImportAsync(file, startDate, endDate, department);
+                        var dataSetId = await purchaseImportService.ImportAsync(file, startDate, endDate, department, preserveCsvDates);
                         
                         // デバッグログ追加: 仕入伝票インポート完了
                         logger.LogDebug("仕入伝票インポート完了: DataSetId={DataSetId}", dataSetId);
                         
                         Console.WriteLine($"✅ 仕入伝票として処理完了 - データセットID: {dataSetId}");
-                        processedCounts["仕入伝票"] = 1; // TODO: 実際の件数を取得
+                        // 件数はログから推定（ImportResultメソッドが未実装の場合）
+                        processedCounts["仕入伝票"] += 1; // ファイル数をカウント
                         // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     else if (fileName.StartsWith("受注伝票"))
                     {
                         // デバッグログ追加: 受注伝票インポート開始
-                        logger.LogDebug("受注伝票インポート開始: FileName={FileName}, StartDate={StartDate:yyyy-MM-dd}, EndDate={EndDate:yyyy-MM-dd}", 
-                            fileName, startDate, endDate);
+                        logger.LogDebug("受注伝票インポート開始: FileName={FileName}, StartDate={StartDate:yyyy-MM-dd}, EndDate={EndDate:yyyy-MM-dd}, PreserveCsvDates={PreserveCsvDates}", 
+                            fileName, startDate, endDate, preserveCsvDates);
                         
                         // 受注伝票は在庫調整として処理
-                        var dataSetId = await adjustmentImportService.ImportAsync(file, startDate, endDate, department);
+                        var dataSetId = await adjustmentImportService.ImportAsync(file, startDate, endDate, department, preserveCsvDates);
                         
                         // デバッグログ追加: 受注伝票インポート完了
                         logger.LogDebug("受注伝票インポート完了: DataSetId={DataSetId}", dataSetId);
                         
                         Console.WriteLine($"✅ 在庫調整として処理完了 - データセットID: {dataSetId}");
-                        processedCounts["受注伝票（在庫調整）"] = 1; // TODO: 実際の件数を取得
+                        processedCounts["受注伝票（在庫調整）"] += 1;
                         // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     else if (fileName.StartsWith("在庫調整"))
                     {
-                        var dataSetId = await adjustmentImportService.ImportAsync(file, startDate, endDate, department);
+                        var dataSetId = await adjustmentImportService.ImportAsync(file, startDate, endDate, department, preserveCsvDates);
                         Console.WriteLine($"✅ 在庫調整として処理完了 - データセットID: {dataSetId}");
-                        processedCounts["在庫調整"] = 1; // TODO: 実際の件数を取得
+                        processedCounts["在庫調整"] += 1;
                         // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
                     }
                     // ========== 未対応ファイル ==========
@@ -1908,6 +1972,10 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             
             // 処理結果のサマリを表示
             Console.WriteLine("\n=== フォルダ監視取込完了 ===");
+            if (preserveCsvDates)
+            {
+                Console.WriteLine("モード: 期間指定（CSVの日付を保持）");
+            }
             if (startDate.HasValue && endDate.HasValue)
             {
                 if (startDate.Value == endDate.Value)
@@ -1917,6 +1985,8 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 else
                 {
                     Console.WriteLine($"対象期間: {startDate.Value:yyyy-MM-dd} ～ {endDate.Value:yyyy-MM-dd}");
+                    var totalDays = (endDate.Value - startDate.Value).Days + 1;
+                    Console.WriteLine($"処理日数: {totalDays}日間");
                 }
             }
             else
@@ -1925,6 +1995,8 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             }
             Console.WriteLine($"部門: {department}");
             Console.WriteLine($"処理ファイル数: {sortedFiles.Count}");
+            
+            // 総処理時間は省略（StartTimeがないため）
             
             if (processedCounts.Any())
             {
