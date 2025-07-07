@@ -545,7 +545,7 @@ try
     
     try
     {
-        var dataSetId = await importService.ImportAsync(filePath, jobDate, jobDate);
+        var dataSetId = await importService.ImportAsync(filePath, jobDate, jobDate, null);
         var result = await importService.GetImportResultAsync(dataSetId);
         
         stopwatch.Stop();
@@ -610,7 +610,7 @@ try
         
         try
         {
-            var dataSetId = await importService.ImportAsync(filePath, jobDate, jobDate);
+            var dataSetId = await importService.ImportAsync(filePath, jobDate, jobDate, null);
             var result = await importService.GetImportResultAsync(dataSetId);
             
             stopwatch.Stop();
@@ -675,7 +675,7 @@ try
         
         try
         {
-            var dataSetId = await importService.ImportAsync(filePath, jobDate, jobDate);
+            var dataSetId = await importService.ImportAsync(filePath, jobDate, jobDate, null);
             var result = await importService.GetImportResultAsync(dataSetId);
             
             stopwatch.Stop();
