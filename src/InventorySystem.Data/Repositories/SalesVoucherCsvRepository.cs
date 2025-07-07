@@ -26,11 +26,11 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
             INSERT INTO SalesVouchers (
                 VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
                 CustomerCode, CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                Quantity, UnitPrice, Amount, InventoryUnitPrice, CreatedDate, DataSetId
+                Quantity, UnitPrice, Amount, InventoryUnitPrice, GrossProfit, CreatedDate, DataSetId
             ) VALUES (
                 @VoucherId, @LineNumber, @VoucherNumber, @VoucherDate, @JobDate, @VoucherType, @DetailType,
                 @CustomerCode, @CustomerName, @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
-                @Quantity, @UnitPrice, @Amount, @InventoryUnitPrice, @CreatedDate, @DataSetId
+                @Quantity, @UnitPrice, @Amount, @InventoryUnitPrice, @GrossProfit, @CreatedDate, @DataSetId
             )";
 
         try
@@ -78,6 +78,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
                 voucher.UnitPrice,
                 voucher.Amount,
                 InventoryUnitPrice = voucher.InventoryUnitPrice,
+                voucher.GrossProfit,  // 粗利益を追加（初期値はnull）
                 CreatedDate = now,
                 voucher.DataSetId
             });
@@ -115,7 +116,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
         const string sql = @"
             SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, CustomerCode,
                    CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                   Quantity, UnitPrice, Amount, InventoryUnitPrice, CreatedDate
+                   Quantity, UnitPrice, Amount, InventoryUnitPrice, GrossProfit, CreatedDate
             FROM SalesVouchers 
             WHERE DataSetId = @DataSetId
             ORDER BY VoucherNumber, LineNumber";
@@ -142,7 +143,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
         const string sql = @"
             SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, CustomerCode,
                    CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                   Quantity, UnitPrice, Amount, InventoryUnitPrice, CreatedDate
+                   Quantity, UnitPrice, Amount, InventoryUnitPrice, GrossProfit, CreatedDate
             FROM SalesVouchers 
             WHERE JobDate = @JobDate
             ORDER BY VoucherNumber, LineNumber";
