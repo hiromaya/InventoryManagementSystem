@@ -31,6 +31,7 @@ public class DatabaseSchemaService
             await UpdateVoucherIdSizeAsync();
             await AddProductNameColumnAsync();
             await AddMonthlyColumnsAsync();
+            await AddDepartmentCodeColumnAsync();
             await CreateStoredProceduresAsync();
             
             _logger.LogInformation("データベーススキーマの更新が完了しました。");
@@ -225,6 +226,29 @@ public class DatabaseSchemaService
     }
     
     /// <summary>
+    /// DepartmentCodeカラムの追加
+    /// </summary>
+    private async Task AddDepartmentCodeColumnAsync()
+    {
+        using var connection = new SqlConnection(_connectionString);
+        
+        var departmentCodeExists = await connection.ExecuteScalarAsync<int>(@"
+            SELECT COUNT(*) 
+            FROM sys.columns 
+            WHERE object_id = OBJECT_ID(N'[dbo].[CpInventoryMaster]') 
+            AND name = 'DepartmentCode'") > 0;
+
+        if (!departmentCodeExists)
+        {
+            _logger.LogInformation("CpInventoryMasterテーブルにDepartmentCodeカラムを追加します...");
+            await connection.ExecuteAsync(@"
+                ALTER TABLE [dbo].[CpInventoryMaster]
+                ADD [DepartmentCode] NVARCHAR(10) NOT NULL DEFAULT 'DeptA'");
+            _logger.LogInformation("DepartmentCodeカラムを追加しました。");
+        }
+    }
+    
+    /// <summary>
     /// 必要なストアドプロシージャの作成
     /// </summary>
     private async Task CreateStoredProceduresAsync()
@@ -255,7 +279,7 @@ BEGIN
         INSERT INTO CpInventoryMaster (
             ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
             ProductName, ProductCategory1, ProductCategory2, Unit, StandardPrice,
-            JobDate, DataSetId,
+            JobDate, DataSetId, DepartmentCode,
             PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice, DailyFlag,
             -- 日計売上関連
             DailySalesQuantity, DailySalesAmount, DailySalesReturnQuantity, DailySalesReturnAmount,
@@ -297,15 +321,36 @@ BEGIN
                 ELSE ISNULL(pm.ProductCategory1, '00')
             END AS ProductCategory1,
             ISNULL(pm.ProductCategory2, '00') AS ProductCategory2,
-            im.Unit, im.StandardPrice, im.JobDate, @DataSetId,
+            im.Unit, im.StandardPrice, im.JobDate, @DataSetId, 'DeptA' AS DepartmentCode,
             im.CurrentStock AS PreviousDayStock, 
             im.CurrentStockAmount AS PreviousDayStockAmount, 
             CASE WHEN im.CurrentStock = 0 THEN 0 ELSE im.CurrentStockAmount / im.CurrentStock END AS PreviousDayUnitPrice,
             '9' AS DailyFlag,
-            -- 日計データ（22項目）
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            -- 月計データ（17項目）
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            -- 日計売上関連（4項目）
+            0, 0, 0, 0,
+            -- 日計仕入関連（4項目）
+            0, 0, 0, 0,
+            -- 日計在庫調整関連（2項目）
+            0, 0,
+            -- 日計加工・振替関連（4項目）
+            0, 0, 0, 0,
+            -- 日計出入荷関連（4項目）
+            0, 0, 0, 0,
+            -- 日計粗利関連（4項目）
+            0, 0, 0, 0,
+            -- 日計在庫関連（3項目）
+            0, 0, 0,
+            -- 月計売上関連（4項目）
+            0, 0, 0, 0,
+            -- 月計仕入関連（4項目）
+            0, 0, 0, 0,
+            -- 月計在庫調整関連（2項目）
+            0, 0,
+            -- 月計加工・振替関連（4項目）
+            0, 0, 0, 0,
+            -- 月計粗利関連（3項目）
+            0, 0, 0,
+            -- 作成日時（2項目）
             GETDATE(), GETDATE()
         FROM InventoryMaster im
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
