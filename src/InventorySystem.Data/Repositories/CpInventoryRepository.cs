@@ -673,7 +673,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             LEFT JOIN (
                 SELECT 
                     pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName,
-                    SUM(CASE WHEN sm.Category1 = '1' THEN pv.Amount * 0.01 ELSE 0 END) as IncentiveAmount
+                    SUM(CASE WHEN sm.SupplierCategory1 = '01' THEN pv.Amount * 0.01 ELSE 0 END) as IncentiveAmount
                 FROM PurchaseVouchers pv
                 LEFT JOIN SupplierMaster sm ON pv.SupplierCode = sm.SupplierCode
                 WHERE pv.JobDate = @jobDate
@@ -692,7 +692,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     }
 
     /// <summary>
-    /// 歩引き金を計算する（得意先マスタの汎用数値1×売上金額）
+    /// 歩引き金を計算する（得意先マスタの歩引き率×売上金額）
     /// </summary>
     public async Task<int> CalculateWalkingAmountAsync(string dataSetId, DateTime jobDate)
     {
@@ -703,7 +703,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             LEFT JOIN (
                 SELECT 
                     sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName,
-                    SUM(sv.Amount * ISNULL(cm.CustomField1, 0) / 100) as WalkingAmount
+                    SUM(sv.Amount * ISNULL(cm.WalkingRate, 0) / 100) as WalkingAmount
                 FROM SalesVouchers sv
                 LEFT JOIN CustomerMaster cm ON sv.CustomerCode = cm.CustomerCode
                 WHERE sv.JobDate = @jobDate
