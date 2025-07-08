@@ -372,4 +372,237 @@ END";
             _logger.LogInformation("CP在庫マスタ作成用ストアドプロシージャを作成しました。");
         }
     }
+
+    /// <summary>
+    /// CP在庫マスタ作成用ストアドプロシージャV2の作成
+    /// </summary>
+    public async Task CreateCpInventoryStoredProcedureV2Async()
+    {
+        using var connection = new SqlConnection(_connectionString);
+        
+        _logger.LogInformation("CP在庫マスタ作成用ストアドプロシージャV2を作成します...");
+        
+        // 既存のストアドプロシージャを削除
+        await connection.ExecuteAsync(@"
+            IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'sp_CreateCpInventoryFromInventoryMasterWithProductInfoV2')
+            DROP PROCEDURE sp_CreateCpInventoryFromInventoryMasterWithProductInfoV2");
+
+        var procedureSql = @"
+CREATE PROCEDURE sp_CreateCpInventoryFromInventoryMasterWithProductInfoV2
+    @DataSetId NVARCHAR(50),
+    @JobDate DATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @CreatedCount INT = 0;
+    DECLARE @InitialInventoryDate DATE;
+    DECLARE @ErrorMessage NVARCHAR(MAX);
+    
+    PRINT 'CP在庫マスタ作成処理V2を開始します...';
+    PRINT 'データセットID: ' + @DataSetId;
+    PRINT 'ジョブ日付: ' + CONVERT(VARCHAR(10), @JobDate, 120);
+    
+    BEGIN TRANSACTION;
+    
+    BEGIN TRY
+        -- 初期在庫基準日の決定（前日または直近の在庫データ日付）
+        SELECT TOP 1 @InitialInventoryDate = JobDate
+        FROM InventoryMaster
+        WHERE JobDate <= @JobDate
+        ORDER BY JobDate DESC;
+        
+        IF @InitialInventoryDate IS NULL
+        BEGIN
+            SET @ErrorMessage = '初期在庫データが見つかりません。ジョブ日付: ' + CONVERT(VARCHAR(10), @JobDate, 120);
+            PRINT 'エラー: ' + @ErrorMessage;
+            RAISERROR(@ErrorMessage, 16, 1);
+        END
+        
+        PRINT '初期在庫基準日: ' + CONVERT(VARCHAR(10), @InitialInventoryDate, 120);
+        
+        -- CP在庫マスタの作成
+        INSERT INTO CpInventoryMaster (
+            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+            ProductName, ProductCategory1, ProductCategory2, Unit, StandardPrice,
+            JobDate, DataSetId, DepartmentCode,
+            PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice, DailyFlag,
+            -- 日計売上関連
+            DailySalesQuantity, DailySalesAmount, DailySalesReturnQuantity, DailySalesReturnAmount,
+            -- 日計仕入関連
+            DailyPurchaseQuantity, DailyPurchaseAmount, DailyPurchaseReturnQuantity, DailyPurchaseReturnAmount,
+            -- 日計在庫調整関連
+            DailyInventoryAdjustmentQuantity, DailyInventoryAdjustmentAmount,
+            -- 日計加工・振替関連
+            DailyProcessingQuantity, DailyProcessingAmount,
+            DailyTransferQuantity, DailyTransferAmount,
+            -- 日計出入荷関連
+            DailyReceiptQuantity, DailyReceiptAmount,
+            DailyShipmentQuantity, DailyShipmentAmount,
+            -- 日計粗利関連
+            DailyGrossProfit, DailyWalkingAmount, DailyIncentiveAmount, DailyDiscountAmount,
+            -- 日計在庫関連
+            DailyStock, DailyStockAmount, DailyUnitPrice,
+            -- 月計売上関連
+            MonthlySalesQuantity, MonthlySalesAmount, MonthlySalesReturnQuantity, MonthlySalesReturnAmount,
+            -- 月計仕入関連
+            MonthlyPurchaseQuantity, MonthlyPurchaseAmount, MonthlyPurchaseReturnQuantity, MonthlyPurchaseReturnAmount,
+            -- 月計在庫調整関連
+            MonthlyInventoryAdjustmentQuantity, MonthlyInventoryAdjustmentAmount,
+            -- 月計加工・振替関連
+            MonthlyProcessingQuantity, MonthlyProcessingAmount,
+            MonthlyTransferQuantity, MonthlyTransferAmount,
+            -- 月計粗利関連
+            MonthlyGrossProfit, MonthlyWalkingAmount, MonthlyIncentiveAmount,
+            -- 作成日時
+            CreatedDate, UpdatedDate
+        )
+        SELECT 
+            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ShippingMarkName,
+            ISNULL(pm.ProductName, im.ProductName) AS ProductName,
+            CASE 
+                WHEN LEFT(im.ShippingMarkName, 4) = '9aaa' THEN '8'
+                WHEN LEFT(im.ShippingMarkName, 4) = '1aaa' THEN '6'
+                WHEN LEFT(im.ShippingMarkName, 4) = '0999' THEN '6'
+                ELSE ISNULL(pm.ProductCategory1, '00')
+            END AS ProductCategory1,
+            ISNULL(pm.ProductCategory2, '00') AS ProductCategory2,
+            ISNULL(pm.UnitCode, im.Unit) AS Unit, 
+            ISNULL(pm.StandardPrice, im.StandardPrice) AS StandardPrice,
+            @JobDate AS JobDate, @DataSetId AS DataSetId, 'DeptA' AS DepartmentCode,
+            im.CurrentStock AS PreviousDayStock, 
+            im.CurrentStockAmount AS PreviousDayStockAmount, 
+            CASE 
+                WHEN im.CurrentStock = 0 THEN 0 
+                ELSE ROUND(im.CurrentStockAmount / NULLIF(im.CurrentStock, 0), 4)
+            END AS PreviousDayUnitPrice,
+            '9' AS DailyFlag,
+            -- 日計売上関連（4項目）
+            0, 0, 0, 0,
+            -- 日計仕入関連（4項目）
+            0, 0, 0, 0,
+            -- 日計在庫調整関連（2項目）
+            0, 0,
+            -- 日計加工・振替関連（4項目）
+            0, 0, 0, 0,
+            -- 日計出入荷関連（4項目）
+            0, 0, 0, 0,
+            -- 日計粗利関連（4項目）
+            0, 0, 0, 0,
+            -- 日計在庫関連（3項目）
+            0, 0, 0,
+            -- 月計売上関連（4項目）
+            0, 0, 0, 0,
+            -- 月計仕入関連（4項目）
+            0, 0, 0, 0,
+            -- 月計在庫調整関連（2項目）
+            0, 0,
+            -- 月計加工・振替関連（4項目）
+            0, 0, 0, 0,
+            -- 月計粗利関連（3項目）
+            0, 0, 0,
+            -- 作成日時（2項目）
+            GETDATE(), GETDATE()
+        FROM InventoryMaster im
+        LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
+        WHERE im.JobDate = @InitialInventoryDate;
+        
+        SET @CreatedCount = @@ROWCOUNT;
+        
+        PRINT 'CP在庫マスタ作成完了: ' + CAST(@CreatedCount AS VARCHAR(10)) + '件';
+        
+        -- 0除算防止と異常値チェック
+        IF @CreatedCount = 0
+        BEGIN
+            PRINT '警告: CP在庫マスタが1件も作成されませんでした';
+        END
+        ELSE
+        BEGIN
+            -- 異常値のチェック
+            DECLARE @NegativeStockCount INT;
+            SELECT @NegativeStockCount = COUNT(*)
+            FROM CpInventoryMaster
+            WHERE DataSetId = @DataSetId AND PreviousDayStock < 0;
+            
+            IF @NegativeStockCount > 0
+            BEGIN
+                PRINT '警告: マイナス在庫が ' + CAST(@NegativeStockCount AS VARCHAR(10)) + ' 件見つかりました';
+            END
+        END
+        
+        SELECT @CreatedCount AS CreatedCount, @InitialInventoryDate AS InitialInventoryDate;
+        
+        COMMIT TRANSACTION;
+        PRINT 'トランザクションをコミットしました';
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+            PRINT 'エラーが発生したためトランザクションをロールバックしました';
+        END
+        
+        SET @ErrorMessage = 'CP在庫マスタ作成エラー: ' + ERROR_MESSAGE();
+        PRINT @ErrorMessage;
+        THROW;
+    END CATCH
+    
+    PRINT 'CP在庫マスタ作成処理V2を完了しました';
+END";
+        
+        await connection.ExecuteAsync(procedureSql);
+        _logger.LogInformation("CP在庫マスタ作成用ストアドプロシージャV2を作成しました");
+    }
+
+    /// <summary>
+    /// CP在庫マスタ作成テスト用メソッド
+    /// </summary>
+    public async Task<int> TestCpInventoryCreationAsync(string dataSetId, DateTime jobDate)
+    {
+        using var connection = new SqlConnection(_connectionString);
+        
+        _logger.LogInformation("CP在庫マスタ作成テストを開始します - データセットID: {DataSetId}, ジョブ日付: {JobDate}", 
+            dataSetId, jobDate.ToString("yyyy-MM-dd"));
+        
+        // 作成前の件数を確認
+        var beforeCount = await connection.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM CpInventoryMaster WHERE DataSetId = @DataSetId", 
+            new { DataSetId = dataSetId });
+        
+        _logger.LogInformation("作成前のCP在庫マスタ件数: {Count}件", beforeCount);
+        
+        // 在庫マスタの存在確認
+        var inventoryMasterCount = await connection.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM InventoryMaster WHERE JobDate <= @JobDate",
+            new { JobDate = jobDate });
+        
+        _logger.LogInformation("対象在庫マスタ件数: {Count}件", inventoryMasterCount);
+        
+        if (inventoryMasterCount == 0)
+        {
+            _logger.LogWarning("在庫マスタにデータが存在しません");
+            return 0;
+        }
+        
+        // ストアドプロシージャV2を実行
+        var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+            "EXEC sp_CreateCpInventoryFromInventoryMasterWithProductInfoV2 @DataSetId, @JobDate",
+            new { DataSetId = dataSetId, JobDate = jobDate });
+        
+        var createdCount = result?.CreatedCount ?? 0;
+        var initialInventoryDate = result?.InitialInventoryDate;
+        
+        _logger.LogInformation("CP在庫マスタ作成完了: {CreatedCount}件作成", createdCount);
+        _logger.LogInformation("初期在庫基準日: {InitialInventoryDate}", initialInventoryDate?.ToString("yyyy-MM-dd"));
+        
+        // 作成後の件数を確認
+        var afterCount = await connection.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM CpInventoryMaster WHERE DataSetId = @DataSetId", 
+            new { DataSetId = dataSetId });
+        
+        _logger.LogInformation("作成後のCP在庫マスタ件数: {Count}件", afterCount);
+        
+        return createdCount;
+    }
 }
