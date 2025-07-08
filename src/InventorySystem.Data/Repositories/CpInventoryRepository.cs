@@ -29,6 +29,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         const string sql = """
             UPDATE CpInventoryMaster 
             SET 
+                -- 当日エリアのクリア
                 DailySalesQuantity = 0, DailySalesAmount = 0,
                 DailySalesReturnQuantity = 0, DailySalesReturnAmount = 0,
                 DailyPurchaseQuantity = 0, DailyPurchaseAmount = 0,
@@ -42,6 +43,16 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 DailyIncentiveAmount = 0, DailyDiscountAmount = 0,
                 DailyStock = 0, DailyStockAmount = 0, DailyUnitPrice = 0,
                 DailyFlag = '9',
+                -- 月計フィールドも明示的に0で初期化（アンマッチリストでのエラー回避）
+                MonthlySalesQuantity = 0, MonthlySalesAmount = 0,
+                MonthlySalesReturnQuantity = 0, MonthlySalesReturnAmount = 0,
+                MonthlyPurchaseQuantity = 0, MonthlyPurchaseAmount = 0,
+                MonthlyPurchaseReturnQuantity = 0, MonthlyPurchaseReturnAmount = 0,
+                MonthlyInventoryAdjustmentQuantity = 0, MonthlyInventoryAdjustmentAmount = 0,
+                MonthlyProcessingQuantity = 0, MonthlyProcessingAmount = 0,
+                MonthlyTransferQuantity = 0, MonthlyTransferAmount = 0,
+                MonthlyGrossProfit = 0, MonthlyWalkingAmount = 0,
+                MonthlyIncentiveAmount = 0,
                 UpdatedDate = GETDATE()
             WHERE DataSetId = @DataSetId
             """;
@@ -621,6 +632,95 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         return await connection.ExecuteAsync(sql, new { monthStartDate, jobDate });
     }
     
+    /// <summary>
+    /// 仕入値引を集計する
+    /// </summary>
+    public async Task<int> CalculatePurchaseDiscountAsync(string dataSetId, DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE cp
+            SET cp.DailyDiscountAmount = ISNULL(pv.DiscountAmount, 0)
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    SUM(Amount) as DiscountAmount
+                FROM PurchaseVouchers
+                WHERE JobDate = @jobDate
+                    AND VoucherType IN ('11', '12')
+                    AND DetailType = '4'  -- 値引
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            ) pv ON cp.ProductCode = pv.ProductCode 
+                AND cp.GradeCode = pv.GradeCode 
+                AND cp.ClassCode = pv.ClassCode 
+                AND cp.ShippingMarkCode = pv.ShippingMarkCode 
+                AND cp.ShippingMarkName = pv.ShippingMarkName
+            WHERE cp.DataSetId = @dataSetId";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteAsync(sql, new { dataSetId, jobDate });
+    }
+
+    /// <summary>
+    /// 奨励金を計算する（仕入先分類1='01'の場合、仕入金額の1%）
+    /// </summary>
+    public async Task<int> CalculateIncentiveAsync(string dataSetId, DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE cp
+            SET cp.DailyIncentiveAmount = ISNULL(pv.IncentiveAmount, 0)
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName,
+                    SUM(CASE WHEN sm.Category1 = '1' THEN pv.Amount * 0.01 ELSE 0 END) as IncentiveAmount
+                FROM PurchaseVouchers pv
+                LEFT JOIN SupplierMaster sm ON pv.SupplierCode = sm.SupplierCode
+                WHERE pv.JobDate = @jobDate
+                    AND pv.VoucherType IN ('11', '12')
+                    AND pv.DetailType IN ('1', '3')  -- 仕入、単品値引
+                GROUP BY pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName
+            ) pv ON cp.ProductCode = pv.ProductCode 
+                AND cp.GradeCode = pv.GradeCode 
+                AND cp.ClassCode = pv.ClassCode 
+                AND cp.ShippingMarkCode = pv.ShippingMarkCode 
+                AND cp.ShippingMarkName = pv.ShippingMarkName
+            WHERE cp.DataSetId = @dataSetId";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteAsync(sql, new { dataSetId, jobDate });
+    }
+
+    /// <summary>
+    /// 歩引き金を計算する（得意先マスタの汎用数値1×売上金額）
+    /// </summary>
+    public async Task<int> CalculateWalkingAmountAsync(string dataSetId, DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE cp
+            SET cp.DailyWalkingAmount = ISNULL(sv.WalkingAmount, 0)
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName,
+                    SUM(sv.Amount * ISNULL(cm.CustomField1, 0) / 100) as WalkingAmount
+                FROM SalesVouchers sv
+                LEFT JOIN CustomerMaster cm ON sv.CustomerCode = cm.CustomerCode
+                WHERE sv.JobDate = @jobDate
+                    AND sv.VoucherType IN ('51', '52')
+                    AND sv.DetailType IN ('1', '2', '3')  -- 売上、返品、単品値引
+                GROUP BY sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName
+            ) sv ON cp.ProductCode = sv.ProductCode 
+                AND cp.GradeCode = sv.GradeCode 
+                AND cp.ClassCode = sv.ClassCode 
+                AND cp.ShippingMarkCode = sv.ShippingMarkCode 
+                AND cp.ShippingMarkName = sv.ShippingMarkName
+            WHERE cp.DataSetId = @dataSetId";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteAsync(sql, new { dataSetId, jobDate });
+    }
+
     /// <summary>
     /// 在庫単価を計算する（移動平均法）
     /// </summary>

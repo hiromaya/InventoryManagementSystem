@@ -120,6 +120,21 @@ public interface ICpInventoryRepository
     Task<int> CalculateGrossProfitAsync(string dataSetId, DateTime jobDate);
     
     /// <summary>
+    /// 仕入値引を集計する
+    /// </summary>
+    Task<int> CalculatePurchaseDiscountAsync(string dataSetId, DateTime jobDate);
+    
+    /// <summary>
+    /// 奨励金を計算する（仕入先分類1='01'の場合、仕入金額の1%）
+    /// </summary>
+    Task<int> CalculateIncentiveAsync(string dataSetId, DateTime jobDate);
+    
+    /// <summary>
+    /// 歩引き金を計算する（得意先マスタの汎用数値1×売上金額）
+    /// </summary>
+    Task<int> CalculateWalkingAmountAsync(string dataSetId, DateTime jobDate);
+    
+    /// <summary>
     /// 月計合計を計算する
     /// </summary>
     Task<int> CalculateMonthlyTotalsAsync(string dataSetId, DateTime jobDate);

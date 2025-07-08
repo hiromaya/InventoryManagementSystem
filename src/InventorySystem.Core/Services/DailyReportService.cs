@@ -64,6 +64,16 @@ public class DailyReportService : IDailyReportService
                 var adjustmentResult = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, reportDate);
                 _logger.LogInformation("在庫調整データ集計完了 - 更新件数: {Count}", adjustmentResult);
                 
+                // 経費項目の計算を追加
+                var discountResult = await _cpInventoryRepository.CalculatePurchaseDiscountAsync(dataSetId, reportDate);
+                _logger.LogInformation("仕入値引計算完了 - 更新件数: {Count}", discountResult);
+
+                var incentiveResult = await _cpInventoryRepository.CalculateIncentiveAsync(dataSetId, reportDate);
+                _logger.LogInformation("奨励金計算完了 - 更新件数: {Count}", incentiveResult);
+
+                var walkingResult = await _cpInventoryRepository.CalculateWalkingAmountAsync(dataSetId, reportDate);
+                _logger.LogInformation("歩引き金計算完了 - 更新件数: {Count}", walkingResult);
+                
                 _logger.LogInformation("当日データ集計完了");
 
                 // 4. 当日在庫計算
