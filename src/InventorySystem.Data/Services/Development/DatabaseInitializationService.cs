@@ -172,6 +172,12 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 await FixSchemaInconsistenciesAsync(connection);
             }
             
+            // 強制削除モードの場合、依存関係を考慮した順序で削除
+            if (force)
+            {
+                await DropTablesInOrderAsync(connection);
+            }
+            
             // 各テーブルをチェックして作成
             foreach (var tableName in RequiredTables)
             {
@@ -179,14 +185,8 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 {
                     var exists = await TableExistsAsync(connection, tableName);
                     
-                    if (!exists || force)
+                    if (!exists)
                     {
-                        if (exists && force)
-                        {
-                            await connection.ExecuteAsync($"DROP TABLE IF EXISTS {tableName}");
-                            _logger.LogInformation("既存テーブル {TableName} を削除しました", tableName);
-                        }
-                        
                         // テーブル作成
                         await connection.ExecuteAsync(_tableDefinitions[tableName]);
                         result.CreatedTables.Add(tableName);
@@ -392,6 +392,95 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         {
             _logger.LogError(ex, "カラム存在確認エラー: {Table}.{Column}", tableName, columnName);
             return false;
+        }
+    }
+    
+    /// <summary>
+    /// 依存関係を考慮してテーブルを削除
+    /// </summary>
+    private async Task DropTablesInOrderAsync(SqlConnection connection)
+    {
+        try
+        {
+            _logger.LogInformation("依存関係を考慮してテーブルを削除します");
+            
+            // 削除順序を定義（依存されている側から削除）
+            var dropOrder = new[]
+            {
+                "DateProcessingHistory",    // FileProcessingHistoryに依存
+                "FileProcessingHistory",    // 他のテーブルから参照される
+                "AuditLogs",
+                "DailyCloseManagement",
+                "DatasetManagement",
+                "ProcessHistory"
+            };
+            
+            foreach (var tableName in dropOrder)
+            {
+                if (await TableExistsAsync(connection, tableName))
+                {
+                    try
+                    {
+                        // 外部キー制約を無効化してから削除を試みる
+                        await connection.ExecuteAsync($@"
+                            -- 外部キー制約のチェックを一時的に無効化
+                            ALTER TABLE {tableName} NOCHECK CONSTRAINT ALL;
+                            
+                            -- テーブルを削除
+                            DROP TABLE {tableName};
+                        ");
+                        
+                        _logger.LogInformation("テーブル {TableName} を削除しました", tableName);
+                    }
+                    catch (SqlException ex) when (ex.Number == 3726) // 外部キー制約エラー
+                    {
+                        _logger.LogWarning("外部キー制約により {TableName} を削除できません。関連する外部キーを削除します", tableName);
+                        
+                        // 外部キー制約を削除してから再試行
+                        await DropForeignKeyConstraintsAsync(connection, tableName);
+                        await connection.ExecuteAsync($"DROP TABLE {tableName}");
+                        
+                        _logger.LogInformation("テーブル {TableName} を削除しました（外部キー制約削除後）", tableName);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "テーブル削除中にエラーが発生しました");
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 指定されたテーブルを参照する外部キー制約を削除
+    /// </summary>
+    private async Task DropForeignKeyConstraintsAsync(SqlConnection connection, string tableName)
+    {
+        const string sql = @"
+            SELECT 
+                fk.name AS ConstraintName,
+                OBJECT_NAME(fk.parent_object_id) AS TableName
+            FROM 
+                sys.foreign_keys fk
+            WHERE 
+                OBJECT_NAME(fk.referenced_object_id) = @TableName";
+        
+        var constraints = await connection.QueryAsync<(string ConstraintName, string TableName)>(
+            sql, new { TableName = tableName });
+        
+        foreach (var (constraintName, referencingTable) in constraints)
+        {
+            try
+            {
+                await connection.ExecuteAsync($"ALTER TABLE {referencingTable} DROP CONSTRAINT {constraintName}");
+                _logger.LogInformation("外部キー制約 {ConstraintName} を削除しました（テーブル: {TableName}）", 
+                    constraintName, referencingTable);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "外部キー制約 {ConstraintName} の削除に失敗しました", constraintName);
+            }
         }
     }
 }
