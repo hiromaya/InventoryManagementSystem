@@ -114,6 +114,18 @@ public class UnmatchListService : IUnmatchListService
 
             stopwatch.Stop();
 
+            // CP在庫マスタを削除
+            try
+            {
+                await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+                _logger.LogInformation("CP在庫マスタを削除しました - データセットID: {DataSetId}", dataSetId);
+            }
+            catch (Exception cleanupEx)
+            {
+                _logger.LogError(cleanupEx, "CP在庫マスタの削除に失敗しました - データセットID: {DataSetId}", dataSetId);
+                // 削除に失敗しても処理は成功として扱う
+            }
+
             return new UnmatchListResult
             {
                 Success = true,

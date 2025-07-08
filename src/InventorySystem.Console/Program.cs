@@ -820,6 +820,19 @@ try
                 Console.WriteLine($"PDF生成エラー: {pdfEx.Message}");
             }
             
+            // CP在庫マスタを削除
+            try
+            {
+                var cpInventoryRepository = scopedServices.GetRequiredService<InventorySystem.Core.Interfaces.ICpInventoryRepository>();
+                await cpInventoryRepository.DeleteByDataSetIdAsync(result.DataSetId);
+                logger.LogInformation("CP在庫マスタを削除しました - データセットID: {DataSetId}", result.DataSetId);
+            }
+            catch (Exception cleanupEx)
+            {
+                logger.LogError(cleanupEx, "CP在庫マスタの削除に失敗しました - データセットID: {DataSetId}", result.DataSetId);
+                // 削除に失敗しても処理は成功として扱う
+            }
+
             Console.WriteLine("=== 商品日報処理完了 ===");
         }
         else

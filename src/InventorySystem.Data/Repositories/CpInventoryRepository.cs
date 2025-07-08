@@ -243,7 +243,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 FROM PurchaseVouchers 
                 WHERE JobDate = @JobDate 
                     AND VoucherType IN ('11', '12')
-                    AND DetailType IN ('1', '2')
+                    AND DetailType IN ('1', '2')  -- 仕入、返品のみ（値引は別途計算）
                     AND Quantity <> 0
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) purchase ON cp.ProductCode = purchase.ProductCode 
@@ -260,7 +260,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
 
     public async Task<int> AggregateInventoryAdjustmentDataAsync(string dataSetId, DateTime jobDate)
     {
-        const string sql = """
+        using var connection = new SqlConnection(_connectionString);
+        int totalUpdated = 0;
+
+        // 1. 在庫調整（単位コード: 01, 03, 06）
+        const string adjustmentSql = """
             UPDATE cp
             SET 
                 DailyInventoryAdjustmentQuantity = ISNULL(adj.AdjustmentQuantity, 0),
@@ -281,6 +285,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 WHERE JobDate = @JobDate 
                     AND VoucherType IN ('71', '72')
                     AND DetailType IN ('1', '3', '4')
+                    AND CategoryCode IN (1, 3, 6)  -- 在庫調整の単位コード
                     AND Quantity <> 0
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) adj ON cp.ProductCode = adj.ProductCode 
@@ -290,9 +295,83 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ShippingMarkName COLLATE Japanese_CI_AS = adj.ShippingMarkName COLLATE Japanese_CI_AS
             WHERE cp.DataSetId = @DataSetId
             """;
-
-        using var connection = new SqlConnection(_connectionString);
-        return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId, JobDate = jobDate });
+        
+        var adjustmentResult = await connection.ExecuteAsync(adjustmentSql, new { DataSetId = dataSetId, JobDate = jobDate });
+        totalUpdated += adjustmentResult;
+        
+        // 2. 加工費（単位コード: 02, 05）
+        const string processingSql = """
+            UPDATE cp
+            SET 
+                DailyProcessingQuantity = ISNULL(adj.ProcessingQuantity, 0),
+                DailyProcessingAmount = ISNULL(adj.ProcessingAmount, 0),
+                -- 加工費データが存在する場合のみDailyFlagを'0'に更新
+                DailyFlag = CASE 
+                    WHEN adj.ProductCode IS NOT NULL THEN '0' 
+                    ELSE cp.DailyFlag 
+                END,
+                UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    SUM(Quantity) as ProcessingQuantity,
+                    SUM(Amount) as ProcessingAmount
+                FROM InventoryAdjustments 
+                WHERE JobDate = @JobDate 
+                    AND VoucherType IN ('71', '72')
+                    AND DetailType IN ('1', '3', '4')
+                    AND CategoryCode IN (2, 5)  -- 加工費の単位コード
+                    AND Quantity <> 0
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            ) adj ON cp.ProductCode = adj.ProductCode 
+                AND cp.GradeCode = adj.GradeCode 
+                AND cp.ClassCode = adj.ClassCode 
+                AND cp.ShippingMarkCode = adj.ShippingMarkCode
+                AND cp.ShippingMarkName COLLATE Japanese_CI_AS = adj.ShippingMarkName COLLATE Japanese_CI_AS
+            WHERE cp.DataSetId = @DataSetId
+            """;
+        
+        var processingResult = await connection.ExecuteAsync(processingSql, new { DataSetId = dataSetId, JobDate = jobDate });
+        totalUpdated += processingResult;
+        
+        // 3. 振替（単位コード: 04）
+        const string transferSql = """
+            UPDATE cp
+            SET 
+                DailyTransferQuantity = ISNULL(adj.TransferQuantity, 0),
+                DailyTransferAmount = ISNULL(adj.TransferAmount, 0),
+                -- 振替データが存在する場合のみDailyFlagを'0'に更新
+                DailyFlag = CASE 
+                    WHEN adj.ProductCode IS NOT NULL THEN '0' 
+                    ELSE cp.DailyFlag 
+                END,
+                UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT 
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    SUM(Quantity) as TransferQuantity,
+                    SUM(Amount) as TransferAmount
+                FROM InventoryAdjustments 
+                WHERE JobDate = @JobDate 
+                    AND VoucherType IN ('71', '72')
+                    AND DetailType IN ('1', '3', '4')
+                    AND CategoryCode = 4  -- 振替の単位コード
+                    AND Quantity <> 0
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            ) adj ON cp.ProductCode = adj.ProductCode 
+                AND cp.GradeCode = adj.GradeCode 
+                AND cp.ClassCode = adj.ClassCode 
+                AND cp.ShippingMarkCode = adj.ShippingMarkCode
+                AND cp.ShippingMarkName COLLATE Japanese_CI_AS = adj.ShippingMarkName COLLATE Japanese_CI_AS
+            WHERE cp.DataSetId = @DataSetId
+            """;
+        
+        var transferResult = await connection.ExecuteAsync(transferSql, new { DataSetId = dataSetId, JobDate = jobDate });
+        totalUpdated += transferResult;
+        
+        return totalUpdated;
     }
 
     public async Task<int> CalculateDailyStockAsync(string dataSetId)
@@ -648,7 +727,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 FROM PurchaseVouchers
                 WHERE JobDate = @jobDate
                     AND VoucherType IN ('11', '12')
-                    AND DetailType = '4'  -- 値引
+                    AND DetailType = '3'  -- 単品値引
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) pv ON cp.ProductCode = pv.ProductCode 
                 AND cp.GradeCode = pv.GradeCode 
