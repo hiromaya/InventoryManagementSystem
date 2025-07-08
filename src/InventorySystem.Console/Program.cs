@@ -1773,10 +1773,15 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         else
                         {
                             logger.LogWarning("IGradeMasterRepositoryが未実装のため、等級マスタの取込をスキップします");
-                            await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            // エラー時のファイル移動も無効化
+                            // await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - Service_Not_Implemented", file);
                             continue;
                         }
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
+                        // 現在は他の日付データも処理できるようにファイル移動を無効化
+                        // await fileService.MoveToProcessedAsync(file, department);
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                     }
                     else if (fileName.Contains("階級汎用マスター"))
                     {
@@ -1788,10 +1793,15 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         else
                         {
                             logger.LogWarning("IClassMasterRepositoryが未実装のため、階級マスタの取込をスキップします");
-                            await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            // エラー時のファイル移動も無効化
+                            // await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - Service_Not_Implemented", file);
                             continue;
                         }
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
+                        // 現在は他の日付データも処理できるようにファイル移動を無効化
+                        // await fileService.MoveToProcessedAsync(file, department);
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                     }
                     else if (fileName.Contains("荷印汎用マスター"))
                     {
@@ -1804,10 +1814,15 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         else
                         {
                             logger.LogWarning("IShippingMarkMasterImportServiceが未実装のため、荷印マスタの取込をスキップします");
-                            await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            // エラー時のファイル移動も無効化
+                            // await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - Service_Not_Implemented", file);
                             continue;
                         }
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
+                        // 現在は他の日付データも処理できるようにファイル移動を無効化
+                        // await fileService.MoveToProcessedAsync(file, department);
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                     }
                     else if (fileName.Contains("産地汎用マスター"))
                     {
@@ -1820,10 +1835,15 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         else
                         {
                             logger.LogWarning("IRegionMasterImportServiceが未実装のため、産地マスタの取込をスキップします");
-                            await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            // エラー時のファイル移動も無効化
+                            // await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - Service_Not_Implemented", file);
                             continue;
                         }
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
+                        // 現在は他の日付データも処理できるようにファイル移動を無効化
+                        // await fileService.MoveToProcessedAsync(file, department);
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                     }
                     else if (fileName == "商品.csv")
                     {
@@ -1836,10 +1856,15 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         else
                         {
                             logger.LogWarning("ProductMasterImportServiceが未実装のため、商品マスタの取込をスキップします");
-                            await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            // エラー時のファイル移動も無効化
+                            // await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - Service_Not_Implemented", file);
                             continue;
                         }
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
+                        // 現在は他の日付データも処理できるようにファイル移動を無効化
+                        // await fileService.MoveToProcessedAsync(file, department);
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                     }
                     else if (fileName == "得意先.csv")
                     {
@@ -1852,10 +1877,15 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         else
                         {
                             logger.LogWarning("CustomerMasterImportServiceが未実装のため、得意先マスタの取込をスキップします");
-                            await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            // エラー時のファイル移動も無効化
+                            // await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - Service_Not_Implemented", file);
                             continue;
                         }
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
+                        // 現在は他の日付データも処理できるようにファイル移動を無効化
+                        // await fileService.MoveToProcessedAsync(file, department);
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                     }
                     else if (fileName == "仕入先.csv")
                     {
@@ -1868,10 +1898,15 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         else
                         {
                             logger.LogWarning("SupplierMasterImportServiceが未実装のため、仕入先マスタの取込をスキップします");
-                            await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            // エラー時のファイル移動も無効化
+                            // await fileService.MoveToErrorAsync(file, department, "Service_Not_Implemented");
+                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - Service_Not_Implemented", file);
                             continue;
                         }
-                        await fileService.MoveToProcessedAsync(file, department);
+                        // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
+                        // 現在は他の日付データも処理できるようにファイル移動を無効化
+                        // await fileService.MoveToProcessedAsync(file, department);
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                     }
                     // ========== Phase 2: 初期在庫ファイル ==========
                     else if (fileName == "前月末在庫.csv")
@@ -1883,7 +1918,9 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         if (previousMonthService == null)
                         {
                             logger.LogError("PreviousMonthInventoryImportServiceが登録されていません");
-                            await fileService.MoveToErrorAsync(file, department, "Service_Not_Found");
+                            // エラー時のファイル移動も無効化
+                            // await fileService.MoveToErrorAsync(file, department, "Service_Not_Found");
+                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - Service_Not_Found", file);
                             continue;
                         }
                         
@@ -1891,7 +1928,10 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         
                         if (result.IsSuccess)
                         {
-                            await fileService.MoveToProcessedAsync(file, department);
+                            // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
+                        // 現在は他の日付データも処理できるようにファイル移動を無効化
+                        // await fileService.MoveToProcessedAsync(file, department);
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                             logger.LogInformation("前月末在庫を初期在庫として処理完了: {Count}件", result.ProcessedRecords);
                             
                             // 処理実績に記録（最終サマリーに表示するため）
@@ -1900,7 +1940,9 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         }
                         else
                         {
-                            await fileService.MoveToErrorAsync(file, department, result.Message);
+                            // エラー時のファイル移動も無効化
+                            // await fileService.MoveToErrorAsync(file, department, result.Message);
+                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - {Message}", file, result.Message);
                             logger.LogError("前月末在庫の処理に失敗: {Message}", result.Message);
                             
                             // エラーカウント増加
@@ -1926,7 +1968,9 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         var salesResult = await salesImportService.GetImportResultAsync(dataSetId);
                         processedCounts["売上伝票"] = salesResult.ImportedCount;
                         fileStatistics[fileName] = (salesResult.ImportedCount, 0); // TODO: スキップ数取得
-                        // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
+                        // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
+                        // ImportService内でもファイル移動を無効化済み
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                     }
                     else if (fileName.StartsWith("仕入伝票"))
                     {
@@ -1944,7 +1988,9 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         var purchaseResult = await purchaseImportService.GetImportResultAsync(dataSetId);
                         processedCounts["仕入伝票"] = purchaseResult.ImportedCount;
                         fileStatistics[fileName] = (purchaseResult.ImportedCount, 0); // TODO: スキップ数取得
-                        // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
+                        // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
+                        // ImportService内でもファイル移動を無効化済み
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                     }
                     else if (fileName.StartsWith("受注伝票"))
                     {
@@ -1963,7 +2009,9 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         var adjustmentResult = await adjustmentImportService.GetImportResultAsync(dataSetId);
                         processedCounts["受注伝票（在庫調整）"] = adjustmentResult.ImportedCount;
                         fileStatistics[fileName] = (adjustmentResult.ImportedCount, 0); // TODO: スキップ数取得
-                        // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
+                        // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
+                        // ImportService内でもファイル移動を無効化済み
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                     }
                     else if (fileName.StartsWith("在庫調整"))
                     {
@@ -1973,7 +2021,9 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         var inventoryAdjustmentResult = await adjustmentImportService.GetImportResultAsync(dataSetId);
                         processedCounts["在庫調整"] = inventoryAdjustmentResult.ImportedCount;
                         fileStatistics[fileName] = (inventoryAdjustmentResult.ImportedCount, 0); // TODO: スキップ数取得
-                        // await fileService.MoveToProcessedAsync(file, department); // ImportService内で移動済み
+                        // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
+                        // ImportService内でもファイル移動を無効化済み
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                     }
                     // ========== 未対応ファイル ==========
                     else if (fileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
@@ -1987,19 +2037,25 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         if (knownButUnsupported.Any(pattern => fileName.Contains(pattern)))
                         {
                             Console.WriteLine($"⚠️ {fileName} は現在未対応です（スキップ）");
-                            await fileService.MoveToErrorAsync(file, department, "未対応のCSVファイル形式");
+                            // エラー時のファイル移動も無効化
+                            // await fileService.MoveToErrorAsync(file, department, "未対応のCSVファイル形式");
+                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - 未対応のCSVファイル形式", file);
                         }
                         else
                         {
                             Console.WriteLine($"⚠️ {fileName} は認識できないCSVファイルです");
-                            await fileService.MoveToErrorAsync(file, department, "不明なCSVファイル");
+                            // エラー時のファイル移動も無効化
+                            // await fileService.MoveToErrorAsync(file, department, "不明なCSVファイル");
+                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - 不明なCSVファイル", file);
                         }
                     }
                     else
                     {
                         // CSV以外のファイル
-                        await fileService.MoveToErrorAsync(file, department, "CSVファイル以外は処理対象外");
-                        Console.WriteLine("⚠️ CSVファイル以外のためエラーフォルダへ移動");
+                        // エラー時のファイル移動も無効化
+                        // await fileService.MoveToErrorAsync(file, department, "CSVファイル以外は処理対象外");
+                        logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - CSVファイル以外は処理対象外", file);
+                        Console.WriteLine("⚠️ CSVファイル以外のため処理をスキップ");
                     }
                 }
                 catch (Exception ex)

@@ -31,7 +31,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 StartTime DATETIME2 NOT NULL,
                 EndTime DATETIME2,
                 Status INT NOT NULL,
-                Message NVARCHAR(MAX),
+                ErrorMessage NVARCHAR(MAX),
                 ExecutedBy NVARCHAR(50) NOT NULL,
                 RecordCount INT,
                 ErrorCount INT,

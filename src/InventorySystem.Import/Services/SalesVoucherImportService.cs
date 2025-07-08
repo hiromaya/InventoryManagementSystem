@@ -237,7 +237,8 @@ public class SalesVoucherImportService
             }
 
             // CSV処理成功時、ファイルをProcessedフォルダへ移動
-            await _csvProcessor.MoveToProcessedAsync(filePath, departmentCode);
+            // await _csvProcessor.MoveToProcessedAsync(filePath, departmentCode);
+            _logger.LogInformation("CSV処理成功: ファイル移動をスキップしました - {FilePath}", filePath);
 
             return dataSetId;
         }
@@ -247,14 +248,15 @@ public class SalesVoucherImportService
             _logger.LogError(ex, "売上伝票CSV取込エラー: {FilePath}", filePath);
             
             // エラー時、ファイルをErrorフォルダへ移動
-            try
-            {
-                await _csvProcessor.MoveToErrorAsync(filePath, departmentCode, ex);
-            }
-            catch (Exception moveEx)
-            {
-                _logger.LogError(moveEx, "エラーファイルの移動に失敗しました: {FilePath}", filePath);
-            }
+            // try
+            // {
+            //     await _csvProcessor.MoveToErrorAsync(filePath, departmentCode, ex);
+            // }
+            // catch (Exception moveEx)
+            // {
+            //     _logger.LogError(moveEx, "エラーファイルの移動に失敗しました: {FilePath}", filePath);
+            // }
+            _logger.LogInformation("CSVエラー発生: ファイル移動をスキップしました - {FilePath}", filePath);
             
             throw;
         }

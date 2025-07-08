@@ -129,6 +129,7 @@ namespace InventorySystem.Core.Services
                 BackupType.Daily => Path.Combine(rootPath, "Daily", date.ToString("yyyy"), date.ToString("MM")),
                 BackupType.Weekly => Path.Combine(rootPath, "Weekly", date.Year.ToString()),
                 BackupType.Monthly => Path.Combine(rootPath, "Monthly", date.Year.ToString()),
+                BackupType.BeforeDailyClose => Path.Combine(rootPath, "DailyClose", date.ToString("yyyy"), date.ToString("MM")),
                 _ => throw new ArgumentException($"サポートされていないバックアップタイプ: {backupType}")
             };
         }
@@ -163,6 +164,7 @@ namespace InventorySystem.Core.Services
                 await EnsureDirectoryExistsAsync(GetBackupPath(BackupType.Daily, currentDate));
                 await EnsureDirectoryExistsAsync(GetBackupPath(BackupType.Weekly, currentDate));
                 await EnsureDirectoryExistsAsync(GetBackupPath(BackupType.Monthly, currentDate));
+                await EnsureDirectoryExistsAsync(GetBackupPath(BackupType.BeforeDailyClose, currentDate));
 
                 _logger.LogInformation("ディレクトリ構造の初期化が完了しました");
             }
