@@ -36,4 +36,9 @@ public interface IInventoryRepository
     /// 売上・仕入・在庫調整から在庫マスタの初期データを作成
     /// </summary>
     Task<int> CreateInitialInventoryFromVouchersAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// 指定日付の在庫マスタ件数を取得
+    /// </summary>
+    Task<int> GetCountByJobDateAsync(DateTime jobDate);
 }

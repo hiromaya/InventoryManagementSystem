@@ -527,4 +527,197 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             result.Changes.Add($"在庫調整 {adjustmentChanges}件");
         }
     }
+    
+    /// <summary>
+    /// 開発環境用の日次終了処理実行メソッド
+    /// </summary>
+    /// <param name="jobDate">処理対象日</param>
+    /// <param name="skipValidation">バリデーションをスキップするか</param>
+    /// <param name="dryRun">ドライランモード（実際の更新を行わない）</param>
+    /// <returns>処理結果</returns>
+    public async Task<DailyCloseResult> ExecuteDevelopmentAsync(DateTime jobDate, bool skipValidation = false, bool dryRun = false)
+    {
+        _logger.LogWarning("開発モードで日次終了処理を実行します。JobDate={JobDate}, SkipValidation={Skip}, DryRun={Dry}", 
+            jobDate, skipValidation, dryRun);
+        
+        var result = new DailyCloseResult
+        {
+            JobDate = jobDate,
+            StartTime = DateTime.Now,
+            IsDevelopmentMode = true
+        };
+        
+        try
+        {
+            // データの存在確認
+            if (!skipValidation)
+            {
+                var dataExists = await CheckDataExistsAsync(jobDate);
+                if (!dataExists)
+                {
+                    throw new InvalidOperationException($"{jobDate:yyyy-MM-dd}のデータが存在しません");
+                }
+            }
+            
+            // 商品日報のDatasetIdを取得
+            var dailyReportDatasetId = await _datasetManager.GetLatestDatasetId("DAILY_REPORT", jobDate);
+            if (string.IsNullOrEmpty(dailyReportDatasetId) && !skipValidation)
+            {
+                throw new InvalidOperationException($"{jobDate:yyyy-MM-dd}の商品日報が作成されていません");
+            }
+            
+            result.DatasetId = dailyReportDatasetId ?? "DEV-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+            
+            if (dryRun)
+            {
+                _logger.LogInformation("ドライランモード：実際の更新は行いません");
+                result = await SimulateProcessAsync(jobDate, result);
+            }
+            else
+            {
+                // 実際の処理を実行（時間制約なし）
+                result = await ExecuteInternalAsync(jobDate, dailyReportDatasetId, skipTimeValidation: true);
+            }
+            
+            result.EndTime = DateTime.Now;
+            result.Success = true;
+            result.ProcessingTime = result.EndTime.Value - result.StartTime;
+            
+            _logger.LogInformation("開発モードの日次終了処理が完了しました。処理時間: {Time}秒", 
+                result.ProcessingTime.TotalSeconds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "開発モードの日次終了処理でエラーが発生しました");
+            result.Success = false;
+            result.ErrorMessage = ex.Message;
+            result.EndTime = DateTime.Now;
+            throw;
+        }
+        
+        return result;
+    }
+    
+    /// <summary>
+    /// 日次終了処理のシミュレーション（ドライラン）
+    /// </summary>
+    private async Task<DailyCloseResult> SimulateProcessAsync(DateTime jobDate, DailyCloseResult result)
+    {
+        _logger.LogInformation("=== 日次終了処理シミュレーション開始 ===");
+        
+        // 更新対象の在庫マスタ件数を取得
+        var inventoryCount = await _inventoryRepository.GetCountByJobDateAsync(jobDate);
+        result.UpdatedInventoryCount = inventoryCount;
+        
+        _logger.LogInformation("更新対象在庫マスタ: {Count}件", inventoryCount);
+        
+        // CP在庫マスタの統計情報
+        var cpInventoryStats = await _cpInventoryRepository.GetAggregationResultAsync(result.DatasetId);
+        _logger.LogInformation("CP在庫マスタ統計:");
+        _logger.LogInformation("  - 総件数: {Total}", cpInventoryStats.TotalCount);
+        _logger.LogInformation("  - 集計済み: {Aggregated}", cpInventoryStats.AggregatedCount);
+        _logger.LogInformation("  - 未集計: {NotAggregated}", cpInventoryStats.NotAggregatedCount);
+        
+        // バックアップパスのシミュレーション
+        result.BackupPath = $"D:\\InventoryBackup\\{jobDate:yyyyMMdd}\\inventory_backup_{DateTime.Now:yyyyMMddHHmmss}.bak";
+        _logger.LogInformation("バックアップパス（シミュレーション）: {Path}", result.BackupPath);
+        
+        // データハッシュの計算
+        result.DataHash = await CalculateCurrentDataHash(jobDate);
+        _logger.LogInformation("データハッシュ: {Hash}", result.DataHash.Substring(0, 16) + "...");
+        
+        _logger.LogInformation("=== 日次終了処理シミュレーション完了 ===");
+        _logger.LogInformation("※ドライランモードのため、実際の更新は行われていません");
+        
+        return result;
+    }
+    
+    /// <summary>
+    /// 内部処理実行（時間制約スキップオプション付き）
+    /// </summary>
+    private async Task<DailyCloseResult> ExecuteInternalAsync(DateTime jobDate, string dailyReportDatasetId, bool skipTimeValidation = false)
+    {
+        var result = new DailyCloseResult
+        {
+            JobDate = jobDate,
+            DatasetId = dailyReportDatasetId,
+            StartTime = DateTime.Now
+        };
+        
+        var context = await InitializeContext(jobDate);
+        var executedBy = Environment.UserName;
+        
+        // 履歴記録
+        var history = await _historyService.StartProcess(jobDate, ProcessTypes.DailyClose, 
+            dailyReportDatasetId, $"日次終了処理開始{(skipTimeValidation ? " (開発モード)" : "")}", executedBy);
+        
+        try
+        {
+            // 時間的制約の検証（開発モードではスキップ可能）
+            if (!skipTimeValidation)
+            {
+                await ValidateProcessingTime(jobDate, dailyReportDatasetId);
+            }
+            else
+            {
+                _logger.LogWarning("時間的制約の検証をスキップしました（開発モード）");
+            }
+            
+            // データ整合性の検証
+            var validationResult = await ValidateDataIntegrity(jobDate, dailyReportDatasetId);
+            if (!validationResult.IsValid)
+            {
+                throw new InvalidOperationException(
+                    string.Format(ErrorMessages.DataIntegrityError, string.Join(", ", validationResult.Changes)));
+            }
+            
+            // バックアップ作成
+            var backupPath = await _backupService.CreateBackup(jobDate, BackupType.BeforeDailyClose);
+            _logger.LogInformation("バックアップ作成完了: {BackupPath}", backupPath);
+            result.BackupPath = backupPath;
+            
+            // 在庫マスタ更新
+            var updateCount = await UpdateInventoryMaster(context);
+            result.UpdatedInventoryCount = updateCount;
+            
+            // 日次終了管理テーブルに記録
+            await RecordDailyClose(jobDate, dailyReportDatasetId, backupPath, executedBy, validationResult.CurrentHash);
+            
+            // 完了処理
+            await _historyService.CompleteProcess(history.Id, true, 
+                $"日次終了処理が正常に完了しました。更新件数: {updateCount}");
+            
+            result.Success = true;
+            result.DataHash = validationResult.CurrentHash;
+            
+            _logger.LogInformation("日次終了処理完了: JobDate={JobDate}, 更新件数={Count}", jobDate, updateCount);
+        }
+        catch (Exception ex)
+        {
+            await _historyService.CompleteProcess(history.Id, false, ex.Message);
+            _logger.LogError(ex, "日次終了処理エラー");
+            result.Success = false;
+            result.ErrorMessage = ex.Message;
+            throw;
+        }
+        finally
+        {
+            result.EndTime = DateTime.Now;
+            result.ProcessingTime = result.EndTime.Value - result.StartTime;
+        }
+        
+        return result;
+    }
+    
+    /// <summary>
+    /// データの存在確認
+    /// </summary>
+    private async Task<bool> CheckDataExistsAsync(DateTime jobDate)
+    {
+        var salesCount = await _salesRepository.GetCountAsync(jobDate);
+        var purchaseCount = await _purchaseRepository.GetCountAsync(jobDate);
+        var adjustmentCount = await _adjustmentRepository.GetCountAsync(jobDate);
+        
+        return (salesCount + purchaseCount + adjustmentCount) > 0;
+    }
 }

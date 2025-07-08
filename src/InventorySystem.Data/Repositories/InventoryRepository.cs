@@ -656,4 +656,20 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             throw;
         }
     }
+    
+    public async Task<int> GetCountByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = "SELECT COUNT(*) FROM InventoryMaster WHERE JobDate = @JobDate";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            return await connection.ExecuteScalarAsync<int>(sql, new { JobDate = jobDate });
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetCountByJobDateAsync), new { jobDate });
+            throw;
+        }
+    }
 }

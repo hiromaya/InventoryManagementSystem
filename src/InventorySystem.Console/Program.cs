@@ -205,6 +205,20 @@ builder.Services.AddScoped<IInventoryMasterOptimizationService, InventorySystem.
 // 特殊日付範囲サービス
 builder.Services.AddScoped<ISpecialDateRangeService, SpecialDateRangeService>();
 
+// 開発環境用サービス
+builder.Services.AddScoped<InventorySystem.Core.Interfaces.Development.IDatabaseInitializationService>(provider =>
+    new InventorySystem.Core.Services.Development.DatabaseInitializationService(
+        connectionString, 
+        provider.GetRequiredService<ILogger<InventorySystem.Core.Services.Development.DatabaseInitializationService>>()));
+builder.Services.AddScoped<InventorySystem.Core.Interfaces.Development.IDailyCloseResetService>(provider =>
+    new InventorySystem.Core.Services.Development.DailyCloseResetService(
+        connectionString,
+        provider.GetRequiredService<ILogger<InventorySystem.Core.Services.Development.DailyCloseResetService>>()));
+builder.Services.AddScoped<InventorySystem.Core.Interfaces.Development.IDataStatusCheckService>(provider =>
+    new InventorySystem.Core.Services.Development.DataStatusCheckService(
+        connectionString,
+        provider.GetRequiredService<ILogger<InventorySystem.Core.Services.Development.DataStatusCheckService>>()));
+
 var host = builder.Build();
 
 // Initialize department folders at startup
@@ -243,6 +257,13 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  dotnet run import-masters                    - 等級・階級マスタをインポート");
     Console.WriteLine("  dotnet run check-masters                     - 等級・階級マスタの登録状況を確認");
     Console.WriteLine("  dotnet run init-inventory [YYYY-MM-DD]       - 在庫マスタ初期データを作成");
+    Console.WriteLine("");
+    Console.WriteLine("【開発環境用コマンド】");
+    Console.WriteLine("  dotnet run init-database [--force]           - データベース初期化");
+    Console.WriteLine("  dotnet run reset-daily-close <YYYY-MM-DD> [--all] - 日次終了処理リセット");
+    Console.WriteLine("  dotnet run dev-daily-close <YYYY-MM-DD> [--skip-validation] [--dry-run] - 開発用日次終了処理");
+    Console.WriteLine("  dotnet run check-data-status <YYYY-MM-DD>    - データ状態確認");
+    Console.WriteLine("");
     Console.WriteLine("  例: dotnet run test-connection");
     Console.WriteLine("  例: dotnet run unmatch-list 2025-06-16");
     Console.WriteLine("  例: dotnet run daily-report 2025-06-16");
@@ -251,6 +272,10 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  例: dotnet run import-masters");
     Console.WriteLine("  例: dotnet run check-masters");
     Console.WriteLine("  例: dotnet run init-inventory 2025-06-16");
+    Console.WriteLine("  例: dotnet run init-database --force");
+    Console.WriteLine("  例: dotnet run reset-daily-close 2025-06-30 --all");
+    Console.WriteLine("  例: dotnet run dev-daily-close 2025-06-30 --dry-run");
+    Console.WriteLine("  例: dotnet run check-data-status 2025-06-30");
     return 1;
 }
 
@@ -334,6 +359,23 @@ try
         
         case "check-daily-close":
             await ExecuteCheckDailyCloseAsync(host.Services, commandArgs);
+            break;
+            
+        // 開発環境用コマンド
+        case "init-database":
+            await ExecuteInitDatabaseAsync(host.Services, commandArgs);
+            break;
+            
+        case "reset-daily-close":
+            await ExecuteResetDailyCloseAsync(host.Services, commandArgs);
+            break;
+            
+        case "dev-daily-close":
+            await ExecuteDevDailyCloseAsync(host.Services, commandArgs);
+            break;
+            
+        case "check-data-status":
+            await ExecuteCheckDataStatusAsync(host.Services, commandArgs);
             break;
             
         case "create-cp-inventory":
@@ -2450,6 +2492,223 @@ private static async Task ExecuteCreateCpInventoryAsync(IServiceProvider service
             Console.WriteLine($"エラー: {ex.Message}");
         }
     }
+}
+
+/// <summary>
+/// データベース初期化コマンドを実行
+/// </summary>
+private static async Task ExecuteInitDatabaseAsync(IServiceProvider services, string[] args)
+{
+    // 開発環境チェック
+    if (!IsDevelopmentEnvironment())
+    {
+        Console.WriteLine("❌ このコマンドは開発環境でのみ使用可能です");
+        return;
+    }
+    
+    using var scope = services.CreateScope();
+    var scopedServices = scope.ServiceProvider;
+    var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+    var initService = scopedServices.GetRequiredService<InventorySystem.Core.Interfaces.Development.IDatabaseInitializationService>();
+    
+    try
+    {
+        var force = args.Any(a => a == "--force");
+        
+        Console.WriteLine("=== データベース初期化 ===");
+        if (force)
+        {
+            Console.WriteLine("⚠️ --forceオプションが指定されました。既存テーブルが削除されます。");
+            Console.Write("続行しますか？ (y/N): ");
+            var confirm = Console.ReadLine();
+            if (confirm?.ToLower() != "y")
+            {
+                Console.WriteLine("処理を中止しました。");
+                return;
+            }
+        }
+        
+        var result = await initService.InitializeDatabaseAsync(force);
+        Console.WriteLine(result.GetSummary());
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "データベース初期化でエラーが発生しました");
+        Console.WriteLine($"エラー: {ex.Message}");
+    }
+}
+
+/// <summary>
+/// 日次終了処理リセットコマンドを実行
+/// </summary>
+private static async Task ExecuteResetDailyCloseAsync(IServiceProvider services, string[] args)
+{
+    // 開発環境チェック
+    if (!IsDevelopmentEnvironment())
+    {
+        Console.WriteLine("❌ このコマンドは開発環境でのみ使用可能です");
+        return;
+    }
+    
+    if (args.Length < 3)
+    {
+        Console.WriteLine("使用方法: dotnet run reset-daily-close <YYYY-MM-DD> [--all]");
+        return;
+    }
+    
+    using var scope = services.CreateScope();
+    var scopedServices = scope.ServiceProvider;
+    var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+    var resetService = scopedServices.GetRequiredService<InventorySystem.Core.Interfaces.Development.IDailyCloseResetService>();
+    
+    try
+    {
+        if (!DateTime.TryParse(args[2], out var jobDate))
+        {
+            Console.WriteLine("日付形式が正しくありません。YYYY-MM-DD形式で指定してください。");
+            return;
+        }
+        
+        var resetAll = args.Any(a => a == "--all");
+        
+        Console.WriteLine($"=== 日次終了処理リセット: {jobDate:yyyy-MM-dd} ===");
+        
+        // 関連データ状態を確認
+        var status = await resetService.GetRelatedDataStatusAsync(jobDate);
+        if (!status.HasDailyCloseRecord)
+        {
+            Console.WriteLine("指定日付の日次終了処理は実行されていません。");
+            return;
+        }
+        
+        Console.WriteLine($"日次終了処理実行日時: {status.LastDailyCloseAt:yyyy-MM-dd HH:mm:ss}");
+        Console.WriteLine($"処理実行者: {status.LastProcessedBy}");
+        
+        if (status.HasNextDayData && !resetAll)
+        {
+            Console.WriteLine("⚠️ 翌日以降のデータが存在します。--all オプションを使用してください。");
+            return;
+        }
+        
+        if (resetAll)
+        {
+            Console.WriteLine("⚠️ 在庫マスタもリセットされます。");
+        }
+        
+        Console.Write("続行しますか？ (y/N): ");
+        var confirm = Console.ReadLine();
+        if (confirm?.ToLower() != "y")
+        {
+            Console.WriteLine("処理を中止しました。");
+            return;
+        }
+        
+        var result = await resetService.ResetDailyCloseAsync(jobDate, resetAll);
+        Console.WriteLine(result.GetSummary());
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "日次終了処理リセットでエラーが発生しました");
+        Console.WriteLine($"エラー: {ex.Message}");
+    }
+}
+
+/// <summary>
+/// 開発用日次終了処理コマンドを実行
+/// </summary>
+private static async Task ExecuteDevDailyCloseAsync(IServiceProvider services, string[] args)
+{
+    // 開発環境チェック
+    if (!IsDevelopmentEnvironment())
+    {
+        Console.WriteLine("❌ このコマンドは開発環境でのみ使用可能です");
+        return;
+    }
+    
+    if (args.Length < 3)
+    {
+        Console.WriteLine("使用方法: dotnet run dev-daily-close <YYYY-MM-DD> [--skip-validation] [--dry-run]");
+        return;
+    }
+    
+    using var scope = services.CreateScope();
+    var scopedServices = scope.ServiceProvider;
+    var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+    var dailyCloseService = scopedServices.GetRequiredService<IDailyCloseService>();
+    
+    try
+    {
+        if (!DateTime.TryParse(args[2], out var jobDate))
+        {
+            Console.WriteLine("日付形式が正しくありません。YYYY-MM-DD形式で指定してください。");
+            return;
+        }
+        
+        var skipValidation = args.Any(a => a == "--skip-validation");
+        var dryRun = args.Any(a => a == "--dry-run");
+        
+        Console.WriteLine($"=== 開発用日次終了処理: {jobDate:yyyy-MM-dd} ===");
+        Console.WriteLine($"オプション: SkipValidation={skipValidation}, DryRun={dryRun}");
+        Console.WriteLine();
+        
+        if (dryRun)
+        {
+            Console.WriteLine("ドライランモードで実行します（実際の更新は行いません）");
+        }
+        
+        var result = await dailyCloseService.ExecuteDevelopmentAsync(jobDate, skipValidation, dryRun);
+        
+        Console.WriteLine();
+        Console.WriteLine(result.GetSummary());
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "開発用日次終了処理でエラーが発生しました");
+        Console.WriteLine($"エラー: {ex.Message}");
+    }
+}
+
+/// <summary>
+/// データ状態確認コマンドを実行
+/// </summary>
+private static async Task ExecuteCheckDataStatusAsync(IServiceProvider services, string[] args)
+{
+    if (args.Length < 3)
+    {
+        Console.WriteLine("使用方法: dotnet run check-data-status <YYYY-MM-DD>");
+        return;
+    }
+    
+    using var scope = services.CreateScope();
+    var scopedServices = scope.ServiceProvider;
+    var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+    var statusService = scopedServices.GetRequiredService<InventorySystem.Core.Interfaces.Development.IDataStatusCheckService>();
+    
+    try
+    {
+        if (!DateTime.TryParse(args[2], out var jobDate))
+        {
+            Console.WriteLine("日付形式が正しくありません。YYYY-MM-DD形式で指定してください。");
+            return;
+        }
+        
+        var report = await statusService.GetDataStatusAsync(jobDate);
+        statusService.DisplayReport(report);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "データ状態確認でエラーが発生しました");
+        Console.WriteLine($"エラー: {ex.Message}");
+    }
+}
+
+/// <summary>
+/// 開発環境チェック
+/// </summary>
+private static bool IsDevelopmentEnvironment()
+{
+    var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+    return environment == "Development" || string.IsNullOrEmpty(environment);
 }
 
 } // Program クラスの終了
