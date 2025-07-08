@@ -75,7 +75,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 RecordKey NVARCHAR(200),
                 OldValue NVARCHAR(MAX),
                 NewValue NVARCHAR(MAX),
-                User NVARCHAR(50) NOT NULL,
+                [User] NVARCHAR(50) NOT NULL,
                 IPAddress NVARCHAR(50),
                 Comment NVARCHAR(MAX)
             )",
