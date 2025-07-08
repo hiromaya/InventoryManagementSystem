@@ -881,3 +881,127 @@ builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListRepo
 - `/src/InventorySystem.Reports/FastReport/Templates/*.frx`
 
 **理由**: FastReportはこのシステムの中核機能であり、PDF帳票生成の唯一の本番実装です。
+
+## 🤝 Gemini CLI 連携ガイド
+
+### 目的
+ユーザーが **「Geminiと相談しながら進めて」** （または同義語）と指示した場合、Claude は以降のタスクを **Gemini CLI** と協調しながら進める。
+Gemini から得た回答はそのまま提示し、Claude 自身の解説・統合も付け加えることで、両エージェントの知見を融合する。
+
+### トリガー
+- 正規表現: `/Gemini.*相談しながら/`
+- 例:
+  - 「Geminiと相談しながら進めて」
+  - 「この件、Geminiと話しつつやりましょう」
+  - 「Geminiの意見も聞きながら実装して」
+
+### 基本フロー
+
+#### 1. PROMPT 生成
+Claude はユーザーの要件を 1 つのテキストにまとめ、環境変数 `$PROMPT` に格納する。
+
+#### 2. Gemini CLI 呼び出し
+```bash
+# Gemini CLIを直接実行する方法
+export PROMPT="ここに質問や要件を記載"
+gemini <<EOF
+$PROMPT
+EOF
+```
+
+#### 3. 結果の統合
+1. Gemini の回答を**そのまま**ユーザーに提示
+2. Claude が補足説明や実装の詳細を追加
+3. 両方の見解を統合した最終的な解決策を提示
+
+### 実装例
+
+#### 例1: アーキテクチャ設計の相談
+```bash
+# ユーザー: 「新しいキャッシュ機構の設計をGeminiと相談しながら進めて」
+
+# Claude の処理:
+export PROMPT="Redis を使った分散キャッシュシステムの設計について、以下の要件で最適なアーキテクチャを提案してください：
+- 高可用性（99.99%）
+- 秒間10万リクエスト対応
+- データ整合性の保証
+- 自動フェイルオーバー"
+
+gemini <<EOF
+$PROMPT
+EOF
+```
+
+#### 例2: 技術選定の相談
+```bash
+# ユーザー: 「GraphQL vs REST APIの選択をGeminiと話しつつ決めましょう」
+
+# Claude の処理:
+export PROMPT="マイクロサービス環境でのAPI設計において、GraphQLとREST APIの選択基準と、それぞれのメリット・デメリットを比較してください。特に以下の観点から：
+- パフォーマンス
+- 開発効率
+- クライアント側の柔軟性
+- キャッシング戦略"
+
+gemini <<EOF
+$PROMPT
+EOF
+```
+
+### 統合時の注意事項
+
+1. **Gemini の回答は改変しない**
+   - 原文のまま提示する
+   - 引用として明確に区別する
+
+2. **相互補完的な情報提供**
+   - Gemini: 最新のトレンドや一般的なベストプラクティス
+   - Claude: プロジェクト固有の実装詳細やコード例
+
+3. **意見が異なる場合**
+   - 両方の見解を併記
+   - プロジェクトの文脈に基づいた推奨案を提示
+
+### 連携が特に有効なケース
+
+1. **最新技術の調査**
+   - 新しいフレームワークの評価
+   - 業界トレンドの把握
+
+2. **アーキテクチャ設計**
+   - システム全体の構成検討
+   - スケーラビリティの考慮
+
+3. **技術選定**
+   - ツールやライブラリの比較
+   - 導入リスクの評価
+
+4. **問題解決のブレインストーミング**
+   - 複数のアプローチの検討
+   - 創造的な解決策の模索
+
+### 実行時のログ記録
+
+Gemini との連携内容は、以下のように記録する：
+
+```bash
+# .claude/gemini_consultations/ ディレクトリに保存
+echo "=== Gemini Consultation $(date) ===" >> .claude/gemini_consultations/$(date +%Y%m%d_%H%M%S).log
+echo "PROMPT: $PROMPT" >> .claude/gemini_consultations/$(date +%Y%m%d_%H%M%S).log
+echo "RESPONSE:" >> .claude/gemini_consultations/$(date +%Y%m%d_%H%M%S).log
+# Gemini の回答を記録
+```
+
+### 制限事項
+
+1. **機密情報の取り扱い**
+   - プロジェクト固有の機密情報は含めない
+   - 一般的な技術的質問に留める
+
+2. **実装の最終判断**
+   - Gemini の提案は参考意見として扱う
+   - プロジェクトの要件に基づいて Claude が最終的な実装を決定
+
+3. **依存関係の管理**
+   - Gemini CLI が利用できない場合は、その旨をユーザーに通知
+   - 代替手段として、Claude 単独での対応を提案
