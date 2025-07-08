@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
@@ -18,14 +19,133 @@ public class DatabaseInitializationService : IDatabaseInitializationService
     private readonly string _connectionString;
     private readonly ILogger<DatabaseInitializationService> _logger;
     
-    // 管理対象テーブル
-    private readonly string[] _requiredTables = new[]
+    // テーブル定義をコード内に保持（SQLファイル依存を解消）
+    private readonly Dictionary<string, string> _tableDefinitions = new Dictionary<string, string>
     {
-        "DatasetManagement",
-        "ProcessHistory",
-        "DailyCloseManagement",
-        "AuditLogs"
+        ["ProcessHistory"] = @"
+            CREATE TABLE ProcessHistory (
+                Id INT IDENTITY(1,1) PRIMARY KEY,
+                DatasetId NVARCHAR(50) NOT NULL,
+                JobDate DATE NOT NULL,
+                ProcessType NVARCHAR(50) NOT NULL,
+                StartTime DATETIME2 NOT NULL,
+                EndTime DATETIME2,
+                Status INT NOT NULL,
+                Message NVARCHAR(MAX),
+                ExecutedBy NVARCHAR(50) NOT NULL,
+                RecordCount INT,
+                ErrorCount INT,
+                DataHash NVARCHAR(100)
+            )",
+        
+        ["DatasetManagement"] = @"
+            CREATE TABLE DatasetManagement (
+                DatasetId NVARCHAR(50) PRIMARY KEY,
+                JobDate DATE NOT NULL,
+                ProcessType NVARCHAR(50) NOT NULL,
+                ImportedFiles NVARCHAR(MAX),
+                TotalRecordCount INT NOT NULL DEFAULT 0,
+                CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
+                CreatedBy NVARCHAR(50) NOT NULL
+            )",
+        
+        ["DailyCloseManagement"] = @"
+            CREATE TABLE DailyCloseManagement (
+                JobDate DATE NOT NULL PRIMARY KEY,
+                DatasetId NVARCHAR(50) NOT NULL,
+                DailyReportDatasetId NVARCHAR(50),
+                ProcessedAt DATETIME2,
+                ProcessedBy NVARCHAR(50),
+                ValidationStatus NVARCHAR(20),
+                ValidationMessage NVARCHAR(MAX),
+                DataHash NVARCHAR(100),
+                UpdatedInventoryCount INT DEFAULT 0,
+                BackupPath NVARCHAR(500),
+                CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE()
+            )",
+        
+        ["AuditLogs"] = @"
+            CREATE TABLE AuditLogs (
+                LogId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                LogDate DATETIME2 NOT NULL DEFAULT GETDATE(),
+                JobDate DATE,
+                ProcessType NVARCHAR(50) NOT NULL,
+                Action NVARCHAR(100) NOT NULL,
+                TableName NVARCHAR(100),
+                RecordKey NVARCHAR(200),
+                OldValue NVARCHAR(MAX),
+                NewValue NVARCHAR(MAX),
+                User NVARCHAR(50) NOT NULL,
+                IPAddress NVARCHAR(50),
+                Comment NVARCHAR(MAX)
+            )",
+        
+        ["FileProcessingHistory"] = @"
+            CREATE TABLE FileProcessingHistory (
+                Id INT IDENTITY(1,1) PRIMARY KEY,
+                FileName NVARCHAR(255) NOT NULL,
+                FileHash NVARCHAR(64) NOT NULL,
+                FileSize BIGINT NOT NULL,
+                FirstProcessedAt DATETIME2 NOT NULL,
+                LastProcessedAt DATETIME2 NOT NULL,
+                TotalRecordCount INT NOT NULL,
+                FileType NVARCHAR(50) NOT NULL
+            )",
+        
+        ["DateProcessingHistory"] = @"
+            CREATE TABLE DateProcessingHistory (
+                Id INT IDENTITY(1,1) PRIMARY KEY,
+                FileHistoryId INT NOT NULL,
+                JobDate DATE NOT NULL,
+                ProcessedAt DATETIME2 NOT NULL,
+                RecordCount INT NOT NULL,
+                DatasetId NVARCHAR(50) NOT NULL,
+                ProcessType NVARCHAR(50) NOT NULL,
+                Department NVARCHAR(50) NOT NULL,
+                ExecutedBy NVARCHAR(50) NOT NULL DEFAULT 'System',
+                CONSTRAINT FK_DateProcessingHistory_FileProcessingHistory 
+                    FOREIGN KEY (FileHistoryId) REFERENCES FileProcessingHistory(Id)
+            )"
     };
+
+    // インデックス定義
+    private readonly Dictionary<string, List<string>> _indexDefinitions = new Dictionary<string, List<string>>
+    {
+        ["ProcessHistory"] = new List<string>
+        {
+            "CREATE INDEX IX_ProcessHistory_JobDate_ProcessType ON ProcessHistory(JobDate, ProcessType)",
+            "CREATE INDEX IX_ProcessHistory_DatasetId ON ProcessHistory(DatasetId)"
+        },
+        ["DatasetManagement"] = new List<string>
+        {
+            "CREATE INDEX IX_DatasetManagement_JobDate ON DatasetManagement(JobDate)"
+        },
+        ["DailyCloseManagement"] = new List<string>
+        {
+            "CREATE INDEX IX_DailyCloseManagement_DatasetId ON DailyCloseManagement(DatasetId)"
+        },
+        ["AuditLogs"] = new List<string>
+        {
+            "CREATE INDEX IX_AuditLogs_LogDate ON AuditLogs(LogDate)",
+            "CREATE INDEX IX_AuditLogs_JobDate_ProcessType ON AuditLogs(JobDate, ProcessType)"
+        },
+        ["FileProcessingHistory"] = new List<string>
+        {
+            "CREATE INDEX IX_FileProcessingHistory_FileHash ON FileProcessingHistory(FileHash)",
+            "CREATE INDEX IX_FileProcessingHistory_FileName ON FileProcessingHistory(FileName)",
+            "CREATE INDEX IX_FileProcessingHistory_FileType ON FileProcessingHistory(FileType)"
+        },
+        ["DateProcessingHistory"] = new List<string>
+        {
+            "CREATE INDEX IX_DateProcessingHistory_JobDate ON DateProcessingHistory(JobDate)",
+            "CREATE INDEX IX_DateProcessingHistory_ProcessType ON DateProcessingHistory(ProcessType)",
+            "CREATE INDEX IX_DateProcessingHistory_Department ON DateProcessingHistory(Department)",
+            "CREATE UNIQUE INDEX IX_DateProcessingHistory_Unique ON DateProcessingHistory(FileHistoryId, JobDate, ProcessType, Department)"
+        }
+    };
+    
+    // 管理対象テーブル（テーブル定義から自動取得）
+    private string[] RequiredTables => _tableDefinitions.Keys.ToArray();
     
     public DatabaseInitializationService(string connectionString, ILogger<DatabaseInitializationService> logger)
     {
@@ -36,6 +156,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
     public async Task<InitializationResult> InitializeDatabaseAsync(bool force = false)
     {
         var result = new InitializationResult();
+        var stopwatch = Stopwatch.StartNew();
         
         try
         {
@@ -44,51 +165,58 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync();
             
-            // スキーマ不整合の自動修正
-            _logger.LogInformation("スキーマ不整合をチェック中...");
-            await FixSchemaInconsistenciesAsync(connection);
-            
-            // 既存テーブルの確認
-            var existingTables = await GetExistingTablesAsync(connection);
-            result.ExistingTables = existingTables.ToList();
-            
-            if (force)
+            // スキーマ不整合の自動修正（既存テーブルがある場合のみ）
+            if (!force)
             {
-                // 既存テーブルを削除
-                foreach (var table in existingTables.Intersect(_requiredTables))
-                {
-                    try
-                    {
-                        await DropTableAsync(connection, table);
-                        _logger.LogWarning("テーブル {TableName} を削除しました", table);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "テーブル {TableName} の削除に失敗しました", table);
-                        result.Errors.Add($"テーブル {table} の削除に失敗: {ex.Message}");
-                    }
-                }
-                result.ExistingTables.Clear();
+                _logger.LogInformation("スキーマ不整合をチェック中...");
+                await FixSchemaInconsistenciesAsync(connection);
             }
             
-            // 不足テーブルの作成
-            var missingTables = _requiredTables.Except(result.ExistingTables).ToList();
-            foreach (var table in missingTables)
+            // 各テーブルをチェックして作成
+            foreach (var tableName in RequiredTables)
             {
                 try
                 {
-                    await CreateTableAsync(connection, table);
-                    result.CreatedTables.Add(table);
-                    _logger.LogInformation("テーブル {TableName} を作成しました", table);
+                    var exists = await TableExistsAsync(connection, tableName);
+                    
+                    if (!exists || force)
+                    {
+                        if (exists && force)
+                        {
+                            await connection.ExecuteAsync($"DROP TABLE IF EXISTS {tableName}");
+                            _logger.LogInformation("既存テーブル {TableName} を削除しました", tableName);
+                        }
+                        
+                        // テーブル作成
+                        await connection.ExecuteAsync(_tableDefinitions[tableName]);
+                        result.CreatedTables.Add(tableName);
+                        _logger.LogInformation("テーブル {TableName} を作成しました", tableName);
+                        
+                        // インデックス作成
+                        if (_indexDefinitions.ContainsKey(tableName))
+                        {
+                            foreach (var indexSql in _indexDefinitions[tableName])
+                            {
+                                await connection.ExecuteAsync(indexSql);
+                            }
+                            _logger.LogInformation("テーブル {TableName} のインデックスを作成しました", tableName);
+                        }
+                    }
+                    else
+                    {
+                        result.ExistingTables.Add(tableName);
+                        _logger.LogInformation("テーブル {TableName} は既に存在します", tableName);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "テーブル {TableName} の作成に失敗しました", table);
-                    result.Errors.Add($"テーブル {table} の作成に失敗: {ex.Message}");
+                    _logger.LogError(ex, "テーブル {TableName} の作成に失敗しました", tableName);
+                    result.FailedTables.Add(tableName);
+                    result.Errors.Add($"テーブル {tableName} の作成に失敗: {ex.Message}");
                 }
             }
             
-            result.Success = result.Errors.Count == 0;
+            result.Success = result.FailedTables.Count == 0;
             
             if (result.Success)
             {
@@ -97,15 +225,20 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             }
             else
             {
-                _logger.LogError("データベース初期化で {ErrorCount} 個のエラーが発生しました", result.Errors.Count);
+                _logger.LogError("データベース初期化で {ErrorCount} 個のエラーが発生しました。失敗: {Failed}個", 
+                    result.Errors.Count, result.FailedTables.Count);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "データベース初期化で予期しないエラーが発生しました");
             result.Success = false;
+            result.ErrorMessage = ex.Message;
             result.Errors.Add($"予期しないエラー: {ex.Message}");
         }
+        
+        stopwatch.Stop();
+        result.ExecutionTime = stopwatch.Elapsed;
         
         return result;
     }
@@ -115,8 +248,16 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         try
         {
             using var connection = new SqlConnection(_connectionString);
-            var existingTables = await GetExistingTablesAsync(connection);
-            return _requiredTables.All(t => existingTables.Contains(t));
+            await connection.OpenAsync();
+            
+            foreach (var tableName in RequiredTables)
+            {
+                if (!await TableExistsAsync(connection, tableName))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
         catch (Exception ex)
         {
@@ -127,113 +268,52 @@ public class DatabaseInitializationService : IDatabaseInitializationService
     
     public async Task<List<string>> GetMissingTablesAsync()
     {
+        var missingTables = new List<string>();
+        
         try
         {
             using var connection = new SqlConnection(_connectionString);
-            var existingTables = await GetExistingTablesAsync(connection);
-            return _requiredTables.Except(existingTables).ToList();
+            await connection.OpenAsync();
+            
+            foreach (var requiredTable in RequiredTables)
+            {
+                if (!await TableExistsAsync(connection, requiredTable))
+                {
+                    missingTables.Add(requiredTable);
+                }
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "不足テーブルの確認でエラーが発生しました");
-            return _requiredTables.ToList(); // エラー時は全テーブルを不足として返す
+            return RequiredTables.ToList(); // エラー時は全テーブルを不足として返す
+        }
+        
+        return missingTables;
+    }
+    
+    /// <summary>
+    /// テーブルの存在確認
+    /// </summary>
+    private async Task<bool> TableExistsAsync(SqlConnection connection, string tableName)
+    {
+        const string sql = @"
+            SELECT COUNT(*) 
+            FROM INFORMATION_SCHEMA.TABLES 
+            WHERE TABLE_NAME = @TableName AND TABLE_TYPE = 'BASE TABLE'";
+        
+        try
+        {
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { TableName = tableName });
+            return count > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "テーブル存在確認エラー: {Table}", tableName);
+            return false;
         }
     }
     
-    private async Task<IEnumerable<string>> GetExistingTablesAsync(SqlConnection connection)
-    {
-        const string sql = @"
-            SELECT TABLE_NAME 
-            FROM INFORMATION_SCHEMA.TABLES 
-            WHERE TABLE_SCHEMA = 'dbo' 
-                AND TABLE_TYPE = 'BASE TABLE'
-                AND TABLE_NAME IN @TableNames";
-        
-        return await connection.QueryAsync<string>(sql, new { TableNames = _requiredTables });
-    }
-    
-    private async Task DropTableAsync(SqlConnection connection, string tableName)
-    {
-        var sql = $"DROP TABLE IF EXISTS [dbo].[{tableName}]";
-        await connection.ExecuteAsync(sql);
-    }
-    
-    private async Task CreateTableAsync(SqlConnection connection, string tableName)
-    {
-        var sql = tableName switch
-        {
-            "DatasetManagement" => GetDatasetManagementTableSql(),
-            "ProcessHistory" => GetProcessHistoryTableSql(),
-            "DailyCloseManagement" => GetDailyCloseManagementTableSql(),
-            "AuditLogs" => GetAuditLogsTableSql(),
-            _ => throw new NotSupportedException($"テーブル {tableName} の作成SQLが定義されていません")
-        };
-        
-        await connection.ExecuteAsync(sql);
-    }
-    
-    private string GetDatasetManagementTableSql() => @"
-        CREATE TABLE [dbo].[DatasetManagement] (
-            [DatasetId] NVARCHAR(50) NOT NULL PRIMARY KEY,
-            [JobDate] DATE NOT NULL,
-            [ProcessType] NVARCHAR(50) NOT NULL,
-            [ImportedFiles] NVARCHAR(MAX),
-            [TotalRecordCount] INT NOT NULL DEFAULT 0,
-            [CreatedAt] DATETIME2 NOT NULL DEFAULT GETDATE(),
-            [CreatedBy] NVARCHAR(50) NOT NULL,
-            INDEX IX_DatasetManagement_JobDate (JobDate)
-        )";
-    
-    private string GetProcessHistoryTableSql() => @"
-        CREATE TABLE [dbo].[ProcessHistory] (
-            [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-            [JobDate] DATE NOT NULL,
-            [ProcessType] NVARCHAR(50) NOT NULL,
-            [DatasetId] NVARCHAR(50),
-            [StartTime] DATETIME2 NOT NULL,
-            [EndTime] DATETIME2,
-            [Status] NVARCHAR(20) NOT NULL,
-            [Message] NVARCHAR(MAX),
-            [ExecutedBy] NVARCHAR(50) NOT NULL,
-            [RecordCount] INT,
-            [ErrorCount] INT,
-            [DataHash] NVARCHAR(100),
-            INDEX IX_ProcessHistory_JobDate_ProcessType (JobDate, ProcessType)
-        )";
-    
-    private string GetDailyCloseManagementTableSql() => @"
-        CREATE TABLE [dbo].[DailyCloseManagement] (
-            [JobDate] DATE NOT NULL PRIMARY KEY,
-            [DatasetId] NVARCHAR(50) NOT NULL,
-            [DailyReportDatasetId] NVARCHAR(50),
-            [ProcessedAt] DATETIME2,
-            [ProcessedBy] NVARCHAR(50),
-            [ValidationStatus] NVARCHAR(20),
-            [ValidationMessage] NVARCHAR(MAX),
-            [DataHash] NVARCHAR(100),
-            [UpdatedInventoryCount] INT DEFAULT 0,
-            [BackupPath] NVARCHAR(500),
-            [CreatedAt] DATETIME2 NOT NULL DEFAULT GETDATE(),
-            INDEX IX_DailyCloseManagement_DatasetId (DatasetId)
-        )";
-    
-    private string GetAuditLogsTableSql() => @"
-        CREATE TABLE [dbo].[AuditLogs] (
-            [LogId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-            [LogDate] DATETIME2 NOT NULL DEFAULT GETDATE(),
-            [JobDate] DATE,
-            [ProcessType] NVARCHAR(50) NOT NULL,
-            [Action] NVARCHAR(100) NOT NULL,
-            [TableName] NVARCHAR(100),
-            [RecordKey] NVARCHAR(200),
-            [OldValue] NVARCHAR(MAX),
-            [NewValue] NVARCHAR(MAX),
-            [User] NVARCHAR(50) NOT NULL,
-            [IPAddress] NVARCHAR(50),
-            [Comment] NVARCHAR(MAX),
-            INDEX IX_AuditLogs_LogDate (LogDate),
-            INDEX IX_AuditLogs_JobDate_ProcessType (JobDate, ProcessType)
-        )";
     
     /// <summary>
     /// スキーマ不整合の修正

@@ -37,14 +37,25 @@ public class InitializationResult
     public bool Success { get; set; }
     public List<string> CreatedTables { get; set; } = new();
     public List<string> ExistingTables { get; set; } = new();
+    public List<string> FailedTables { get; set; } = new();
     public List<string> Errors { get; set; } = new();
+    public string? ErrorMessage { get; set; }
+    public TimeSpan ExecutionTime { get; set; }
     public DateTime ProcessedAt { get; set; } = DateTime.Now;
     
     public string GetSummary()
     {
-        var summary = $"初期化結果: {(Success ? "成功" : "失敗")}\n";
+        var summary = $"初期化結果: {(Success ? "成功" : "失敗")} (実行時間: {ExecutionTime.TotalSeconds:F2}秒)\n";
         summary += $"作成されたテーブル: {CreatedTables.Count}個\n";
         summary += $"既存のテーブル: {ExistingTables.Count}個\n";
+        if (FailedTables.Count > 0)
+        {
+            summary += $"失敗したテーブル: {FailedTables.Count}個\n";
+            foreach (var table in FailedTables)
+            {
+                summary += $"  - {table}\n";
+            }
+        }
         if (Errors.Count > 0)
         {
             summary += $"エラー: {Errors.Count}個\n";
@@ -52,6 +63,10 @@ public class InitializationResult
             {
                 summary += $"  - {error}\n";
             }
+        }
+        if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            summary += $"エラーメッセージ: {ErrorMessage}\n";
         }
         return summary;
     }

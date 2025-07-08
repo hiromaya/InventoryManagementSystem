@@ -26,6 +26,7 @@ using System.Text;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using InventorySystem.Data.Services;
+using InventorySystem.Data.Services.Development;
 
 // Program クラスの定義
 public class Program
@@ -218,6 +219,11 @@ builder.Services.AddScoped<InventorySystem.Core.Interfaces.Development.IDataStat
     new InventorySystem.Data.Services.Development.DataStatusCheckService(
         connectionString,
         provider.GetRequiredService<ILogger<InventorySystem.Data.Services.Development.DataStatusCheckService>>()));
+builder.Services.AddScoped<InventorySystem.Core.Interfaces.Development.IProcessingHistoryService>(provider =>
+    new InventorySystem.Data.Services.Development.ProcessingHistoryService(
+        connectionString,
+        provider.GetRequiredService<ILogger<InventorySystem.Data.Services.Development.ProcessingHistoryService>>()));
+builder.Services.AddScoped<InventorySystem.Core.Interfaces.Development.IDailySimulationService, InventorySystem.Data.Services.Development.DailySimulationService>();
 
 var host = builder.Build();
 
@@ -263,6 +269,7 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  dotnet run reset-daily-close <YYYY-MM-DD> [--all] - 日次終了処理リセット");
     Console.WriteLine("  dotnet run dev-daily-close <YYYY-MM-DD> [--skip-validation] [--dry-run] - 開発用日次終了処理");
     Console.WriteLine("  dotnet run check-data-status <YYYY-MM-DD>    - データ状態確認");
+    Console.WriteLine("  dotnet run simulate-daily <dept> <YYYY-MM-DD> [--dry-run] - 日次処理シミュレーション");
     Console.WriteLine("");
     Console.WriteLine("  例: dotnet run test-connection");
     Console.WriteLine("  例: dotnet run unmatch-list 2025-06-16");
@@ -276,6 +283,7 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  例: dotnet run reset-daily-close 2025-06-30 --all");
     Console.WriteLine("  例: dotnet run dev-daily-close 2025-06-30 --dry-run");
     Console.WriteLine("  例: dotnet run check-data-status 2025-06-30");
+    Console.WriteLine("  例: dotnet run simulate-daily DeptA 2025-06-30 --dry-run");
     return 1;
 }
 
@@ -383,6 +391,10 @@ try
             
         case "check-data-status":
             await ExecuteCheckDataStatusAsync(host.Services, commandArgs);
+            break;
+            
+        case "simulate-daily":
+            await ExecuteSimulateDailyAsync(host.Services, commandArgs);
             break;
             
         case "create-cp-inventory":
@@ -2738,12 +2750,22 @@ private static async Task<bool> CheckAndFixDatabaseSchemaAsync(IServiceProvider 
             var result = await dbInitService.InitializeDatabaseAsync(false);
             if (!result.Success)
             {
-                var errorMessage = result.Errors.Any() ? string.Join(", ", result.Errors) : "不明なエラー";
+                var errorMessage = result.Errors.Any() ? string.Join(", ", result.Errors) : 
+                                 !string.IsNullOrEmpty(result.ErrorMessage) ? result.ErrorMessage : "不明なエラー";
                 logger.LogError("❌ スキーマ修正失敗: {Error}", errorMessage);
+                
+                if (result.FailedTables.Any())
+                {
+                    logger.LogError("❌ 失敗したテーブル: {FailedTables}", string.Join(", ", result.FailedTables));
+                }
                 return false;
             }
             
-            logger.LogInformation("✅ スキーマ自動修正が完了しました");
+            logger.LogInformation("✅ スキーマ自動修正が完了しました。実行時間: {Time}秒", result.ExecutionTime.TotalSeconds.ToString("F2"));
+            if (result.CreatedTables.Any())
+            {
+                logger.LogInformation("✅ 作成されたテーブル: {Tables}", string.Join(", ", result.CreatedTables));
+            }
         }
         else
         {
@@ -2751,7 +2773,8 @@ private static async Task<bool> CheckAndFixDatabaseSchemaAsync(IServiceProvider 
             var result = await dbInitService.InitializeDatabaseAsync(false);
             if (!result.Success)
             {
-                var errorMessage = result.Errors.Any() ? string.Join(", ", result.Errors) : "不明なエラー";
+                var errorMessage = result.Errors.Any() ? string.Join(", ", result.Errors) : 
+                                 !string.IsNullOrEmpty(result.ErrorMessage) ? result.ErrorMessage : "不明なエラー";
                 logger.LogWarning("⚠️ スキーマチェック中に警告が発生しました: {Error}", errorMessage);
             }
         }
@@ -2764,6 +2787,160 @@ private static async Task<bool> CheckAndFixDatabaseSchemaAsync(IServiceProvider 
         return false;
     }
 }
+
+/// <summary>
+/// 起動時の必須テーブルチェック
+/// </summary>
+private static async Task<bool> EnsureRequiredTablesExistAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var dbInitService = scope.ServiceProvider.GetRequiredService<InventorySystem.Core.Interfaces.Development.IDatabaseInitializationService>();
+    
+    try
+    {
+        logger.LogInformation("必要なテーブルの存在を確認中...");
+        
+        var missingTables = await dbInitService.GetMissingTablesAsync();
+        if (missingTables.Any())
+        {
+            logger.LogWarning("以下のテーブルが不足しています: {Tables}", string.Join(", ", missingTables));
+            logger.LogInformation("不足しているテーブルを自動作成します...");
+            
+            var result = await dbInitService.InitializeDatabaseAsync(false);
+            
+            if (result.Success)
+            {
+                logger.LogInformation("✅ テーブル作成完了: {Tables} (実行時間: {Time}秒)", 
+                    string.Join(", ", result.CreatedTables), result.ExecutionTime.TotalSeconds.ToString("F2"));
+                return true;
+            }
+            else
+            {
+                logger.LogError("❌ テーブル作成失敗: {Tables}", string.Join(", ", result.FailedTables));
+                if (!string.IsNullOrEmpty(result.ErrorMessage))
+                {
+                    logger.LogError("エラー詳細: {Error}", result.ErrorMessage);
+                }
+                return false;
+            }
+        }
+        
+        logger.LogInformation("✅ 必要なテーブルはすべて存在します");
+        return true;
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "❌ テーブル確認中にエラーが発生しました");
+        return false;
+    }
+}
+
+    /// <summary>
+    /// 日次処理シミュレーション実行
+    /// </summary>
+    static async Task ExecuteSimulateDailyAsync(IServiceProvider services, string[] args)
+    {
+        using var scope = services.CreateScope();
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var simulationService = scopedServices.GetRequiredService<InventorySystem.Core.Interfaces.Development.IDailySimulationService>();
+        
+        // 引数の解析
+        if (args.Length < 4)
+        {
+            Console.WriteLine("使用方法: dotnet run simulate-daily <部門名> <YYYY-MM-DD> [--dry-run]");
+            Console.WriteLine("例: dotnet run simulate-daily DeptA 2025-06-30 --dry-run");
+            return;
+        }
+        
+        var department = args[2];
+        if (!DateTime.TryParse(args[3], out var jobDate))
+        {
+            Console.WriteLine($"❌ 無効な日付形式: {args[3]}");
+            Console.WriteLine("正しい形式: YYYY-MM-DD (例: 2025-06-30)");
+            return;
+        }
+        
+        var isDryRun = args.Length > 4 && args[4] == "--dry-run";
+        
+        Console.WriteLine("=== 日次処理シミュレーション開始 ===");
+        Console.WriteLine($"部門: {department}");
+        Console.WriteLine($"処理対象日: {jobDate:yyyy-MM-dd}");
+        Console.WriteLine($"モード: {(isDryRun ? "ドライラン（実際の更新なし）" : "本番実行")}");
+        Console.WriteLine();
+        
+        try
+        {
+            var result = await simulationService.SimulateDailyProcessingAsync(department, jobDate, isDryRun);
+            
+            // 結果表示
+            Console.WriteLine("=== シミュレーション結果 ===");
+            Console.WriteLine($"実行時間: {result.ProcessingTime.TotalSeconds:F2}秒");
+            Console.WriteLine($"成功: {(result.Success ? "✅" : "❌")}");
+            
+            if (!string.IsNullOrEmpty(result.ErrorMessage))
+            {
+                Console.WriteLine($"エラー: {result.ErrorMessage}");
+            }
+            
+            Console.WriteLine();
+            Console.WriteLine("=== ステップ結果 ===");
+            foreach (var step in result.StepResults)
+            {
+                var status = step.Success ? "✅" : "❌";
+                Console.WriteLine($"{status} ステップ{step.StepNumber}: {step.StepName} ({step.Duration.TotalSeconds:F2}秒)");
+                
+                if (!string.IsNullOrEmpty(step.Message))
+                {
+                    Console.WriteLine($"   → {step.Message}");
+                }
+                
+                if (!string.IsNullOrEmpty(step.ErrorMessage))
+                {
+                    Console.WriteLine($"   ❌ エラー: {step.ErrorMessage}");
+                }
+            }
+            
+            Console.WriteLine();
+            Console.WriteLine("=== 統計情報 ===");
+            Console.WriteLine($"インポート: 新規{result.Statistics.Import.NewRecords}件、スキップ{result.Statistics.Import.SkippedRecords}件、エラー{result.Statistics.Import.ErrorRecords}件");
+            Console.WriteLine($"アンマッチ: {result.Statistics.Unmatch.UnmatchCount}件");
+            Console.WriteLine($"商品日報: {result.Statistics.DailyReport.DataCount}件");
+            
+            if (!string.IsNullOrEmpty(result.Statistics.DailyReport.ReportPath))
+            {
+                Console.WriteLine($"商品日報ファイル: {result.Statistics.DailyReport.ReportPath}");
+            }
+            
+            if (!string.IsNullOrEmpty(result.Statistics.Unmatch.UnmatchListPath))
+            {
+                Console.WriteLine($"アンマッチリストファイル: {result.Statistics.Unmatch.UnmatchListPath}");
+            }
+            
+            if (result.GeneratedFiles.Any())
+            {
+                Console.WriteLine("生成されたファイル:");
+                foreach (var file in result.GeneratedFiles)
+                {
+                    Console.WriteLine($"  - {file}");
+                }
+            }
+            
+            Console.WriteLine();
+            Console.WriteLine($"=== シミュレーション{(result.Success ? "完了" : "失敗")} ===");
+            
+            if (isDryRun && result.Success)
+            {
+                Console.WriteLine("💡 実際の処理を実行するには --dry-run オプションを外してください");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "日次処理シミュレーション中にエラーが発生しました");
+            Console.WriteLine($"❌ 予期しないエラーが発生しました: {ex.Message}");
+        }
+    }
 
 } // Program クラスの終了
 
