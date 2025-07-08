@@ -593,8 +593,8 @@ END";
         var createdCount = result?.CreatedCount ?? 0;
         var initialInventoryDate = result?.InitialInventoryDate;
         
-        _logger.LogInformation("CP在庫マスタ作成完了: {CreatedCount}件作成", createdCount);
-        _logger.LogInformation("初期在庫基準日: {InitialInventoryDate}", initialInventoryDate?.ToString("yyyy-MM-dd"));
+        _logger.LogInformation("CP在庫マスタ作成完了: {CreatedCount}件作成", (object)createdCount);
+        _logger.LogInformation("初期在庫基準日: {InitialInventoryDate}", (object)(initialInventoryDate?.ToString("yyyy-MM-dd") ?? "null"));
         
         // 作成後の件数を確認
         var afterCount = await connection.ExecuteScalarAsync<int>(
