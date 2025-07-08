@@ -281,6 +281,13 @@ if (commandArgs.Length < 2)
 
 var command = commandArgs[1].ToLower();
 
+// 自動スキーマチェック（init-database以外のコマンドで実行）
+if (command != "init-database" && !await CheckAndFixDatabaseSchemaAsync(host.Services))
+{
+    Console.WriteLine("❌ データベーススキーマに問題があります。'dotnet run init-database --force' を実行してください。");
+    return 1;
+}
+
 try
 {
     switch (command)
@@ -2709,6 +2716,53 @@ private static bool IsDevelopmentEnvironment()
 {
     var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
     return environment == "Development" || string.IsNullOrEmpty(environment);
+}
+
+/// <summary>
+/// データベーススキーマチェックと自動修正
+/// </summary>
+private static async Task<bool> CheckAndFixDatabaseSchemaAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var dbInitService = scope.ServiceProvider.GetRequiredService<InventorySystem.Core.Interfaces.Development.IDatabaseInitializationService>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    
+    try
+    {
+        // 必要なテーブルの存在確認
+        var missingTables = await dbInitService.GetMissingTablesAsync();
+        if (missingTables.Any())
+        {
+            logger.LogInformation("✅ スキーマ自動修正: 不足テーブルを作成します: {Tables}", string.Join(", ", missingTables));
+            
+            var result = await dbInitService.InitializeDatabaseAsync(false);
+            if (!result.Success)
+            {
+                var errorMessage = result.Errors.Any() ? string.Join(", ", result.Errors) : "不明なエラー";
+                logger.LogError("❌ スキーマ修正失敗: {Error}", errorMessage);
+                return false;
+            }
+            
+            logger.LogInformation("✅ スキーマ自動修正が完了しました");
+        }
+        else
+        {
+            // テーブルは存在するが、スキーマ不整合がある可能性があるのでチェック
+            var result = await dbInitService.InitializeDatabaseAsync(false);
+            if (!result.Success)
+            {
+                var errorMessage = result.Errors.Any() ? string.Join(", ", result.Errors) : "不明なエラー";
+                logger.LogWarning("⚠️ スキーマチェック中に警告が発生しました: {Error}", errorMessage);
+            }
+        }
+        
+        return true;
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "❌ データベーススキーマチェックでエラーが発生しました");
+        return false;
+    }
 }
 
 } // Program クラスの終了

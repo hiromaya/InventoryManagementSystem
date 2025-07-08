@@ -44,6 +44,10 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync();
             
+            // スキーマ不整合の自動修正
+            _logger.LogInformation("スキーマ不整合をチェック中...");
+            await FixSchemaInconsistenciesAsync(connection);
+            
             // 既存テーブルの確認
             var existingTables = await GetExistingTablesAsync(connection);
             result.ExistingTables = existingTables.ToList();
@@ -182,7 +186,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
     
     private string GetProcessHistoryTableSql() => @"
         CREATE TABLE [dbo].[ProcessHistory] (
-            [ProcessId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+            [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
             [JobDate] DATE NOT NULL,
             [ProcessType] NVARCHAR(50) NOT NULL,
             [DatasetId] NVARCHAR(50),
@@ -190,9 +194,10 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             [EndTime] DATETIME2,
             [Status] NVARCHAR(20) NOT NULL,
             [Message] NVARCHAR(MAX),
-            [ProcessedBy] NVARCHAR(50) NOT NULL,
+            [ExecutedBy] NVARCHAR(50) NOT NULL,
             [RecordCount] INT,
             [ErrorCount] INT,
+            [DataHash] NVARCHAR(100),
             INDEX IX_ProcessHistory_JobDate_ProcessType (JobDate, ProcessType)
         )";
     
@@ -229,4 +234,84 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             INDEX IX_AuditLogs_LogDate (LogDate),
             INDEX IX_AuditLogs_JobDate_ProcessType (JobDate, ProcessType)
         )";
+    
+    /// <summary>
+    /// スキーマ不整合の修正
+    /// </summary>
+    private async Task<bool> FixSchemaInconsistenciesAsync(SqlConnection connection)
+    {
+        var fixes = new List<string>();
+        
+        try
+        {
+            // 1. ProcessHistoryテーブルのカラム名修正
+            var hasProcessedBy = await CheckColumnExistsAsync(connection, "ProcessHistory", "ProcessedBy");
+            var hasExecutedBy = await CheckColumnExistsAsync(connection, "ProcessHistory", "ExecutedBy");
+            
+            if (hasProcessedBy && !hasExecutedBy)
+            {
+                _logger.LogInformation("ProcessHistory.ProcessedBy を ExecutedBy にリネームします");
+                await connection.ExecuteAsync("EXEC sp_rename 'ProcessHistory.ProcessedBy', 'ExecutedBy', 'COLUMN'");
+                fixes.Add("ProcessHistory.ProcessedBy → ExecutedBy");
+            }
+            
+            // 2. ProcessHistoryテーブルのIdカラム修正（ProcessId → Id）
+            var hasProcessId = await CheckColumnExistsAsync(connection, "ProcessHistory", "ProcessId");
+            var hasId = await CheckColumnExistsAsync(connection, "ProcessHistory", "Id");
+            
+            if (hasProcessId && !hasId)
+            {
+                _logger.LogInformation("ProcessHistory.ProcessId を Id にリネームします");
+                await connection.ExecuteAsync("EXEC sp_rename 'ProcessHistory.ProcessId', 'Id', 'COLUMN'");
+                fixes.Add("ProcessHistory.ProcessId → Id");
+            }
+            
+            // 3. ProcessHistoryテーブルのDataHash列を追加（存在しない場合）
+            var hasDataHash = await CheckColumnExistsAsync(connection, "ProcessHistory", "DataHash");
+            if (!hasDataHash)
+            {
+                _logger.LogInformation("ProcessHistory.DataHash カラムを追加します");
+                await connection.ExecuteAsync("ALTER TABLE ProcessHistory ADD DataHash NVARCHAR(100)");
+                fixes.Add("ProcessHistory.DataHash カラム追加");
+            }
+            
+            if (fixes.Any())
+            {
+                _logger.LogInformation("スキーマ不整合を修正しました: {Fixes}", string.Join(", ", fixes));
+            }
+            else
+            {
+                _logger.LogInformation("スキーマ不整合は検出されませんでした");
+            }
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "スキーマ修正中にエラーが発生しました");
+            return false;
+        }
+    }
+    
+    /// <summary>
+    /// カラムの存在確認
+    /// </summary>
+    private async Task<bool> CheckColumnExistsAsync(SqlConnection connection, string tableName, string columnName)
+    {
+        const string sql = @"
+            SELECT COUNT(*) 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_NAME = @TableName AND COLUMN_NAME = @ColumnName";
+        
+        try
+        {
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { TableName = tableName, ColumnName = columnName });
+            return count > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "カラム存在確認エラー: {Table}.{Column}", tableName, columnName);
+            return false;
+        }
+    }
 }
