@@ -90,6 +90,66 @@ namespace InventorySystem.Core.Services
             }
         }
 
+        public async Task<string> CreateBackup(DateTime jobDate, BackupType backupType)
+        {
+            try
+            {
+                var backupFolder = _fileManagementService.GetBackupPath(backupType, jobDate);
+
+                // バックアップフォルダの作成
+                if (!Directory.Exists(backupFolder))
+                {
+                    Directory.CreateDirectory(backupFolder);
+                }
+
+                // ディスク容量チェック
+                if (!await _fileManagementService.CheckDiskSpaceAsync(backupFolder, 2.0)) // 2GB必要
+                {
+                    throw new InvalidOperationException("バックアップ実行に必要なディスク容量が不足しています");
+                }
+
+                // 書き込み権限チェック
+                if (!await _fileManagementService.CheckWritePermissionAsync(backupFolder))
+                {
+                    throw new UnauthorizedAccessException("バックアップフォルダへの書き込み権限がありません");
+                }
+
+                // バックアップファイル名の生成
+                var timestamp = DateTime.Now.ToString("HHmmss");
+                var processType = backupType.ToString();
+                var fileName = $"{processType}_{jobDate:yyyyMMdd}_{timestamp}.sql";
+                var backupPath = Path.Combine(backupFolder, fileName);
+
+                // バックアップメタデータの作成
+                var metadata = new
+                {
+                    ProcessType = processType,
+                    JobDate = jobDate,
+                    BackupType = backupType.ToString(),
+                    CreatedAt = DateTime.Now,
+                    BackupPath = backupPath,
+                    Version = "1.0"
+                };
+
+                // メタデータファイルの作成
+                var metadataPath = Path.ChangeExtension(backupPath, ".metadata.json");
+                await File.WriteAllTextAsync(metadataPath, System.Text.Json.JsonSerializer.Serialize(metadata, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+
+                // 実際のバックアップ処理（プレースホルダー）
+                var backupScript = GenerateBackupScript(processType, jobDate);
+                await File.WriteAllTextAsync(backupPath, backupScript);
+
+                _logger.LogInformation("バックアップ作成成功: {BackupPath}", backupPath);
+                return backupPath;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "バックアップ作成エラー: JobDate={JobDate}, BackupType={BackupType}", 
+                    jobDate, backupType);
+                throw;
+            }
+        }
+
         public async Task<bool> VerifyBackup(string backupPath)
         {
             try

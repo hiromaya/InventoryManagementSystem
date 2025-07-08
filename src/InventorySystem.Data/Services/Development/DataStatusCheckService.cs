@@ -6,7 +6,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Interfaces.Development;
 
-namespace InventorySystem.Core.Services.Development;
+namespace InventorySystem.Data.Services.Development;
 
 /// <summary>
 /// データ状態確認サービス
@@ -228,7 +228,7 @@ public class DataStatusCheckService : IDataStatusCheckService
         }
     }
     
-    private async Task CheckDailyReportStatusAsync(SqlConnection connection, DateTime jobDate, DataStatusReport.DailyReportStatus status)
+    private async Task CheckDailyReportStatusAsync(SqlConnection connection, DateTime jobDate, DataStatusReport.DailyReportStatusInfo status)
     {
         var processInfo = await connection.QueryFirstOrDefaultAsync<dynamic>(@"
             SELECT TOP 1 StartTime, EndTime, Status, RecordCount, DatasetId, Message
@@ -267,7 +267,7 @@ public class DataStatusCheckService : IDataStatusCheckService
         }
     }
     
-    private async Task CheckDailyCloseStatusAsync(SqlConnection connection, DateTime jobDate, DataStatusReport.DailyCloseStatus status)
+    private async Task CheckDailyCloseStatusAsync(SqlConnection connection, DateTime jobDate, DataStatusReport.DailyCloseStatusInfo status)
     {
         var closeInfo = await connection.QueryFirstOrDefaultAsync<dynamic>(@"
             SELECT ProcessedAt, ProcessedBy, DatasetId, UpdatedInventoryCount, ValidationStatus

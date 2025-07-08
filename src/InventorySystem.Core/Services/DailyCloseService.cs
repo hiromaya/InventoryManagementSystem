@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Base;
+using InventorySystem.Core.Configuration;
 using InventorySystem.Core.Constants;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
@@ -93,14 +94,21 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             ExecutedBy = executedBy
         };
         
-        var history = await _historyService.StartProcess(
-            dailyReportDatasetId, jobDate, "DAILY_CLOSE", executedBy);
+        var history = await _historyService.StartProcess(dailyReportDatasetId, jobDate, "DAILY_CLOSE", executedBy);
         context.ProcessHistory = history;
         
         try
         {
             // 在庫マスタ更新（原本を直接更新）
-            await UpdateInventoryMaster(context);
+            var updateContext = new ProcessContext
+            {
+                JobDate = jobDate,
+                DatasetId = dailyReportDatasetId,
+                ProcessType = "DAILY_CLOSE",
+                ExecutedBy = executedBy,
+                ProcessHistory = history
+            };
+            await UpdateInventoryMaster(updateContext);
             
             // 日次終了管理テーブルに記録（ハッシュ値付き）
             await RecordDailyClose(jobDate, dailyReportDatasetId, backupPath, executedBy, validationResult.CurrentHash);
@@ -303,7 +311,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     /// <summary>
     /// 在庫マスタを更新
     /// </summary>
-    private async Task UpdateInventoryMaster(ProcessContext context)
+    private async Task<int> UpdateInventoryMaster(ProcessContext context)
     {
         _logger.LogInformation("在庫マスタ更新開始: DatasetId={DatasetId}", context.DatasetId);
         
@@ -314,6 +322,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
                 context.DatasetId, context.JobDate);
             
             _logger.LogInformation("在庫マスタ更新完了: 更新件数={Count}", updateCount);
+            return updateCount;
         }
         catch (Exception ex)
         {
@@ -644,12 +653,10 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             StartTime = DateTime.Now
         };
         
-        var context = await InitializeContext(jobDate);
         var executedBy = Environment.UserName;
         
         // 履歴記録
-        var history = await _historyService.StartProcess(jobDate, ProcessTypes.DailyClose, 
-            dailyReportDatasetId, $"日次終了処理開始{(skipTimeValidation ? " (開発モード)" : "")}", executedBy);
+        var history = await _historyService.StartProcess(dailyReportDatasetId, jobDate, "DAILY_CLOSE", executedBy);
         
         try
         {
@@ -677,6 +684,13 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             result.BackupPath = backupPath;
             
             // 在庫マスタ更新
+            var context = new ProcessContext
+            {
+                JobDate = jobDate,
+                DatasetId = dailyReportDatasetId,
+                ProcessType = "DAILY_CLOSE",
+                ExecutedBy = executedBy
+            };
             var updateCount = await UpdateInventoryMaster(context);
             result.UpdatedInventoryCount = updateCount;
             

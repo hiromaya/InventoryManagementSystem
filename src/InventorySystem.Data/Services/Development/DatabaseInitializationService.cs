@@ -8,7 +8,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Interfaces.Development;
 
-namespace InventorySystem.Core.Services.Development;
+namespace InventorySystem.Data.Services.Development;
 
 /// <summary>
 /// データベース初期化サービス

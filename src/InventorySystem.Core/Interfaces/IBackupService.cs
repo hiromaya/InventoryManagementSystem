@@ -14,6 +14,14 @@ namespace InventorySystem.Core.Interfaces
         Task<string> CreateBackup(string processType, DateTime jobDate);
         
         /// <summary>
+        /// データベースバックアップを作成する（BackupType指定版）
+        /// </summary>
+        /// <param name="jobDate">処理日付</param>
+        /// <param name="backupType">バックアップタイプ</param>
+        /// <returns>バックアップファイルパス</returns>
+        Task<string> CreateBackup(DateTime jobDate, Configuration.BackupType backupType);
+        
+        /// <summary>
         /// 古いバックアップファイルをクリーンアップする
         /// </summary>
         /// <param name="retentionDays">保持日数</param>

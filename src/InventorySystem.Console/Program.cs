@@ -207,17 +207,17 @@ builder.Services.AddScoped<ISpecialDateRangeService, SpecialDateRangeService>();
 
 // 開発環境用サービス
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.Development.IDatabaseInitializationService>(provider =>
-    new InventorySystem.Core.Services.Development.DatabaseInitializationService(
+    new InventorySystem.Data.Services.Development.DatabaseInitializationService(
         connectionString, 
-        provider.GetRequiredService<ILogger<InventorySystem.Core.Services.Development.DatabaseInitializationService>>()));
+        provider.GetRequiredService<ILogger<InventorySystem.Data.Services.Development.DatabaseInitializationService>>()));
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.Development.IDailyCloseResetService>(provider =>
-    new InventorySystem.Core.Services.Development.DailyCloseResetService(
+    new InventorySystem.Data.Services.Development.DailyCloseResetService(
         connectionString,
-        provider.GetRequiredService<ILogger<InventorySystem.Core.Services.Development.DailyCloseResetService>>()));
+        provider.GetRequiredService<ILogger<InventorySystem.Data.Services.Development.DailyCloseResetService>>()));
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.Development.IDataStatusCheckService>(provider =>
-    new InventorySystem.Core.Services.Development.DataStatusCheckService(
+    new InventorySystem.Data.Services.Development.DataStatusCheckService(
         connectionString,
-        provider.GetRequiredService<ILogger<InventorySystem.Core.Services.Development.DataStatusCheckService>>()));
+        provider.GetRequiredService<ILogger<InventorySystem.Data.Services.Development.DataStatusCheckService>>()));
 
 var host = builder.Build();
 

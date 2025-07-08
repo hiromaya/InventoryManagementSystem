@@ -32,8 +32,8 @@ public class DataStatusReport
     
     public CsvImportStatus CsvStatus { get; set; } = new();
     public UnmatchListStatus UnmatchStatus { get; set; } = new();
-    public DailyReportStatus DailyReportStatus { get; set; } = new();
-    public DailyCloseStatus DailyCloseStatus { get; set; } = new();
+    public DailyReportStatusInfo DailyReportStatus { get; set; } = new();
+    public DailyCloseStatusInfo DailyCloseStatus { get; set; } = new();
     public InventoryMasterStatus InventoryStatus { get; set; } = new();
     
     /// <summary>
@@ -67,7 +67,7 @@ public class DataStatusReport
     /// <summary>
     /// 商品日報状況
     /// </summary>
-    public class DailyReportStatus
+    public class DailyReportStatusInfo
     {
         public bool IsCreated { get; set; }
         public string? ReportPath { get; set; }
@@ -81,7 +81,7 @@ public class DataStatusReport
     /// <summary>
     /// 日次終了処理状況
     /// </summary>
-    public class DailyCloseStatus
+    public class DailyCloseStatusInfo
     {
         public bool IsProcessed { get; set; }
         public DateTime? ProcessedAt { get; set; }

@@ -121,6 +121,11 @@ namespace InventorySystem.Core.Configuration
         /// <summary>
         /// 月次バックアップ
         /// </summary>
-        Monthly
+        Monthly,
+        
+        /// <summary>
+        /// 日次終了処理前バックアップ
+        /// </summary>
+        BeforeDailyClose
     }
 }
