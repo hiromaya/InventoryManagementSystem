@@ -135,6 +135,15 @@ public interface ICpInventoryRepository
     Task<int> CalculateWalkingAmountAsync(string dataSetId, DateTime jobDate);
     
     /// <summary>
+    /// 前日の在庫マスタから前日在庫を引き継ぐ
+    /// </summary>
+    /// <param name="dataSetId">データセットID</param>
+    /// <param name="jobDate">処理日</param>
+    /// <param name="previousDate">前日</param>
+    /// <returns>更新件数</returns>
+    Task<int> InheritPreviousDayStockAsync(string dataSetId, DateTime jobDate, DateTime previousDate);
+    
+    /// <summary>
     /// 月計合計を計算する
     /// </summary>
     Task<int> CalculateMonthlyTotalsAsync(string dataSetId, DateTime jobDate);

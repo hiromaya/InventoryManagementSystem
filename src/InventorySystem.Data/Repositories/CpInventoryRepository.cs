@@ -376,13 +376,42 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
 
     public async Task<int> CalculateDailyStockAsync(string dataSetId)
     {
-        const string sql = """
-            UPDATE CpInventoryMaster 
+        const string sql = @"
+            UPDATE CpInventoryMaster
             SET 
-                DailyStock = PreviousDayStock + DailyPurchaseQuantity + DailyInventoryAdjustmentQuantity - DailySalesQuantity,
+                -- 当日在庫数量の計算（移動平均法による正確な計算）
+                -- 前日在庫 + 入荷（仕入-仕返） - 出荷（売上-売返） - 在庫調整 - 加工 - 振替
+                DailyStock = PreviousDayStock + 
+                             (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) - 
+                             (DailySalesQuantity - DailySalesReturnQuantity) -
+                             DailyInventoryAdjustmentQuantity - 
+                             DailyProcessingQuantity -
+                             DailyTransferQuantity,
+                
+                -- 当日在庫単価の計算（移動平均法）
+                -- 入荷がある場合の移動平均単価計算
+                DailyUnitPrice = CASE 
+                    WHEN (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity) = 0 THEN 0
+                    ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) / 
+                               NULLIF(PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity, 0), 4)
+                END,
+                
+                -- 当日在庫金額の計算
+                -- 当日在庫数量 × 当日在庫単価
+                DailyStockAmount = ROUND(
+                    (PreviousDayStock + 
+                     (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) - 
+                     (DailySalesQuantity - DailySalesReturnQuantity) -
+                     DailyInventoryAdjustmentQuantity - 
+                     DailyProcessingQuantity -
+                     DailyTransferQuantity) * 
+                    CASE 
+                        WHEN (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity) = 0 THEN 0
+                        ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) / 
+                                   NULLIF(PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity, 0), 4)
+                    END, 4),
                 UpdatedDate = GETDATE()
-            WHERE DataSetId = @DataSetId
-            """;
+            WHERE DataSetId = @DataSetId";
 
         using var connection = new SqlConnection(_connectionString);
         return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
@@ -1000,6 +1029,50 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         return updateCount;
     }
     
+    /// <summary>
+    /// 前日の在庫マスタから前日在庫を引き継ぐ
+    /// </summary>
+    public async Task<int> InheritPreviousDayStockAsync(string dataSetId, DateTime jobDate, DateTime previousDate)
+    {
+        using var connection = CreateConnection();
+        
+        const string sql = @"
+            -- 前日の在庫マスタから在庫情報を引き継ぐ
+            UPDATE cp
+            SET 
+                cp.PreviousDayStock = ISNULL(im.CurrentStock, 0),
+                cp.PreviousDayStockAmount = ISNULL(im.CurrentStockAmount, 0),
+                cp.PreviousDayUnitPrice = CASE 
+                    WHEN ISNULL(im.CurrentStock, 0) > 0 
+                    THEN ROUND(im.CurrentStockAmount / im.CurrentStock, 4)
+                    ELSE 0 
+                END,
+                UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            LEFT JOIN InventoryMaster im
+                ON cp.ProductCode = im.ProductCode
+                AND cp.GradeCode = im.GradeCode
+                AND cp.ClassCode = im.ClassCode
+                AND cp.ShippingMarkCode = im.ShippingMarkCode
+                AND cp.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
+                AND im.JobDate = @PreviousDate
+            WHERE cp.DataSetId = @DataSetId;
+            
+            -- DailyStockも前日在庫で初期化（後の集計処理で正しい値に更新される）
+            UPDATE CpInventoryMaster
+            SET DailyStock = PreviousDayStock,
+                DailyStockAmount = PreviousDayStockAmount,
+                DailyUnitPrice = PreviousDayUnitPrice,
+                UpdatedDate = GETDATE()
+            WHERE DataSetId = @DataSetId;";
+
+        return await connection.ExecuteAsync(sql, new 
+        { 
+            DataSetId = dataSetId, 
+            PreviousDate = previousDate 
+        });
+    }
+
     /// <summary>
     /// 月計合計を計算する
     /// </summary>

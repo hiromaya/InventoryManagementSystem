@@ -72,6 +72,12 @@ public class UnmatchListService : IUnmatchListService
             var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, jobDate);
             _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
 
+            // 新規追加：前日在庫の引き継ぎ処理
+            _logger.LogInformation("前日在庫の引き継ぎ開始");
+            var previousDate = jobDate.AddDays(-1);
+            var inheritResult = await _cpInventoryRepository.InheritPreviousDayStockAsync(dataSetId, jobDate, previousDate);
+            _logger.LogInformation("前日在庫を引き継ぎました - 更新件数: {Count}", inheritResult);
+
             // 処理1-2: 当日エリアクリア
             _logger.LogInformation("当日エリアクリア開始");
             await _cpInventoryRepository.ClearDailyAreaAsync(dataSetId);
