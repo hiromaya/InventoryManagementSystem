@@ -351,6 +351,11 @@
                             <td><code>daily-report [日付]</code></td>
                             <td>商品日報PDF出力</td>
                         </tr>
+                        <tr>
+                            <td>日次終了処理（毎日最後）</td>
+                            <td><code>daily-close [日付]</code></td>
+                            <td>在庫繰り越し（当日在庫→翌日前日在庫）</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -475,10 +480,28 @@
                 <div class="phase-title">日次処理シミュレーション</div>
             </div>
 
+            <div class="warning">
+                <h4>🔴 在庫繰り越しの重要性</h4>
+                <p><strong>日次終了処理（daily-close）</strong>は、在庫管理システムの核心機能です。</p>
+                <ul>
+                    <li><strong>目的：</strong>当日の在庫数量・金額を翌日の前日在庫として設定</li>
+                    <li><strong>実行タイミング：</strong>商品日報作成後（通常15:00以降、開発ではいつでも可）</li>
+                    <li><strong>未実行の影響：</strong>
+                        <ul>
+                            <li>翌日の前日在庫が0となり、全商品がアンマッチに</li>
+                            <li>粗利計算が正しく行われない</li>
+                            <li>在庫数量が負値になる可能性</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
             <div class="info">
-                <strong>📝 処理順序:</strong> import-folder → unmatch-list → daily-report → inventory-list
+                <strong>📝 処理順序:</strong> import-folder → unmatch-list → daily-report → inventory-list → <span style="color: #e74c3c; font-weight: bold;">daily-close</span>
                 <br><br>
                 <strong>💡 注意:</strong> import-folderコマンドは前月末在庫.csvを自動的にスキップします。前月末在庫の設定は必ずinit-inventoryコマンドを使用してください。
+                <br><br>
+                <strong>🔴 最重要:</strong> 各日の処理の最後に必ず<strong>daily-close</strong>（日次終了処理）を実行してください。これにより当日在庫が翌日の前日在庫として繰り越されます。
             </div>
 
             <div class="timeline">
@@ -494,8 +517,19 @@
 <span class="comment"># 商品日報作成</span>
 <span class="command-line">dotnet run daily-report 2025-06-01</span>
 
-<span class="comment"># 在庫表作成</span>
+<span class="comment"># 在庫表作成（必要に応じて）</span>
 <span class="command-line">dotnet run inventory-list 2025-06-01</span>
+
+<span class="comment"># 日次終了処理（在庫繰り越し）※重要</span>
+<span class="command-line">dotnet run daily-close 2025-06-01</span>
+                    </div>
+                    <div class="warning" style="margin-top: 15px;">
+                        <strong>⚠️ 重要：日次終了処理について</strong>
+                        <ul>
+                            <li>日次終了処理により、当日の在庫が翌日の前日在庫として設定されます</li>
+                            <li>この処理を行わないと、翌日のアンマッチが大量に発生します</li>
+                            <li>通常は15:00以降に実行（開発環境では時間制約なし）</li>
+                        </ul>
                     </div>
                 </div>
 
@@ -506,6 +540,7 @@
 <span class="command-line">dotnet run import-folder DeptA 2025-06-02</span>
 <span class="command-line">dotnet run unmatch-list 2025-06-02</span>
 <span class="command-line">dotnet run daily-report 2025-06-02</span>
+<span class="command-line">dotnet run daily-close 2025-06-02</span>
                     </div>
                 </div>
 
@@ -516,6 +551,7 @@
 <span class="command-line">dotnet run import-folder DeptA 2025-06-03</span>
 <span class="command-line">dotnet run unmatch-list 2025-06-03</span>
 <span class="command-line">dotnet run daily-report 2025-06-03</span>
+<span class="command-line">dotnet run daily-close 2025-06-03</span>
                     </div>
                 </div>
 
@@ -529,12 +565,15 @@
             <div class="success">
                 <strong>💡 一括実行スクリプト例:</strong>
                 <div class="command-block">
-<span class="comment"># PowerShell一括実行例</span>
+<span class="comment"># PowerShell一括実行例（日次終了処理を含む）</span>
 <span class="command-line">for ($i=1; $i -le 7; $i++) {</span>
 <span class="command-line">    $date = "2025-06-$('{0:D2}' -f $i)"</span>
+<span class="command-line">    Write-Host "=== $date の処理開始 ===" -ForegroundColor Cyan</span>
 <span class="command-line">    dotnet run import-folder DeptA $date</span>
 <span class="command-line">    dotnet run unmatch-list $date</span>
 <span class="command-line">    dotnet run daily-report $date</span>
+<span class="command-line">    dotnet run daily-close $date  <span class="comment"># 在庫繰り越し（重要）</span></span>
+<span class="command-line">    Write-Host "=== $date の処理完了 ===" -ForegroundColor Green</span>
 <span class="command-line">}</span>
                 </div>
             </div>
@@ -653,6 +692,17 @@
                 </div>
             </div>
 
+            <h4>❌ 問題2-2: 翌日のアンマッチが大量発生</h4>
+            <div class="step">
+                <strong>原因:</strong> 前日の日次終了処理（在庫繰り越し）未実行
+                <div class="command-block">
+<span class="comment"># 対処法: 前日の日次終了処理を実行</span>
+<span class="command-line">dotnet run daily-close 2025-06-01  # 前日分を実行</span>
+<span class="comment"># その後、当日の処理を再実行</span>
+<span class="command-line">dotnet run unmatch-list 2025-06-02</span>
+                </div>
+            </div>
+
             <h4>❌ 問題3: アンマッチ件数が多い</h4>
             <div class="step">
                 <strong>原因:</strong> マスタ未登録データ（等級コード「000」、荷印コード「8001」等）
@@ -744,6 +794,7 @@
                     <li>□ アンマッチリスト正常生成</li>
                     <li>□ 商品日報正常生成</li>
                     <li>□ 在庫表正常生成</li>
+                    <li>□ 日次終了処理による在庫繰り越し確認済み</li>
                 </ul>
             </div>
 
