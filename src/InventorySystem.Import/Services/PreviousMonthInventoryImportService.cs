@@ -88,10 +88,9 @@ public class PreviousMonthInventoryImportService
             // 3. 初期在庫設定用処理（日付フィルタなし）
             var processedCount = 0;
             var errorCount = 0;
-            var currentDate = DateTime.Now.Date; // 初期在庫設定日として現在日付を使用
 
             _logger.LogInformation("=== ステップ3: 初期在庫設定処理開始 ===");
-            _logger.LogInformation("初期在庫設定日: {Date:yyyy-MM-dd}", currentDate);
+            _logger.LogInformation("JobDate設定: CSVの48列目ジョブデート項目を使用（日付フィルタは無効）");
 
             foreach (var record in validRecords)
             {
@@ -99,8 +98,11 @@ public class PreviousMonthInventoryImportService
                 {
                     var key = record.GetNormalizedKey();
                     
-                    _logger.LogDebug("処理中レコード: 商品={Product}, 等級={Grade}, 階級={Class}, 荷印={Mark}, 荷印名={MarkName}",
-                        key.ProductCode, key.GradeCode, key.ClassCode, key.ShippingMarkCode, key.ShippingMarkName);
+                    // CSVのジョブデート項目（48列目）を解析してJobDateとして設定
+                    var jobDate = ParseJobDate(record.JobDate);
+                    
+                    _logger.LogDebug("処理中レコード: 商品={Product}, 等級={Grade}, 階級={Class}, 荷印={Mark}, 荷印名={MarkName}, JobDate={JobDate:yyyy-MM-dd}",
+                        key.ProductCode, key.GradeCode, key.ClassCode, key.ShippingMarkCode, key.ShippingMarkName, jobDate);
 
                     // 在庫マスタの更新または作成
                     var inventoryKey = new InventoryKey
@@ -120,19 +122,19 @@ public class PreviousMonthInventoryImportService
 
                     if (inventoryMaster != null)
                     {
-                        // 既存レコードの初期在庫を設定
-                        inventoryMaster.JobDate = currentDate;
+                        // 既存レコードの初期在庫を設定（CSVのJobDateを使用）
+                        inventoryMaster.JobDate = jobDate;
                         inventoryMaster.PreviousMonthQuantity = record.Quantity;
                         inventoryMaster.PreviousMonthAmount = record.Amount;
                         inventoryMaster.UpdatedDate = DateTime.Now;
                         
                         await _inventoryRepository.UpdateAsync(inventoryMaster);
-                        _logger.LogDebug("在庫マスタ更新: {Key}, 初期在庫数量={Qty}, 初期在庫金額={Amt}", 
-                            key, record.Quantity, record.Amount);
+                        _logger.LogDebug("在庫マスタ更新: {Key}, JobDate={JobDate:yyyy-MM-dd}, 初期在庫数量={Qty}, 初期在庫金額={Amt}", 
+                            key, jobDate, record.Quantity, record.Amount);
                     }
                     else
                     {
-                        // 新規レコードの作成
+                        // 新規レコードの作成（CSVのJobDateを使用）
                         inventoryMaster = new InventoryMaster
                         {
                             Key = inventoryKey,
@@ -140,7 +142,7 @@ public class PreviousMonthInventoryImportService
                             PreviousMonthAmount = record.Amount,
                             CurrentStock = 0,
                             CurrentStockAmount = 0,
-                            JobDate = currentDate,
+                            JobDate = jobDate,
                             CreatedDate = DateTime.Now,
                             UpdatedDate = DateTime.Now,
                             ProductName = "商品名未設定",
@@ -159,7 +161,7 @@ public class PreviousMonthInventoryImportService
                         };
                         
                         await _inventoryRepository.CreateAsync(inventoryMaster);
-                        _logger.LogDebug("在庫マスタ新規作成: {Key}", key);
+                        _logger.LogDebug("在庫マスタ新規作成: {Key}, JobDate={JobDate:yyyy-MM-dd}", key, jobDate);
                     }
 
                     processedCount++;
@@ -430,6 +432,48 @@ public class PreviousMonthInventoryImportService
         {
             throw new FormatException($"伝票日付の解析に失敗しました: {record.VoucherDate}");
         }
+    }
+
+    /// <summary>
+    /// CSVのJobDate項目（48列目）を解析するメソッド
+    /// 初期在庫設定時に使用（参照用）
+    /// </summary>
+    private DateTime ParseJobDate(string jobDateString)
+    {
+        if (string.IsNullOrWhiteSpace(jobDateString))
+        {
+            _logger.LogWarning("JobDate項目が空白です。現在日付を使用します。");
+            return DateTime.Now.Date;
+        }
+
+        // YYYYMMDD形式の解析を試行
+        if (jobDateString.Length == 8 && 
+            DateTime.TryParseExact(jobDateString, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
+            return date;
+        }
+
+        // YYYY/MM/DD形式の解析を試行
+        if (DateTime.TryParseExact(jobDateString, "yyyy/MM/dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+        {
+            return date;
+        }
+
+        // YYYY-MM-DD形式の解析を試行
+        if (DateTime.TryParseExact(jobDateString, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+        {
+            return date;
+        }
+
+        // 一般的な日付解析を試行
+        if (DateTime.TryParse(jobDateString, out date))
+        {
+            return date.Date;
+        }
+
+        // 解析に失敗した場合はエラーログを出力して現在日付を使用
+        _logger.LogError("JobDate項目の解析に失敗しました: {JobDate}。現在日付を使用します。", jobDateString);
+        return DateTime.Now.Date;
     }
 
     /// <summary>
