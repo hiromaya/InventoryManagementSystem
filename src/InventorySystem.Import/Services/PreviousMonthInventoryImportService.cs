@@ -5,7 +5,6 @@ using CsvHelper.Configuration;
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
-using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Import.Models;
 
 namespace InventorySystem.Import.Services;
@@ -16,17 +15,14 @@ namespace InventorySystem.Import.Services;
 public class PreviousMonthInventoryImportService
 {
     private readonly IInventoryRepository _inventoryRepository;
-    private readonly IProductMasterRepository _productMasterRepository;
     private readonly ILogger<PreviousMonthInventoryImportService> _logger;
     private readonly string _importPath;
 
     public PreviousMonthInventoryImportService(
         IInventoryRepository inventoryRepository,
-        IProductMasterRepository productMasterRepository,
         ILogger<PreviousMonthInventoryImportService> logger)
     {
         _inventoryRepository = inventoryRepository;
-        _productMasterRepository = productMasterRepository;
         _logger = logger;
         _importPath = @"D:\InventoryImport\DeptA\Import\前月末在庫.csv";
     }
@@ -96,8 +92,7 @@ public class PreviousMonthInventoryImportService
                     invalid.GetValidationError());
             }
 
-            // 3. 商品マスタチェックとスキップ数のカウント
-            var skippedByProductMaster = 0;
+            // 3. スキップ数のカウント
             var skippedByDateFilter = 0;
             var processedCount = 0;
             var errorCount = 0;
@@ -142,16 +137,6 @@ public class PreviousMonthInventoryImportService
                     {
                         // 既存の動作：JobDateを指定日付で上書き
                         recordJobDate = startDate;
-                    }
-
-                    // 商品マスタの存在チェック
-                    var productExists = await _productMasterRepository.ExistsAsync(key.ProductCode);
-                    if (!productExists)
-                    {
-                        _logger.LogWarning("商品マスタ未登録でスキップ: {ProductCode}", key.ProductCode);
-                        skippedByProductMaster++;
-                        errorCount++;
-                        continue;
                     }
 
                     // 在庫マスタの更新または作成
@@ -247,15 +232,14 @@ public class PreviousMonthInventoryImportService
             
             _logger.LogInformation("=== ステップ4: 処理完了 ===");
             _logger.LogInformation("処理済み: {Processed}件", processedCount);
-            _logger.LogInformation("商品マスタ未登録でスキップ: {Skipped}件", skippedByProductMaster);
             _logger.LogInformation("日付フィルタでスキップ: {DateSkipped}件", skippedByDateFilter);
-            _logger.LogInformation("その他エラー: {Error}件", errorCount - skippedByProductMaster);
+            _logger.LogInformation("エラー: {Error}件", errorCount);
 
             result.ProcessedRecords = processedCount;
             result.ErrorRecords = errorCount;
             result.EndTime = DateTime.Now;
             result.IsSuccess = errorCount == 0;
-            result.Message = $"前月末在庫インポート完了: 処理 {processedCount}件, スキップ {skippedByProductMaster + skippedByDateFilter}件, エラー {errorCount}件";
+            result.Message = $"前月末在庫インポート完了: 処理 {processedCount}件, スキップ {skippedByDateFilter}件, エラー {errorCount}件";
 
             return result;
         }
