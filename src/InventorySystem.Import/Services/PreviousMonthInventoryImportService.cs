@@ -37,6 +37,165 @@ public class PreviousMonthInventoryImportService
     }
 
     /// <summary>
+    /// 初期在庫設定用のインポート（日付フィルタなし、すべてのデータを初期在庫として設定）
+    /// </summary>
+    public async Task<PreviousMonthImportResult> ImportForInitialInventoryAsync()
+    {
+        var result = new PreviousMonthImportResult
+        {
+            StartTime = DateTime.Now,
+            ImportType = "初期在庫設定"
+        };
+
+        try
+        {
+            _logger.LogInformation("=== 初期在庫設定開始 ===");
+            _logger.LogInformation("CSVファイルパス: {Path}", _importPath);
+            _logger.LogInformation("日付フィルタ: 無効（すべてのデータを処理）");
+
+            // ファイル存在確認
+            if (!File.Exists(_importPath))
+            {
+                _logger.LogError("CSVファイルが見つかりません: {Path}", _importPath);
+                throw new FileNotFoundException($"インポートファイルが見つかりません: {_importPath}");
+            }
+
+            // 1. CSV読み込み
+            var records = await ReadCsvAsync(_importPath);
+            result.TotalRecords = records.Count;
+            _logger.LogInformation("=== ステップ1: CSV読み込み完了 ===");
+            _logger.LogInformation("読み込みレコード数: {Count}", records.Count);
+
+            // 2. 有効レコードフィルタリング
+            var validRecords = records.Where(r => r.IsValid()).ToList();
+            var invalidRecords = records.Where(r => !r.IsValid()).ToList();
+            
+            _logger.LogInformation("=== ステップ2: バリデーション完了 ===");
+            _logger.LogInformation("有効レコード: {Valid}件", validRecords.Count);
+            _logger.LogInformation("無効レコード: {Invalid}件", invalidRecords.Count);
+            
+            // 無効レコードの詳細（最初の10件）
+            foreach (var invalid in invalidRecords.Take(10))
+            {
+                _logger.LogWarning("無効レコード詳細: 商品={Product}, 等級={Grade}, 階級={Class}, 荷印={Mark}, 理由={Reason}",
+                    invalid.ProductCode ?? "(null)", 
+                    invalid.GradeCode ?? "(null)", 
+                    invalid.ClassCode ?? "(null)", 
+                    invalid.ShippingMarkCode ?? "(null)",
+                    invalid.GetValidationError());
+            }
+
+            // 3. 初期在庫設定用処理（日付フィルタなし）
+            var processedCount = 0;
+            var errorCount = 0;
+            var currentDate = DateTime.Now.Date; // 初期在庫設定日として現在日付を使用
+
+            _logger.LogInformation("=== ステップ3: 初期在庫設定処理開始 ===");
+            _logger.LogInformation("初期在庫設定日: {Date:yyyy-MM-dd}", currentDate);
+
+            foreach (var record in validRecords)
+            {
+                try
+                {
+                    var key = record.GetNormalizedKey();
+                    
+                    _logger.LogDebug("処理中レコード: 商品={Product}, 等級={Grade}, 階級={Class}, 荷印={Mark}, 荷印名={MarkName}",
+                        key.ProductCode, key.GradeCode, key.ClassCode, key.ShippingMarkCode, key.ShippingMarkName);
+
+                    // 在庫マスタの更新または作成
+                    var inventoryKey = new InventoryKey
+                    {
+                        ProductCode = key.ProductCode,
+                        GradeCode = key.GradeCode,
+                        ClassCode = key.ClassCode,
+                        ShippingMarkCode = key.ShippingMarkCode,
+                        ShippingMarkName = key.ShippingMarkName
+                    };
+                    
+                    // JobDateに関係なく既存レコードを検索
+                    var inventoryMaster = await _inventoryRepository.GetByKeyAnyDateAsync(inventoryKey);
+                    
+                    _logger.LogDebug("在庫マスタ検索結果: {Result}",
+                        inventoryMaster != null ? "既存レコード更新" : "新規レコード作成");
+
+                    if (inventoryMaster != null)
+                    {
+                        // 既存レコードの初期在庫を設定
+                        inventoryMaster.JobDate = currentDate;
+                        inventoryMaster.PreviousMonthQuantity = record.Quantity;
+                        inventoryMaster.PreviousMonthAmount = record.Amount;
+                        inventoryMaster.UpdatedDate = DateTime.Now;
+                        
+                        await _inventoryRepository.UpdateAsync(inventoryMaster);
+                        _logger.LogDebug("在庫マスタ更新: {Key}, 初期在庫数量={Qty}, 初期在庫金額={Amt}", 
+                            key, record.Quantity, record.Amount);
+                    }
+                    else
+                    {
+                        // 新規レコードの作成
+                        inventoryMaster = new InventoryMaster
+                        {
+                            Key = inventoryKey,
+                            PreviousMonthQuantity = record.Quantity,
+                            PreviousMonthAmount = record.Amount,
+                            CurrentStock = 0,
+                            CurrentStockAmount = 0,
+                            JobDate = currentDate,
+                            CreatedDate = DateTime.Now,
+                            UpdatedDate = DateTime.Now,
+                            ProductName = "商品名未設定",
+                            Unit = "PCS",
+                            StandardPrice = 0,
+                            ProductCategory1 = "",
+                            ProductCategory2 = "",
+                            DailyStock = 0,
+                            DailyStockAmount = 0,
+                            DailyFlag = '9',
+                            DataSetId = "",
+                            DailyGrossProfit = 0,
+                            DailyAdjustmentAmount = 0,
+                            DailyProcessingCost = 0,
+                            FinalGrossProfit = 0
+                        };
+                        
+                        await _inventoryRepository.CreateAsync(inventoryMaster);
+                        _logger.LogDebug("在庫マスタ新規作成: {Key}", key);
+                    }
+
+                    processedCount++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "レコード処理エラー: {Record}", record);
+                    errorCount++;
+                    result.Errors.Add($"商品コード {record.ProductCode}: {ex.Message}");
+                }
+            }
+            
+            _logger.LogInformation("=== ステップ4: 処理完了 ===");
+            _logger.LogInformation("処理済み: {Processed}件", processedCount);
+            _logger.LogInformation("エラー: {Error}件", errorCount);
+
+            result.ProcessedRecords = processedCount;
+            result.ErrorRecords = errorCount;
+            result.EndTime = DateTime.Now;
+            result.IsSuccess = errorCount == 0;
+            result.Message = $"初期在庫設定完了: 処理 {processedCount}件, エラー {errorCount}件";
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "初期在庫設定エラー");
+            result.EndTime = DateTime.Now;
+            result.IsSuccess = false;
+            result.Message = $"初期在庫設定エラー: {ex.Message}";
+            result.Errors.Add(ex.ToString());
+            return result;
+        }
+    }
+
+    /// <summary>
     /// 前月末在庫CSVをインポート（期間指定対応版）
     /// </summary>
     /// <param name="startDate">フィルタ開始日付</param>

@@ -1523,8 +1523,8 @@ static async Task ExecuteInitInventoryAsync(IServiceProvider services, string[] 
             Console.WriteLine($"ファイル: {csvPath}");
             Console.WriteLine();
             
-            // インポート実行（日付指定なし、すべてのデータを初期在庫として設定）
-            var result = await importService.ImportAsync(DateTime.Today, null, false);
+            // インポート実行（日付フィルタなし、すべてのデータを初期在庫として設定）
+            var result = await importService.ImportForInitialInventoryAsync();
             
             if (result.IsSuccess)
             {
