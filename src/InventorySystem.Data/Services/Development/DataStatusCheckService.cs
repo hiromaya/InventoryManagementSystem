@@ -203,7 +203,7 @@ public class DataStatusCheckService : IDataStatusCheckService
             FROM ProcessHistory
             WHERE JobDate = @JobDate 
                 AND ProcessType = 'UNMATCH_LIST'
-                AND Status = 'SUCCESS'
+                AND Status = 2
             ORDER BY StartTime DESC",
             new { JobDate = jobDate });
         
@@ -231,11 +231,11 @@ public class DataStatusCheckService : IDataStatusCheckService
     private async Task CheckDailyReportStatusAsync(SqlConnection connection, DateTime jobDate, DataStatusReport.DailyReportStatusInfo status)
     {
         var processInfo = await connection.QueryFirstOrDefaultAsync<dynamic>(@"
-            SELECT TOP 1 StartTime, EndTime, Status, RecordCount, DatasetId, Message
+            SELECT TOP 1 StartTime, EndTime, Status, RecordCount, DatasetId, ErrorMessage
             FROM ProcessHistory
             WHERE JobDate = @JobDate 
                 AND ProcessType = 'DAILY_REPORT'
-                AND Status = 'SUCCESS'
+                AND Status = 2
             ORDER BY StartTime DESC",
             new { JobDate = jobDate });
         
