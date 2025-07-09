@@ -59,7 +59,22 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         var dailyReportDatasetId = await _datasetManager.GetLatestDatasetId("DAILY_REPORT", jobDate);
         if (string.IsNullOrEmpty(dailyReportDatasetId))
         {
-            throw new InvalidOperationException(ErrorMessages.NoDailyReportError);
+            // DatasetIdが取得できない場合、ProcessHistoryを直接確認
+            var dailyReportHistory = await _historyService.GetProcessHistory(jobDate, "DAILY_REPORT");
+            var completedReport = dailyReportHistory
+                .Where(h => h.Status == ProcessStatus.Completed)
+                .OrderByDescending(h => h.EndTime)
+                .FirstOrDefault();
+                
+            if (completedReport != null)
+            {
+                // 0件でも処理済みの場合はDatasetIdを取得
+                dailyReportDatasetId = completedReport.DatasetId;
+            }
+            else
+            {
+                throw new InvalidOperationException(ErrorMessages.NoDailyReportError);
+            }
         }
         
         // 2. 時間的制約の検証
@@ -174,16 +189,73 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
                         DataHash = latestDailyReport.DataHash
                     };
                 }
+                else
+                {
+                    // DatasetIdは存在するがProcessHistoryにレコードがない場合
+                    // 0件でも商品日報が作成されている可能性があるため、もう一度確認
+                    var allDailyReportHistory = await _historyService.GetProcessHistory(jobDate, "DAILY_REPORT");
+                    var anyCompletedReport = allDailyReportHistory
+                        .Any(h => h.Status == ProcessStatus.Completed);
+                        
+                    if (anyCompletedReport)
+                    {
+                        // 0件でも処理済みとして扱う
+                        var completedReport = allDailyReportHistory
+                            .First(h => h.Status == ProcessStatus.Completed);
+                        confirmation.DailyReport = new DailyReportInfo
+                        {
+                            CreatedAt = completedReport.EndTime ?? completedReport.StartTime,
+                            CreatedBy = completedReport.ExecutedBy,
+                            DatasetId = completedReport.DatasetId,
+                            DataHash = completedReport.DataHash
+                        };
+                        // DatasetIdを更新
+                        dailyReportDatasetId = completedReport.DatasetId;
+                    }
+                    else
+                    {
+                        confirmation.ValidationResults.Add(new ValidationMessage
+                        {
+                            Level = ValidationLevel.Error,
+                            Message = "商品日報が作成されていません",
+                            Detail = ErrorMessages.DailyReportNotFound
+                        });
+                        confirmation.CanProcess = false;
+                    }
+                }
             }
             else
             {
-                confirmation.ValidationResults.Add(new ValidationMessage
+                // DatasetId自体が存在しない場合は、ProcessHistoryを直接確認
+                var allDailyReportHistory = await _historyService.GetProcessHistory(jobDate, "DAILY_REPORT");
+                var completedReport = allDailyReportHistory
+                    .Where(h => h.Status == ProcessStatus.Completed)
+                    .OrderByDescending(h => h.EndTime)
+                    .FirstOrDefault();
+                    
+                if (completedReport != null)
                 {
-                    Level = ValidationLevel.Error,
-                    Message = "商品日報が作成されていません",
-                    Detail = ErrorMessages.DailyReportNotFound
-                });
-                confirmation.CanProcess = false;
+                    // 0件でも処理済みとして扱う
+                    confirmation.DailyReport = new DailyReportInfo
+                    {
+                        CreatedAt = completedReport.EndTime ?? completedReport.StartTime,
+                        CreatedBy = completedReport.ExecutedBy,
+                        DatasetId = completedReport.DatasetId ?? "UNKNOWN",
+                        DataHash = completedReport.DataHash
+                    };
+                    // DatasetIdを更新
+                    dailyReportDatasetId = completedReport.DatasetId ?? "";
+                }
+                else
+                {
+                    confirmation.ValidationResults.Add(new ValidationMessage
+                    {
+                        Level = ValidationLevel.Error,
+                        Message = "商品日報が作成されていません",
+                        Detail = ErrorMessages.DailyReportNotFound
+                    });
+                    confirmation.CanProcess = false;
+                }
             }
             
             // 最新CSV取込情報の取得

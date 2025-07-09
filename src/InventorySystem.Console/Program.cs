@@ -189,8 +189,19 @@ builder.Services.AddScoped<IInventoryListService, InventoryListService>();
 builder.Services.AddScoped<ICpInventoryCreationService, CpInventoryCreationService>();
 // Report Services
 #if WINDOWS
-builder.Services.AddScoped<IUnmatchListReportService, InventorySystem.Reports.FastReport.Services.UnmatchListFastReportService>();
-builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, InventorySystem.Reports.FastReport.Services.DailyReportFastReportService>();
+// FastReportサービスの登録（Windows環境のみ）
+// Linux環境ではFastReportフォルダのコンパイルが除外されるため、型の直接参照はできない
+var unmatchListFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.UnmatchListFastReportService, InventorySystem.Reports");
+var dailyReportFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.DailyReportFastReportService, InventorySystem.Reports");
+if (unmatchListFastReportType != null && dailyReportFastReportType != null)
+{
+    builder.Services.AddScoped(typeof(IUnmatchListReportService), unmatchListFastReportType);
+    builder.Services.AddScoped(typeof(InventorySystem.Reports.Interfaces.IDailyReportService), dailyReportFastReportType);
+}
+else
+{
+    throw new InvalidOperationException("FastReportサービスが見つかりません。Windows環境で実行してください。");
+}
 #else
 builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
 builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, PlaceholderDailyReportService>();

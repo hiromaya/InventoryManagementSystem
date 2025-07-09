@@ -36,7 +36,8 @@
       "Bash(/home/hiroki/.claude/analyze_pdf.sh:*)",
       "Bash(docker exec:*)",
       "Bash(rg:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(gemini:*)"
     ],
     "deny": []
   }
