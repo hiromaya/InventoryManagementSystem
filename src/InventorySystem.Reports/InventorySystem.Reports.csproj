@@ -8,8 +8,8 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <UseWindowsForms>true</UseWindowsForms>
-    <DefineConstants Condition="'$(OS)' == 'Windows_NT'">WINDOWS</DefineConstants>
-    <DefineConstants Condition="'$(OS)' != 'Windows_NT'">LINUX</DefineConstants>
+    <DefineConstants Condition="'$(OS)' == 'Windows_NT'">$(DefineConstants);WINDOWS</DefineConstants>
+    <DefineConstants Condition="'$(OS)' != 'Windows_NT'">$(DefineConstants);LINUX</DefineConstants>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 

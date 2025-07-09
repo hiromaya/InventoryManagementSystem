@@ -262,7 +262,7 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  dotnet run import-folder <dept> [YYYY-MM-DD] - 部門フォルダから一括取込");
     Console.WriteLine("  dotnet run import-masters                    - 等級・階級マスタをインポート");
     Console.WriteLine("  dotnet run check-masters                     - 等級・階級マスタの登録状況を確認");
-    Console.WriteLine("  dotnet run init-inventory [YYYY-MM-DD]       - 在庫マスタ初期データを作成");
+    Console.WriteLine("  dotnet run init-inventory <dept>             - 初期在庫設定（前月末在庫.csv取込）");
     Console.WriteLine("");
     Console.WriteLine("【開発環境用コマンド】");
     Console.WriteLine("  dotnet run init-database [--force]           - データベース初期化");
@@ -278,7 +278,7 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  例: dotnet run import-sales sales.csv 2025-06-16");
     Console.WriteLine("  例: dotnet run import-masters");
     Console.WriteLine("  例: dotnet run check-masters");
-    Console.WriteLine("  例: dotnet run init-inventory 2025-06-16");
+    Console.WriteLine("  例: dotnet run init-inventory DeptA");
     Console.WriteLine("  例: dotnet run init-database --force");
     Console.WriteLine("  例: dotnet run reset-daily-close 2025-06-30 --all");
     Console.WriteLine("  例: dotnet run dev-daily-close 2025-06-30 --dry-run");
@@ -369,7 +369,7 @@ try
             break;
         
         case "init-inventory":
-            await ExecuteInitInventoryCommand(host.Services, commandArgs);
+            await ExecuteInitInventoryAsync(host.Services, commandArgs);
             break;
         
         case "check-daily-close":
@@ -1484,59 +1484,74 @@ private static int GetFileProcessOrder(string fileName)
     return 99;
 }
 
-static async Task ExecuteInitInventoryCommand(IServiceProvider services, string[] args)
+static async Task ExecuteInitInventoryAsync(IServiceProvider services, string[] args)
 {
+    if (args.Length < 3)
+    {
+        Console.WriteLine("使用方法: init-inventory <部門名>");
+        return;
+    }
+
     using (var scope = services.CreateScope())
     {
         var scopedServices = scope.ServiceProvider;
+        var department = args[2];
         var logger = scopedServices.GetRequiredService<ILogger<Program>>();
-        var inventoryRepo = scopedServices.GetRequiredService<IInventoryRepository>();
+        var fileManagementService = scopedServices.GetRequiredService<IFileManagementService>();
+        var importService = scopedServices.GetRequiredService<PreviousMonthInventoryImportService>();
+        
+        logger.LogInformation("=== 初期在庫設定開始 ===");
+        logger.LogInformation("部門: {Department}", department);
         
         try
         {
-            // ジョブ日付を取得（引数から、またはデフォルト値）
-            DateTime jobDate;
-            if (args.Length >= 3 && DateTime.TryParse(args[2], out jobDate))
+            // インポートパスの取得（appsettings.json使用）
+            var importPath = fileManagementService.GetImportPath(department);
+            var csvPath = Path.Combine(importPath, "前月末在庫.csv");
+            
+            logger.LogInformation("ファイル: {Path}", csvPath);
+            
+            if (!File.Exists(csvPath))
             {
-                logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
-            }
-            else
-            {
-                jobDate = DateTime.Today;
-                logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+                logger.LogError("前月末在庫.csvが見つかりません: {Path}", csvPath);
+                Console.WriteLine($"❌ 前月末在庫.csvが見つかりません: {csvPath}");
+                return;
             }
             
-            Console.WriteLine("=== 在庫マスタ初期データ作成開始 ===");
-            Console.WriteLine($"ジョブ日付: {jobDate:yyyy-MM-dd}");
+            Console.WriteLine("=== 初期在庫設定開始 ===");
+            Console.WriteLine($"部門: {department}");
+            Console.WriteLine($"ファイル: {csvPath}");
             Console.WriteLine();
             
-            var stopwatch = Stopwatch.StartNew();
+            // インポート実行（日付指定なし、すべてのデータを初期在庫として設定）
+            var result = await importService.ImportAsync(DateTime.Today, null, false);
             
-            // 在庫マスタ初期データ作成実行
-            var count = await inventoryRepo.CreateInitialInventoryFromVouchersAsync(jobDate);
-            
-            stopwatch.Stop();
-            
-            Console.WriteLine($"\n処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
-            Console.WriteLine($"作成件数: {count:N0}件");
-            
-            if (count > 0)
+            if (result.IsSuccess)
             {
-                Console.WriteLine("\n✅ 在庫マスタ初期データ作成が正常に完了しました");
-                logger.LogInformation("在庫マスタ初期データ作成完了: {Count}件", count);
+                Console.WriteLine($"✅ 初期在庫を設定しました（{result.ProcessedRecords}件）");
+                
+                if (result.ErrorRecords > 0)
+                {
+                    Console.WriteLine($"商品コード00000の除外件数: {result.ErrorRecords}件");
+                }
+                
+                // ファイルを処理済みフォルダに移動
+                await fileManagementService.MoveToProcessedAsync(csvPath, department);
+                logger.LogInformation("前月末在庫.csvを処理済みフォルダに移動しました");
             }
             else
             {
-                Console.WriteLine("\n⚠️ 作成対象のデータがありませんでした");
-                Console.WriteLine("売上・仕入・在庫調整伝票がインポートされているか確認してください");
-                logger.LogWarning("在庫マスタ初期データ作成: 作成対象なし");
+                Console.WriteLine($"❌ 初期在庫設定に失敗しました: {result.Message}");
+                logger.LogError("初期在庫設定失敗: {Message}", result.Message);
             }
+            
+            logger.LogInformation("=== 初期在庫設定完了 ===");
+            Console.WriteLine("\n=== 初期在庫設定完了 ===");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"\n❌ エラー: {ex.Message}");
-            logger.LogError(ex, "在庫マスタ初期データ作成でエラーが発生しました");
-            throw;
+            logger.LogError(ex, "初期在庫設定中にエラーが発生しました");
+            Console.WriteLine($"❌ エラーが発生しました: {ex.Message}");
         }
     }
 }
@@ -1911,44 +1926,8 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     // ========== Phase 2: 初期在庫ファイル ==========
                     else if (fileName == "前月末在庫.csv")
                     {
-                        logger.LogInformation("前月末在庫の処理を開始します");
-                        
-                        // PreviousMonthInventoryImportServiceを使用して処理
-                        var previousMonthService = scopedServices.GetService<PreviousMonthInventoryImportService>();
-                        if (previousMonthService == null)
-                        {
-                            logger.LogError("PreviousMonthInventoryImportServiceが登録されていません");
-                            // エラー時のファイル移動も無効化
-                            // await fileService.MoveToErrorAsync(file, department, "Service_Not_Found");
-                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - Service_Not_Found", file);
-                            continue;
-                        }
-                        
-                        var result = await previousMonthService.ImportAsync(startDate ?? DateTime.Today, endDate, preserveCsvDates);
-                        
-                        if (result.IsSuccess)
-                        {
-                            // TODO: 処理履歴管理システム実装後は、ファイル移動ではなく処理履歴で管理
-                        // 現在は他の日付データも処理できるようにファイル移動を無効化
-                        // await fileService.MoveToProcessedAsync(file, department);
-                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
-                            logger.LogInformation("前月末在庫を初期在庫として処理完了: {Count}件", result.ProcessedRecords);
-                            
-                            // 処理実績に記録（最終サマリーに表示するため）
-                            processedCounts["前月末在庫"] = result.ProcessedRecords;
-                            Console.WriteLine($"✅ 前月末在庫として処理完了 - {result.ProcessedRecords}件");
-                        }
-                        else
-                        {
-                            // エラー時のファイル移動も無効化
-                            // await fileService.MoveToErrorAsync(file, department, result.Message);
-                            logger.LogError("エラーが発生しましたが、ファイルは移動しません: {File} - {Message}", file, result.Message);
-                            logger.LogError("前月末在庫の処理に失敗: {Message}", result.Message);
-                            
-                            // エラーカウント増加
-                            errorCount++;
-                        }
-                        
+                        logger.LogWarning("前月末在庫.csvはinit-inventoryコマンドで処理してください。スキップします。");
+                        Console.WriteLine("⚠️ 前月末在庫.csvはinit-inventoryコマンドで処理してください。スキップします。");
                         continue;
                     }
                     // ========== Phase 3: 伝票系ファイル ==========
