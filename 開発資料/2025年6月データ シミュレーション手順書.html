@@ -398,12 +398,17 @@
             <div class="step">
                 <h4>Step 4: マスタデータ確認</h4>
                 <div class="command-block">
-<span class="comment"># マスタデータ確認（SQL Server Management Studio で実行）</span>
-<span class="command-line">SELECT 'ProductMaster' as テーブル名, COUNT(*) as 件数 FROM ProductMaster</span>
-<span class="command-line">UNION ALL SELECT 'CustomerMaster', COUNT(*) FROM CustomerMaster</span>
-<span class="command-line">UNION ALL SELECT 'SupplierMaster', COUNT(*) FROM SupplierMaster</span>
-<span class="command-line">UNION ALL SELECT 'GradeMaster', COUNT(*) FROM GradeMaster</span>
-<span class="command-line">UNION ALL SELECT 'ClassMaster', COUNT(*) FROM ClassMaster;</span>
+<span class="comment"># マスタデータ確認（コマンドラインから実行）</span>
+<span class="command-line">dotnet run check-masters</span>
+                </div>
+                <p style="margin-top: 10px;">または、SQL Server Management Studio で以下のクエリを個別に実行：</p>
+                <div class="command-block">
+<span class="comment">-- 各マスタテーブルの件数確認</span>
+<span class="command-line">SELECT COUNT(*) as 商品マスタ件数 FROM ProductMaster</span>
+<span class="command-line">SELECT COUNT(*) as 得意先マスタ件数 FROM CustomerMaster</span>
+<span class="command-line">SELECT COUNT(*) as 仕入先マスタ件数 FROM SupplierMaster</span>
+<span class="command-line">SELECT COUNT(*) as 等級マスタ件数 FROM GradeMaster</span>
+<span class="command-line">SELECT COUNT(*) as 階級マスタ件数 FROM ClassMaster</span>
                 </div>
             </div>
         </div>
@@ -440,9 +445,17 @@
             <div class="step">
                 <h4>Step 2: 初期在庫の確認</h4>
                 <div class="command-block">
-<span class="comment"># 在庫マスタの件数確認（SQL Server Management Studio で実行）</span>
-<span class="command-line">SELECT COUNT(*) as 初期在庫件数 FROM InventoryMaster WHERE PreviousMonthQuantity > 0;</span>
-<span class="command-line">SELECT TOP 10 * FROM InventoryMaster WHERE PreviousMonthQuantity > 0;</span>
+<span class="comment"># 在庫マスタの件数確認（コマンドラインから実行）</span>
+<span class="command-line">dotnet run check-inventory-status</span>
+                </div>
+                <p style="margin-top: 10px;">または、SQL Server Management Studio で以下のクエリを個別に実行：</p>
+                <div class="command-block">
+<span class="comment">-- 初期在庫件数の確認</span>
+<span class="command-line">SELECT COUNT(*) as 初期在庫件数 FROM InventoryMaster WHERE PreviousMonthQuantity > 0</span>
+                </div>
+                <div class="command-block">
+<span class="comment">-- 初期在庫データのサンプル確認</span>
+<span class="command-line">SELECT TOP 10 * FROM InventoryMaster WHERE PreviousMonthQuantity > 0</span>
                 </div>
             </div>
 
@@ -585,16 +598,16 @@
 
             <h4>2. 計算精度の確認</h4>
             <div class="command-block">
-<span class="comment">-- 粗利計算確認</span>
+<span class="comment">-- 粗利計算確認（SQL Server Management Studioで実行）</span>
 <span class="command-line">SELECT TOP 10</span>
 <span class="command-line">    ProductCode, GradeCode,</span>
-<span class="command-line">    PreviousDayAmount,        -- 前日在庫金額</span>
-<span class="command-line">    CurrentDayPurchaseAmount, -- 当日仕入金額</span>
-<span class="command-line">    CurrentDayAmount,         -- 当日在庫金額</span>
-<span class="command-line">    CurrentDayGrossProfit     -- 当日粗利益</span>
+<span class="command-line">    PreviousDayAmount,</span>
+<span class="command-line">    CurrentDayPurchaseAmount,</span>
+<span class="command-line">    CurrentDayAmount,</span>
+<span class="command-line">    CurrentDayGrossProfit</span>
 <span class="command-line">FROM InventoryMaster</span>
 <span class="command-line">WHERE JobDate = '2025-06-01' AND CurrentDayGrossProfit <> 0</span>
-<span class="command-line">ORDER BY CurrentDayGrossProfit DESC;</span>
+<span class="command-line">ORDER BY CurrentDayGrossProfit DESC</span>
             </div>
         </div>
 
@@ -607,8 +620,12 @@
                 <div class="command-block">
 <span class="comment"># 対処法: マスタデータを先にインポート</span>
 <span class="command-line">dotnet run import-folder DeptA  # マスタファイルのみインポート</span>
-<span class="comment"># 商品マスタ確認</span>
-<span class="command-line">SELECT COUNT(*) FROM ProductMaster;</span>
+                </div>
+                <div class="command-block">
+<span class="comment"># 商品マスタ確認（SQL Server Management Studioで実行）</span>
+<span class="command-line">SELECT COUNT(*) as 商品マスタ件数 FROM ProductMaster</span>
+                </div>
+                <div class="command-block">
 <span class="comment"># その後、初期在庫設定</span>
 <span class="command-line">dotnet run init-inventory DeptA</span>
                 </div>
