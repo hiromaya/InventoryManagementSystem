@@ -2,6 +2,8 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Services.History;
+using InventorySystem.Core.Models;
 
 namespace InventorySystem.Core.Services;
 
@@ -14,6 +16,7 @@ public class DailyReportService : IDailyReportService
     private readonly ISalesVoucherRepository _salesVoucherRepository;
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
+    private readonly IProcessHistoryService _processHistoryService;
     private readonly ILogger<DailyReportService> _logger;
 
     public DailyReportService(
@@ -21,12 +24,14 @@ public class DailyReportService : IDailyReportService
         ISalesVoucherRepository salesVoucherRepository,
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
+        IProcessHistoryService processHistoryService,
         ILogger<DailyReportService> logger)
     {
         _cpInventoryRepository = cpInventoryRepository;
         _salesVoucherRepository = salesVoucherRepository;
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
+        _processHistoryService = processHistoryService;
         _logger = logger;
     }
 
@@ -35,11 +40,16 @@ public class DailyReportService : IDailyReportService
         var stopwatch = Stopwatch.StartNew();
         var dataSetId = existingDataSetId ?? Guid.NewGuid().ToString();
         var isNewDataSet = existingDataSetId == null;
+        ProcessHistory? processHistory = null;
         
         try
         {
             _logger.LogInformation("商品日報処理開始 - レポート日付: {ReportDate}, データセットID: {DataSetId}", 
                 reportDate, dataSetId);
+            
+            // ProcessHistoryに処理開始を記録
+            var executedBy = Environment.UserName ?? "System";
+            processHistory = await _processHistoryService.StartProcess(dataSetId, reportDate, "DAILY_REPORT", executedBy);
 
             if (isNewDataSet)
             {
@@ -112,6 +122,20 @@ public class DailyReportService : IDailyReportService
             var total = CreateTotal(reportItems);
 
             stopwatch.Stop();
+            
+            // ProcessHistoryに処理完了を記録（0件データでも記録）
+            if (processHistory != null)
+            {
+                var message = reportItems.Count > 0 
+                    ? $"商品日報処理が正常に完了しました。データ件数: {reportItems.Count}件"
+                    : $"商品日報処理が完了しました。データが0件でした。";
+                await _processHistoryService.CompleteProcess(processHistory.Id, true, message);
+                
+                if (reportItems.Count == 0)
+                {
+                    _logger.LogWarning("{ReportDate}の商品日報は0件データですが、ProcessHistoryに記録されました", reportDate);
+                }
+            }
 
             return new DailyReportResult
             {
@@ -128,6 +152,12 @@ public class DailyReportService : IDailyReportService
         {
             stopwatch.Stop();
             _logger.LogError(ex, "商品日報処理でエラーが発生しました - データセットID: {DataSetId}", dataSetId);
+            
+            // ProcessHistoryに処理失敗を記録
+            if (processHistory != null)
+            {
+                await _processHistoryService.CompleteProcess(processHistory.Id, false, ex.Message);
+            }
             
             try
             {
