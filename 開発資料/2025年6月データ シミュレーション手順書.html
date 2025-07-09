@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在庫管理システム - 2025年6月データ シミュレーション手順</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .data-info {
+            background: rgba(52, 152, 219, 0.1);
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .phase {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .phase:hover {
+            transform: translateY(-5px);
+        }
+        
+        .phase-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .phase-number {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-right: 20px;
+        }
+        
+        .phase-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        .command-block {
+            background: #1e1e1e;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            position: relative;
+            overflow-x: auto;
+        }
+        
+        .command-block::before {
+            content: 'PowerShell';
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: #007acc;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        
+        .command-line {
+            margin: 8px 0;
+            display: block;
+        }
+        
+        .comment {
+            color: #6a9955;
+            font-style: italic;
+        }
+        
+        .step {
+            background: rgba(46, 204, 113, 0.1);
+            border-left: 4px solid #2ecc71;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        
+        .warning {
+            background: rgba(231, 76, 60, 0.1);
+            border-left: 4px solid #e74c3c;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        
+        .info {
+            background: rgba(52, 152, 219, 0.1);
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        
+        .success {
+            background: rgba(46, 204, 113, 0.1);
+            border-left: 4px solid #2ecc71;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        
+        .verification {
+            background: rgba(142, 68, 173, 0.1);
+            border-left: 4px solid #8e44ad;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, #667eea, #764ba2);
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            background: #667eea;
+            border-radius: 50%;
+            border: 3px solid white;
+        }
+        
+        .date-range {
+            display: inline-block;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        
+        .troubleshooting {
+            background: rgba(241, 196, 15, 0.1);
+            border: 2px solid #f1c40f;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        th {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background: rgba(52, 152, 219, 0.05);
+        }
+        
+        .button {
+            display: inline-block;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .phase {
+                padding: 20px;
+            }
+            
+            .command-block {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏭 在庫管理システム</h1>
+            <p>2025年6月データ シミュレーション手順書</p>
+            <p><strong>最終更新:</strong> 2025年7月9日 | <strong>対象:</strong> 開発・動作確認</p>
+        </div>
+
+        <div class="data-info">
+            <h3>📊 サンプルデータ概要</h3>
+            <ul>
+                <li><strong>伝票データ期間:</strong> <span class="date-range">2025年6月1日</span> ～ <span class="date-range">2025年6月27日</span> (27日間)</li>
+                <li><strong>期末在庫データ:</strong> 2025年5月末時点の在庫（前月末在庫として使用）</li>
+                <li><strong>データ基準:</strong> ジョブデート（汎用日付2）でフィルタリング</li>
+                <li><strong>伝票件数:</strong> 売上500～1,200件/日、仕入200～400件/日、在庫調整50～150件/日</li>
+            </ul>
+        </div>
+
+        <div class="phase" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+            <div class="phase-header">
+                <div class="phase-number">🚀</div>
+                <div class="phase-title">クイックスタートガイド</div>
+            </div>
+            
+            <div class="success">
+                <h4>📌 重要な変更点（2025年7月）</h4>
+                <ul>
+                    <li><strong>init-inventory</strong>コマンドの新設 - システム導入時の初期在庫設定専用</li>
+                    <li><strong>import-folder</strong>コマンドの仕様変更 - 前月末在庫.csvを自動スキップ</li>
+                    <li>初期在庫と日次処理の明確な分離</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h4>正しい処理順序</h4>
+                <table style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>タイミング</th>
+                            <th>コマンド</th>
+                            <th>説明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>システム導入時（1回のみ）</td>
+                            <td><code>init-inventory DeptA</code></td>
+                            <td>前月末在庫.csvから初期在庫を設定</td>
+                        </tr>
+                        <tr>
+                            <td>日次処理（毎日）</td>
+                            <td><code>import-folder DeptA [日付]</code></td>
+                            <td>売上・仕入・在庫調整・マスタを取込</td>
+                        </tr>
+                        <tr>
+                            <td>日次処理（毎日）</td>
+                            <td><code>unmatch-list [日付]</code></td>
+                            <td>アンマッチリストと在庫マスタ更新</td>
+                        </tr>
+                        <tr>
+                            <td>日次処理（毎日）</td>
+                            <td><code>daily-report [日付]</code></td>
+                            <td>商品日報PDF出力</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-number">1</div>
+                <div class="phase-title">環境準備</div>
+            </div>
+            
+            <div class="step">
+                <h4>Step 1: データベース初期化</h4>
+                <div class="command-block">
+<span class="comment"># データベース完全初期化</span>
+<span class="command-line">dotnet run init-database --force</span>
+                </div>
+            </div>
+
+            <div class="step">
+                <h4>Step 2: 接続確認</h4>
+                <div class="command-block">
+<span class="comment"># 接続テスト</span>
+<span class="command-line">dotnet run test-connection</span>
+                </div>
+            </div>
+
+            <div class="step">
+                <h4>Step 3: マスタデータインポート</h4>
+                <div class="command-block">
+<span class="comment"># マスタデータを一括インポート（商品・得意先・仕入先・等級・階級・荷印マスタ）</span>
+<span class="command-line">dotnet run import-folder DeptA</span>
+                </div>
+                <p style="margin-top: 10px;"><strong>重要：</strong> このコマンドで以下のマスタファイルがインポートされます：</p>
+                <ul>
+                    <li>商品.csv（商品マスタ）</li>
+                    <li>得意先.csv（得意先マスタ）</li>
+                    <li>仕入先.csv（仕入先マスタ）</li>
+                    <li>等級汎用マスター.csv（等級マスタ）</li>
+                    <li>階級汎用マスター.csv（階級マスタ）</li>
+                    <li>荷印汎用マスター.csv（荷印マスタ）</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h4>Step 4: マスタデータ確認</h4>
+                <div class="command-block">
+<span class="comment"># マスタデータ確認（SQL Server Management Studio で実行）</span>
+<span class="command-line">SELECT 'ProductMaster' as テーブル名, COUNT(*) as 件数 FROM ProductMaster</span>
+<span class="command-line">UNION ALL SELECT 'CustomerMaster', COUNT(*) FROM CustomerMaster</span>
+<span class="command-line">UNION ALL SELECT 'SupplierMaster', COUNT(*) FROM SupplierMaster</span>
+<span class="command-line">UNION ALL SELECT 'GradeMaster', COUNT(*) FROM GradeMaster</span>
+<span class="command-line">UNION ALL SELECT 'ClassMaster', COUNT(*) FROM ClassMaster;</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-number">2</div>
+                <div class="phase-title">初期在庫設定（システム導入時のみ）</div>
+            </div>
+
+            <div class="warning">
+                <strong>⚠️ 最重要:</strong> システム導入時の初回のみ実行する手順です。この手順により5月末在庫が初期在庫として設定され、6月1日以降の在庫計算の基準となります。<br><br>
+                <strong>前提条件：</strong> Phase 1でマスタデータ（特に商品マスタ）がインポート済みであること。商品マスタが未登録の場合、すべての在庫データがスキップされます。
+            </div>
+
+            <div class="info">
+                <strong>📝 新コマンドについて:</strong> 2025年7月より、前月末在庫の設定は専用の<code>init-inventory</code>コマンドで行います。<code>import-folder</code>コマンドは前月末在庫.csvを自動的にスキップします。
+            </div>
+
+            <div class="step">
+                <h4>Step 1: 初期在庫設定（前月末在庫.csv取込）</h4>
+                <div class="command-block">
+<span class="comment"># 初期在庫設定（前月末在庫.csvを取込）</span>
+<span class="command-line">dotnet run init-inventory DeptA</span>
+                </div>
+                <p style="margin-top: 10px;">このコマンドは以下の処理を実行します：</p>
+                <ul>
+                    <li>D:\InventoryImport\DeptA\Import\前月末在庫.csv を読み込み</li>
+                    <li>在庫マスタの前月末在庫数量・金額に設定</li>
+                    <li>処理完了後、ファイルを Processed フォルダに移動</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h4>Step 2: 初期在庫の確認</h4>
+                <div class="command-block">
+<span class="comment"># 在庫マスタの件数確認（SQL Server Management Studio で実行）</span>
+<span class="command-line">SELECT COUNT(*) as 初期在庫件数 FROM InventoryMaster WHERE PreviousMonthQuantity > 0;</span>
+<span class="command-line">SELECT TOP 10 * FROM InventoryMaster WHERE PreviousMonthQuantity > 0;</span>
+                </div>
+            </div>
+
+            <div class="success">
+                <strong>✅ 確認ポイント:</strong>
+                <ul>
+                    <li>初期在庫件数が1,000件以上あること</li>
+                    <li>PreviousMonthQuantity（前月末在庫数量）に値が設定されていること</li>
+                    <li>PreviousMonthAmount（前月末在庫金額）に値が設定されていること</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-number">3</div>
+                <div class="phase-title">日次処理シミュレーション</div>
+            </div>
+
+            <div class="info">
+                <strong>📝 処理順序:</strong> import-folder → unmatch-list → daily-report → inventory-list
+                <br><br>
+                <strong>💡 注意:</strong> import-folderコマンドは前月末在庫.csvを自動的にスキップします。前月末在庫の設定は必ずinit-inventoryコマンドを使用してください。
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <h4>6月1日の処理</h4>
+                    <div class="command-block">
+<span class="comment"># 6月1日の伝票データインポート</span>
+<span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
+
+<span class="comment"># アンマッチリスト作成（在庫マスタ更新）</span>
+<span class="command-line">dotnet run unmatch-list 2025-06-01</span>
+
+<span class="comment"># 商品日報作成</span>
+<span class="command-line">dotnet run daily-report 2025-06-01</span>
+
+<span class="comment"># 在庫表作成</span>
+<span class="command-line">dotnet run inventory-list 2025-06-01</span>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <h4>6月2日の処理</h4>
+                    <div class="command-block">
+<span class="comment"># 6月2日の処理</span>
+<span class="command-line">dotnet run import-folder DeptA 2025-06-02</span>
+<span class="command-line">dotnet run unmatch-list 2025-06-02</span>
+<span class="command-line">dotnet run daily-report 2025-06-02</span>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <h4>6月3日の処理</h4>
+                    <div class="command-block">
+<span class="comment"># 6月3日の処理</span>
+<span class="command-line">dotnet run import-folder DeptA 2025-06-03</span>
+<span class="command-line">dotnet run unmatch-list 2025-06-03</span>
+<span class="command-line">dotnet run daily-report 2025-06-03</span>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <h4>継続処理</h4>
+                    <p><strong>必要な日付まで上記の手順を継続してください。</strong></p>
+                    <p>最大で6月27日まで処理可能です。</p>
+                </div>
+            </div>
+
+            <div class="success">
+                <strong>💡 一括実行スクリプト例:</strong>
+                <div class="command-block">
+<span class="comment"># PowerShell一括実行例</span>
+<span class="command-line">for ($i=1; $i -le 7; $i++) {</span>
+<span class="command-line">    $date = "2025-06-$('{0:D2}' -f $i)"</span>
+<span class="command-line">    dotnet run import-folder DeptA $date</span>
+<span class="command-line">    dotnet run unmatch-list $date</span>
+<span class="command-line">    dotnet run daily-report $date</span>
+<span class="command-line">}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-number">4</div>
+                <div class="phase-title">月間処理確認</div>
+            </div>
+
+            <div class="step">
+                <h4>月中任意日での確認</h4>
+                <div class="command-block">
+<span class="comment"># 月中の状況確認</span>
+<span class="command-line">dotnet run daily-report 2025-06-15</span>
+<span class="command-line">dotnet run check-data-status 2025-06-15</span>
+                </div>
+            </div>
+
+            <div class="step">
+                <h4>月末での確認</h4>
+                <div class="command-block">
+<span class="comment"># 月末の最終確認</span>
+<span class="command-line">dotnet run daily-report 2025-06-27</span>
+<span class="command-line">dotnet run inventory-list 2025-06-27</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="verification">
+            <h3>🔍 検証ポイント</h3>
+            
+            <h4>1. データ継続性の確認</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>確認項目</th>
+                        <th>SQLクエリ例</th>
+                        <th>期待値</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>在庫マスタ件数</td>
+                        <td>SELECT COUNT(*) FROM InventoryMaster WHERE JobDate = '2025-06-01'</td>
+                        <td>1,500件程度</td>
+                    </tr>
+                    <tr>
+                        <td>売上伝票件数</td>
+                        <td>SELECT COUNT(*) FROM SalesVouchers WHERE JobDate = '2025-06-01'</td>
+                        <td>500-1,200件</td>
+                    </tr>
+                    <tr>
+                        <td>在庫継続性</td>
+                        <td>前日在庫 + 当日仕入 - 当日売上 = 当日在庫</td>
+                        <td>数式一致</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>2. 計算精度の確認</h4>
+            <div class="command-block">
+<span class="comment">-- 粗利計算確認</span>
+<span class="command-line">SELECT TOP 10</span>
+<span class="command-line">    ProductCode, GradeCode,</span>
+<span class="command-line">    PreviousDayAmount,        -- 前日在庫金額</span>
+<span class="command-line">    CurrentDayPurchaseAmount, -- 当日仕入金額</span>
+<span class="command-line">    CurrentDayAmount,         -- 当日在庫金額</span>
+<span class="command-line">    CurrentDayGrossProfit     -- 当日粗利益</span>
+<span class="command-line">FROM InventoryMaster</span>
+<span class="command-line">WHERE JobDate = '2025-06-01' AND CurrentDayGrossProfit <> 0</span>
+<span class="command-line">ORDER BY CurrentDayGrossProfit DESC;</span>
+            </div>
+        </div>
+
+        <div class="troubleshooting">
+            <h3>🛠️ よくある問題と対処法</h3>
+
+            <h4>❌ 問題1: 前月末在庫が設定されない（商品マスタ未登録エラー）</h4>
+            <div class="step">
+                <strong>原因:</strong> 商品マスタがインポートされていない
+                <div class="command-block">
+<span class="comment"># 対処法: マスタデータを先にインポート</span>
+<span class="command-line">dotnet run import-folder DeptA  # マスタファイルのみインポート</span>
+<span class="comment"># 商品マスタ確認</span>
+<span class="command-line">SELECT COUNT(*) FROM ProductMaster;</span>
+<span class="comment"># その後、初期在庫設定</span>
+<span class="command-line">dotnet run init-inventory DeptA</span>
+                </div>
+            </div>
+
+            <h4>❌ 問題1-2: import-folderを使用している</h4>
+            <div class="step">
+                <strong>原因:</strong> import-folderコマンドは前月末在庫.csvをスキップする仕様
+                <div class="command-block">
+<span class="comment"># 対処法: 正しいコマンドを使用</span>
+<span class="command-line">dotnet run init-inventory DeptA</span>
+<span class="comment"># ファイル存在確認</span>
+<span class="command-line">dir D:\InventoryImport\DeptA\Import\前月末在庫.csv</span>
+                </div>
+            </div>
+
+            <h4>❌ 問題2: 商品日報にデータが表示されない</h4>
+            <div class="step">
+                <strong>原因:</strong> 初期在庫未設定、または在庫マスタが空
+                <div class="command-block">
+<span class="comment"># 対処法</span>
+<span class="command-line">dotnet run init-inventory DeptA</span>
+<span class="command-line">dotnet run check-data-status 2025-06-01</span>
+<span class="command-line">dotnet run unmatch-list 2025-06-01</span>
+                </div>
+            </div>
+
+            <h4>❌ 問題3: アンマッチ件数が多い</h4>
+            <div class="step">
+                <strong>原因:</strong> マスタ未登録データ（等級コード「000」、荷印コード「8001」等）
+                <div class="command-block">
+<span class="comment"># 対処法: マスタ確認</span>
+<span class="command-line">dotnet run check-masters</span>
+                </div>
+            </div>
+
+            <h4>❌ 問題4: FastReport関連エラー</h4>
+            <div class="step">
+                <strong>原因:</strong> Windows環境での実行エラー
+                <div class="command-block">
+<span class="comment"># 対処法: Windows環境での実行</span>
+<span class="command-line">dotnet run -c Debug -p:DefineConstants="WINDOWS" -- daily-report 2025-06-01</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="info">
+            <h3>📋 パフォーマンス目標</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>処理項目</th>
+                        <th>現状</th>
+                        <th>目標</th>
+                        <th>改善率</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>データ取込</td>
+                        <td>5分</td>
+                        <td>2分</td>
+                        <td>60%短縮</td>
+                    </tr>
+                    <tr>
+                        <td>アンマッチ処理</td>
+                        <td>12分</td>
+                        <td>3分</td>
+                        <td>75%短縮</td>
+                    </tr>
+                    <tr>
+                        <td>帳票出力</td>
+                        <td>10分</td>
+                        <td>5分</td>
+                        <td>50%短縮</td>
+                    </tr>
+                    <tr>
+                        <td>在庫計算</td>
+                        <td>15分</td>
+                        <td>5分</td>
+                        <td>67%短縮</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-number">✓</div>
+                <div class="phase-title">シミュレーション完了チェックリスト</div>
+            </div>
+
+            <div class="step">
+                <h4>□ 環境準備完了</h4>
+                <ul>
+                    <li>□ データベース初期化済み</li>
+                    <li>□ マスタデータインポート済み（import-folder DeptA実行）</li>
+                    <li>□ 商品マスタ登録確認済み（ProductMasterテーブルにデータあり）</li>
+                    <li>□ 接続確認済み</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h4>□ 初期在庫設定完了</h4>
+                <ul>
+                    <li>□ init-inventoryコマンドで前月末在庫.csvインポート済み</li>
+                    <li>□ 在庫マスタに初期在庫が設定済み</li>
+                    <li>□ SQL実行で初期在庫データ確認済み</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h4>□ 日次処理動作確認完了</h4>
+                <ul>
+                    <li>□ 6月1日〜3日の連続処理確認済み</li>
+                    <li>□ アンマッチリスト正常生成</li>
+                    <li>□ 商品日報正常生成</li>
+                    <li>□ 在庫表正常生成</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h4>□ 拡張テスト完了</h4>
+                <ul>
+                    <li>□ 1週間分の連続処理確認済み</li>
+                    <li>□ パフォーマンス測定済み</li>
+                    <li>□ エラーハンドリング確認済み</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="header" style="margin-top: 50px;">
+            <p><strong>🎯 シミュレーション成功の鍵</strong></p>
+            <p>前月末在庫の設定 → 順序正しい日次処理 → データ継続性の確認</p>
+            <br>
+            <button class="button" onclick="window.print()">📄 この手順書を印刷</button>
+        </div>
+    </div>
+
+    <script>
+        // ページ読み込み時のアニメーション
+        window.addEventListener('load', function() {
+            const phases = document.querySelectorAll('.phase');
+            phases.forEach((phase, index) => {
+                setTimeout(() => {
+                    phase.style.opacity = '0';
+                    phase.style.transform = 'translateY(20px)';
+                    phase.style.transition = 'all 0.6s ease';
+                    
+                    setTimeout(() => {
+                        phase.style.opacity = '1';
+                        phase.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 200);
+            });
+        });
+
+        // コマンドブロックのクリックでコピー機能
+        document.querySelectorAll('.command-block').forEach(block => {
+            block.addEventListener('click', function() {
+                const text = this.textContent.replace(/PowerShell/g, '').trim();
+                navigator.clipboard.writeText(text).then(() => {
+                    const originalBg = this.style.background;
+                    this.style.background = '#2ecc71';
+                    setTimeout(() => {
+                        this.style.background = originalBg;
+                    }, 500);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
