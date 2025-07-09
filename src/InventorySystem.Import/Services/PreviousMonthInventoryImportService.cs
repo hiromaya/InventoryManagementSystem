@@ -442,38 +442,48 @@ public class PreviousMonthInventoryImportService
     {
         if (string.IsNullOrWhiteSpace(jobDateString))
         {
-            _logger.LogWarning("JobDate項目が空白です。現在日付を使用します。");
-            return DateTime.Now.Date;
+            throw new FormatException("JobDate項目が空白です。CSVデータを確認してください。");
         }
 
         // YYYYMMDD形式の解析を試行
         if (jobDateString.Length == 8 && 
             DateTime.TryParseExact(jobDateString, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
         {
+            _logger.LogDebug("JobDate解析成功 (YYYYMMDD): {Original} -> {Parsed:yyyy-MM-dd}", jobDateString, date);
             return date;
         }
 
         // YYYY/MM/DD形式の解析を試行
         if (DateTime.TryParseExact(jobDateString, "yyyy/MM/dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
         {
+            _logger.LogDebug("JobDate解析成功 (yyyy/MM/dd): {Original} -> {Parsed:yyyy-MM-dd}", jobDateString, date);
             return date;
         }
 
         // YYYY-MM-DD形式の解析を試行
         if (DateTime.TryParseExact(jobDateString, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
         {
+            _logger.LogDebug("JobDate解析成功 (yyyy-MM-dd): {Original} -> {Parsed:yyyy-MM-dd}", jobDateString, date);
+            return date;
+        }
+
+        // M/d/yyyy形式の解析を試行（例：6/13/2025）
+        if (DateTime.TryParseExact(jobDateString, "M/d/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+        {
+            _logger.LogDebug("JobDate解析成功 (M/d/yyyy): {Original} -> {Parsed:yyyy-MM-dd}", jobDateString, date);
             return date;
         }
 
         // 一般的な日付解析を試行
-        if (DateTime.TryParse(jobDateString, out date))
+        if (DateTime.TryParse(jobDateString, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
         {
+            _logger.LogDebug("JobDate解析成功 (一般形式): {Original} -> {Parsed:yyyy-MM-dd}", jobDateString, date);
             return date.Date;
         }
 
-        // 解析に失敗した場合はエラーログを出力して現在日付を使用
-        _logger.LogError("JobDate項目の解析に失敗しました: {JobDate}。現在日付を使用します。", jobDateString);
-        return DateTime.Now.Date;
+        // 解析に失敗した場合はエラーとして扱う（フォールバックしない）
+        _logger.LogError("JobDate項目の解析に失敗しました: '{JobDate}'。サポートされている形式: YYYYMMDD, yyyy/MM/dd, yyyy-MM-dd", jobDateString);
+        throw new FormatException($"JobDate項目の解析に失敗しました: '{jobDateString}'。CSVデータの形式を確認してください。");
     }
 
     /// <summary>

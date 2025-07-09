@@ -1,0 +1,65 @@
+[
+  {
+    "TABLE_NAME": "AuditLogs"
+  },
+  {
+    "TABLE_NAME": "CategoryMaster"
+  },
+  {
+    "TABLE_NAME": "ClassMaster"
+  },
+  {
+    "TABLE_NAME": "CpInventoryMaster"
+  },
+  {
+    "TABLE_NAME": "CustomerMaster"
+  },
+  {
+    "TABLE_NAME": "DailyCloseManagement"
+  },
+  {
+    "TABLE_NAME": "DatasetManagement"
+  },
+  {
+    "TABLE_NAME": "DataSets"
+  },
+  {
+    "TABLE_NAME": "DateProcessingHistory"
+  },
+  {
+    "TABLE_NAME": "FileProcessingHistory"
+  },
+  {
+    "TABLE_NAME": "GradeMaster"
+  },
+  {
+    "TABLE_NAME": "InventoryAdjustments"
+  },
+  {
+    "TABLE_NAME": "InventoryMaster"
+  },
+  {
+    "TABLE_NAME": "ProcessHistory"
+  },
+  {
+    "TABLE_NAME": "ProductMaster"
+  },
+  {
+    "TABLE_NAME": "PurchaseVouchers"
+  },
+  {
+    "TABLE_NAME": "RegionMaster"
+  },
+  {
+    "TABLE_NAME": "SalesVouchers"
+  },
+  {
+    "TABLE_NAME": "ShippingMarkMaster"
+  },
+  {
+    "TABLE_NAME": "SupplierMaster"
+  },
+  {
+    "TABLE_NAME": "UnitMaster"
+  }
+]
