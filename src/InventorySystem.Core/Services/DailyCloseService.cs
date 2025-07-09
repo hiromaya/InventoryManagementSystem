@@ -630,21 +630,22 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         
         try
         {
-            // データの存在確認
+            // 商品日報のDatasetIdを先に取得（順序を入れ替える）
+            var dailyReportDatasetId = await _datasetManager.GetLatestDatasetId("DAILY_REPORT", jobDate);
+            if (string.IsNullOrEmpty(dailyReportDatasetId) && !skipValidation)
+            {
+                throw new InvalidOperationException($"{jobDate:yyyy-MM-dd}の商品日報が作成されていません");
+            }
+            
+            // データの存在確認（商品日報があれば0件でもOK）
             if (!skipValidation)
             {
                 var dataExists = await CheckDataExistsAsync(jobDate);
                 if (!dataExists)
                 {
-                    throw new InvalidOperationException($"{jobDate:yyyy-MM-dd}のデータが存在しません");
+                    _logger.LogWarning("{JobDate}のデータは0件ですが、商品日報が存在するため処理を続行します", jobDate);
+                    // エラーにはしない - 0件でも商品日報があれば処理可能
                 }
-            }
-            
-            // 商品日報のDatasetIdを取得
-            var dailyReportDatasetId = await _datasetManager.GetLatestDatasetId("DAILY_REPORT", jobDate);
-            if (string.IsNullOrEmpty(dailyReportDatasetId) && !skipValidation)
-            {
-                throw new InvalidOperationException($"{jobDate:yyyy-MM-dd}の商品日報が作成されていません");
             }
             
             result.DatasetId = dailyReportDatasetId ?? "DEV-" + Guid.NewGuid().ToString("N").Substring(0, 8);
@@ -804,6 +805,11 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         var purchaseCount = await _purchaseRepository.GetCountAsync(jobDate);
         var adjustmentCount = await _adjustmentRepository.GetCountAsync(jobDate);
         
-        return (salesCount + purchaseCount + adjustmentCount) > 0;
+        var totalCount = salesCount + purchaseCount + adjustmentCount;
+        
+        _logger.LogInformation("JobDate={JobDate}のデータ件数: 売上={Sales}件、仕入={Purchase}件、在庫調整={Adjustment}件、合計={Total}件", 
+            jobDate, salesCount, purchaseCount, adjustmentCount, totalCount);
+        
+        return totalCount > 0;
     }
 }
