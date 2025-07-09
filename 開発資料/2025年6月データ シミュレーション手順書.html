@@ -502,6 +502,8 @@
                 <strong>💡 注意:</strong> import-folderコマンドは前月末在庫.csvを自動的にスキップします。前月末在庫の設定は必ずinit-inventoryコマンドを使用してください。
                 <br><br>
                 <strong>🔴 最重要:</strong> 各日の処理の最後に必ず<strong>dev-daily-close</strong>（日次終了処理）を実行してください。これにより当日在庫が翌日の前日在庫として繰り越されます。
+                <br><br>
+                <strong>📝 注意:</strong> 「データが存在しません」エラーが出た場合は、先にデータインポートを実行するか、<code>--skip-validation</code>オプションを使用してください。
             </div>
 
             <div class="timeline">
@@ -533,6 +535,7 @@
                             <li>この処理を行わないと、翌日のアンマッチが大量に発生します</li>
                             <li><strong>コマンド：</strong> <code>dev-daily-close</code>（開発用、時間制約なし）</li>
                             <li><strong>事前確認：</strong> <code>check-daily-close</code>で実行可能か確認可能</li>
+                            <li><strong>オプション：</strong> <code>--skip-validation</code>でデータチェックをスキップ</li>
                             <li>本番環境では15:00以降に実行（開発環境では時間制約なし）</li>
                         </ul>
                     </div>
@@ -705,6 +708,25 @@
 <span class="command-line">dotnet run dev-daily-close 2025-06-01  # 前日分を実行</span>
 <span class="comment"># その後、当日の処理を再実行</span>
 <span class="command-line">dotnet run unmatch-list 2025-06-02</span>
+                </div>
+            </div>
+
+            <h4>❌ 問題2-3: 日次終了処理で「データが存在しません」エラー</h4>
+            <div class="step">
+                <strong>原因:</strong> 指定日付の売上・仕入・在庫調整データが存在しない
+                <div class="command-block">
+<span class="comment"># 対処法１: データの存在確認</span>
+<span class="command-line">dotnet run check-data-status 2025-06-01</span>
+                </div>
+                <div class="command-block">
+<span class="comment"># 対処法２: データがない場合は先にインポート</span>
+<span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
+<span class="command-line">dotnet run unmatch-list 2025-06-01</span>
+<span class="command-line">dotnet run daily-report 2025-06-01</span>
+                </div>
+                <div class="command-block">
+<span class="comment"># 対処法３: バリデーションをスキップして実行</span>
+<span class="command-line">dotnet run dev-daily-close 2025-06-01 --skip-validation</span>
                 </div>
             </div>
 
