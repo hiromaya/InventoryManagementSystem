@@ -436,54 +436,52 @@ public class PreviousMonthInventoryImportService
 
     /// <summary>
     /// CSVのJobDate項目（48列目）を解析するメソッド
-    /// 初期在庫設定時に使用（参照用）
+    /// 既存のimport-folderロジックと同じ多言語対応の実装を使用
     /// </summary>
     private DateTime ParseJobDate(string jobDateString)
     {
         if (string.IsNullOrWhiteSpace(jobDateString))
         {
+            _logger.LogError("JobDate項目が空白です。CSVデータを確認してください。");
             throw new FormatException("JobDate項目が空白です。CSVデータを確認してください。");
         }
 
-        // YYYYMMDD形式の解析を試行
-        if (jobDateString.Length == 8 && 
-            DateTime.TryParseExact(jobDateString, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        // 既存のimport-folderロジックと同じ日付形式配列（多言語対応）
+        string[] dateFormats = new[]
         {
-            _logger.LogDebug("JobDate解析成功 (YYYYMMDD): {Original} -> {Parsed:yyyy-MM-dd}", jobDateString, date);
+            "yyyy/MM/dd",     // CSVで最も使用される形式（例：2025/06/01）
+            "yyyy-MM-dd",     // ISO形式
+            "yyyyMMdd",       // 8桁数値形式
+            "yyyy/M/d",       // 月日が1桁の場合（例：2025/6/1）
+            "yyyy-M-d",       // ISO形式で月日が1桁
+            "dd/MM/yyyy",     // ヨーロッパ形式（例：01/06/2025）
+            "dd.MM.yyyy",     // ドイツ語圏形式（例：01.06.2025）
+            "M/d/yyyy",       // 米国形式（例：6/1/2025）
+            "d/M/yyyy",       // 英国形式（例：1/6/2025）
+            "d.M.yyyy"        // ドイツ語圏短縮形式（例：1.6.2025）
+        };
+        
+        // InvariantCultureで複数形式を厳密に試行
+        if (DateTime.TryParseExact(jobDateString.Trim(), dateFormats, 
+            CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
+            _logger.LogDebug("JobDate解析成功 (厳密形式): '{Original}' -> {Parsed:yyyy-MM-dd}", jobDateString, date);
             return date;
         }
-
-        // YYYY/MM/DD形式の解析を試行
-        if (DateTime.TryParseExact(jobDateString, "yyyy/MM/dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+        
+        // 最終手段：InvariantCultureで標準解析
+        if (DateTime.TryParse(jobDateString.Trim(), CultureInfo.InvariantCulture, 
+            DateTimeStyles.None, out var parsedDate))
         {
-            _logger.LogDebug("JobDate解析成功 (yyyy/MM/dd): {Original} -> {Parsed:yyyy-MM-dd}", jobDateString, date);
-            return date;
+            _logger.LogDebug("JobDate解析成功 (標準解析): '{Original}' -> {Parsed:yyyy-MM-dd}", jobDateString, parsedDate);
+            return parsedDate.Date;
         }
-
-        // YYYY-MM-DD形式の解析を試行
-        if (DateTime.TryParseExact(jobDateString, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
-        {
-            _logger.LogDebug("JobDate解析成功 (yyyy-MM-dd): {Original} -> {Parsed:yyyy-MM-dd}", jobDateString, date);
-            return date;
-        }
-
-        // M/d/yyyy形式の解析を試行（例：6/13/2025）
-        if (DateTime.TryParseExact(jobDateString, "M/d/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
-        {
-            _logger.LogDebug("JobDate解析成功 (M/d/yyyy): {Original} -> {Parsed:yyyy-MM-dd}", jobDateString, date);
-            return date;
-        }
-
-        // 一般的な日付解析を試行
-        if (DateTime.TryParse(jobDateString, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
-        {
-            _logger.LogDebug("JobDate解析成功 (一般形式): {Original} -> {Parsed:yyyy-MM-dd}", jobDateString, date);
-            return date.Date;
-        }
-
-        // 解析に失敗した場合はエラーとして扱う（フォールバックしない）
-        _logger.LogError("JobDate項目の解析に失敗しました: '{JobDate}'。サポートされている形式: YYYYMMDD, yyyy/MM/dd, yyyy-MM-dd", jobDateString);
-        throw new FormatException($"JobDate項目の解析に失敗しました: '{jobDateString}'。CSVデータの形式を確認してください。");
+        
+        // 解析失敗：詳細なエラー情報を提供
+        _logger.LogError("JobDate項目の解析に失敗しました: '{JobDate}'。サポート形式: {Formats}", 
+            jobDateString, string.Join(", ", dateFormats));
+        throw new FormatException($"JobDate項目の解析に失敗しました: '{jobDateString}'。" +
+            $"サポートされている形式: {string.Join(", ", dateFormats)}");
     }
 
     /// <summary>
