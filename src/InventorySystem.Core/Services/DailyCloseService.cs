@@ -169,93 +169,44 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         
         try
         {
-            // 商品日報情報の取得
-            var dailyReportDatasetId = await _datasetManager.GetLatestDatasetId("DAILY_REPORT", jobDate);
-            if (!string.IsNullOrEmpty(dailyReportDatasetId))
+            // 商品日報情報の取得（シンプル化）
+            var dailyReportHistory = await _historyService.GetProcessHistory(jobDate, "DAILY_REPORT");
+            var completedReport = dailyReportHistory
+                .Where(h => h.Status == ProcessStatus.Completed)
+                .OrderByDescending(h => h.EndTime)
+                .FirstOrDefault();
+                
+            var dailyReportDatasetId = string.Empty;
+            
+            if (completedReport != null)
             {
-                var dailyReportHistory = await _historyService.GetProcessHistory(jobDate, "DAILY_REPORT");
-                var latestDailyReport = dailyReportHistory
-                    .Where(h => h.DatasetId == dailyReportDatasetId && h.Status == ProcessStatus.Completed)
-                    .OrderByDescending(h => h.EndTime)
-                    .FirstOrDefault();
-                    
-                if (latestDailyReport != null)
+                // 商品日報が見つかった
+                confirmation.DailyReport = new DailyReportInfo
                 {
-                    confirmation.DailyReport = new DailyReportInfo
-                    {
-                        CreatedAt = latestDailyReport.EndTime ?? latestDailyReport.StartTime,
-                        CreatedBy = latestDailyReport.ExecutedBy,
-                        DatasetId = latestDailyReport.DatasetId,
-                        DataHash = latestDailyReport.DataHash
-                    };
-                }
-                else
+                    CreatedAt = completedReport.EndTime ?? completedReport.StartTime,
+                    CreatedBy = completedReport.ExecutedBy,
+                    DatasetId = completedReport.DatasetId ?? "EMPTY_DATASET",
+                    DataHash = completedReport.DataHash
+                };
+                // 後続処理用にDatasetIdを保持
+                dailyReportDatasetId = completedReport.DatasetId ?? "EMPTY_DATASET";
+                
+                // 0件データの場合のログ出力
+                if (string.IsNullOrEmpty(completedReport.DatasetId) || completedReport.DatasetId == "EMPTY_DATASET")
                 {
-                    // DatasetIdは存在するがProcessHistoryにレコードがない場合
-                    // 0件でも商品日報が作成されている可能性があるため、もう一度確認
-                    var allDailyReportHistory = await _historyService.GetProcessHistory(jobDate, "DAILY_REPORT");
-                    var anyCompletedReport = allDailyReportHistory
-                        .Any(h => h.Status == ProcessStatus.Completed);
-                        
-                    if (anyCompletedReport)
-                    {
-                        // 0件でも処理済みとして扱う
-                        var completedReport = allDailyReportHistory
-                            .First(h => h.Status == ProcessStatus.Completed);
-                        confirmation.DailyReport = new DailyReportInfo
-                        {
-                            CreatedAt = completedReport.EndTime ?? completedReport.StartTime,
-                            CreatedBy = completedReport.ExecutedBy,
-                            DatasetId = completedReport.DatasetId,
-                            DataHash = completedReport.DataHash
-                        };
-                        // DatasetIdを更新
-                        dailyReportDatasetId = completedReport.DatasetId;
-                    }
-                    else
-                    {
-                        confirmation.ValidationResults.Add(new ValidationMessage
-                        {
-                            Level = ValidationLevel.Error,
-                            Message = "商品日報が作成されていません",
-                            Detail = ErrorMessages.DailyReportNotFound
-                        });
-                        confirmation.CanProcess = false;
-                    }
+                    _logger.LogInformation("{JobDate}の商品日報は0件データで作成されています", jobDate);
                 }
             }
             else
             {
-                // DatasetId自体が存在しない場合は、ProcessHistoryを直接確認
-                var allDailyReportHistory = await _historyService.GetProcessHistory(jobDate, "DAILY_REPORT");
-                var completedReport = allDailyReportHistory
-                    .Where(h => h.Status == ProcessStatus.Completed)
-                    .OrderByDescending(h => h.EndTime)
-                    .FirstOrDefault();
-                    
-                if (completedReport != null)
+                // 商品日報が見つからない
+                confirmation.ValidationResults.Add(new ValidationMessage
                 {
-                    // 0件でも処理済みとして扱う
-                    confirmation.DailyReport = new DailyReportInfo
-                    {
-                        CreatedAt = completedReport.EndTime ?? completedReport.StartTime,
-                        CreatedBy = completedReport.ExecutedBy,
-                        DatasetId = completedReport.DatasetId ?? "UNKNOWN",
-                        DataHash = completedReport.DataHash
-                    };
-                    // DatasetIdを更新
-                    dailyReportDatasetId = completedReport.DatasetId ?? "";
-                }
-                else
-                {
-                    confirmation.ValidationResults.Add(new ValidationMessage
-                    {
-                        Level = ValidationLevel.Error,
-                        Message = "商品日報が作成されていません",
-                        Detail = ErrorMessages.DailyReportNotFound
-                    });
-                    confirmation.CanProcess = false;
-                }
+                    Level = ValidationLevel.Error,
+                    Message = "商品日報が作成されていません",
+                    Detail = ErrorMessages.DailyReportNotFound
+                });
+                confirmation.CanProcess = false;
             }
             
             // 最新CSV取込情報の取得
