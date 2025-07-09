@@ -1,8 +1,11 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using InventorySystem.Core.Base;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Services.Dataset;
 using InventorySystem.Core.Services.History;
+using InventorySystem.Core.Services.Validation;
 using InventorySystem.Core.Models;
 
 namespace InventorySystem.Core.Services;
@@ -10,107 +13,117 @@ namespace InventorySystem.Core.Services;
 /// <summary>
 /// 商品日報サービス
 /// </summary>
-public class DailyReportService : IDailyReportService
+public class DailyReportService : BatchProcessBase, IDailyReportService
 {
     private readonly ICpInventoryRepository _cpInventoryRepository;
     private readonly ISalesVoucherRepository _salesVoucherRepository;
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
-    private readonly IProcessHistoryService _processHistoryService;
-    private readonly ILogger<DailyReportService> _logger;
 
     public DailyReportService(
+        IDateValidationService dateValidator,
+        IDatasetManager datasetManager,
+        IProcessHistoryService historyService,
         ICpInventoryRepository cpInventoryRepository,
         ISalesVoucherRepository salesVoucherRepository,
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
-        IProcessHistoryService processHistoryService,
         ILogger<DailyReportService> logger)
+        : base(dateValidator, datasetManager, historyService, logger)
     {
         _cpInventoryRepository = cpInventoryRepository;
         _salesVoucherRepository = salesVoucherRepository;
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
-        _processHistoryService = processHistoryService;
-        _logger = logger;
     }
 
     public async Task<DailyReportResult> ProcessDailyReportAsync(DateTime reportDate, string? existingDataSetId = null)
     {
         var stopwatch = Stopwatch.StartNew();
-        var dataSetId = existingDataSetId ?? Guid.NewGuid().ToString();
         var isNewDataSet = existingDataSetId == null;
-        ProcessHistory? processHistory = null;
+        ProcessContext? context = null;
         
         try
         {
-            _logger.LogInformation("商品日報処理開始 - レポート日付: {ReportDate}, データセットID: {DataSetId}", 
-                reportDate, dataSetId);
+            _logger.LogInformation("商品日報処理開始 - レポート日付: {ReportDate}", reportDate);
             
-            // ProcessHistoryに処理開始を記録
             var executedBy = Environment.UserName ?? "System";
-            processHistory = await _processHistoryService.StartProcess(dataSetId, reportDate, "DAILY_REPORT", executedBy);
-
+            
             if (isNewDataSet)
             {
+                // 新規作成時は InitializeProcess を使用してDatasetManagementに登録
+                context = await InitializeProcess(reportDate, "DAILY_REPORT", null, executedBy);
+                
+                _logger.LogInformation("新規データセット作成 - DataSetId: {DataSetId}", context.DatasetId);
                 // 1. CP在庫M作成
                 _logger.LogInformation("CP在庫マスタ作成開始");
-                var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, reportDate);
+                var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(context.DatasetId, reportDate);
                 _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
 
                 // 2. 当日エリアクリア
                 _logger.LogInformation("当日エリアクリア開始");
-                await _cpInventoryRepository.ClearDailyAreaAsync(dataSetId);
+                await _cpInventoryRepository.ClearDailyAreaAsync(context.DatasetId);
                 _logger.LogInformation("当日エリアクリア完了");
 
                 // 3. 当日データ集計
                 _logger.LogInformation("当日データ集計開始");
-                var salesResult = await _cpInventoryRepository.AggregateSalesDataAsync(dataSetId, reportDate);
+                var salesResult = await _cpInventoryRepository.AggregateSalesDataAsync(context.DatasetId, reportDate);
                 _logger.LogInformation("売上データ集計完了 - 更新件数: {Count}", salesResult);
                 
-                var purchaseResult = await _cpInventoryRepository.AggregatePurchaseDataAsync(dataSetId, reportDate);
+                var purchaseResult = await _cpInventoryRepository.AggregatePurchaseDataAsync(context.DatasetId, reportDate);
                 _logger.LogInformation("仕入データ集計完了 - 更新件数: {Count}", purchaseResult);
                 
-                var adjustmentResult = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, reportDate);
+                var adjustmentResult = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(context.DatasetId, reportDate);
                 _logger.LogInformation("在庫調整データ集計完了 - 更新件数: {Count}", adjustmentResult);
                 
                 // 経費項目の計算を追加
-                var discountResult = await _cpInventoryRepository.CalculatePurchaseDiscountAsync(dataSetId, reportDate);
+                var discountResult = await _cpInventoryRepository.CalculatePurchaseDiscountAsync(context.DatasetId, reportDate);
                 _logger.LogInformation("仕入値引計算完了 - 更新件数: {Count}", discountResult);
 
-                var incentiveResult = await _cpInventoryRepository.CalculateIncentiveAsync(dataSetId, reportDate);
+                var incentiveResult = await _cpInventoryRepository.CalculateIncentiveAsync(context.DatasetId, reportDate);
                 _logger.LogInformation("奨励金計算完了 - 更新件数: {Count}", incentiveResult);
 
-                var walkingResult = await _cpInventoryRepository.CalculateWalkingAmountAsync(dataSetId, reportDate);
+                var walkingResult = await _cpInventoryRepository.CalculateWalkingAmountAsync(context.DatasetId, reportDate);
                 _logger.LogInformation("歩引き金計算完了 - 更新件数: {Count}", walkingResult);
                 
                 _logger.LogInformation("当日データ集計完了");
 
                 // 4. 当日在庫計算
                 _logger.LogInformation("当日在庫計算開始");
-                await _cpInventoryRepository.CalculateDailyStockAsync(dataSetId);
-                await _cpInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
+                await _cpInventoryRepository.CalculateDailyStockAsync(context.DatasetId);
+                await _cpInventoryRepository.SetDailyFlagToProcessedAsync(context.DatasetId);
                 _logger.LogInformation("当日在庫計算完了");
                 
                 // 処理2-4: 在庫単価計算
                 _logger.LogInformation("在庫単価計算開始");
-                await _cpInventoryRepository.CalculateInventoryUnitPriceAsync(dataSetId);
+                await _cpInventoryRepository.CalculateInventoryUnitPriceAsync(context.DatasetId);
                 _logger.LogInformation("在庫単価計算完了");
 
                 // 処理2-5: 粗利計算
                 _logger.LogInformation("粗利計算開始");
-                await _cpInventoryRepository.CalculateGrossProfitAsync(dataSetId, reportDate);
+                await _cpInventoryRepository.CalculateGrossProfitAsync(context.DatasetId, reportDate);
                 _logger.LogInformation("粗利計算完了");
 
                 // 月計計算
                 _logger.LogInformation("月計計算開始");
-                await _cpInventoryRepository.CalculateMonthlyTotalsAsync(dataSetId, reportDate);
+                await _cpInventoryRepository.CalculateMonthlyTotalsAsync(context.DatasetId, reportDate);
                 _logger.LogInformation("月計計算完了");
             }
             else
             {
-                _logger.LogInformation("既存のデータセットを使用: {DataSetId}", dataSetId);
+                // 既存データセット使用時は ProcessHistory のみ開始
+                _logger.LogInformation("既存のデータセットを使用: {DataSetId}", existingDataSetId);
+                context = new ProcessContext
+                {
+                    JobDate = reportDate,
+                    DatasetId = existingDataSetId!,
+                    ProcessType = "DAILY_REPORT",
+                    ExecutedBy = executedBy
+                };
+                context.ProcessHistory = await _historyService.StartProcess(existingDataSetId!, reportDate, "DAILY_REPORT", executedBy);
             }
+
+            var dataSetId = context.DatasetId;
 
             // 5. 商品日報データ生成
             _logger.LogInformation("商品日報データ生成開始");
@@ -123,18 +136,16 @@ public class DailyReportService : IDailyReportService
 
             stopwatch.Stop();
             
-            // ProcessHistoryに処理完了を記録（0件データでも記録）
-            if (processHistory != null)
+            // 処理完了を記録（0件データでも記録）
+            var message = reportItems.Count > 0 
+                ? $"商品日報処理が正常に完了しました。データ件数: {reportItems.Count}件"
+                : $"商品日報処理が完了しました。データが0件でした。";
+            
+            await FinalizeProcess(context, true, message);
+            
+            if (reportItems.Count == 0)
             {
-                var message = reportItems.Count > 0 
-                    ? $"商品日報処理が正常に完了しました。データ件数: {reportItems.Count}件"
-                    : $"商品日報処理が完了しました。データが0件でした。";
-                await _processHistoryService.CompleteProcess(processHistory.Id, true, message);
-                
-                if (reportItems.Count == 0)
-                {
-                    _logger.LogWarning("{ReportDate}の商品日報は0件データですが、ProcessHistoryに記録されました", reportDate);
-                }
+                _logger.LogWarning("{ReportDate}の商品日報は0件データですが、ProcessHistoryに記録されました", reportDate);
             }
 
             return new DailyReportResult
@@ -151,17 +162,18 @@ public class DailyReportService : IDailyReportService
         catch (Exception ex)
         {
             stopwatch.Stop();
+            var dataSetId = context?.DatasetId ?? existingDataSetId ?? "UNKNOWN";
             _logger.LogError(ex, "商品日報処理でエラーが発生しました - データセットID: {DataSetId}", dataSetId);
             
-            // ProcessHistoryに処理失敗を記録
-            if (processHistory != null)
+            // 処理失敗を記録
+            if (context != null)
             {
-                await _processHistoryService.CompleteProcess(processHistory.Id, false, ex.Message);
+                await FinalizeProcess(context, false, ex.Message);
             }
             
             try
             {
-                if (isNewDataSet)
+                if (isNewDataSet && !string.IsNullOrEmpty(dataSetId) && dataSetId != "UNKNOWN")
                 {
                     await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
                 }
