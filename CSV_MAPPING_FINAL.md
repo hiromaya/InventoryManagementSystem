@@ -70,9 +70,9 @@
 | 2 | 1 | VoucherType | 伝票区分(71:在庫調整) | string | 変更なし |
 | 3 | 2 | VoucherNumber | 伝票番号 | string | 変更なし |
 | 48 | 47 | JobDate | ジョブデート | string | 変更なし |
-| **88** | **87** | **CategoryCode** | **区分(1:ﾛｽ,4:振替,6:調整)** | **string** | **96→88列目** |
+| **96** | **95** | **CategoryCode** | **区分(1:ﾛｽ,4:振替,6:調整)** | **string** | **88→96列目** |
 | **97** | **96** | **UnitPrice** | **単価** | **decimal** | **99→97列目** |
-| **99** | **98** | **Amount** | **金額** | **decimal** | **100→99列目** |
+| **98** | **97** | **Amount** | **金額** | **decimal** | **99→98列目** |
 | **153** | **152** | **HandInputItem** | **手入力項目(半角8文字)** | **string** | **157→153列目** |
 
 ---
@@ -91,7 +91,7 @@
 | 84 | 83 | GradeCode | 等級コード | string | 変更なし |
 | 85 | 84 | ClassCode | 階級コード | string | 変更なし |
 | 86 | 85 | ShippingMarkCode | 荷印コード | string | 変更なし |
-| **88** | **87** | **CategoryCode** | **区分(1:ﾛｽ,4:振替,6:調整)** | **string** | **96→88列目** |
+| **96** | **95** | **CategoryCode** | **区分(1:ﾛｽ,4:振替,6:調整)** | **string** | **88→96列目** |
 | 90 | 89 | ProductCode | 商品コード | string | 変更なし |
 | 95 | 94 | Quantity | 数量 | decimal | 変更なし |
 | 97 | 96 | UnitPrice | 単価 | decimal | 変更なし |

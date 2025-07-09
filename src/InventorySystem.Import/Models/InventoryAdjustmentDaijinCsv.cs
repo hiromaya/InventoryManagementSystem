@@ -82,7 +82,7 @@ public class InventoryAdjustmentDaijinCsv
     public string QuantityString { get; set; } = string.Empty;
     
     [Name("区分(1:ﾛｽ,4:振替,6:調整)")]
-    [Index(87)]  // 88列目
+    [Index(95)]  // 96列目
     public string CategoryCode { get; set; } = string.Empty;
     
     [Name("単価")]
@@ -90,7 +90,7 @@ public class InventoryAdjustmentDaijinCsv
     public string UnitPriceString { get; set; } = string.Empty;
     
     [Name("金額")]
-    [Index(98)]  // 99列目
+    [Index(97)]  // 98列目
     public string AmountString { get; set; } = string.Empty;
     
     /// <summary>

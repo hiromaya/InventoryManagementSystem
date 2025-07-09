@@ -56,7 +56,7 @@ public class PreviousMonthInventoryCsv
     public string QuantityString { get; set; } = string.Empty;
     
     [Name("区分(1:ﾛｽ,4:振替,6:調整)")]
-    [Index(87)]  // 88列目
+    [Index(95)]  // 96列目
     public string CategoryCode { get; set; } = string.Empty;
     
     [Name("単価")]
