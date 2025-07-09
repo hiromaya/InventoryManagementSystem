@@ -353,7 +353,7 @@
                         </tr>
                         <tr>
                             <td>日次終了処理（毎日最後）</td>
-                            <td><code>daily-close [日付]</code></td>
+                            <td><code>dev-daily-close [日付]</code></td>
                             <td>在庫繰り越し（当日在庫→翌日前日在庫）</td>
                         </tr>
                     </tbody>
@@ -501,7 +501,7 @@
                 <br><br>
                 <strong>💡 注意:</strong> import-folderコマンドは前月末在庫.csvを自動的にスキップします。前月末在庫の設定は必ずinit-inventoryコマンドを使用してください。
                 <br><br>
-                <strong>🔴 最重要:</strong> 各日の処理の最後に必ず<strong>daily-close</strong>（日次終了処理）を実行してください。これにより当日在庫が翌日の前日在庫として繰り越されます。
+                <strong>🔴 最重要:</strong> 各日の処理の最後に必ず<strong>dev-daily-close</strong>（日次終了処理）を実行してください。これにより当日在庫が翌日の前日在庫として繰り越されます。
             </div>
 
             <div class="timeline">
@@ -520,15 +520,20 @@
 <span class="comment"># 在庫表作成（必要に応じて）</span>
 <span class="command-line">dotnet run inventory-list 2025-06-01</span>
 
+<span class="comment"># 日次終了処理の事前確認（オプション）</span>
+<span class="command-line">dotnet run check-daily-close 2025-06-01</span>
+
 <span class="comment"># 日次終了処理（在庫繰り越し）※重要</span>
-<span class="command-line">dotnet run daily-close 2025-06-01</span>
+<span class="command-line">dotnet run dev-daily-close 2025-06-01</span>
                     </div>
                     <div class="warning" style="margin-top: 15px;">
                         <strong>⚠️ 重要：日次終了処理について</strong>
                         <ul>
                             <li>日次終了処理により、当日の在庫が翌日の前日在庫として設定されます</li>
                             <li>この処理を行わないと、翌日のアンマッチが大量に発生します</li>
-                            <li>通常は15:00以降に実行（開発環境では時間制約なし）</li>
+                            <li><strong>コマンド：</strong> <code>dev-daily-close</code>（開発用、時間制約なし）</li>
+                            <li><strong>事前確認：</strong> <code>check-daily-close</code>で実行可能か確認可能</li>
+                            <li>本番環境では15:00以降に実行（開発環境では時間制約なし）</li>
                         </ul>
                     </div>
                 </div>
@@ -540,7 +545,7 @@
 <span class="command-line">dotnet run import-folder DeptA 2025-06-02</span>
 <span class="command-line">dotnet run unmatch-list 2025-06-02</span>
 <span class="command-line">dotnet run daily-report 2025-06-02</span>
-<span class="command-line">dotnet run daily-close 2025-06-02</span>
+<span class="command-line">dotnet run dev-daily-close 2025-06-02</span>
                     </div>
                 </div>
 
@@ -551,7 +556,7 @@
 <span class="command-line">dotnet run import-folder DeptA 2025-06-03</span>
 <span class="command-line">dotnet run unmatch-list 2025-06-03</span>
 <span class="command-line">dotnet run daily-report 2025-06-03</span>
-<span class="command-line">dotnet run daily-close 2025-06-03</span>
+<span class="command-line">dotnet run dev-daily-close 2025-06-03</span>
                     </div>
                 </div>
 
@@ -572,7 +577,7 @@
 <span class="command-line">    dotnet run import-folder DeptA $date</span>
 <span class="command-line">    dotnet run unmatch-list $date</span>
 <span class="command-line">    dotnet run daily-report $date</span>
-<span class="command-line">    dotnet run daily-close $date  <span class="comment"># 在庫繰り越し（重要）</span></span>
+<span class="command-line">    dotnet run dev-daily-close $date  <span class="comment"># 在庫繰り越し（重要）</span></span>
 <span class="command-line">    Write-Host "=== $date の処理完了 ===" -ForegroundColor Green</span>
 <span class="command-line">}</span>
                 </div>
@@ -697,7 +702,7 @@
                 <strong>原因:</strong> 前日の日次終了処理（在庫繰り越し）未実行
                 <div class="command-block">
 <span class="comment"># 対処法: 前日の日次終了処理を実行</span>
-<span class="command-line">dotnet run daily-close 2025-06-01  # 前日分を実行</span>
+<span class="command-line">dotnet run dev-daily-close 2025-06-01  # 前日分を実行</span>
 <span class="comment"># その後、当日の処理を再実行</span>
 <span class="command-line">dotnet run unmatch-list 2025-06-02</span>
                 </div>
