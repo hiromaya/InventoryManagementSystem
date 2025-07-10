@@ -59,7 +59,7 @@ public class UnmatchListService : IUnmatchListService
 
             // 在庫マスタ最適化処理
             _logger.LogInformation("在庫マスタの最適化を開始します");
-            await OptimizeInventoryMasterAsync(jobDate);
+            await OptimizeInventoryMasterAsync(jobDate, dataSetId);
             _logger.LogInformation("在庫マスタの最適化が完了しました");
 
             // 重要: 既存のCP在庫マスタを全件削除
@@ -509,7 +509,7 @@ public class UnmatchListService : IUnmatchListService
     /// <summary>
     /// 在庫マスタ最適化処理（累積管理対応版）
     /// </summary>
-    private async Task OptimizeInventoryMasterAsync(DateTime jobDate)
+    private async Task OptimizeInventoryMasterAsync(DateTime jobDate, string dataSetId)
     {
         try
         {
@@ -560,7 +560,7 @@ public class UnmatchListService : IUnmatchListService
             int processedCount = 0;
             try
             {
-                processedCount = await _inventoryRepository.UpdateOrCreateFromVouchersAsync(jobDate);
+                processedCount = await _inventoryRepository.UpdateOrCreateFromVouchersAsync(jobDate, dataSetId);
                 _logger.LogInformation("在庫マスタの更新または作成完了: {Count}件", processedCount);
             }
             catch (Exception ex)
