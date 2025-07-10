@@ -36,7 +36,7 @@ BEGIN
                 GradeCode,
                 ClassCode,
                 ShippingMarkCode,
-                RTRIM(LTRIM(COALESCE(ShippingMarkName, ''))) as ShippingMarkName,  -- 両端の空白を削除
+                LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName,  -- 8桁固定長に正規化
                 SUM(SalesQty) as TotalSalesQty,
                 SUM(PurchaseQty) as TotalPurchaseQty,
                 SUM(AdjustmentQty) as TotalAdjustmentQty,
@@ -84,7 +84,7 @@ BEGIN
                 FROM InventoryAdjustments 
                 WHERE CAST(JobDate AS DATE) = CAST(@JobDate AS DATE)
             ) AS AllTransactions
-            GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, RTRIM(LTRIM(COALESCE(ShippingMarkName, '')))
+            GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
         )
         
         -- MERGE文で在庫マスタを更新
@@ -106,7 +106,7 @@ BEGIN
             AND target.GradeCode = source.GradeCode
             AND target.ClassCode = source.ClassCode
             AND target.ShippingMarkCode = source.ShippingMarkCode
-            AND RTRIM(LTRIM(COALESCE(target.ShippingMarkName, ''))) = source.ShippingMarkName  -- トリミング済みで比較
+            AND LEFT(RTRIM(COALESCE(target.ShippingMarkName, '')) + REPLICATE(' ', 8), 8) = source.ShippingMarkName  -- 8桁固定長で比較
         )
         
         -- 既存レコード：在庫を累積更新
