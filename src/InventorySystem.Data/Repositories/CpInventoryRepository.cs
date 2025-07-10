@@ -1178,4 +1178,25 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         
         return updateCount;
     }
+    
+    /// <summary>
+    /// 古いCP在庫マスタデータをクリーンアップする
+    /// </summary>
+    /// <param name="cutoffDate">削除基準日（この日付より前のデータを削除）</param>
+    /// <returns>削除件数</returns>
+    public async Task<int> CleanupOldDataAsync(DateTime cutoffDate)
+    {
+        using var connection = CreateConnection();
+        
+        const string cleanupSql = @"
+            DELETE FROM CpInventoryMaster 
+            WHERE JobDate < @CutoffDate";
+        
+        var deletedCount = await connection.ExecuteAsync(cleanupSql, new { CutoffDate = cutoffDate });
+        
+        _logger.LogInformation("古いCP在庫マスタをクリーンアップしました - 削除件数: {Count} (基準日: {CutoffDate})", 
+            deletedCount, cutoffDate);
+        
+        return deletedCount;
+    }
 }

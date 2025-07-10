@@ -155,4 +155,11 @@ public interface ICpInventoryRepository
     /// 月計合計を計算する
     /// </summary>
     Task<int> CalculateMonthlyTotalsAsync(string dataSetId, DateTime jobDate);
+    
+    /// <summary>
+    /// 古いCP在庫マスタデータをクリーンアップする
+    /// </summary>
+    /// <param name="cutoffDate">削除基準日（この日付より前のデータを削除）</param>
+    /// <returns>削除件数</returns>
+    Task<int> CleanupOldDataAsync(DateTime cutoffDate);
 }
