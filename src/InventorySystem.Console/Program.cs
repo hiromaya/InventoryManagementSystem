@@ -168,6 +168,9 @@ builder.Services.Configure<FileStorageSettings>(
 // FileManagementServiceの登録
 builder.Services.AddScoped<IFileManagementService, FileManagementService>();
 
+// 日本時間サービスの登録（シングルトン）
+builder.Services.AddSingleton<IJapanTimeService, JapanTimeService>();
+
 // Error prevention services
 builder.Services.AddScoped<InventorySystem.Core.Services.Validation.IDateValidationService, InventorySystem.Core.Services.Validation.DateValidationService>();
 builder.Services.AddScoped<InventorySystem.Core.Services.Dataset.IDatasetManager, InventorySystem.Core.Services.Dataset.DatasetManager>();

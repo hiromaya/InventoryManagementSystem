@@ -36,14 +36,14 @@ public static class ErrorMessages
     public const string DatasetInconsistentError = "データセットが見つかりません。データの整合性を確認してください。";
     
     /// <summary>
-    /// 日次終了処理は15:00以降にのみ実行可能です。
+    /// 日次終了処理は15:00（日本時間）以降にのみ実行可能です。
     /// </summary>
-    public const string DailyCloseTimeTooEarly = "日次終了処理は15:00以降にのみ実行可能です。現在時刻: {0}";
+    public const string DailyCloseTimeTooEarly = "日次終了処理は15:00（日本時間）以降にのみ実行可能です。現在時刻: {0} JST";
     
     /// <summary>
     /// 商品日報作成から30分以上経過する必要があります。
     /// </summary>
-    public const string DailyReportTooRecent = "商品日報作成から30分以上経過する必要があります。商品日報作成時刻: {0}、経過時間: {1}分";
+    public const string DailyReportTooRecent = "商品日報作成（{0} JST）から30分以上経過する必要があります。経過時間: {1}分";
     
     /// <summary>
     /// データが商品日報作成時から変更されています。
@@ -53,7 +53,7 @@ public static class ErrorMessages
     /// <summary>
     /// CSV取込から5分以上経過する必要があります。
     /// </summary>
-    public const string CsvImportTooRecent = "CSV取込から5分以上経過する必要があります。最新取込時刻: {0}、経過時間: {1}分";
+    public const string CsvImportTooRecent = "CSV取込（{0} JST）から5分以上経過する必要があります。経過時間: {1}分";
     
     /// <summary>
     /// 商品日報が作成されていません。
