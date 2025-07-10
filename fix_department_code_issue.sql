@@ -1,11 +1,39 @@
--- =============================================
--- 累積管理対応版 CP在庫マスタ作成ストアドプロシージャ
+-- DepartmentCodeカラムのサイズ問題を修正するスクリプト
 -- 作成日: 2025-07-10
--- 説明: 在庫マスタから当日の伝票に関連する5項目キーのレコードのみをCP在庫マスタにコピー
--- =============================================
+
 USE InventoryManagementDB;
 GO
 
+-- 1. 現在のDepartmentCodeカラムのサイズを確認
+PRINT '=== 現在のDepartmentCodeカラムのサイズを確認 ==='
+SELECT 
+    COLUMN_NAME,
+    DATA_TYPE,
+    CHARACTER_MAXIMUM_LENGTH as CurrentSize
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'CpInventoryMaster'
+AND COLUMN_NAME = 'DepartmentCode';
+GO
+
+-- 2. DepartmentCodeカラムのサイズを拡張（10文字 -> 50文字）
+PRINT '=== DepartmentCodeカラムのサイズを拡張 ==='
+ALTER TABLE CpInventoryMaster 
+ALTER COLUMN DepartmentCode NVARCHAR(50);
+GO
+
+-- 3. 変更後のサイズを確認
+PRINT '=== 変更後のDepartmentCodeカラムのサイズを確認 ==='
+SELECT 
+    COLUMN_NAME,
+    DATA_TYPE,
+    CHARACTER_MAXIMUM_LENGTH as NewSize
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'CpInventoryMaster'
+AND COLUMN_NAME = 'DepartmentCode';
+GO
+
+-- 4. ストアドプロシージャの修正
+PRINT '=== ストアドプロシージャを修正 ==='
 IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_CreateCpInventoryFromInventoryMasterCumulative')
 BEGIN
     DROP PROCEDURE sp_CreateCpInventoryFromInventoryMasterCumulative;
@@ -106,7 +134,7 @@ BEGIN
         WHERE EXISTS (
             -- 伝票に存在する5項目キーのみ（@JobDateがNULLの場合は全期間）
             SELECT 1 FROM SalesVouchers sv 
-            WHERE (@JobDate IS NULL OR sv.JobDate = @JobDate) 
+            WHERE (@JobDate IS NULL OR sv.JobDate = @JobDate)
             AND sv.ProductCode = im.ProductCode
             AND sv.GradeCode = im.GradeCode
             AND sv.ClassCode = im.ClassCode
@@ -142,3 +170,6 @@ BEGIN
     END CATCH
 END
 GO
+
+PRINT '=== 修正完了 ==='
+PRINT 'DepartmentCodeカラムのサイズを拡張し、ストアドプロシージャの部門コード抽出ロジックを修正しました。'
