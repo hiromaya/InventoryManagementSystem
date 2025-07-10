@@ -27,7 +27,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using InventorySystem.Data.Services;
 using InventorySystem.Data.Services.Development;
-using InventorySystem.Core.Enums;
+using InventorySystem.Core.Models;
 
 // Program クラスの定義
 public class Program
