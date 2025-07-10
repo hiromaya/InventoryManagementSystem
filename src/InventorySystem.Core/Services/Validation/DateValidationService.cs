@@ -41,7 +41,8 @@ public class DateValidationService : IDateValidationService
         
         // 2. 過去日付範囲チェック（開発環境では無視）
         var isDevelopment = _configuration.GetValue<string>("Environment") == "Development" ||
-                           Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+                           Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development" ||
+                           Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == "Development";
         
         if (!isDevelopment)
         {

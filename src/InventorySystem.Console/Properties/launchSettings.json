@@ -1,18 +1,20 @@
 {
   "$schema": "http://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "Production": {
-      "commandName": "Project",
-      "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "Production",
-        "FORCE_FASTREPORT": "true"
-      },
-      "commandLineArgs": "-p:DefineConstants=\"WINDOWS\""
-    },
     "Development": {
       "commandName": "Project", 
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "FORCE_FASTREPORT": "true"
+      },
+      "commandLineArgs": "-p:DefineConstants=\"WINDOWS\""
+    },
+    "Production": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Production",
+        "ASPNETCORE_ENVIRONMENT": "Production",
         "FORCE_FASTREPORT": "true"
       },
       "commandLineArgs": "-p:DefineConstants=\"WINDOWS\""
