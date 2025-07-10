@@ -1,13 +1,11 @@
 -- =============================================
 -- 累積管理対応版 CP在庫マスタ作成ストアドプロシージャ
 -- 作成日: 2025-07-10
--- 説明: 在庫マスタからすべてのレコードをCP在庫マスタにコピーし、累積管理を実現
+-- 説明: 在庫マスタから当日の伝票に関連する5項目キーのレコードのみをCP在庫マスタにコピー
 -- =============================================
-
 USE InventoryManagementDB;
 GO
 
--- 既存のストアドプロシージャが存在する場合は削除
 IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_CreateCpInventoryFromInventoryMasterCumulative')
 BEGIN
     DROP PROCEDURE sp_CreateCpInventoryFromInventoryMasterCumulative;
@@ -30,15 +28,19 @@ BEGIN
         -- 既存のCP在庫マスタを削除
         DELETE FROM CpInventoryMaster WHERE DataSetId = @DataSetId;
         
-        -- 在庫マスタから全商品をCP在庫マスタに挿入
+        -- 在庫マスタから当日の伝票に関連する商品のみをCP在庫マスタに挿入
         INSERT INTO CpInventoryMaster (
+            -- 5項目キー
             ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-            DataSetId,
-            ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+            -- 管理項目
+            DataSetId, ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
             JobDate, CreatedDate, UpdatedDate,
+            -- 前日在庫（在庫マスタのCurrentStockをコピー）
             PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice,
+            -- 当日在庫（初期値は前日在庫と同じ）
             DailyStock, DailyStockAmount, DailyUnitPrice,
             DailyFlag,
+            -- 日計22個（すべて0で初期化）
             DailySalesQuantity, DailySalesAmount, 
             DailySalesReturnQuantity, DailySalesReturnAmount,
             DailyPurchaseQuantity, DailyPurchaseAmount,
@@ -49,6 +51,7 @@ BEGIN
             DailyReceiptQuantity, DailyReceiptAmount,
             DailyShipmentQuantity, DailyShipmentAmount,
             DailyGrossProfit, DailyWalkingAmount, DailyIncentiveAmount, DailyDiscountAmount,
+            -- 月計17個（すべて0で初期化）
             MonthlySalesQuantity, MonthlySalesAmount,
             MonthlySalesReturnQuantity, MonthlySalesReturnAmount,
             MonthlyPurchaseQuantity, MonthlyPurchaseAmount,
@@ -57,67 +60,76 @@ BEGIN
             MonthlyProcessingQuantity, MonthlyProcessingAmount,
             MonthlyTransferQuantity, MonthlyTransferAmount,
             MonthlyGrossProfit, MonthlyWalkingAmount, MonthlyIncentiveAmount,
+            -- 部門コード
             DepartmentCode
         )
-        SELECT
-            -- 1-5: キー項目
+        SELECT 
+            -- 5項目キー
             im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ShippingMarkName,
-            -- 6: DataSetId
+            -- 管理項目
             @DataSetId,
-            -- 7-11: 商品情報
-            ISNULL(pm.ProductName, N''),
-            ISNULL(u.UnitName, N''),
+            ISNULL(pm.ProductName, ''),
+            ISNULL(u.UnitName, ''),  -- UnitMasterから単位名を取得
             ISNULL(pm.StandardPrice, 0),
-            ISNULL(pm.ProductCategory1, N''),
-            ISNULL(pm.ProductCategory2, N''),
-            -- 12-14: 日付管理
-            @JobDate,
-            GETDATE(),
-            GETDATE(),
-            -- 15-17: 前日在庫として現在在庫を使用
-            ISNULL(im.CurrentStock, 0),
-            ISNULL(im.CurrentStockAmount, 0),
+            ISNULL(pm.ProductCategory1, ''),
+            ISNULL(pm.ProductCategory2, ''),
+            @JobDate, GETDATE(), GETDATE(),
+            -- 前日在庫として現在在庫を使用
+            im.CurrentStock, im.CurrentStockAmount,
             CASE WHEN im.CurrentStock > 0 THEN im.CurrentStockAmount / im.CurrentStock ELSE 0 END,
-            -- 18-20: 当日在庫（初期値として前日在庫と同じ値）
-            ISNULL(im.CurrentStock, 0),
-            ISNULL(im.CurrentStockAmount, 0),
+            -- 当日在庫（初期値として前日在庫と同じ）
+            im.CurrentStock, im.CurrentStockAmount,
             CASE WHEN im.CurrentStock > 0 THEN im.CurrentStockAmount / im.CurrentStock ELSE 0 END,
-            -- 21: フラグ
-            '9',  -- 当日発生フラグ初期値
-            -- 22-43: 日計フィールド（22個の0）
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            -- 44-60: 月計フィールド（17個の0）
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            -- 61: 部門コード
-            ISNULL(im.DataSetId, N'')
+            '9',
+            -- 日計22個の0
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            -- 月計17個の0
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            -- 部門コード（DataSetIdから抽出）
+            CASE 
+                WHEN @DataSetId LIKE 'DS_%' THEN 
+                    SUBSTRING(@DataSetId, 4, CHARINDEX('_', @DataSetId + '_', 4) - 4)
+                ELSE 'DeptA' 
+            END
         FROM InventoryMaster im
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
-        LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode;
+        LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode  -- 正しい結合
+        WHERE EXISTS (
+            -- 当日の伝票に存在する5項目キーのみ
+            SELECT 1 FROM SalesVouchers sv 
+            WHERE sv.JobDate = @JobDate 
+            AND sv.ProductCode = im.ProductCode
+            AND sv.GradeCode = im.GradeCode
+            AND sv.ClassCode = im.ClassCode
+            AND sv.ShippingMarkCode = im.ShippingMarkCode
+            AND sv.ShippingMarkName = im.ShippingMarkName
+            UNION
+            SELECT 1 FROM PurchaseVouchers pv
+            WHERE pv.JobDate = @JobDate
+            AND pv.ProductCode = im.ProductCode
+            AND pv.GradeCode = im.GradeCode
+            AND pv.ClassCode = im.ClassCode
+            AND pv.ShippingMarkCode = im.ShippingMarkCode
+            AND pv.ShippingMarkName = im.ShippingMarkName
+            UNION
+            SELECT 1 FROM InventoryAdjustments ia
+            WHERE ia.JobDate = @JobDate
+            AND ia.ProductCode = im.ProductCode
+            AND ia.GradeCode = im.GradeCode
+            AND ia.ClassCode = im.ClassCode
+            AND ia.ShippingMarkCode = im.ShippingMarkCode
+            AND ia.ShippingMarkName = im.ShippingMarkName
+        );
         
         SET @CreatedCount = @@ROWCOUNT;
         
-        -- 結果を返す
-        SELECT @CreatedCount AS CreatedCount;
-        
         COMMIT TRANSACTION;
         
-        PRINT N'CP在庫マスタ作成完了: ' + CAST(@CreatedCount AS NVARCHAR(10)) + N'件';
-        
+        SELECT @CreatedCount as CreatedCount;
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > 0
-        BEGIN
-            ROLLBACK TRANSACTION;
-        END
-        
-        SET @ErrorMessage = ERROR_MESSAGE();
-        RAISERROR(@ErrorMessage, 16, 1);
+        ROLLBACK TRANSACTION;
+        THROW;
     END CATCH
 END
 GO
-
--- 権限設定
-GRANT EXECUTE ON sp_CreateCpInventoryFromInventoryMasterCumulative TO [public];
-GO
-
-PRINT N'ストアドプロシージャ sp_CreateCpInventoryFromInventoryMasterCumulative を作成しました。';

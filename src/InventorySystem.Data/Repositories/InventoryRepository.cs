@@ -677,27 +677,26 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     }
     
     /// <summary>
-    /// 伝票データから在庫マスタを更新または作成（累積管理対応）
+    /// 伝票データから在庫マスタを累積更新（既存レコードは更新、新規は追加）
     /// </summary>
     public async Task<int> UpdateOrCreateFromVouchersAsync(DateTime jobDate, string datasetId)
     {
+        using var connection = CreateConnection();
+        
         try
         {
-            using var connection = CreateConnection();
-            using var transaction = connection.BeginTransaction();
-            
             var result = await connection.QuerySingleAsync<dynamic>(
-                "sp_MergeInventoryMasterCumulative",
-                new { JobDate = jobDate, DataSetId = datasetId },
-                transaction,
-                commandType: CommandType.StoredProcedure);
-
-            transaction.Commit();
+                "sp_UpdateOrCreateInventoryMasterCumulative",
+                new { JobDate = jobDate, DatasetId = datasetId },
+                commandType: CommandType.StoredProcedure
+            );
             
-            LogInfo($"MergeInventoryMasterCumulative completed - Inserted: {result.InsertedCount}, Updated: {result.UpdatedCount}, Total: {result.TotalCount}", 
+            var totalCount = (result?.InsertedCount ?? 0) + (result?.UpdatedCount ?? 0);
+            
+            LogInfo($"在庫マスタ累積更新完了: 新規={result?.InsertedCount ?? 0}, 更新={result?.UpdatedCount ?? 0}", 
                 new { jobDate, datasetId });
             
-            return result.TotalCount;
+            return totalCount;
         }
         catch (Exception ex)
         {
@@ -715,31 +714,33 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             WITH DuplicateRecords AS (
                 SELECT 
                     ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                    JobDate, CreatedDate,
+                    JobDate,
                     ROW_NUMBER() OVER (
-                        PARTITION BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                        PARTITION BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName 
                         ORDER BY JobDate DESC, UpdatedDate DESC
-                    ) AS RowNum
+                    ) as rn
                 FROM InventoryMaster
             )
-            DELETE FROM DuplicateRecords
-            WHERE RowNum > 1;
+            DELETE FROM InventoryMaster
+            WHERE EXISTS (
+                SELECT 1 
+                FROM DuplicateRecords dr
+                WHERE dr.ProductCode = InventoryMaster.ProductCode
+                  AND dr.GradeCode = InventoryMaster.GradeCode
+                  AND dr.ClassCode = InventoryMaster.ClassCode
+                  AND dr.ShippingMarkCode = InventoryMaster.ShippingMarkCode
+                  AND dr.ShippingMarkName = InventoryMaster.ShippingMarkName
+                  AND dr.JobDate = InventoryMaster.JobDate
+                  AND dr.rn > 1
+            );
             
             SELECT @@ROWCOUNT;";
         
-        try
-        {
-            using var connection = CreateConnection();
-            var result = await connection.ExecuteScalarAsync<int>(sql);
-            
-            LogInfo($"Cleaned up {result} duplicate inventory records");
-            return result;
-        }
-        catch (Exception ex)
-        {
-            LogError(ex, nameof(CleanupDuplicateRecordsAsync));
-            throw;
-        }
+        using var connection = CreateConnection();
+        var deletedCount = await connection.ExecuteScalarAsync<int>(sql);
+        
+        LogInfo($"重複レコードを削除しました: {deletedCount}件");
+        return deletedCount;
     }
     
     /// <summary>
