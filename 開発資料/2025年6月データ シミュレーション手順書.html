@@ -516,18 +516,20 @@
 <span class="comment"># アンマッチリスト作成（在庫マスタ更新）</span>
 <span class="command-line">dotnet run unmatch-list 2025-06-01</span>
 
-<span class="comment"># 商品日報作成</span>
+<span class="comment"># 商品日報作成（通常版 - 7日以内の制限あり）</span>
 <span class="command-line">dotnet run daily-report 2025-06-01</span>
-<span class="comment"># または開発用コマンド（過去日付も処理可能）</span>
-<span class="command-line">dotnet run dev-daily-report 2025-06-01</span>
+
+<span class="comment"># または開発用コマンド（PowerShellスクリプト経由 - 推奨）</span>
+<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-01</span>
 
 <span class="comment"># 在庫表作成（必要に応じて）</span>
 <span class="command-line">dotnet run inventory-list 2025-06-01</span>
 
-<span class="comment"># 日次終了処理の事前確認（オプション）</span>
+<span class="comment"># 日次終了処理の事前確認（通常版 - 15:00以降の制限あり）</span>
 <span class="command-line">dotnet run check-daily-close 2025-06-01</span>
-<span class="comment"># または開発用コマンド（時間制限なし）</span>
-<span class="command-line">dotnet run dev-check-daily-close 2025-06-01</span>
+
+<span class="comment"># または開発用コマンド（PowerShellスクリプト経由 - 推奨）</span>
+<span class="command-line">.\dev.ps1 dev-check-daily-close 2025-06-01</span>
 
 <span class="comment"># 日次終了処理（在庫繰り越し）※重要</span>
 <span class="command-line">dotnet run dev-daily-close 2025-06-01</span>
@@ -548,22 +550,22 @@
                 <div class="timeline-item">
                     <h4>6月2日の処理</h4>
                     <div class="command-block">
-<span class="comment"># 6月2日の処理</span>
+<span class="comment"># 6月2日の処理（開発環境）</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-02</span>
 <span class="command-line">dotnet run unmatch-list 2025-06-02</span>
-<span class="command-line">dotnet run daily-report 2025-06-02</span>
-<span class="command-line">dotnet run dev-daily-close 2025-06-02</span>
+<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-02</span>
+<span class="command-line">.\dev.ps1 dev-daily-close 2025-06-02</span>
                     </div>
                 </div>
 
                 <div class="timeline-item">
                     <h4>6月3日の処理</h4>
                     <div class="command-block">
-<span class="comment"># 6月3日の処理</span>
+<span class="comment"># 6月3日の処理（開発環境）</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-03</span>
 <span class="command-line">dotnet run unmatch-list 2025-06-03</span>
-<span class="command-line">dotnet run daily-report 2025-06-03</span>
-<span class="command-line">dotnet run dev-daily-close 2025-06-03</span>
+<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-03</span>
+<span class="command-line">.\dev.ps1 dev-daily-close 2025-06-03</span>
                     </div>
                 </div>
 
@@ -583,58 +585,93 @@
                     <li><strong>時間制限：</strong> 15:00以降の制限なし（任意の時刻に実行可能）</li>
                 </ul>
                 
+                <h4 style="margin-top: 20px;">⚡ PowerShellスクリプトを使用した実行（推奨）</h4>
+                <div class="success" style="margin: 15px 0;">
+                    <p><strong>dev.ps1スクリプトを使用することで、環境変数が自動的に設定されます：</strong></p>
+                    <div class="command-block">
+<span class="comment"># ディレクトリに移動</span>
+<span class="command-line">cd C:\Development\InventoryManagementSystem\src\InventorySystem.Console</span>
+
+<span class="comment"># 開発用商品日報（過去日付OK）</span>
+<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-01</span>
+
+<span class="comment"># 開発用日次終了確認（時間制限なし）</span>
+<span class="command-line">.\dev.ps1 dev-check-daily-close 2025-06-01</span>
+
+<span class="comment"># 開発用日次終了処理</span>
+<span class="command-line">.\dev.ps1 dev-daily-close 2025-06-01</span>
+                    </div>
+                </div>
+                
                 <h4 style="margin-top: 20px;">開発用コマンド一覧</h4>
                 <table style="width: 100%; margin: 15px 0; border-collapse: collapse; background: white;">
                     <thead>
                         <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
                             <th style="padding: 10px; text-align: left;">コマンド</th>
                             <th style="padding: 10px; text-align: left;">通常版との違い</th>
-                            <th style="padding: 10px; text-align: left;">使用例</th>
+                            <th style="padding: 10px; text-align: left;">使用例（dev.ps1経由）</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr style="border-bottom: 1px solid #dee2e6;">
                             <td style="padding: 10px;"><code>dev-daily-report</code></td>
                             <td style="padding: 10px;">日付制限なし（7日以上前も処理可能）</td>
-                            <td style="padding: 10px;"><code>dotnet run dev-daily-report 2025-06-01</code></td>
+                            <td style="padding: 10px;"><code>.\dev.ps1 dev-daily-report 2025-06-01</code></td>
                         </tr>
                         <tr style="border-bottom: 1px solid #dee2e6;">
                             <td style="padding: 10px;"><code>dev-check-daily-close</code></td>
                             <td style="padding: 10px;">時間制限なし（15:00前でも実行可能）</td>
-                            <td style="padding: 10px;"><code>dotnet run dev-check-daily-close 2025-06-01</code></td>
+                            <td style="padding: 10px;"><code>.\dev.ps1 dev-check-daily-close 2025-06-01</code></td>
                         </tr>
                         <tr style="border-bottom: 1px solid #dee2e6;">
                             <td style="padding: 10px;"><code>dev-daily-close</code></td>
                             <td style="padding: 10px;">検証スキップ、時間制限なし</td>
-                            <td style="padding: 10px;"><code>dotnet run dev-daily-close 2025-06-01</code></td>
+                            <td style="padding: 10px;"><code>.\dev.ps1 dev-daily-close 2025-06-01</code></td>
                         </tr>
                     </tbody>
                 </table>
                 
+                <h4 style="margin-top: 20px;">手動での環境変数設定（代替方法）</h4>
+                <div class="command-block">
+<span class="comment"># PowerShellで環境変数を設定</span>
+<span class="command-line">$env:DOTNET_ENVIRONMENT = "Development"</span>
+<span class="command-line">$env:ASPNETCORE_ENVIRONMENT = "Development"</span>
+
+<span class="comment"># その後、開発用コマンドを実行</span>
+<span class="command-line">dotnet run dev-daily-report 2025-06-01</span>
+                </div>
+                
                 <div class="warning" style="margin-top: 20px;">
-                    <strong>⚠️ 注意事項</strong>
+                    <strong>⚠️ 重要な注意事項</strong>
                     <ul>
-                        <li>これらのコマンドは開発環境でのみ使用可能です</li>
-                        <li>本番環境では自動的に無効化されます</li>
-                        <li>環境変数: <code>set ASPNETCORE_ENVIRONMENT=Development</code></li>
+                        <li><strong style="color: #e74c3c;">必ず dev.ps1 スクリプト経由で実行してください</strong></li>
+                        <li>直接 <code>dotnet run</code> を実行すると、Production環境として動作します</li>
+                        <li>本番環境では開発用コマンドは自動的に無効化されます</li>
+                        <li>環境変数の確認: <code>echo $env:DOTNET_ENVIRONMENT</code></li>
                     </ul>
                 </div>
             </div>
 
             <div class="success">
-                <strong>💡 一括実行スクリプト例:</strong>
+                <strong>💡 PowerShell一括実行スクリプト例（開発環境）:</strong>
                 <div class="command-block">
+<span class="comment"># 環境変数を設定（一括処理の前に実行）</span>
+<span class="command-line">$env:DOTNET_ENVIRONMENT = "Development"</span>
+<span class="command-line">$env:ASPNETCORE_ENVIRONMENT = "Development"</span>
+
 <span class="comment"># PowerShell一括実行例（日次終了処理を含む）</span>
 <span class="command-line">for ($i=1; $i -le 7; $i++) {</span>
 <span class="command-line">    $date = "2025-06-$('{0:D2}' -f $i)"</span>
 <span class="command-line">    Write-Host "=== $date の処理開始 ===" -ForegroundColor Cyan</span>
 <span class="command-line">    dotnet run import-folder DeptA $date</span>
 <span class="command-line">    dotnet run unmatch-list $date</span>
-<span class="command-line">    dotnet run daily-report $date</span>
-<span class="command-line">    dotnet run dev-daily-close $date  <span class="comment"># 在庫繰り越し（重要）</span></span>
+<span class="command-line">    .\dev.ps1 dev-daily-report $date  <span class="comment"># 開発用（日付制限なし）</span></span>
+<span class="command-line">    .\dev.ps1 dev-daily-close $date   <span class="comment"># 在庫繰り越し（重要）</span></span>
 <span class="command-line">    Write-Host "=== $date の処理完了 ===" -ForegroundColor Green</span>
 <span class="command-line">}</span>
                 </div>
+                
+                <p style="margin-top: 10px;"><strong>💡 ヒント:</strong> 開発用コマンドを使用する場合は、必ず <code>.\dev.ps1</code> 経由で実行してください。</p>
             </div>
         </div>
 
