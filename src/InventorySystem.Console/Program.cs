@@ -300,6 +300,8 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  例: dotnet run dev-daily-close 2025-06-30 --dry-run");
     Console.WriteLine("  例: dotnet run check-data-status 2025-06-30");
     Console.WriteLine("  例: dotnet run simulate-daily DeptA 2025-06-30 --dry-run");
+    Console.WriteLine("  例: dotnet run cleanup-inventory-duplicates");
+    Console.WriteLine("  例: dotnet run init-monthly-inventory 202507");
     return 1;
 }
 
@@ -423,6 +425,14 @@ try
             
         case "create-cp-inventory":
             await ExecuteCreateCpInventoryAsync(host.Services, commandArgs);
+            break;
+            
+        case "cleanup-inventory-duplicates":
+            await ExecuteCleanupInventoryDuplicatesAsync(host.Services);
+            break;
+            
+        case "init-monthly-inventory":
+            await ExecuteInitMonthlyInventoryAsync(host.Services, commandArgs);
             break;
         
         default:
@@ -3192,6 +3202,97 @@ private static async Task<bool> EnsureRequiredTablesExistAsync(IServiceProvider 
         {
             logger.LogError(ex, "日次処理シミュレーション中にエラーが発生しました");
             Console.WriteLine($"❌ 予期しないエラーが発生しました: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 在庫マスタの重複レコードをクリーンアップする
+    /// </summary>
+    static async Task ExecuteCleanupInventoryDuplicatesAsync(IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var inventoryRepo = scope.ServiceProvider.GetRequiredService<IInventoryRepository>();
+        
+        try
+        {
+            Console.WriteLine("=== 在庫マスタ重複レコードクリーンアップ ===");
+            Console.WriteLine("⚠️ このコマンドは重複レコードを削除します。");
+            Console.Write("続行しますか？ (y/N): ");
+            
+            var confirmation = Console.ReadLine()?.Trim().ToLower();
+            if (confirmation != "y")
+            {
+                Console.WriteLine("処理をキャンセルしました。");
+                return;
+            }
+            
+            var stopwatch = Stopwatch.StartNew();
+            var deletedCount = await inventoryRepo.CleanupDuplicateRecordsAsync();
+            stopwatch.Stop();
+            
+            Console.WriteLine($"✅ {deletedCount}件の重複レコードを削除しました。");
+            Console.WriteLine($"処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
+            
+            logger.LogInformation("在庫マスタ重複レコードクリーンアップ完了: {Count}件削除", deletedCount);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "在庫マスタ重複レコードクリーンアップ中にエラーが発生しました");
+            Console.WriteLine($"❌ エラー: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// 月初に前月末在庫から現在庫を初期化する
+    /// </summary>
+    static async Task ExecuteInitMonthlyInventoryAsync(IServiceProvider services, string[] args)
+    {
+        using var scope = services.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var inventoryRepo = scope.ServiceProvider.GetRequiredService<IInventoryRepository>();
+        
+        if (args.Length < 3)
+        {
+            Console.WriteLine("エラー: 年月が指定されていません");
+            Console.WriteLine("使用方法: dotnet run init-monthly-inventory YYYYMM");
+            Console.WriteLine("例: dotnet run init-monthly-inventory 202507");
+            return;
+        }
+        
+        var yearMonth = args[2];
+        if (yearMonth.Length != 6 || !int.TryParse(yearMonth, out _))
+        {
+            Console.WriteLine("エラー: 年月は YYYYMM 形式で指定してください");
+            return;
+        }
+        
+        try
+        {
+            Console.WriteLine($"=== {yearMonth.Substring(0, 4)}年{yearMonth.Substring(4, 2)}月の在庫初期化 ===");
+            Console.WriteLine("前月末在庫から現在庫を初期化します。");
+            Console.Write("続行しますか？ (y/N): ");
+            
+            var confirmation = Console.ReadLine()?.Trim().ToLower();
+            if (confirmation != "y")
+            {
+                Console.WriteLine("処理をキャンセルしました。");
+                return;
+            }
+            
+            var stopwatch = Stopwatch.StartNew();
+            var updatedCount = await inventoryRepo.InitializeMonthlyInventoryAsync(yearMonth);
+            stopwatch.Stop();
+            
+            Console.WriteLine($"✅ {updatedCount}件の在庫を初期化しました。");
+            Console.WriteLine($"処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
+            
+            logger.LogInformation("月初在庫初期化完了: {YearMonth} - {Count}件更新", yearMonth, updatedCount);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "月初在庫初期化中にエラーが発生しました");
+            Console.WriteLine($"❌ エラー: {ex.Message}");
         }
     }
 

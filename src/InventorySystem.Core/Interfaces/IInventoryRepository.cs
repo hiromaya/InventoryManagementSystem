@@ -45,5 +45,15 @@ public interface IInventoryRepository
     /// <summary>
     /// 伝票データから在庫マスタを更新または作成（累積管理対応）
     /// </summary>
-    Task<int> UpdateOrCreateFromVouchersAsync(DateTime jobDate);
+    Task<int> UpdateOrCreateFromVouchersAsync(DateTime jobDate, string datasetId);
+    
+    /// <summary>
+    /// 重複レコードのクリーンアップ（一時的な修正処理）
+    /// </summary>
+    Task<int> CleanupDuplicateRecordsAsync();
+    
+    /// <summary>
+    /// 月初に前月末在庫からCurrentStockを初期化
+    /// </summary>
+    Task<int> InitializeMonthlyInventoryAsync(string yearMonth);
 }

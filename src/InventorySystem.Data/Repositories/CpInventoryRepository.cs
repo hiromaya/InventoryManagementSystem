@@ -1037,8 +1037,9 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     {
         using var connection = CreateConnection();
         
+        // 累積管理対応：在庫マスタの最新在庫情報を引き継ぐ（JobDateに依存しない）
         const string sql = @"
-            -- 前日の在庫マスタから在庫情報を引き継ぐ
+            -- 累積管理：在庫マスタから最新の在庫情報を引き継ぐ
             UPDATE cp
             SET 
                 cp.PreviousDayStock = ISNULL(im.CurrentStock, 0),
@@ -1056,7 +1057,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ClassCode = im.ClassCode
                 AND cp.ShippingMarkCode = im.ShippingMarkCode
                 AND cp.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
-                AND im.JobDate = @PreviousDate
+                -- 累積管理：JobDateの条件を削除（最新の在庫情報を使用）
             WHERE cp.DataSetId = @DataSetId;
             
             -- DailyStockも前日在庫で初期化（後の集計処理で正しい値に更新される）
@@ -1070,7 +1071,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         return await connection.ExecuteAsync(sql, new 
         { 
             DataSetId = dataSetId, 
-            PreviousDate = previousDate 
+            PreviousDate = previousDate  // パラメータは保持するが使用しない（後方互換性のため）
         });
     }
 

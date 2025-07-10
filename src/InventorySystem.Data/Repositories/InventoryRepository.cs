@@ -1,3 +1,4 @@
+using System.Data;
 using Dapper;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
@@ -678,117 +679,103 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     /// <summary>
     /// 伝票データから在庫マスタを更新または作成（累積管理対応）
     /// </summary>
-    public async Task<int> UpdateOrCreateFromVouchersAsync(DateTime jobDate)
+    public async Task<int> UpdateOrCreateFromVouchersAsync(DateTime jobDate, string datasetId)
+    {
+        try
+        {
+            using var connection = CreateConnection();
+            using var transaction = connection.BeginTransaction();
+            
+            var result = await connection.QuerySingleAsync<dynamic>(
+                "sp_MergeInventoryMasterCumulative",
+                new { JobDate = jobDate, DataSetId = datasetId },
+                transaction,
+                commandType: CommandType.StoredProcedure);
+
+            transaction.Commit();
+            
+            LogInfo($"MergeInventoryMasterCumulative completed - Inserted: {result.InsertedCount}, Updated: {result.UpdatedCount}, Total: {result.TotalCount}", 
+                new { jobDate, datasetId });
+            
+            return result.TotalCount;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(UpdateOrCreateFromVouchersAsync), new { jobDate, datasetId });
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 重複レコードのクリーンアップ（一時的な修正処理）
+    /// </summary>
+    public async Task<int> CleanupDuplicateRecordsAsync()
     {
         const string sql = @"
-            -- 既存レコードの更新または新規作成
-            MERGE InventoryMaster AS target
-            USING (
-                -- 当日の伝票から5項目キーを抽出
-                SELECT DISTINCT 
-                    ProductCode, GradeCode, ClassCode, 
-                    ShippingMarkCode, ShippingMarkName
-                FROM (
-                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
-                    FROM SalesVouchers WHERE JobDate = @JobDate
-                    UNION
-                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
-                    FROM PurchaseVouchers WHERE JobDate = @JobDate
-                    UNION
-                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
-                    FROM InventoryAdjustments WHERE JobDate = @JobDate
-                ) AS combined
-            ) AS source
-            ON target.ProductCode = source.ProductCode
-                AND target.GradeCode = source.GradeCode
-                AND target.ClassCode = source.ClassCode
-                AND target.ShippingMarkCode = source.ShippingMarkCode
-                AND target.ShippingMarkName COLLATE Japanese_CI_AS = source.ShippingMarkName COLLATE Japanese_CI_AS
-            
-            WHEN MATCHED THEN
-                -- 既存レコード：更新日とJobDateのみ変更
-                UPDATE SET 
-                    UpdatedDate = GETDATE(),
-                    JobDate = @JobDate  -- 最終処理日として更新
-            
-            WHEN NOT MATCHED THEN
-                -- 新規レコード作成
-                INSERT (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                        ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
-                        JobDate, CreatedDate, UpdatedDate,
-                        CurrentStock, CurrentStockAmount, 
-                        DailyStock, DailyStockAmount, DailyFlag,
-                        PreviousMonthQuantity, PreviousMonthAmount, DataSetId)
-                VALUES (
-                    source.ProductCode, source.GradeCode, source.ClassCode, 
-                    source.ShippingMarkCode, source.ShippingMarkName,
-                    '商品名未設定', 'PCS', 0, '', '',
-                    @JobDate, GETDATE(), GETDATE(),
-                    0, 0, 0, 0, '9', 0, 0, ''
-                );
+            WITH DuplicateRecords AS (
+                SELECT 
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    JobDate, CreatedDate,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                        ORDER BY JobDate DESC, UpdatedDate DESC
+                    ) AS RowNum
+                FROM InventoryMaster
+            )
+            DELETE FROM DuplicateRecords
+            WHERE RowNum > 1;
             
             SELECT @@ROWCOUNT;";
         
         try
         {
             using var connection = CreateConnection();
-            var result = await connection.ExecuteScalarAsync<int>(sql, new { JobDate = jobDate });
+            var result = await connection.ExecuteScalarAsync<int>(sql);
             
-            LogInfo($"Updated or created {result} inventory records for JobDate {jobDate:yyyy-MM-dd}", new { jobDate });
-            
-            // 商品マスタから商品情報を更新
-            const string updateProductInfoSql = @"
-                UPDATE im
-                SET im.ProductName = ISNULL(pm.ProductName, im.ProductName),
-                    im.Unit = ISNULL(pm.UnitCode, im.Unit),
-                    im.StandardPrice = ISNULL(pm.StandardPrice, im.StandardPrice),
-                    im.ProductCategory1 = ISNULL(pm.ProductCategory1, im.ProductCategory1),
-                    im.ProductCategory2 = ISNULL(pm.ProductCategory2, im.ProductCategory2),
-                    im.UpdatedDate = GETDATE()
-                FROM InventoryMaster im
-                INNER JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
-                WHERE im.JobDate = @JobDate 
-                    AND (im.ProductName = '商品名未設定' OR im.Unit = 'PCS')";
-                    
-            var updateCount = await connection.ExecuteAsync(updateProductInfoSql, new { JobDate = jobDate });
-            if (updateCount > 0)
-            {
-                LogInfo($"Updated product information for {updateCount} inventory records", new { jobDate });
-            }
-            
-            // 前月末在庫から初期在庫を設定（新規レコードのみ）
-            const string updatePreviousMonthSql = @"
-                UPDATE im
-                SET im.CurrentStock = pmi.Quantity,
-                    im.CurrentStockAmount = pmi.Amount,
-                    im.DailyStock = pmi.Quantity,
-                    im.DailyStockAmount = pmi.Amount,
-                    im.PreviousMonthQuantity = pmi.Quantity,
-                    im.PreviousMonthAmount = pmi.Amount,
-                    im.UpdatedDate = GETDATE()
-                FROM InventoryMaster im
-                INNER JOIN PreviousMonthInventory pmi ON 
-                    im.ProductCode = pmi.ProductCode
-                    AND im.GradeCode = pmi.GradeCode
-                    AND im.ClassCode = pmi.ClassCode
-                    AND im.ShippingMarkCode = pmi.ShippingMarkCode
-                    AND im.ShippingMarkName COLLATE Japanese_CI_AS = pmi.ShippingMarkName COLLATE Japanese_CI_AS
-                WHERE im.JobDate = @JobDate 
-                    AND im.CurrentStock = 0 
-                    AND im.CurrentStockAmount = 0
-                    AND pmi.Quantity > 0";
-                    
-            var previousMonthCount = await connection.ExecuteAsync(updatePreviousMonthSql, new { JobDate = jobDate });
-            if (previousMonthCount > 0)
-            {
-                LogInfo($"Updated initial inventory from previous month for {previousMonthCount} records", new { jobDate });
-            }
-            
+            LogInfo($"Cleaned up {result} duplicate inventory records");
             return result;
         }
         catch (Exception ex)
         {
-            LogError(ex, nameof(UpdateOrCreateFromVouchersAsync), new { jobDate });
+            LogError(ex, nameof(CleanupDuplicateRecordsAsync));
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 月初に前月末在庫からCurrentStockを初期化
+    /// </summary>
+    public async Task<int> InitializeMonthlyInventoryAsync(string yearMonth)
+    {
+        const string sql = @"
+            -- 指定月の初日を計算
+            DECLARE @FirstDayOfMonth DATE = CAST(@YearMonth + '01' AS DATE);
+            
+            -- 前月末在庫データから現在庫を初期化
+            UPDATE im
+            SET im.CurrentStock = im.PreviousMonthQuantity,
+                im.CurrentStockAmount = im.PreviousMonthAmount,
+                im.DailyStock = im.PreviousMonthQuantity,
+                im.DailyStockAmount = im.PreviousMonthAmount,
+                im.UpdatedDate = GETDATE(),
+                im.JobDate = @FirstDayOfMonth
+            FROM InventoryMaster im
+            WHERE im.PreviousMonthQuantity IS NOT NULL
+                OR im.PreviousMonthAmount IS NOT NULL;
+            
+            SELECT @@ROWCOUNT;";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteScalarAsync<int>(sql, new { YearMonth = yearMonth });
+            
+            LogInfo($"Initialized {result} inventory records for month {yearMonth}");
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(InitializeMonthlyInventoryAsync), new { yearMonth });
             throw;
         }
     }
