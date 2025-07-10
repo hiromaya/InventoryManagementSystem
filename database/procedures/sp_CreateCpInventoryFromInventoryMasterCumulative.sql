@@ -5,7 +5,11 @@
 -- 特徴: JobDateで絞り込まず、5項目キーで必要なレコードのみ抽出
 -- ====================================================================
 
-CREATE OR ALTER PROCEDURE sp_CreateCpInventoryFromInventoryMasterCumulative
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_CreateCpInventoryFromInventoryMasterCumulative]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[sp_CreateCpInventoryFromInventoryMasterCumulative]
+GO
+
+CREATE PROCEDURE [dbo].[sp_CreateCpInventoryFromInventoryMasterCumulative]
     @DataSetId NVARCHAR(50),
     @JobDate DATE
 AS
