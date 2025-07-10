@@ -104,11 +104,11 @@ BEGIN
             -- DataSetId
             @DataSetId,
             -- 商品情報
-            ISNULL(pm.ProductName, '商' + im.ProductCode),
-            ISNULL(pm.Unit, 'PCS'),
+            ISNULL(pm.ProductName, N'商' + im.ProductCode),
+            ISNULL(pm.Unit, N'PCS'),
             ISNULL(pm.StandardPrice, 0),
-            ISNULL(pm.ProductCategory1, ''),
-            ISNULL(pm.ProductCategory2, ''),
+            ISNULL(pm.ProductCategory1, N''),
+            ISNULL(pm.ProductCategory2, N''),
             -- 日付情報
             @JobDate,
             GETDATE(),
@@ -129,13 +129,13 @@ BEGIN
                 THEN ROUND(im.CurrentStockAmount / im.CurrentStock, 4)
                 ELSE 0 
             END,
-            '9', -- DailyFlag
+            N'9', -- DailyFlag
             -- 日計フィールド（すべて0で初期化）
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             -- 月計フィールド（すべて0で初期化）
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             -- 部門コード
-            'DeptA'
+            N'DeptA'
         FROM InventoryMaster im
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
         WHERE EXISTS (
@@ -176,7 +176,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        PRINT 'CP在庫マスタ作成完了: ' + CAST(@CreatedCount AS NVARCHAR(10)) + '件';
+        PRINT N'CP在庫マスタ作成完了: ' + CAST(@CreatedCount AS NVARCHAR(10)) + N'件';
         
     END TRY
     BEGIN CATCH
@@ -195,4 +195,4 @@ GO
 GRANT EXECUTE ON sp_CreateCpInventoryFromInventoryMasterCumulative TO [public];
 GO
 
-PRINT 'ストアドプロシージャ sp_CreateCpInventoryFromInventoryMasterCumulative を作成しました。';
+PRINT N'ストアドプロシージャ sp_CreateCpInventoryFromInventoryMasterCumulative を作成しました。';
