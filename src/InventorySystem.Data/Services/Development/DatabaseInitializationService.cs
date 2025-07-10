@@ -105,6 +105,32 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 ExecutedBy NVARCHAR(50) NOT NULL DEFAULT 'System',
                 CONSTRAINT FK_DateProcessingHistory_FileProcessingHistory 
                     FOREIGN KEY (FileHistoryId) REFERENCES FileProcessingHistory(Id)
+            )",
+        
+        ["PreviousMonthInventory"] = @"
+            CREATE TABLE PreviousMonthInventory (
+                ProductCode NVARCHAR(5) NOT NULL,
+                GradeCode NVARCHAR(3) NOT NULL,
+                ClassCode NVARCHAR(3) NOT NULL,
+                ShippingMarkCode NVARCHAR(4) NOT NULL,
+                ShippingMarkName NVARCHAR(8) NOT NULL,
+                ProductName NVARCHAR(100) NOT NULL DEFAULT '',
+                Unit NVARCHAR(10) NOT NULL DEFAULT 'PCS',
+                Quantity DECIMAL(18,4) NOT NULL DEFAULT 0,
+                Amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+                UnitPrice DECIMAL(18,4) NOT NULL DEFAULT 0,
+                YearMonth NVARCHAR(6) NOT NULL,
+                CreatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),
+                UpdatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),
+                CreatedBy NVARCHAR(100) NOT NULL DEFAULT SYSTEM_USER,
+                CONSTRAINT PK_PreviousMonthInventory PRIMARY KEY CLUSTERED (
+                    ProductCode,
+                    GradeCode,
+                    ClassCode,
+                    ShippingMarkCode,
+                    ShippingMarkName,
+                    YearMonth
+                )
             )"
     };
 
@@ -141,6 +167,10 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             "CREATE INDEX IX_DateProcessingHistory_ProcessType ON DateProcessingHistory(ProcessType)",
             "CREATE INDEX IX_DateProcessingHistory_Department ON DateProcessingHistory(Department)",
             "CREATE UNIQUE INDEX IX_DateProcessingHistory_Unique ON DateProcessingHistory(FileHistoryId, JobDate, ProcessType, Department)"
+        },
+        ["PreviousMonthInventory"] = new List<string>
+        {
+            "CREATE NONCLUSTERED INDEX IX_PreviousMonthInventory_YearMonth ON PreviousMonthInventory(YearMonth) INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, Quantity, Amount)"
         }
     };
     
