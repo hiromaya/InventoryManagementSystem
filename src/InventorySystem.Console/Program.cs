@@ -1045,7 +1045,7 @@ static async Task ExecuteDevCheckDailyCloseAsync(IServiceProvider services, stri
         
         // 時間制限エラーを除外（開発環境のため）
         var filteredResults = confirmation.ValidationResults
-            .Where(v => !v.Message.Contains("15:00以降"))
+            .Where(v => !v.Message.Contains("15:00以降") && !v.Message.Contains("時間的制約違反"))
             .ToList();
         
         // 商品日報情報表示
