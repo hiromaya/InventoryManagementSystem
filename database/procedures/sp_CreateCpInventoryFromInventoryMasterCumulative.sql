@@ -32,112 +32,67 @@ BEGIN
         
         -- 在庫マスタから全商品をCP在庫マスタに挿入
         INSERT INTO CpInventoryMaster (
-            ProductCode, 
-            GradeCode, 
-            ClassCode, 
-            ShippingMarkCode, 
-            ShippingMarkName,
+            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
             DataSetId,
-            ProductName, 
-            Unit, 
-            StandardPrice, 
-            ProductCategory1, 
-            ProductCategory2,
-            JobDate, 
-            CreatedDate, 
-            UpdatedDate,
-            PreviousDayStock, 
-            PreviousDayStockAmount, 
-            PreviousDayUnitPrice,
-            DailyStock, 
-            DailyStockAmount, 
-            DailyUnitPrice, 
+            ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+            JobDate, CreatedDate, UpdatedDate,
+            PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice,
+            DailyStock, DailyStockAmount, DailyUnitPrice,
             DailyFlag,
-            DailySalesQuantity, 
-            DailySalesAmount,
-            DailySalesReturnQuantity, 
-            DailySalesReturnAmount,
-            DailyPurchaseQuantity, 
-            DailyPurchaseAmount,
-            DailyPurchaseReturnQuantity, 
-            DailyPurchaseReturnAmount,
-            DailyInventoryAdjustmentQuantity, 
-            DailyInventoryAdjustmentAmount,
-            DailyProcessingQuantity, 
-            DailyProcessingAmount,
-            DailyTransferQuantity, 
-            DailyTransferAmount,
-            DailyReceiptQuantity, 
-            DailyReceiptAmount,
-            DailyShipmentQuantity, 
-            DailyShipmentAmount,
-            DailyGrossProfit, 
-            DailyWalkingAmount,
-            DailyIncentiveAmount, 
-            DailyDiscountAmount,
-            MonthlySalesQuantity, 
-            MonthlySalesAmount,
-            MonthlySalesReturnQuantity, 
-            MonthlySalesReturnAmount,
-            MonthlyPurchaseQuantity, 
-            MonthlyPurchaseAmount,
-            MonthlyPurchaseReturnQuantity, 
-            MonthlyPurchaseReturnAmount,
-            MonthlyInventoryAdjustmentQuantity, 
-            MonthlyInventoryAdjustmentAmount,
-            MonthlyProcessingQuantity, 
-            MonthlyProcessingAmount,
-            MonthlyTransferQuantity, 
-            MonthlyTransferAmount,
-            MonthlyGrossProfit, 
-            MonthlyWalkingAmount,
-            MonthlyIncentiveAmount,
+            DailySalesQuantity, DailySalesAmount, 
+            DailySalesReturnQuantity, DailySalesReturnAmount,
+            DailyPurchaseQuantity, DailyPurchaseAmount,
+            DailyPurchaseReturnQuantity, DailyPurchaseReturnAmount,
+            DailyInventoryAdjustmentQuantity, DailyInventoryAdjustmentAmount,
+            DailyProcessingQuantity, DailyProcessingAmount,
+            DailyTransferQuantity, DailyTransferAmount,
+            DailyReceiptQuantity, DailyReceiptAmount,
+            DailyShipmentQuantity, DailyShipmentAmount,
+            DailyGrossProfit, DailyWalkingAmount, DailyIncentiveAmount, DailyDiscountAmount,
+            MonthlySalesQuantity, MonthlySalesAmount,
+            MonthlySalesReturnQuantity, MonthlySalesReturnAmount,
+            MonthlyPurchaseQuantity, MonthlyPurchaseAmount,
+            MonthlyPurchaseReturnQuantity, MonthlyPurchaseReturnAmount,
+            MonthlyInventoryAdjustmentQuantity, MonthlyInventoryAdjustmentAmount,
+            MonthlyProcessingQuantity, MonthlyProcessingAmount,
+            MonthlyTransferQuantity, MonthlyTransferAmount,
+            MonthlyGrossProfit, MonthlyWalkingAmount, MonthlyIncentiveAmount,
             DepartmentCode
         )
-        SELECT DISTINCT
-            -- キー項目（5項目）
-            im.ProductCode, 
-            im.GradeCode, 
-            im.ClassCode, 
-            im.ShippingMarkCode, 
-            im.ShippingMarkName,
-            -- DataSetId
+        SELECT
+            -- 1-5: キー項目
+            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ShippingMarkName,
+            -- 6: DataSetId
             @DataSetId,
-            -- 商品情報
-            ISNULL(pm.ProductName, N'商' + im.ProductCode),
-            ISNULL(pm.Unit, N'PCS'),
+            -- 7-11: 商品情報
+            ISNULL(pm.ProductName, N''),
+            ISNULL(u.UnitName, N''),
             ISNULL(pm.StandardPrice, 0),
             ISNULL(pm.ProductCategory1, N''),
             ISNULL(pm.ProductCategory2, N''),
-            -- 日付情報
+            -- 12-14: 日付管理
             @JobDate,
             GETDATE(),
             GETDATE(),
-            -- 前日在庫（在庫マスタの現在在庫を使用）
+            -- 15-17: 前日在庫として現在在庫を使用
             ISNULL(im.CurrentStock, 0),
             ISNULL(im.CurrentStockAmount, 0),
-            CASE 
-                WHEN ISNULL(im.CurrentStock, 0) > 0 
-                THEN ROUND(im.CurrentStockAmount / im.CurrentStock, 4)
-                ELSE 0 
-            END,
-            -- 当日在庫（初期値として前日在庫と同じ）
+            CASE WHEN im.CurrentStock > 0 THEN im.CurrentStockAmount / im.CurrentStock ELSE 0 END,
+            -- 18-20: 当日在庫（初期値として前日在庫と同じ値）
             ISNULL(im.CurrentStock, 0),
             ISNULL(im.CurrentStockAmount, 0),
-            CASE 
-                WHEN ISNULL(im.CurrentStock, 0) > 0 
-                THEN ROUND(im.CurrentStockAmount / im.CurrentStock, 4)
-                ELSE 0 
-            END,
-            N'9', -- DailyFlag
-            -- 日計フィールド（すべて0で初期化）
+            CASE WHEN im.CurrentStock > 0 THEN im.CurrentStockAmount / im.CurrentStock ELSE 0 END,
+            -- 21: フラグ
+            '9',  -- 当日発生フラグ初期値
+            -- 22-43: 日計フィールド（22個の0）
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            -- 月計フィールド（すべて0で初期化）
+            -- 44-60: 月計フィールド（17個の0）
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            -- 部門コード
-            N'DeptA'
+            -- 61: 部門コード
+            ISNULL(im.DataSetId, N'')
         FROM InventoryMaster im
-        LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode;
+        LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
+        LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode;
         
         SET @CreatedCount = @@ROWCOUNT;
         
