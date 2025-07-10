@@ -1,7 +1,7 @@
 -- =============================================
--- 累積管理対応版 CP在庫マスタ作成ストアドプロシージャ
+-- 累積管理対応版 CP在庫マスタ作成ストアドプロシージャ（全期間対応版）
 -- 作成日: 2025-07-10
--- 説明: 在庫マスタから当日の伝票に関連する5項目キーのレコードのみをCP在庫マスタにコピー
+-- 説明: 在庫マスタから全期間の伝票に関連する5項目キーのレコードをCP在庫マスタにコピー
 -- =============================================
 USE InventoryManagementDB;
 GO
@@ -97,7 +97,7 @@ BEGIN
         WHERE EXISTS (
             -- 伝票に存在する5項目キーのみ（@JobDateがNULLの場合は全期間）
             SELECT 1 FROM SalesVouchers sv 
-            WHERE (@JobDate IS NULL OR sv.JobDate = @JobDate) 
+            WHERE (@JobDate IS NULL OR sv.JobDate = @JobDate)
             AND sv.ProductCode = im.ProductCode
             AND sv.GradeCode = im.GradeCode
             AND sv.ClassCode = im.ClassCode

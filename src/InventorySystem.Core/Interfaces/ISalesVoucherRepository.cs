@@ -11,4 +11,5 @@ public interface ISalesVoucherRepository
     Task<int> GetCountAsync(DateTime jobDate);
     Task<decimal> GetTotalAmountAsync(DateTime jobDate);
     Task<int> GetModifiedAfterAsync(DateTime jobDate, DateTime modifiedAfter);
+    Task<IEnumerable<SalesVoucher>> GetAllAsync();
 }

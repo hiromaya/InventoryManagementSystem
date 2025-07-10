@@ -13,9 +13,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     {
     }
 
-    public async Task<int> CreateCpInventoryFromInventoryMasterAsync(string dataSetId, DateTime jobDate)
+    public async Task<int> CreateCpInventoryFromInventoryMasterAsync(string dataSetId, DateTime? jobDate)
     {
-        // 累積管理対応版：在庫マスタのすべてのレコードをCP在庫マスタにコピー
+        // 累積管理対応版：在庫マスタのレコードをCP在庫マスタにコピー
+        // jobDateがnullの場合は全期間対象
         using var connection = new SqlConnection(_connectionString);
         var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
             "sp_CreateCpInventoryFromInventoryMasterCumulative",
@@ -185,9 +186,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         }));
     }
 
-    public async Task<int> AggregateSalesDataAsync(string dataSetId, DateTime jobDate)
+    public async Task<int> AggregateSalesDataAsync(string dataSetId, DateTime? jobDate)
     {
-        const string sql = """
+        // jobDateがnullの場合は全期間対象
+        var dateCondition = jobDate.HasValue ? "WHERE JobDate = @JobDate" : "";
+        
+        var sql = $"""
             UPDATE cp
             SET 
                 DailySalesQuantity = ISNULL(sales.SalesQuantity, 0),
@@ -205,8 +209,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     SUM(ABS(Quantity)) as SalesQuantity,
                     SUM(ABS(Amount)) as SalesAmount
                 FROM SalesVouchers 
-                WHERE JobDate = @JobDate 
-                    AND VoucherType IN ('51', '52')
+                {dateCondition}
+                    {(jobDate.HasValue ? "AND" : "WHERE")} VoucherType IN ('51', '52')
                     AND DetailType IN ('1', '2')
                     AND Quantity <> 0
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
@@ -222,9 +226,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId, JobDate = jobDate });
     }
 
-    public async Task<int> AggregatePurchaseDataAsync(string dataSetId, DateTime jobDate)
+    public async Task<int> AggregatePurchaseDataAsync(string dataSetId, DateTime? jobDate)
     {
-        const string sql = """
+        // jobDateがnullの場合は全期間対象
+        var dateCondition = jobDate.HasValue ? "WHERE JobDate = @JobDate" : "";
+        
+        var sql = $"""
             UPDATE cp
             SET 
                 DailyPurchaseQuantity = ISNULL(purchase.PurchaseQuantity, 0),
@@ -242,8 +249,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     SUM(Quantity) as PurchaseQuantity,
                     SUM(Amount) as PurchaseAmount
                 FROM PurchaseVouchers 
-                WHERE JobDate = @JobDate 
-                    AND VoucherType IN ('11', '12')
+                {dateCondition}
+                    {(jobDate.HasValue ? "AND" : "WHERE")} VoucherType IN ('11', '12')
                     AND DetailType IN ('1', '2')  -- 仕入、返品のみ（値引は別途計算）
                     AND Quantity <> 0
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
@@ -259,13 +266,16 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId, JobDate = jobDate });
     }
 
-    public async Task<int> AggregateInventoryAdjustmentDataAsync(string dataSetId, DateTime jobDate)
+    public async Task<int> AggregateInventoryAdjustmentDataAsync(string dataSetId, DateTime? jobDate)
     {
         using var connection = new SqlConnection(_connectionString);
         int totalUpdated = 0;
 
+        // jobDateがnullの場合は全期間対象
+        var dateCondition = jobDate.HasValue ? "WHERE JobDate = @JobDate" : "";
+
         // 1. 在庫調整（単位コード: 01, 03, 06）
-        const string adjustmentSql = """
+        var adjustmentSql = $"""
             UPDATE cp
             SET 
                 DailyInventoryAdjustmentQuantity = ISNULL(adj.AdjustmentQuantity, 0),
@@ -283,8 +293,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     SUM(Quantity) as AdjustmentQuantity,
                     SUM(Amount) as AdjustmentAmount
                 FROM InventoryAdjustments 
-                WHERE JobDate = @JobDate 
-                    AND VoucherType IN ('71', '72')
+                {dateCondition}
+                    {(jobDate.HasValue ? "AND" : "WHERE")} VoucherType IN ('71', '72')
                     AND DetailType IN ('1', '3', '4')
                     AND CategoryCode IN (1, 3, 6)  -- 在庫調整の単位コード
                     AND Quantity <> 0
@@ -301,7 +311,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         totalUpdated += adjustmentResult;
         
         // 2. 加工費（単位コード: 02, 05）
-        const string processingSql = """
+        var processingSql = $"""
             UPDATE cp
             SET 
                 DailyProcessingQuantity = ISNULL(adj.ProcessingQuantity, 0),
@@ -319,8 +329,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     SUM(Quantity) as ProcessingQuantity,
                     SUM(Amount) as ProcessingAmount
                 FROM InventoryAdjustments 
-                WHERE JobDate = @JobDate 
-                    AND VoucherType IN ('71', '72')
+                {dateCondition}
+                    {(jobDate.HasValue ? "AND" : "WHERE")} VoucherType IN ('71', '72')
                     AND DetailType IN ('1', '3', '4')
                     AND CategoryCode IN (2, 5)  -- 加工費の単位コード
                     AND Quantity <> 0
@@ -337,7 +347,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         totalUpdated += processingResult;
         
         // 3. 振替（単位コード: 04）
-        const string transferSql = """
+        var transferSql = $"""
             UPDATE cp
             SET 
                 DailyTransferQuantity = ISNULL(adj.TransferQuantity, 0),
@@ -355,8 +365,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     SUM(Quantity) as TransferQuantity,
                     SUM(Amount) as TransferAmount
                 FROM InventoryAdjustments 
-                WHERE JobDate = @JobDate 
-                    AND VoucherType IN ('71', '72')
+                {dateCondition}
+                    {(jobDate.HasValue ? "AND" : "WHERE")} VoucherType IN ('71', '72')
                     AND DetailType IN ('1', '3', '4')
                     AND CategoryCode = 4  -- 振替の単位コード
                     AND Quantity <> 0

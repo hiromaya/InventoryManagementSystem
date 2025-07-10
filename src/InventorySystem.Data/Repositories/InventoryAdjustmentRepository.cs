@@ -385,4 +385,33 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
         using var connection = CreateConnection();
         return await connection.ExecuteScalarAsync<int>(sql, new { jobDate, modifiedAfter });
     }
+    
+    /// <summary>
+    /// すべての在庫調整データを取得
+    /// </summary>
+    public async Task<IEnumerable<InventoryAdjustment>> GetAllAsync()
+    {
+        const string sql = @"
+            SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
+                   CustomerCode, CustomerName, CategoryCode,
+                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   Quantity, UnitPrice, Amount, CreatedDate
+            FROM InventoryAdjustments 
+            ORDER BY JobDate DESC, VoucherDate DESC, VoucherId DESC";
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var adjustments = await connection.QueryAsync<InventoryAdjustment>(sql);
+            
+            var results = adjustments.ToList();
+            _logger.LogInformation("Retrieved {Count} inventory adjustments (all records)", results.Count);
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "すべての在庫調整データ取得エラー");
+            throw;
+        }
+    }
 }

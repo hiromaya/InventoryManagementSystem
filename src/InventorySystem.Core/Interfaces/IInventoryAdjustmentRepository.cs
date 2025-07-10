@@ -66,4 +66,9 @@ public interface IInventoryAdjustmentRepository
     /// 指定日時以降に変更されたデータ件数を取得
     /// </summary>
     Task<int> GetModifiedAfterAsync(DateTime jobDate, DateTime modifiedAfter);
+    
+    /// <summary>
+    /// すべての在庫調整データを取得
+    /// </summary>
+    Task<IEnumerable<InventoryAdjustment>> GetAllAsync();
 }

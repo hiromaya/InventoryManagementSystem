@@ -11,4 +11,5 @@ public interface IPurchaseVoucherRepository
     Task<int> GetCountAsync(DateTime jobDate);
     Task<decimal> GetTotalAmountAsync(DateTime jobDate);
     Task<int> GetModifiedAfterAsync(DateTime jobDate, DateTime modifiedAfter);
+    Task<IEnumerable<PurchaseVoucher>> GetAllAsync();
 }

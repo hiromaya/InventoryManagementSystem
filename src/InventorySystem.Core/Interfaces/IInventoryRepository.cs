@@ -56,4 +56,9 @@ public interface IInventoryRepository
     /// 月初に前月末在庫からCurrentStockを初期化
     /// </summary>
     Task<int> InitializeMonthlyInventoryAsync(string yearMonth);
+    
+    /// <summary>
+    /// 指定されたキーで最新の在庫マスタを取得（全期間対象）
+    /// </summary>
+    Task<InventoryMaster?> GetLatestByKeyAsync(InventoryKey key);
 }

@@ -780,4 +780,54 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             throw;
         }
     }
+    
+    /// <summary>
+    /// 指定されたキーで最新の在庫マスタを取得（全期間対象）
+    /// </summary>
+    public async Task<InventoryMaster?> GetLatestByKeyAsync(InventoryKey key)
+    {
+        const string sql = @"
+            SELECT TOP 1 
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+                JobDate, CreatedDate, UpdatedDate,
+                CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
+                DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount
+            FROM InventoryMaster 
+            WHERE ProductCode = @ProductCode 
+                AND GradeCode = @GradeCode 
+                AND ClassCode = @ClassCode 
+                AND ShippingMarkCode = @ShippingMarkCode 
+                -- ShippingMarkNameは部分一致で検索（空白8文字の場合を考慮）
+                AND RTRIM(ShippingMarkName) = RTRIM(@ShippingMarkName)
+            ORDER BY JobDate DESC, UpdatedDate DESC";
+
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, new
+            {
+                ProductCode = key.ProductCode,
+                GradeCode = key.GradeCode,
+                ClassCode = key.ClassCode,
+                ShippingMarkCode = key.ShippingMarkCode,
+                ShippingMarkName = key.ShippingMarkName
+            });
+
+            if (result != null)
+            {
+                LogDebug($"Found latest inventory master for product key", new { key, JobDate = result.JobDate });
+                return MapToInventoryMaster(result);
+            }
+
+            LogDebug($"No inventory master found for product key", new { key });
+            return null;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetLatestByKeyAsync), new { key });
+            throw;
+        }
+    }
 }

@@ -206,4 +206,45 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
         using var connection = CreateConnection();
         return await connection.ExecuteScalarAsync<int>(sql, new { jobDate, modifiedAfter });
     }
+    
+    public async Task<IEnumerable<PurchaseVoucher>> GetAllAsync()
+    {
+        const string sql = @"
+            SELECT 
+                VoucherId,
+                LineNumber,
+                VoucherNumber,
+                VoucherDate,
+                VoucherType,
+                SupplierCode,
+                SupplierName,
+                ProductCode,
+                GradeCode,
+                ClassCode,
+                ShippingMarkCode,
+                ShippingMarkName,
+                Quantity,
+                UnitPrice as PurchaseUnitPrice,
+                Amount as PurchaseAmount,
+                JobDate,
+                DetailType,
+                DataSetId
+            FROM PurchaseVouchers 
+            ORDER BY JobDate DESC, VoucherDate DESC, VoucherId DESC";
+
+        try
+        {
+            using var connection = CreateConnection();
+            var vouchers = await connection.QueryAsync<dynamic>(sql);
+            
+            var results = vouchers.Select(MapToPurchaseVoucher).ToList();
+            LogInfo($"Retrieved {results.Count} purchase vouchers (all records)");
+            return results;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetAllAsync));
+            throw;
+        }
+    }
 }

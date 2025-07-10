@@ -7,7 +7,9 @@ public interface ICpInventoryRepository
     /// <summary>
     /// 在庫マスタからCP在庫マスタを作成する（処理1-1）
     /// </summary>
-    Task<int> CreateCpInventoryFromInventoryMasterAsync(string dataSetId, DateTime jobDate);
+    /// <param name="dataSetId">データセットID</param>
+    /// <param name="jobDate">対象日付（nullの場合は全期間）</param>
+    Task<int> CreateCpInventoryFromInventoryMasterAsync(string dataSetId, DateTime? jobDate);
     
     /// <summary>
     /// CP在庫マスタの当日エリアをクリアし、当日発生フラグを'9'にセットする
@@ -37,17 +39,23 @@ public interface ICpInventoryRepository
     /// <summary>
     /// 売上伝票データをCP在庫マスタに集計する
     /// </summary>
-    Task<int> AggregateSalesDataAsync(string dataSetId, DateTime jobDate);
+    /// <param name="dataSetId">データセットID</param>
+    /// <param name="jobDate">対象日付（nullの場合は全期間）</param>
+    Task<int> AggregateSalesDataAsync(string dataSetId, DateTime? jobDate);
     
     /// <summary>
     /// 仕入伝票データをCP在庫マスタに集計する
     /// </summary>
-    Task<int> AggregatePurchaseDataAsync(string dataSetId, DateTime jobDate);
+    /// <param name="dataSetId">データセットID</param>
+    /// <param name="jobDate">対象日付（nullの場合は全期間）</param>
+    Task<int> AggregatePurchaseDataAsync(string dataSetId, DateTime? jobDate);
     
     /// <summary>
     /// 在庫調整データをCP在庫マスタに集計する
     /// </summary>
-    Task<int> AggregateInventoryAdjustmentDataAsync(string dataSetId, DateTime jobDate);
+    /// <param name="dataSetId">データセットID</param>
+    /// <param name="jobDate">対象日付（nullの場合は全期間）</param>
+    Task<int> AggregateInventoryAdjustmentDataAsync(string dataSetId, DateTime? jobDate);
     
     /// <summary>
     /// 当日在庫数量を計算する

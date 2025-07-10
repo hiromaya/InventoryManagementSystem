@@ -72,9 +72,9 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
             _logger.LogInformation("アンマッチリスト処理開始 - ジョブ日付: {JobDate}, データセットID: {DataSetId}", 
                 jobDate, context.DatasetId);
 
-            // 処理1-1: CP在庫M作成
-            _logger.LogInformation("CP在庫マスタ作成開始");
-            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(context.DatasetId, jobDate);
+            // 処理1-1: CP在庫M作成（全期間対象）
+            _logger.LogInformation("CP在庫マスタ作成開始（全期間対象）");
+            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(context.DatasetId, null);
             _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
 
             // 処理1-2: 当日エリアクリア
@@ -82,12 +82,12 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
             await _cpInventoryRepository.ClearDailyAreaAsync(context.DatasetId);
             _logger.LogInformation("当日エリアクリア完了");
 
-            // 当日データ集計
-            _logger.LogInformation("当日データ集計開始");
-            await _cpInventoryRepository.AggregateSalesDataAsync(context.DatasetId, jobDate);
-            await _cpInventoryRepository.AggregatePurchaseDataAsync(context.DatasetId, jobDate);
-            await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(context.DatasetId, jobDate);
-            _logger.LogInformation("当日データ集計完了");
+            // 全期間データ集計
+            _logger.LogInformation("全期間データ集計開始");
+            await _cpInventoryRepository.AggregateSalesDataAsync(context.DatasetId, null);
+            await _cpInventoryRepository.AggregatePurchaseDataAsync(context.DatasetId, null);
+            await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(context.DatasetId, null);
+            _logger.LogInformation("全期間データ集計完了");
 
             // 処理1-3: 当日在庫計算
             _logger.LogInformation("当日在庫計算開始");
@@ -187,9 +187,9 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
     {
         var unmatchItems = new List<UnmatchItem>();
 
-        // 売上伝票取得
-        var salesVouchers = await _salesVoucherRepository.GetByJobDateAsync(jobDate);
-        _logger.LogDebug("売上伝票取得: 総件数={TotalCount}", salesVouchers.Count());
+        // 売上伝票取得（全期間）
+        var salesVouchers = await _salesVoucherRepository.GetAllAsync();
+        _logger.LogDebug("売上伝票取得（全期間）: 総件数={TotalCount}", salesVouchers.Count());
         
         var salesList = salesVouchers
             .Where(s => s.VoucherType == "51" || s.VoucherType == "52") // 売上伝票
@@ -239,8 +239,8 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
     {
         var unmatchItems = new List<UnmatchItem>();
 
-        // 仕入伝票取得
-        var purchaseVouchers = await _purchaseVoucherRepository.GetByJobDateAsync(jobDate);
+        // 仕入伝票取得（全期間）
+        var purchaseVouchers = await _purchaseVoucherRepository.GetAllAsync();
         var purchaseList = purchaseVouchers
             .Where(p => p.VoucherType == "11" || p.VoucherType == "12") // 仕入伝票
             .Where(p => p.DetailType == "1" || p.DetailType == "2")     // 明細種
@@ -295,7 +295,8 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
             ShippingMarkName = string.Empty
         };
 
-        var inventory = await _inventoryRepository.GetByKeyAsync(inventoryKey, jobDate);
+        // 全期間から最新の在庫マスタを取得
+        var inventory = await _inventoryRepository.GetLatestByKeyAsync(inventoryKey);
         return inventory?.ProductCategory1 ?? string.Empty;
     }
 
@@ -303,8 +304,8 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
     {
         var unmatchItems = new List<UnmatchItem>();
 
-        // 在庫調整伝票取得
-        var adjustments = await _inventoryAdjustmentRepository.GetByJobDateAsync(jobDate);
+        // 在庫調整伝票取得（全期間）
+        var adjustments = await _inventoryAdjustmentRepository.GetAllAsync();
         var adjustmentList = adjustments
             .Where(a => a.VoucherType == "71" || a.VoucherType == "72")  // 在庫調整伝票
             .Where(a => a.DetailType == "1")                             // 明細種
@@ -412,7 +413,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
                     ShippingMarkName = item.Key.ShippingMarkName
                 };
                 
-                var inventory = await _inventoryRepository.GetByKeyAsync(inventoryKey, item.JobDate);
+                var inventory = await _inventoryRepository.GetLatestByKeyAsync(inventoryKey);
                 if (inventory != null && !string.IsNullOrEmpty(inventory.ProductName))
                 {
                     item.ProductName = inventory.ProductName;
