@@ -518,12 +518,16 @@
 
 <span class="comment"># 商品日報作成</span>
 <span class="command-line">dotnet run daily-report 2025-06-01</span>
+<span class="comment"># または開発用コマンド（過去日付も処理可能）</span>
+<span class="command-line">dotnet run dev-daily-report 2025-06-01</span>
 
 <span class="comment"># 在庫表作成（必要に応じて）</span>
 <span class="command-line">dotnet run inventory-list 2025-06-01</span>
 
 <span class="comment"># 日次終了処理の事前確認（オプション）</span>
 <span class="command-line">dotnet run check-daily-close 2025-06-01</span>
+<span class="comment"># または開発用コマンド（時間制限なし）</span>
+<span class="command-line">dotnet run dev-check-daily-close 2025-06-01</span>
 
 <span class="comment"># 日次終了処理（在庫繰り越し）※重要</span>
 <span class="command-line">dotnet run dev-daily-close 2025-06-01</span>
@@ -567,6 +571,53 @@
                     <h4>継続処理</h4>
                     <p><strong>必要な日付まで上記の手順を継続してください。</strong></p>
                     <p>最大で6月27日まで処理可能です。</p>
+                </div>
+            </div>
+            
+            <!-- 開発用コマンドのセクション追加 -->
+            <div class="info" style="background: rgba(155, 89, 182, 0.1); border-left: 4px solid #9b59b6;">
+                <h3 style="margin-top: 0;">🛠️ 開発環境用コマンド</h3>
+                <p><strong>開発環境での制限解除について：</strong></p>
+                <ul style="margin: 10px 0;">
+                    <li><strong>日付制限：</strong> 7日以内の制限なし（過去の任意の日付を処理可能）</li>
+                    <li><strong>時間制限：</strong> 15:00以降の制限なし（任意の時刻に実行可能）</li>
+                </ul>
+                
+                <h4 style="margin-top: 20px;">開発用コマンド一覧</h4>
+                <table style="width: 100%; margin: 15px 0; border-collapse: collapse; background: white;">
+                    <thead>
+                        <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                            <th style="padding: 10px; text-align: left;">コマンド</th>
+                            <th style="padding: 10px; text-align: left;">通常版との違い</th>
+                            <th style="padding: 10px; text-align: left;">使用例</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #dee2e6;">
+                            <td style="padding: 10px;"><code>dev-daily-report</code></td>
+                            <td style="padding: 10px;">日付制限なし（7日以上前も処理可能）</td>
+                            <td style="padding: 10px;"><code>dotnet run dev-daily-report 2025-06-01</code></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #dee2e6;">
+                            <td style="padding: 10px;"><code>dev-check-daily-close</code></td>
+                            <td style="padding: 10px;">時間制限なし（15:00前でも実行可能）</td>
+                            <td style="padding: 10px;"><code>dotnet run dev-check-daily-close 2025-06-01</code></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #dee2e6;">
+                            <td style="padding: 10px;"><code>dev-daily-close</code></td>
+                            <td style="padding: 10px;">検証スキップ、時間制限なし</td>
+                            <td style="padding: 10px;"><code>dotnet run dev-daily-close 2025-06-01</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="warning" style="margin-top: 20px;">
+                    <strong>⚠️ 注意事項</strong>
+                    <ul>
+                        <li>これらのコマンドは開発環境でのみ使用可能です</li>
+                        <li>本番環境では自動的に無効化されます</li>
+                        <li>環境変数: <code>set ASPNETCORE_ENVIRONMENT=Development</code></li>
+                    </ul>
                 </div>
             </div>
 

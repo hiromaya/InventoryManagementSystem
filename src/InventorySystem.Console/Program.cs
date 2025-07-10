@@ -27,6 +27,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using InventorySystem.Data.Services;
 using InventorySystem.Data.Services.Development;
+using InventorySystem.Core.Enums;
 
 // Program クラスの定義
 public class Program
@@ -281,6 +282,8 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  dotnet run dev-daily-close <YYYY-MM-DD> [--skip-validation] [--dry-run] - 開発用日次終了処理");
     Console.WriteLine("  dotnet run check-data-status <YYYY-MM-DD>    - データ状態確認");
     Console.WriteLine("  dotnet run simulate-daily <dept> <YYYY-MM-DD> [--dry-run] - 日次処理シミュレーション");
+    Console.WriteLine("  dotnet run dev-daily-report <YYYY-MM-DD>     - 開発用商品日報（日付制限無視）");
+    Console.WriteLine("  dotnet run dev-check-daily-close <YYYY-MM-DD> - 開発用日次終了確認（時間制限無視）");
     Console.WriteLine("");
     Console.WriteLine("  例: dotnet run test-connection");
     Console.WriteLine("  例: dotnet run unmatch-list 2025-06-16");
@@ -317,6 +320,14 @@ try
             
         case "daily-report":
             await ExecuteDailyReportAsync(host.Services, commandArgs);
+            break;
+            
+        case "dev-daily-report":
+            await ExecuteDevDailyReportAsync(host.Services, commandArgs);
+            break;
+            
+        case "dev-check-daily-close":
+            await ExecuteDevCheckDailyCloseAsync(host.Services, commandArgs);
             break;
             
         case "inventory-list":
@@ -915,6 +926,200 @@ try
             
             logger.LogError("商品日報処理が失敗しました: {ErrorMessage}", result.ErrorMessage);
         }
+    }
+}
+
+/// <summary>
+/// 開発用商品日報コマンドを実行（日付制限無視）
+/// </summary>
+static async Task ExecuteDevDailyReportAsync(IServiceProvider services, string[] args)
+{
+    // 開発環境チェック
+    if (!IsDevelopmentEnvironment())
+    {
+        Console.WriteLine("❌ このコマンドは開発環境でのみ使用可能です");
+        return;
+    }
+    
+    if (args.Length < 3)
+    {
+        Console.WriteLine("使用方法: dotnet run dev-daily-report <YYYY-MM-DD>");
+        return;
+    }
+    
+    using var scope = services.CreateScope();
+    var scopedServices = scope.ServiceProvider;
+    var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+    var dailyReportService = scopedServices.GetRequiredService<InventorySystem.Core.Interfaces.IDailyReportService>();
+    var reportService = scopedServices.GetRequiredService<InventorySystem.Reports.Interfaces.IDailyReportService>();
+    var fileManagementService = scopedServices.GetRequiredService<IFileManagementService>();
+    
+    try
+    {
+        if (!DateTime.TryParse(args[2], out var jobDate))
+        {
+            Console.WriteLine("日付形式が正しくありません。YYYY-MM-DD形式で指定してください。");
+            return;
+        }
+        
+        Console.WriteLine($"=== 開発用商品日報処理開始（日付制限無視） ===");
+        Console.WriteLine($"レポート日付: {jobDate:yyyy-MM-dd}");
+        Console.WriteLine();
+        
+        var stopwatch = Stopwatch.StartNew();
+        
+        // 商品日報処理実行（新規DataSetIdで実行）
+        var processResult = await dailyReportService.ProcessDailyReportAsync(jobDate, null);
+        
+        if (!processResult.Success)
+        {
+            throw new InvalidOperationException(processResult.ErrorMessage ?? "商品日報処理に失敗しました");
+        }
+        
+        // PDF生成（通常のdaily-reportコマンドと同じ方法）
+        var pdfBytes = reportService.GenerateDailyReport(
+            processResult.ReportItems, 
+            processResult.Subtotals, 
+            processResult.Total, 
+            jobDate);
+        
+        // FileManagementServiceを使用してレポートパスを取得
+        var pdfPath = await fileManagementService.GetReportOutputPathAsync("DailyReport", jobDate, "pdf");
+        await File.WriteAllBytesAsync(pdfPath, pdfBytes);
+        
+        stopwatch.Stop();
+        
+        Console.WriteLine($"=== 処理完了 ===");
+        Console.WriteLine($"データセットID: {processResult.DataSetId}");
+        Console.WriteLine($"処理件数: {processResult.ProcessedCount}");
+        Console.WriteLine($"PDFファイル: {pdfPath}");
+        Console.WriteLine($"ファイルサイズ: {pdfBytes.Length / 1024.0:F2} KB");
+        Console.WriteLine($"処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
+        
+        logger.LogInformation("開発用商品日報処理完了: JobDate={JobDate}", jobDate);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"エラー: {ex.Message}");
+        logger.LogError(ex, "開発用商品日報処理でエラーが発生しました");
+    }
+}
+
+/// <summary>
+/// 開発用日次終了処理確認コマンドを実行（時間制限無視）
+/// </summary>
+static async Task ExecuteDevCheckDailyCloseAsync(IServiceProvider services, string[] args)
+{
+    // 開発環境チェック
+    if (!IsDevelopmentEnvironment())
+    {
+        Console.WriteLine("❌ このコマンドは開発環境でのみ使用可能です");
+        return;
+    }
+    
+    if (args.Length < 3)
+    {
+        Console.WriteLine("使用方法: dotnet run dev-check-daily-close <YYYY-MM-DD>");
+        return;
+    }
+    
+    using var scope = services.CreateScope();
+    var scopedServices = scope.ServiceProvider;
+    var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+    var dailyCloseService = scopedServices.GetRequiredService<IDailyCloseService>();
+    
+    try
+    {
+        if (!DateTime.TryParse(args[2], out var jobDate))
+        {
+            Console.WriteLine("日付形式が正しくありません。YYYY-MM-DD形式で指定してください。");
+            return;
+        }
+        
+        Console.WriteLine($"=== 開発用日次終了処理 事前確認（時間制限無視） ===");
+        Console.WriteLine($"対象日付: {jobDate:yyyy-MM-dd}");
+        Console.WriteLine($"現在時刻: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        Console.WriteLine();
+        
+        // GetConfirmationInfoを呼び出して、結果を取得して時間制限チェックを無視
+        var confirmation = await dailyCloseService.GetConfirmationInfo(jobDate);
+        
+        // 時間制限エラーを除外（開発環境のため）
+        var filteredResults = confirmation.ValidationResults
+            .Where(v => !v.Message.Contains("15:00以降"))
+            .ToList();
+        
+        // 商品日報情報表示
+        Console.WriteLine("【商品日報情報】");
+        if (confirmation.DailyReportInfo != null)
+        {
+            Console.WriteLine($"  作成時刻: {confirmation.DailyReportInfo.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+            Console.WriteLine($"  作成者: {confirmation.DailyReportInfo.CreatedBy}");
+            Console.WriteLine($"  DatasetId: {confirmation.DailyReportInfo.DatasetId}");
+        }
+        else
+        {
+            Console.WriteLine("  ❌ 商品日報が作成されていません");
+        }
+        Console.WriteLine();
+        
+        // データ件数表示
+        Console.WriteLine("【データ件数】");
+        Console.WriteLine($"  売上伝票: {confirmation.SalesCount:#,##0}件");
+        Console.WriteLine($"  仕入伝票: {confirmation.PurchaseCount:#,##0}件");
+        Console.WriteLine($"  在庫調整: {confirmation.AdjustmentCount:#,##0}件");
+        Console.WriteLine($"  CP在庫: {confirmation.CpInventoryCount:#,##0}件");
+        Console.WriteLine();
+        
+        // 金額サマリー表示
+        Console.WriteLine("【金額サマリー】");
+        Console.WriteLine($"  売上総額: ¥{confirmation.TotalSales:#,##0.00}");
+        Console.WriteLine($"  仕入総額: ¥{confirmation.TotalPurchase:#,##0.00}");
+        Console.WriteLine($"  推定粗利: ¥{confirmation.EstimatedProfit:#,##0.00}");
+        Console.WriteLine();
+        
+        // 検証結果表示（時間制限以外）
+        if (filteredResults.Any())
+        {
+            Console.WriteLine("【検証結果】");
+            foreach (var result in filteredResults)
+            {
+                var icon = result.Level switch
+                {
+                    ValidationLevel.Error => "❌",
+                    ValidationLevel.Warning => "⚠️ ",
+                    _ => "ℹ️ "
+                };
+                
+                Console.WriteLine($"{icon} {result.Level}: {result.Message}");
+                if (!string.IsNullOrEmpty(result.Detail))
+                {
+                    Console.WriteLine($"         {result.Detail}");
+                }
+            }
+            Console.WriteLine();
+        }
+        
+        // 処理可否判定（時間制限を除外）
+        var canProcess = !filteredResults.Any(v => v.Level == ValidationLevel.Error);
+        
+        Console.WriteLine("【処理可否判定】");
+        if (canProcess)
+        {
+            Console.WriteLine("✅ 日次終了処理を実行可能です（開発環境のため時間制限を無視）");
+        }
+        else
+        {
+            Console.WriteLine("❌ 日次終了処理を実行できません");
+            Console.WriteLine("上記のエラーを解決してから再度実行してください。");
+        }
+        
+        logger.LogInformation("開発用日次終了処理確認完了: JobDate={JobDate}", jobDate);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"エラー: {ex.Message}");
+        logger.LogError(ex, "開発用日次終了処理確認でエラーが発生しました");
     }
 }
 

@@ -39,13 +39,23 @@ public class DateValidationService : IDateValidationService
             return ValidationResult.Failure(ErrorMessages.FutureDateError);
         }
         
-        // 2. 過去日付範囲チェック
-        var maxDaysInPast = _configuration.GetValue<int>("InventorySystem:Validation:MaxDaysInPast", 7);
-        if (jobDate.Date < DateTime.Today.AddDays(-maxDaysInPast))
+        // 2. 過去日付範囲チェック（開発環境では無視）
+        var isDevelopment = _configuration.GetValue<string>("Environment") == "Development" ||
+                           Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+        
+        if (!isDevelopment)
         {
-            _logger.LogError("過去日付範囲超過: {JobDate}", jobDate);
-            return ValidationResult.Failure(
-                string.Format(ErrorMessages.PastDateRangeError, maxDaysInPast));
+            var maxDaysInPast = _configuration.GetValue<int>("InventorySystem:Validation:MaxDaysInPast", 7);
+            if (jobDate.Date < DateTime.Today.AddDays(-maxDaysInPast))
+            {
+                _logger.LogError("過去日付範囲超過: {JobDate}", jobDate);
+                return ValidationResult.Failure(
+                    string.Format(ErrorMessages.PastDateRangeError, maxDaysInPast));
+            }
+        }
+        else
+        {
+            _logger.LogWarning("開発環境のため過去日付範囲チェックをスキップしました");
         }
         
         // 3. 重複処理チェック（日次終了処理以外）
