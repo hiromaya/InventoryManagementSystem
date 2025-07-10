@@ -1,7 +1,7 @@
 -- =============================================
 -- 累積管理対応版 CP在庫マスタ作成ストアドプロシージャ
 -- 作成日: 2025-07-10
--- 説明: 在庫マスタから当日の伝票に関連する5項目キーのレコードのみをCP在庫マスタにコピー
+-- 説明: 在庫マスタからすべてのレコードをCP在庫マスタにコピーし、累積管理を実現
 -- =============================================
 
 USE InventoryManagementDB;
@@ -30,7 +30,7 @@ BEGIN
         -- 既存のCP在庫マスタを削除
         DELETE FROM CpInventoryMaster WHERE DataSetId = @DataSetId;
         
-        -- 在庫マスタから当日の伝票に関連する商品のみをCP在庫マスタに挿入
+        -- 在庫マスタから全商品をCP在庫マスタに挿入
         INSERT INTO CpInventoryMaster (
             ProductCode, 
             GradeCode, 
@@ -137,37 +137,7 @@ BEGIN
             -- 部門コード
             N'DeptA'
         FROM InventoryMaster im
-        LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
-        WHERE EXISTS (
-            -- 当日の売上伝票に存在
-            SELECT 1 FROM SalesVouchers sv
-            WHERE sv.JobDate = @JobDate
-                AND sv.ProductCode = im.ProductCode
-                AND sv.GradeCode = im.GradeCode
-                AND sv.ClassCode = im.ClassCode
-                AND sv.ShippingMarkCode = im.ShippingMarkCode
-                AND sv.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
-        )
-        OR EXISTS (
-            -- 当日の仕入伝票に存在
-            SELECT 1 FROM PurchaseVouchers pv
-            WHERE pv.JobDate = @JobDate
-                AND pv.ProductCode = im.ProductCode
-                AND pv.GradeCode = im.GradeCode
-                AND pv.ClassCode = im.ClassCode
-                AND pv.ShippingMarkCode = im.ShippingMarkCode
-                AND pv.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
-        )
-        OR EXISTS (
-            -- 当日の在庫調整に存在
-            SELECT 1 FROM InventoryAdjustments ia
-            WHERE ia.JobDate = @JobDate
-                AND ia.ProductCode = im.ProductCode
-                AND ia.GradeCode = im.GradeCode
-                AND ia.ClassCode = im.ClassCode
-                AND ia.ShippingMarkCode = im.ShippingMarkCode
-                AND ia.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
-        );
+        LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode;
         
         SET @CreatedCount = @@ROWCOUNT;
         
