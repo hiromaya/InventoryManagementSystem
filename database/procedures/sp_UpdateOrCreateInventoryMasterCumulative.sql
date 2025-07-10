@@ -1,7 +1,7 @@
 -- =============================================
--- 在庫マスタ累積更新ストアドプロシージャ
+-- 在庫マスタ累積更新ストアドプロシージャ（日付概念なし版）
 -- 作成日: 2025-07-10
--- 説明: 伝票データから在庫マスタを累積更新（既存は更新、新規は追加）
+-- 説明: 伝票データから在庫マスタを累積更新（5項目キーのみで管理）
 -- =============================================
 USE InventoryManagementDB;
 GO
@@ -25,10 +25,9 @@ BEGIN
     BEGIN TRANSACTION;
     
     BEGIN TRY
-        -- Step 1: 当日の伝票に関連する商品の当日フラグを更新
+        -- Step 1: 当日の伝票に存在する商品のDailyFlagのみ更新（JobDateは更新しない）
         UPDATE im
         SET im.DailyFlag = '0',
-            im.JobDate = @JobDate,
             im.UpdatedDate = GETDATE()
         FROM InventoryMaster im
         WHERE EXISTS (
@@ -51,7 +50,7 @@ BEGIN
         
         SET @UpdatedCount = @@ROWCOUNT;
         
-        -- Step 2: 新規商品のみINSERT
+        -- Step 2: 新規商品のみINSERT（既存の5項目キーと重複しないもののみ）
         INSERT INTO InventoryMaster (
             ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
             ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
@@ -63,7 +62,7 @@ BEGIN
         SELECT DISTINCT
             v.ProductCode, v.GradeCode, v.ClassCode, v.ShippingMarkCode, v.ShippingMarkName,
             ISNULL(pm.ProductName, ''), 
-            ISNULL(u.UnitName, 'PCS'),  -- UnitMasterから単位名を取得
+            ISNULL(u.UnitName, 'PCS'),
             ISNULL(pm.StandardPrice, 0),
             ISNULL(pm.ProductCategory1, ''), 
             ISNULL(pm.ProductCategory2, ''),
@@ -80,8 +79,9 @@ BEGIN
             FROM InventoryAdjustments WHERE JobDate = @JobDate
         ) v
         LEFT JOIN ProductMaster pm ON v.ProductCode = pm.ProductCode
-        LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode  -- 正しい結合
+        LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode
         WHERE NOT EXISTS (
+            -- 5項目キーでの存在チェック（日付は無視）
             SELECT 1 FROM InventoryMaster im
             WHERE im.ProductCode = v.ProductCode
                 AND im.GradeCode = v.GradeCode

@@ -95,7 +95,7 @@ BEGIN
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
         LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode  -- 正しい結合
         WHERE EXISTS (
-            -- 当日の伝票に存在する5項目キーのみ
+            -- 当日の伝票に存在する5項目キーのみ（在庫マスタのJobDateは無視）
             SELECT 1 FROM SalesVouchers sv 
             WHERE sv.JobDate = @JobDate 
             AND sv.ProductCode = im.ProductCode
