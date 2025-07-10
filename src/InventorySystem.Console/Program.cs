@@ -27,7 +27,6 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using InventorySystem.Data.Services;
 using InventorySystem.Data.Services.Development;
-using InventorySystem.Core.Models;
 
 // Program クラスの定義
 public class Program
@@ -1051,11 +1050,11 @@ static async Task ExecuteDevCheckDailyCloseAsync(IServiceProvider services, stri
         
         // 商品日報情報表示
         Console.WriteLine("【商品日報情報】");
-        if (confirmation.DailyReportInfo != null)
+        if (confirmation.DailyReport != null)
         {
-            Console.WriteLine($"  作成時刻: {confirmation.DailyReportInfo.CreatedAt:yyyy-MM-dd HH:mm:ss}");
-            Console.WriteLine($"  作成者: {confirmation.DailyReportInfo.CreatedBy}");
-            Console.WriteLine($"  DatasetId: {confirmation.DailyReportInfo.DatasetId}");
+            Console.WriteLine($"  作成時刻: {confirmation.DailyReport.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+            Console.WriteLine($"  作成者: {confirmation.DailyReport.CreatedBy}");
+            Console.WriteLine($"  DatasetId: {confirmation.DailyReport.DatasetId}");
         }
         else
         {
@@ -1065,17 +1064,17 @@ static async Task ExecuteDevCheckDailyCloseAsync(IServiceProvider services, stri
         
         // データ件数表示
         Console.WriteLine("【データ件数】");
-        Console.WriteLine($"  売上伝票: {confirmation.SalesCount:#,##0}件");
-        Console.WriteLine($"  仕入伝票: {confirmation.PurchaseCount:#,##0}件");
-        Console.WriteLine($"  在庫調整: {confirmation.AdjustmentCount:#,##0}件");
-        Console.WriteLine($"  CP在庫: {confirmation.CpInventoryCount:#,##0}件");
+        Console.WriteLine($"  売上伝票: {confirmation.DataCounts.SalesCount:#,##0}件");
+        Console.WriteLine($"  仕入伝票: {confirmation.DataCounts.PurchaseCount:#,##0}件");
+        Console.WriteLine($"  在庫調整: {confirmation.DataCounts.AdjustmentCount:#,##0}件");
+        Console.WriteLine($"  CP在庫: {confirmation.DataCounts.CpInventoryCount:#,##0}件");
         Console.WriteLine();
         
         // 金額サマリー表示
         Console.WriteLine("【金額サマリー】");
-        Console.WriteLine($"  売上総額: ¥{confirmation.TotalSales:#,##0.00}");
-        Console.WriteLine($"  仕入総額: ¥{confirmation.TotalPurchase:#,##0.00}");
-        Console.WriteLine($"  推定粗利: ¥{confirmation.EstimatedProfit:#,##0.00}");
+        Console.WriteLine($"  売上総額: ¥{confirmation.Amounts.SalesAmount:#,##0.00}");
+        Console.WriteLine($"  仕入総額: ¥{confirmation.Amounts.PurchaseAmount:#,##0.00}");
+        Console.WriteLine($"  推定粗利: ¥{confirmation.Amounts.EstimatedGrossProfit:#,##0.00}");
         Console.WriteLine();
         
         // 検証結果表示（時間制限以外）
