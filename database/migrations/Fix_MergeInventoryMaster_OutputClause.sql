@@ -1,7 +1,7 @@
 -- =============================================
--- 累積在庫管理用 MERGE ストアドプロシージャ
+-- sp_MergeInventoryMasterCumulative OUTPUT句修正
 -- 作成日: 2025-07-10
--- 説明: 当日の伝票データから在庫マスタを累積更新
+-- 説明: OUTPUT句の結果をテーブル変数に格納するように修正
 -- =============================================
 
 USE InventoryManagementDB;
@@ -195,4 +195,4 @@ GO
 GRANT EXECUTE ON sp_MergeInventoryMasterCumulative TO [public];
 GO
 
-PRINT N'ストアドプロシージャ sp_MergeInventoryMasterCumulative を作成しました。';
+PRINT N'ストアドプロシージャ sp_MergeInventoryMasterCumulative を修正しました（OUTPUT句エラー対応）。';
