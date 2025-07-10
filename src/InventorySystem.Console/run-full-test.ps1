@@ -1,12 +1,13 @@
 # Full Test Automation Script for Inventory Management System
-# This script runs the complete test scenario from June 1 to June 27, 2025
+# This script runs the complete test scenario with interactive date selection
 
 param(
-    [string]$StartDate = "2025-06-01",
-    [string]$EndDate = "2025-06-27",
     [string]$Department = "DeptA",
     [switch]$SkipDatabaseInit = $false,
-    [switch]$VerboseOutput = $false
+    [switch]$VerboseOutput = $false,
+    [switch]$NonInteractive = $false,
+    [string]$StartDate = "",
+    [string]$EndDate = ""
 )
 
 # Color functions for output
@@ -18,6 +19,64 @@ function Write-Header($message) {
     Write-Host "`n========================================" -ForegroundColor Magenta
     Write-Host $message -ForegroundColor Magenta
     Write-Host "========================================`n" -ForegroundColor Magenta
+}
+
+# Function to get date with validation
+function Get-DateInput($prompt, $defaultValue) {
+    while ($true) {
+        $input = Read-Host "$prompt (Default: $defaultValue)"
+        if ([string]::IsNullOrWhiteSpace($input)) {
+            $input = $defaultValue
+        }
+        
+        try {
+            $date = [DateTime]::Parse($input)
+            return $date.ToString("yyyy-MM-dd")
+        }
+        catch {
+            Write-Warning "Invalid date format. Please enter date in YYYY-MM-DD format."
+        }
+    }
+}
+
+# Interactive date selection
+if (-not $NonInteractive -and ([string]::IsNullOrWhiteSpace($StartDate) -or [string]::IsNullOrWhiteSpace($EndDate))) {
+    Write-Header "Test Execution Date Range Setup"
+    Write-Info "This script will process inventory data for the specified date range."
+    Write-Info "Default range: June 1, 2025 to June 27, 2025`n"
+    
+    # Get start date
+    if ([string]::IsNullOrWhiteSpace($StartDate)) {
+        $StartDate = Get-DateInput "Enter start date" "2025-06-01"
+    }
+    
+    # Get end date
+    if ([string]::IsNullOrWhiteSpace($EndDate)) {
+        $EndDate = Get-DateInput "Enter end date" "2025-06-27"
+    }
+    
+    # Validate date range
+    $startDateTime = [DateTime]::Parse($StartDate)
+    $endDateTime = [DateTime]::Parse($EndDate)
+    
+    if ($startDateTime -gt $endDateTime) {
+        Write-Error "Start date cannot be after end date!"
+        exit 1
+    }
+    
+    $totalDays = ($endDateTime - $startDateTime).Days + 1
+    Write-Info "`nSelected date range: $StartDate to $EndDate ($totalDays days)"
+    
+    # Confirmation
+    $confirm = Read-Host "`nDo you want to proceed with this date range? (Y/N)"
+    if ($confirm -ne 'Y' -and $confirm -ne 'y') {
+        Write-Warning "Execution cancelled by user."
+        exit 0
+    }
+} else {
+    # Use default values if not provided
+    if ([string]::IsNullOrWhiteSpace($StartDate)) { $StartDate = "2025-06-01" }
+    if ([string]::IsNullOrWhiteSpace($EndDate)) { $EndDate = "2025-06-27" }
 }
 
 # Start time measurement
