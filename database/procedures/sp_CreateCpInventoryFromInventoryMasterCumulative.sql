@@ -1,138 +1,198 @@
--- ====================================================================
--- CP在庫マスタ作成（累積管理対応版）
+-- =============================================
+-- 累積管理対応版 CP在庫マスタ作成ストアドプロシージャ
 -- 作成日: 2025-07-10
--- 用途: 在庫マスタから当日の伝票に関連する5項目キーのレコードのみをCP在庫マスタにコピー
--- 特徴: JobDateで絞り込まず、5項目キーで必要なレコードのみ抽出
--- ====================================================================
+-- 説明: 在庫マスタから当日の伝票に関連する5項目キーのレコードのみをCP在庫マスタにコピー
+-- =============================================
 
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_CreateCpInventoryFromInventoryMasterCumulative]') AND type in (N'P', N'PC'))
-DROP PROCEDURE [dbo].[sp_CreateCpInventoryFromInventoryMasterCumulative]
+USE InventoryManagementDB;
 GO
 
-CREATE PROCEDURE [dbo].[sp_CreateCpInventoryFromInventoryMasterCumulative]
+-- 既存のストアドプロシージャが存在する場合は削除
+IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_CreateCpInventoryFromInventoryMasterCumulative')
+BEGIN
+    DROP PROCEDURE sp_CreateCpInventoryFromInventoryMasterCumulative;
+END
+GO
+
+CREATE PROCEDURE sp_CreateCpInventoryFromInventoryMasterCumulative
     @DataSetId NVARCHAR(50),
     @JobDate DATE
 AS
 BEGIN
     SET NOCOUNT ON;
     
+    DECLARE @CreatedCount INT = 0;
+    DECLARE @ErrorMessage NVARCHAR(4000);
+    
     BEGIN TRANSACTION;
     
     BEGIN TRY
-        -- CP在庫マスタに在庫マスタのデータを挿入
-        -- 当日の伝票に含まれる5項目キーのレコードのみ抽出
+        -- 既存のCP在庫マスタを削除
+        DELETE FROM CpInventoryMaster WHERE DataSetId = @DataSetId;
+        
+        -- 在庫マスタから当日の伝票に関連する商品のみをCP在庫マスタに挿入
         INSERT INTO CpInventoryMaster (
-            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-            ProductName, ProductCategory1, ProductCategory2, Unit, StandardPrice,
-            JobDate, DataSetId,
-            PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice, DailyFlag,
-            DailySalesQuantity, DailySalesAmount, DailySalesReturnQuantity, DailySalesReturnAmount,
-            DailyPurchaseQuantity, DailyPurchaseAmount, DailyPurchaseReturnQuantity, DailyPurchaseReturnAmount,
-            DailyInventoryAdjustmentQuantity, DailyInventoryAdjustmentAmount,
-            DailyProcessingQuantity, DailyProcessingAmount,
-            DailyTransferQuantity, DailyTransferAmount,
-            DailyReceiptQuantity, DailyReceiptAmount,
-            DailyShipmentQuantity, DailyShipmentAmount,
-            DailyGrossProfit, DailyWalkingAmount, DailyIncentiveAmount, DailyDiscountAmount,
-            DailyStock, DailyStockAmount, DailyUnitPrice,
-            MonthlySalesQuantity, MonthlySalesAmount, MonthlySalesReturnQuantity, MonthlySalesReturnAmount,
-            MonthlyPurchaseQuantity, MonthlyPurchaseAmount, MonthlyPurchaseReturnQuantity, MonthlyPurchaseReturnAmount,
-            MonthlyInventoryAdjustmentQuantity, MonthlyInventoryAdjustmentAmount,
-            MonthlyProcessingQuantity, MonthlyProcessingAmount,
-            MonthlyTransferQuantity, MonthlyTransferAmount,
-            MonthlyGrossProfit, MonthlyWalkingAmount, MonthlyIncentiveAmount,
-            CreatedDate, UpdatedDate
+            ProductCode, 
+            GradeCode, 
+            ClassCode, 
+            ShippingMarkCode, 
+            ShippingMarkName,
+            DataSetId,
+            ProductName, 
+            Unit, 
+            StandardPrice, 
+            ProductCategory1, 
+            ProductCategory2,
+            JobDate, 
+            CreatedDate, 
+            UpdatedDate,
+            PreviousDayStock, 
+            PreviousDayStockAmount, 
+            PreviousDayUnitPrice,
+            DailyStock, 
+            DailyStockAmount, 
+            DailyUnitPrice, 
+            DailyFlag,
+            DailySalesQuantity, 
+            DailySalesAmount,
+            DailySalesReturnQuantity, 
+            DailySalesReturnAmount,
+            DailyPurchaseQuantity, 
+            DailyPurchaseAmount,
+            DailyPurchaseReturnQuantity, 
+            DailyPurchaseReturnAmount,
+            DailyInventoryAdjustmentQuantity, 
+            DailyInventoryAdjustmentAmount,
+            DailyProcessingQuantity, 
+            DailyProcessingAmount,
+            DailyTransferQuantity, 
+            DailyTransferAmount,
+            DailyReceiptQuantity, 
+            DailyReceiptAmount,
+            DailyShipmentQuantity, 
+            DailyShipmentAmount,
+            DailyGrossProfit, 
+            DailyWalkingAmount,
+            DailyIncentiveAmount, 
+            DailyDiscountAmount,
+            MonthlySalesQuantity, 
+            MonthlySalesAmount,
+            MonthlySalesReturnQuantity, 
+            MonthlySalesReturnAmount,
+            MonthlyPurchaseQuantity, 
+            MonthlyPurchaseAmount,
+            MonthlyPurchaseReturnQuantity, 
+            MonthlyPurchaseReturnAmount,
+            MonthlyInventoryAdjustmentQuantity, 
+            MonthlyInventoryAdjustmentAmount,
+            MonthlyProcessingQuantity, 
+            MonthlyProcessingAmount,
+            MonthlyTransferQuantity, 
+            MonthlyTransferAmount,
+            MonthlyGrossProfit, 
+            MonthlyWalkingAmount,
+            MonthlyIncentiveAmount,
+            DepartmentCode
         )
-        SELECT 
+        SELECT DISTINCT
+            -- キー項目（5項目）
             im.ProductCode, 
             im.GradeCode, 
             im.ClassCode, 
             im.ShippingMarkCode, 
             im.ShippingMarkName,
-            im.ProductName, 
-            -- 特殊処理ルール: 荷印名による商品分類1の変更
-            CASE 
-                WHEN LEFT(im.ShippingMarkName, 4) = '9aaa' THEN '8'
-                WHEN LEFT(im.ShippingMarkName, 4) = '1aaa' THEN '6'
-                WHEN LEFT(im.ShippingMarkName, 4) = '0999' THEN '6'
-                ELSE ISNULL(pm.ProductCategory1, '00')
-            END AS ProductCategory1,
-            ISNULL(pm.ProductCategory2, '00') AS ProductCategory2,
-            im.Unit, 
-            im.StandardPrice,
-            @JobDate, -- 処理対象日
+            -- DataSetId
             @DataSetId,
-            -- 在庫マスタの現在在庫を前日在庫として設定
-            im.CurrentStock AS PreviousDayStock, 
-            im.CurrentStockAmount AS PreviousDayStockAmount, 
+            -- 商品情報
+            ISNULL(pm.ProductName, '商' + im.ProductCode),
+            ISNULL(pm.Unit, 'PCS'),
+            ISNULL(pm.StandardPrice, 0),
+            ISNULL(pm.ProductCategory1, ''),
+            ISNULL(pm.ProductCategory2, ''),
+            -- 日付情報
+            @JobDate,
+            GETDATE(),
+            GETDATE(),
+            -- 前日在庫（在庫マスタの現在在庫を使用）
+            ISNULL(im.CurrentStock, 0),
+            ISNULL(im.CurrentStockAmount, 0),
             CASE 
-                WHEN im.CurrentStock = 0 THEN 0 
-                ELSE im.CurrentStockAmount / im.CurrentStock 
-            END AS PreviousDayUnitPrice,
-            '9' AS DailyFlag,
-            0, 0, 0, 0,  -- Sales
-            0, 0, 0, 0,  -- Purchase
-            0, 0,        -- Adjustment
-            0, 0,        -- Processing
-            0, 0,        -- Transfer
-            0, 0,        -- Receipt/Shipment
-            0, 0, 0, 0,  -- Profit/Walking/Incentive/Discount
-            -- 初期値として前日在庫と同じ値を設定
-            im.CurrentStock, im.CurrentStockAmount, 
-            CASE 
-                WHEN im.CurrentStock = 0 THEN 0 
-                ELSE im.CurrentStockAmount / im.CurrentStock 
+                WHEN ISNULL(im.CurrentStock, 0) > 0 
+                THEN ROUND(im.CurrentStockAmount / im.CurrentStock, 4)
+                ELSE 0 
             END,
-            0, 0, 0, 0,  -- Monthly Sales
-            0, 0, 0, 0,  -- Monthly Purchase
-            0, 0,        -- Monthly Adjustment
-            0, 0,        -- Monthly Processing
-            0, 0,        -- Monthly Transfer
-            0, 0, 0,     -- Monthly Profit
-            GETDATE(), 
-            GETDATE()
+            -- 当日在庫（初期値として前日在庫と同じ）
+            ISNULL(im.CurrentStock, 0),
+            ISNULL(im.CurrentStockAmount, 0),
+            CASE 
+                WHEN ISNULL(im.CurrentStock, 0) > 0 
+                THEN ROUND(im.CurrentStockAmount / im.CurrentStock, 4)
+                ELSE 0 
+            END,
+            '9', -- DailyFlag
+            -- 日計フィールド（すべて0で初期化）
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            -- 月計フィールド（すべて0で初期化）
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            -- 部門コード
+            'DeptA'
         FROM InventoryMaster im
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
-        WHERE 
-            -- 当日の伝票に含まれる5項目キーのみ抽出
-            EXISTS (
-                SELECT 1 FROM SalesVouchers sv
-                WHERE sv.JobDate = @JobDate
-                    AND sv.ProductCode = im.ProductCode
-                    AND sv.GradeCode = im.GradeCode
-                    AND sv.ClassCode = im.ClassCode
-                    AND sv.ShippingMarkCode = im.ShippingMarkCode
-                    AND sv.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
-            )
-            OR EXISTS (
-                SELECT 1 FROM PurchaseVouchers pv
-                WHERE pv.JobDate = @JobDate
-                    AND pv.ProductCode = im.ProductCode
-                    AND pv.GradeCode = im.GradeCode
-                    AND pv.ClassCode = im.ClassCode
-                    AND pv.ShippingMarkCode = im.ShippingMarkCode
-                    AND pv.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
-            )
-            OR EXISTS (
-                SELECT 1 FROM InventoryAdjustments ia
-                WHERE ia.JobDate = @JobDate
-                    AND ia.ProductCode = im.ProductCode
-                    AND ia.GradeCode = im.GradeCode
-                    AND ia.ClassCode = im.ClassCode
-                    AND ia.ShippingMarkCode = im.ShippingMarkCode
-                    AND ia.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
-            );
+        WHERE EXISTS (
+            -- 当日の売上伝票に存在
+            SELECT 1 FROM SalesVouchers sv
+            WHERE sv.JobDate = @JobDate
+                AND sv.ProductCode = im.ProductCode
+                AND sv.GradeCode = im.GradeCode
+                AND sv.ClassCode = im.ClassCode
+                AND sv.ShippingMarkCode = im.ShippingMarkCode
+                AND sv.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
+        )
+        OR EXISTS (
+            -- 当日の仕入伝票に存在
+            SELECT 1 FROM PurchaseVouchers pv
+            WHERE pv.JobDate = @JobDate
+                AND pv.ProductCode = im.ProductCode
+                AND pv.GradeCode = im.GradeCode
+                AND pv.ClassCode = im.ClassCode
+                AND pv.ShippingMarkCode = im.ShippingMarkCode
+                AND pv.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
+        )
+        OR EXISTS (
+            -- 当日の在庫調整に存在
+            SELECT 1 FROM InventoryAdjustments ia
+            WHERE ia.JobDate = @JobDate
+                AND ia.ProductCode = im.ProductCode
+                AND ia.GradeCode = im.GradeCode
+                AND ia.ClassCode = im.ClassCode
+                AND ia.ShippingMarkCode = im.ShippingMarkCode
+                AND ia.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
+        );
         
-        -- 作成件数を返す
-        SELECT @@ROWCOUNT AS CreatedCount;
+        SET @CreatedCount = @@ROWCOUNT;
+        
+        -- 結果を返す
+        SELECT @CreatedCount AS CreatedCount;
         
         COMMIT TRANSACTION;
+        
+        PRINT 'CP在庫マスタ作成完了: ' + CAST(@CreatedCount AS NVARCHAR(10)) + '件';
         
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0
+        BEGIN
             ROLLBACK TRANSACTION;
-        THROW;
+        END
+        
+        SET @ErrorMessage = ERROR_MESSAGE();
+        RAISERROR(@ErrorMessage, 16, 1);
     END CATCH
 END
 GO
+
+-- 権限設定
+GRANT EXECUTE ON sp_CreateCpInventoryFromInventoryMasterCumulative TO [public];
+GO
+
+PRINT 'ストアドプロシージャ sp_CreateCpInventoryFromInventoryMasterCumulative を作成しました。';
