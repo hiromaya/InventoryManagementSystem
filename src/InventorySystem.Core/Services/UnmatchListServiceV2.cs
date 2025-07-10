@@ -127,6 +127,11 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
                 // 処理終了（エラー）
                 await FinalizeProcess(context, false, ex.Message);
                 
+                // CP在庫マスタの削除を保留（日次終了処理まで保持）
+                // Phase 1改修: 削除タイミングを日次終了処理後に変更
+                _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", context.DatasetId);
+                
+                /*
                 try
                 {
                     await _cpInventoryRepository.DeleteByDataSetIdAsync(context.DatasetId);
@@ -136,6 +141,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
                     _logger.LogError(cleanupEx, "CP在庫マスタのクリーンアップに失敗しました - データセットID: {DataSetId}", 
                         context.DatasetId);
                 }
+                */
             }
 
             return new UnmatchListResult

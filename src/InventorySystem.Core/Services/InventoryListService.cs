@@ -88,6 +88,11 @@ public class InventoryListService : IInventoryListService
             stopwatch.Stop();
             _logger.LogError(ex, "在庫表処理でエラーが発生しました - データセットID: {DataSetId}", dataSetId);
             
+            // CP在庫マスタの削除を保留（日次終了処理まで保持）
+            // Phase 1改修: 削除タイミングを日次終了処理後に変更
+            _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", dataSetId);
+            
+            /*
             try
             {
                 await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
@@ -96,6 +101,7 @@ public class InventoryListService : IInventoryListService
             {
                 _logger.LogError(cleanupEx, "CP在庫マスタのクリーンアップに失敗しました - データセットID: {DataSetId}", dataSetId);
             }
+            */
 
             return new InventoryListResult
             {

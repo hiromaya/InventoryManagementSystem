@@ -49,9 +49,16 @@ namespace InventorySystem.Core.Services
             {
                 _logger.LogInformation("CP在庫マスタ作成開始: JobDate={JobDate}, DataSetId={DataSetId}", jobDate, dataSetId);
 
+                // CP在庫マスタの削除を保留（日次終了処理まで保持）
+                // Phase 1改修: 削除タイミングを日次終了処理後に変更
+                _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", dataSetId);
+                result.DeletedCount = 0; // 削除はスキップ
+                
+                /*
                 // 1. 既存CP在庫マスタの削除
                 result.DeletedCount = await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
                 _logger.LogInformation("既存CP在庫マスタ削除: {Count}件", result.DeletedCount);
+                */
 
                 // 2. 在庫マスタからのコピー
                 result.CopiedCount = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, jobDate);

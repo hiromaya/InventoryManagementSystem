@@ -171,6 +171,14 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
                 await FinalizeProcess(context, false, ex.Message);
             }
             
+            // CP在庫マスタの削除を保留（日次終了処理まで保持）
+            // Phase 1改修: 削除タイミングを日次終了処理後に変更
+            if (isNewDataSet && !string.IsNullOrEmpty(dataSetId) && dataSetId != "UNKNOWN")
+            {
+                _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", dataSetId);
+            }
+            
+            /*
             try
             {
                 if (isNewDataSet && !string.IsNullOrEmpty(dataSetId) && dataSetId != "UNKNOWN")
@@ -182,6 +190,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
             {
                 _logger.LogError(cleanupEx, "CP在庫マスタのクリーンアップに失敗しました - データセットID: {DataSetId}", dataSetId);
             }
+            */
 
             return new DailyReportResult
             {

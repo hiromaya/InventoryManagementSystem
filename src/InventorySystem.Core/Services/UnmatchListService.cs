@@ -62,10 +62,17 @@ public class UnmatchListService : IUnmatchListService
             await OptimizeInventoryMasterAsync(jobDate, dataSetId);
             _logger.LogInformation("在庫マスタの最適化が完了しました");
 
+            // CP在庫マスタの削除を保留（日次終了処理まで保持）
+            // Phase 1改修: 削除タイミングを日次終了処理後に変更
+            _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", dataSetId);
+            var deletedCount = 0; // 削除はスキップ
+            
+            /*
             // 重要: 既存のCP在庫マスタを全件削除
             _logger.LogInformation("既存のCP在庫マスタを全件削除します");
             var deletedCount = await _cpInventoryRepository.DeleteAllAsync();
             _logger.LogInformation("CP在庫マスタから{Count}件のレコードを削除しました", deletedCount);
+            */
 
             // 処理1-1: CP在庫M作成
             _logger.LogInformation("CP在庫マスタ作成開始");
@@ -120,6 +127,11 @@ public class UnmatchListService : IUnmatchListService
 
             stopwatch.Stop();
 
+            // CP在庫マスタの削除を保留（日次終了処理まで保持）
+            // Phase 1改修: 削除タイミングを日次終了処理後に変更
+            _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", dataSetId);
+            
+            /*
             // CP在庫マスタを削除
             try
             {
@@ -131,6 +143,7 @@ public class UnmatchListService : IUnmatchListService
                 _logger.LogError(cleanupEx, "CP在庫マスタの削除に失敗しました - データセットID: {DataSetId}", dataSetId);
                 // 削除に失敗しても処理は成功として扱う
             }
+            */
 
             return new UnmatchListResult
             {
@@ -146,6 +159,11 @@ public class UnmatchListService : IUnmatchListService
             stopwatch.Stop();
             _logger.LogError(ex, "アンマッチリスト処理でエラーが発生しました - データセットID: {DataSetId}", dataSetId);
             
+            // CP在庫マスタの削除を保留（日次終了処理まで保持）
+            // Phase 1改修: 削除タイミングを日次終了処理後に変更
+            _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", dataSetId);
+            
+            /*
             try
             {
                 await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
@@ -154,6 +172,7 @@ public class UnmatchListService : IUnmatchListService
             {
                 _logger.LogError(cleanupEx, "CP在庫マスタのクリーンアップに失敗しました - データセットID: {DataSetId}", dataSetId);
             }
+            */
 
             return new UnmatchListResult
             {

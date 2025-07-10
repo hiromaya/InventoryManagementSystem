@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using InventorySystem.Core.Base;
 using InventorySystem.Core.Configuration;
 using InventorySystem.Core.Constants;
@@ -10,6 +11,7 @@ using InventorySystem.Core.Services.History;
 using InventorySystem.Core.Services.Validation;
 using System.Security.Cryptography;
 using System.Text;
+using Dapper;
 
 namespace InventorySystem.Core.Services;
 
@@ -25,6 +27,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     private readonly ISalesVoucherRepository _salesRepository;
     private readonly IPurchaseVoucherRepository _purchaseRepository;
     private readonly IInventoryAdjustmentRepository _adjustmentRepository;
+    private readonly string _connectionString;
     
     public DailyCloseService(
         IDateValidationService dateValidator,
@@ -37,6 +40,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         ISalesVoucherRepository salesRepository,
         IPurchaseVoucherRepository purchaseRepository,
         IInventoryAdjustmentRepository adjustmentRepository,
+        IConfiguration configuration,
         ILogger<DailyCloseService> logger)
         : base(dateValidator, datasetManager, historyService, logger)
     {
@@ -47,6 +51,8 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         _salesRepository = salesRepository;
         _purchaseRepository = purchaseRepository;
         _adjustmentRepository = adjustmentRepository;
+        _connectionString = configuration.GetConnectionString("DefaultConnection") 
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
     }
     
     /// <inheritdoc/>
@@ -725,6 +731,9 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             await _historyService.CompleteProcess(history.Id, true, 
                 $"日次終了処理が正常に完了しました。更新件数: {updateCount}");
             
+            // Phase 1改修: CP在庫マスタのクリーンアップ（日次終了処理後）
+            await CleanupCpInventoryMaster(jobDate, dailyReportDatasetId);
+            
             result.Success = true;
             result.DataHash = validationResult.CurrentHash;
             
@@ -762,5 +771,43 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             jobDate, salesCount, purchaseCount, adjustmentCount, totalCount);
         
         return totalCount > 0;
+    }
+    
+    /// <summary>
+    /// CP在庫マスタのクリーンアップ（日次終了処理後）
+    /// </summary>
+    /// <param name="jobDate">処理対象日</param>
+    /// <param name="datasetId">データセットID</param>
+    private async Task CleanupCpInventoryMaster(DateTime jobDate, string datasetId)
+    {
+        try
+        {
+            _logger.LogInformation("CP在庫マスタのクリーンアップを開始します - JobDate: {JobDate}, DataSetId: {DataSetId}", 
+                jobDate, datasetId);
+            
+            // 使用したCP在庫マスタを削除
+            var deletedCount = await _cpInventoryRepository.DeleteByDataSetIdAsync(datasetId);
+            _logger.LogInformation("CP在庫マスタのクリーンアップ完了 - 削除件数: {Count}", deletedCount);
+            
+            // 古いCP在庫マスタも削除（7日以上前）
+            var cutoffDate = jobDate.AddDays(-7);
+            var cleanupSql = @"
+                DELETE FROM CpInventoryMaster 
+                WHERE JobDate < @CutoffDate";
+            
+            using var connection = new Microsoft.Data.SqlClient.SqlConnection(_connectionString);
+            var oldDataCount = await connection.ExecuteAsync(cleanupSql, new { CutoffDate = cutoffDate });
+            
+            if (oldDataCount > 0)
+            {
+                _logger.LogInformation("古いCP在庫マスタをクリーンアップしました - 削除件数: {Count} (基準日: {CutoffDate})", 
+                    oldDataCount, cutoffDate);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "CP在庫マスタのクリーンアップ中にエラーが発生しました");
+            // エラーが発生しても日次終了処理は継続
+        }
     }
 }
