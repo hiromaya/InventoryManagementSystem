@@ -156,7 +156,7 @@ public class SalesVoucherDaijinCsv
             // 荷印名は手入力項目（153列目、Index=152）から取得する
             // ※CSV内の141列目の「荷印名」フィールドは使用しない（マスタ参照値のため）
             // 伝票に直接入力された値を8桁固定で使用
-            ShippingMarkName = (HandInputItem ?? "").PadRight(8).Substring(0, 8),
+            ShippingMarkName = (HandInputItem ?? "").TrimEnd().PadRight(8).Substring(0, 8),
             Quantity = Quantity,
             UnitPrice = UnitPrice,
             Amount = Amount,

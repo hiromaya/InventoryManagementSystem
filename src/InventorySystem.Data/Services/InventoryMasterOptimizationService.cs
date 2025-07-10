@@ -430,225 +430,39 @@ namespace InventorySystem.Data.Services
             DateTime jobDate,
             string dataSetId)
         {
-            // 在庫繰越処理を実装したMERGE文
-            const string sql = @"
-                WITH PreviousDayInventory AS (
-                    -- 前日の在庫データを取得
-                    SELECT 
-                        ProductCode, GradeCode, ClassCode, ShippingMarkCode, 
-                        LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName,
-                        CurrentStock as PrevStock,
-                        CurrentStockAmount as PrevStockAmount,
-                        ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2
-                    FROM InventoryMaster
-                    WHERE CAST(JobDate AS DATE) = CAST(DATEADD(day, -1, @jobDate) AS DATE)
-                ),
-                CurrentDayTransactions AS (
-                    -- 当日の取引データを集計
-                    SELECT 
-                        COALESCE(s.ProductCode, p.ProductCode, a.ProductCode) as ProductCode,
-                        COALESCE(s.GradeCode, p.GradeCode, a.GradeCode) as GradeCode,
-                        COALESCE(s.ClassCode, p.ClassCode, a.ClassCode) as ClassCode,
-                        COALESCE(s.ShippingMarkCode, p.ShippingMarkCode, a.ShippingMarkCode) as ShippingMarkCode,
-                        COALESCE(s.ShippingMarkName, p.ShippingMarkName, a.ShippingMarkName) as ShippingMarkName,
-                        COALESCE(s.SalesQty, 0) as SalesQty,
-                        COALESCE(s.SalesAmt, 0) as SalesAmt,
-                        COALESCE(p.PurchaseQty, 0) as PurchaseQty,
-                        COALESCE(p.PurchaseAmt, 0) as PurchaseAmt,
-                        COALESCE(a.AdjustmentQty, 0) as AdjustmentQty,
-                        COALESCE(a.AdjustmentAmt, 0) as AdjustmentAmt
-                    FROM (
-                        -- 売上集計
-                        SELECT 
-                            ProductCode, GradeCode, ClassCode, ShippingMarkCode, 
-                            LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName,
-                            SUM(Quantity) as SalesQty,
-                            SUM(Amount) as SalesAmt
-                        FROM SalesVouchers
-                        WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
-                        GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
-                    ) s
-                    FULL OUTER JOIN (
-                        -- 仕入集計
-                        SELECT 
-                            ProductCode, GradeCode, ClassCode, ShippingMarkCode, 
-                            LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName,
-                            SUM(Quantity) as PurchaseQty,
-                            SUM(Amount) as PurchaseAmt
-                        FROM PurchaseVouchers
-                        WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
-                        GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
-                    ) p ON s.ProductCode = p.ProductCode 
-                        AND s.GradeCode = p.GradeCode 
-                        AND s.ClassCode = p.ClassCode 
-                        AND s.ShippingMarkCode = p.ShippingMarkCode 
-                        AND s.ShippingMarkName = p.ShippingMarkName
-                    FULL OUTER JOIN (
-                        -- 在庫調整集計
-                        SELECT 
-                            ProductCode, GradeCode, ClassCode, ShippingMarkCode, 
-                            LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName,
-                            SUM(Quantity) as AdjustmentQty,
-                            SUM(Amount) as AdjustmentAmt
-                        FROM InventoryAdjustments
-                        WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
-                        GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
-                    ) a ON COALESCE(s.ProductCode, p.ProductCode) = a.ProductCode
-                        AND COALESCE(s.GradeCode, p.GradeCode) = a.GradeCode
-                        AND COALESCE(s.ClassCode, p.ClassCode) = a.ClassCode
-                        AND COALESCE(s.ShippingMarkCode, p.ShippingMarkCode) = a.ShippingMarkCode
-                        AND COALESCE(s.ShippingMarkName, p.ShippingMarkName) = a.ShippingMarkName
-                )
-                MERGE InventoryMaster AS target
-                USING (
-                    SELECT 
-                        COALESCE(prev.ProductCode, curr.ProductCode) as ProductCode,
-                        COALESCE(prev.GradeCode, curr.GradeCode) as GradeCode,
-                        COALESCE(prev.ClassCode, curr.ClassCode) as ClassCode,
-                        COALESCE(prev.ShippingMarkCode, curr.ShippingMarkCode) as ShippingMarkCode,
-                        COALESCE(prev.ShippingMarkName, curr.ShippingMarkName) as ShippingMarkName,
-                        -- 前日在庫
-                        COALESCE(prev.PrevStock, 0) as PreviousStock,
-                        COALESCE(prev.PrevStockAmount, 0) as PreviousStockAmount,
-                        -- 当日の取引
-                        COALESCE(curr.SalesQty, 0) as SalesQty,
-                        COALESCE(curr.SalesAmt, 0) as SalesAmt,
-                        COALESCE(curr.PurchaseQty, 0) as PurchaseQty,
-                        COALESCE(curr.PurchaseAmt, 0) as PurchaseAmt,
-                        COALESCE(curr.AdjustmentQty, 0) as AdjustmentQty,
-                        COALESCE(curr.AdjustmentAmt, 0) as AdjustmentAmt,
-                        -- 商品情報
-                        COALESCE(prev.ProductName, pm.ProductName, '商' + COALESCE(prev.ProductCode, curr.ProductCode)) as ProductName,
-                        COALESCE(prev.Unit, pm.UnitCode, 'PCS') as Unit,
-                        COALESCE(prev.StandardPrice, pm.StandardPrice, 0) as StandardPrice,
-                        COALESCE(prev.ProductCategory1, pm.ProductCategory1, '') as ProductCategory1,
-                        COALESCE(prev.ProductCategory2, pm.ProductCategory2, '') as ProductCategory2
-                    FROM PreviousDayInventory prev
-                    FULL OUTER JOIN CurrentDayTransactions curr
-                        ON prev.ProductCode = curr.ProductCode
-                        AND prev.GradeCode = curr.GradeCode
-                        AND prev.ClassCode = curr.ClassCode
-                        AND prev.ShippingMarkCode = curr.ShippingMarkCode
-                        AND prev.ShippingMarkName = curr.ShippingMarkName
-                    LEFT JOIN ProductMaster pm 
-                        ON pm.ProductCode = COALESCE(prev.ProductCode, curr.ProductCode)
-                ) AS source
-                ON target.ProductCode = source.ProductCode
-                    AND target.GradeCode = source.GradeCode
-                    AND target.ClassCode = source.ClassCode
-                    AND target.ShippingMarkCode = source.ShippingMarkCode
-                    AND target.ShippingMarkName = source.ShippingMarkName
-                    AND CAST(target.JobDate AS DATE) = CAST(@jobDate AS DATE)
-                
-                WHEN MATCHED THEN
-                    UPDATE SET 
-                        -- 前日在庫を設定
-                        PreviousMonthQuantity = source.PreviousStock,
-                        PreviousMonthAmount = source.PreviousStockAmount,
-                        
-                        -- 当日在庫 = 前日在庫 + 仕入 - 売上 - 在庫調整
-                        CurrentStock = source.PreviousStock + source.PurchaseQty - source.SalesQty - source.AdjustmentQty,
-                        
-                        -- 在庫金額を移動平均法で計算
-                        CurrentStockAmount = CASE
-                            WHEN source.PreviousStock + source.PurchaseQty - source.SalesQty - source.AdjustmentQty <= 0 THEN 0
-                            WHEN source.PreviousStock + source.PurchaseQty = 0 THEN 0
-                            ELSE 
-                                ROUND(
-                                    (source.PreviousStockAmount + source.PurchaseAmt) / 
-                                    NULLIF(source.PreviousStock + source.PurchaseQty, 0),
-                                    4
-                                ) * (source.PreviousStock + source.PurchaseQty - source.SalesQty - source.AdjustmentQty)
-                        END,
-                        
-                        -- 日次データ
-                        DailyStock = source.PreviousStock + source.PurchaseQty - source.SalesQty - source.AdjustmentQty,
-                        DailyStockAmount = CASE
-                            WHEN source.PreviousStock + source.PurchaseQty - source.SalesQty - source.AdjustmentQty <= 0 THEN 0
-                            WHEN source.PreviousStock + source.PurchaseQty = 0 THEN 0
-                            ELSE 
-                                ROUND(
-                                    (source.PreviousStockAmount + source.PurchaseAmt) / 
-                                    NULLIF(source.PreviousStock + source.PurchaseQty, 0),
-                                    4
-                                ) * (source.PreviousStock + source.PurchaseQty - source.SalesQty - source.AdjustmentQty)
-                        END,
-                        
-                        -- 当日粗利
-                        DailyGrossProfit = source.SalesAmt - (source.SalesQty * 
-                            CASE 
-                                WHEN source.PreviousStock + source.PurchaseQty > 0
-                                THEN (source.PreviousStockAmount + source.PurchaseAmt) / (source.PreviousStock + source.PurchaseQty)
-                                ELSE 0
-                            END
-                        ),
-                        
-                        JobDate = @jobDate,
-                        UpdatedDate = GETDATE(),
-                        DataSetId = @dataSetId
-                
-                WHEN NOT MATCHED THEN
-                    INSERT (
-                        ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                        ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
-                        JobDate, CreatedDate, UpdatedDate,
-                        CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount, DailyFlag,
-                        DataSetId, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
-                        PreviousMonthQuantity, PreviousMonthAmount
-                    )
-                    VALUES (
-                        source.ProductCode, source.GradeCode, source.ClassCode, 
-                        source.ShippingMarkCode, source.ShippingMarkName,
-                        source.ProductName, source.Unit, source.StandardPrice,
-                        source.ProductCategory1, source.ProductCategory2,
-                        @jobDate, GETDATE(), GETDATE(),
-                        -- 新規商品の在庫計算
-                        source.PreviousStock + source.PurchaseQty - source.SalesQty - source.AdjustmentQty,
-                        -- 新規商品の在庫金額
-                        CASE
-                            WHEN source.PreviousStock + source.PurchaseQty - source.SalesQty - source.AdjustmentQty <= 0 THEN 0
-                            ELSE source.PreviousStockAmount + source.PurchaseAmt - source.SalesAmt - source.AdjustmentAmt
-                        END,
-                        -- DailyStock
-                        source.PreviousStock + source.PurchaseQty - source.SalesQty - source.AdjustmentQty,
-                        -- DailyStockAmount
-                        CASE
-                            WHEN source.PreviousStock + source.PurchaseQty - source.SalesQty - source.AdjustmentQty <= 0 THEN 0
-                            ELSE source.PreviousStockAmount + source.PurchaseAmt - source.SalesAmt - source.AdjustmentAmt
-                        END,
-                        '9', @dataSetId,
-                        -- DailyGrossProfit
-                        source.SalesAmt - source.SalesQty * 
-                            CASE 
-                                WHEN source.PreviousStock + source.PurchaseQty > 0
-                                THEN (source.PreviousStockAmount + source.PurchaseAmt) / (source.PreviousStock + source.PurchaseQty)
-                                ELSE 0
-                            END,
-                        0, 0, 0,
-                        source.PreviousStock, source.PreviousStockAmount
-                    )
-                OUTPUT $action AS Action;";
-            
-            var results = await connection.QueryAsync<string>(
-                sql, 
-                new { jobDate, dataSetId }, 
-                transaction);
-                
-            var insertCount = results.Count(r => r == "INSERT");
-            var updateCount = results.Count(r => r == "UPDATE");
-            
-            _logger.LogInformation(
-                "在庫マスタMERGE完了 - 新規作成: {InsertCount}件, 更新: {UpdateCount}件", 
-                insertCount, updateCount);
-            
-            // 既存の「商品名未設定」データを修正
-            var fixedCount = await FixProductNamesAsync(connection, transaction);
-            if (fixedCount > 0)
+            try
             {
-                _logger.LogInformation("「商品名未設定」データを修正しました: {Count}件", fixedCount);
-            }
+                // 新しい累積管理用ストアドプロシージャを呼び出す
+                var result = await connection.QuerySingleAsync<dynamic>(
+                    "sp_MergeInventoryMasterCumulative",
+                    new { JobDate = jobDate, DataSetId = dataSetId },
+                    transaction,
+                    commandType: CommandType.StoredProcedure);
                 
-            return (insertCount, updateCount);
+                var insertCount = (int)(result.InsertedCount ?? 0);
+                var updateCount = (int)(result.UpdatedCount ?? 0);
+                
+                _logger.LogInformation(
+                    "在庫マスタMERGE完了: 新規={InsertCount}件, 更新={UpdateCount}件",
+                    insertCount, updateCount);
+                
+                // 既存の「商品名未設定」データを修正
+                var fixedCount = await FixProductNamesAsync(connection, transaction);
+                if (fixedCount > 0)
+                {
+                    _logger.LogInformation("「商品名未設定」データを修正しました: {Count}件", fixedCount);
+                }
+                
+                return (insertCount, updateCount);
+            }
+            catch (SqlException ex)
+            {
+                _logger.LogError(ex, 
+                    "在庫マスタのMERGE処理でエラーが発生しました。" +
+                    "JobDate={JobDate}, DataSetId={DataSetId}", 
+                    jobDate, dataSetId);
+                throw;
+            }
         }
 
         private async Task<int> FixProductNamesAsync(

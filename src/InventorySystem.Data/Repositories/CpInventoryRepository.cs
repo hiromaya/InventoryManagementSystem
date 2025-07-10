@@ -15,11 +15,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
 
     public async Task<int> CreateCpInventoryFromInventoryMasterAsync(string dataSetId, DateTime jobDate)
     {
-        // 累積管理対応版：当日の伝票に関連する5項目キーのレコードのみをコピー
-        const string sql = "EXEC sp_CreateCpInventoryFromInventoryMasterCumulative @DataSetId, @JobDate";
-
+        // 累積管理対応版：在庫マスタのすべてのレコードをCP在庫マスタにコピー
         using var connection = new SqlConnection(_connectionString);
-        var result = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, new { DataSetId = dataSetId, JobDate = jobDate });
+        var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+            "sp_CreateCpInventoryFromInventoryMasterCumulative",
+            new { DataSetId = dataSetId, JobDate = jobDate },
+            commandType: CommandType.StoredProcedure);
         
         return result?.CreatedCount ?? 0;
     }

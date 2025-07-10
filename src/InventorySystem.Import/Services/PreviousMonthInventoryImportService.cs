@@ -319,14 +319,14 @@ public class PreviousMonthInventoryImportService
                     {
                         // 既存レコードのJobDateと前月末在庫を更新
                         var oldJobDate = inventoryMaster.JobDate;
-                        inventoryMaster.JobDate = recordJobDate;  // JobDateを更新
+                        // inventoryMaster.JobDate = recordJobDate;  // JobDateを更新 - コメントアウト：既存レコードのJobDateは変更しない
                         inventoryMaster.PreviousMonthQuantity = record.Quantity;
                         inventoryMaster.PreviousMonthAmount = record.Amount;
                         inventoryMaster.UpdatedDate = DateTime.Now;
                         
                         await _inventoryRepository.UpdateAsync(inventoryMaster);
-                        _logger.LogDebug("在庫マスタ更新: {Key}, JobDate: {OldDate} -> {NewDate}, 前月末数量={Qty}, 前月末金額={Amt}", 
-                            key, oldJobDate, recordJobDate, record.Quantity, record.Amount);
+                        _logger.LogDebug("在庫マスタ更新: {Key}, JobDate維持: {OldDate}, 前月末数量={Qty}, 前月末金額={Amt}", 
+                            key, oldJobDate, record.Quantity, record.Amount);
                     }
                     else
                     {
