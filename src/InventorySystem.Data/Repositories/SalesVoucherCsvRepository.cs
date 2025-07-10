@@ -293,4 +293,31 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
         using var connection = CreateConnection();
         return await connection.ExecuteScalarAsync<int>(sql, new { jobDate, modifiedAfter });
     }
+    
+    /// <summary>
+    /// すべての売上伝票データを取得
+    /// </summary>
+    public async Task<IEnumerable<SalesVoucher>> GetAllAsync()
+    {
+        const string sql = @"
+            SELECT VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
+                   CustomerCode, CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   Quantity, UnitPrice, Amount, InventoryUnitPrice, CreatedDate, DataSetId
+            FROM SalesVouchers
+            ORDER BY JobDate DESC, VoucherDate DESC, VoucherNumber, LineNumber";
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var vouchers = await connection.QueryAsync<SalesVoucher>(sql);
+            
+            _logger.LogInformation("すべての売上伝票データを取得しました: {Count}件", vouchers.Count());
+            return vouchers;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "すべての売上伝票データの取得中にエラーが発生しました");
+            throw;
+        }
+    }
 }
