@@ -15,8 +15,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
 
     public async Task<int> CreateCpInventoryFromInventoryMasterAsync(string dataSetId, DateTime jobDate)
     {
-        // 商品マスタと結合して商品分類を正しく取得し、荷印名による特殊処理を適用するストアドプロシージャを使用
-        const string sql = "EXEC sp_CreateCpInventoryFromInventoryMasterWithProductInfo @DataSetId, @JobDate";
+        // 累積管理対応版：当日の伝票に関連する5項目キーのレコードのみをコピー
+        const string sql = "EXEC sp_CreateCpInventoryFromInventoryMasterCumulative @DataSetId, @JobDate";
 
         using var connection = new SqlConnection(_connectionString);
         var result = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, new { DataSetId = dataSetId, JobDate = jobDate });

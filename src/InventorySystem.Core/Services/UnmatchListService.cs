@@ -507,22 +507,19 @@ public class UnmatchListService : IUnmatchListService
     }
     
     /// <summary>
-    /// 在庫マスタ最適化処理
+    /// 在庫マスタ最適化処理（累積管理対応版）
     /// </summary>
     private async Task OptimizeInventoryMasterAsync(DateTime jobDate)
     {
         try
         {
-            _logger.LogInformation("=== 在庫マスタ最適化処理開始 ===");
+            _logger.LogInformation("=== 在庫マスタ最適化処理開始（累積管理版） ===");
             _logger.LogInformation("対象日付: {JobDate:yyyy-MM-dd}", jobDate);
             
-            // 処理前の状態確認
-            var beforeCount = await _inventoryRepository.GetByJobDateAsync(jobDate);
-            _logger.LogInformation("最適化前の在庫マスタ件数: {Count}", beforeCount.Count());
-            
-            // 売上・仕入伝票の商品数を確認
+            // 売上・仕入・在庫調整伝票の商品数を確認
             var salesProducts = await _salesVoucherRepository.GetByJobDateAsync(jobDate);
             var purchaseProducts = await _purchaseVoucherRepository.GetByJobDateAsync(jobDate);
+            var adjustmentProducts = await _inventoryAdjustmentRepository.GetByJobDateAsync(jobDate);
             
             // 5項目での商品種類を正確にカウント
             var salesUniqueProducts = salesProducts
@@ -541,8 +538,15 @@ public class UnmatchListService : IUnmatchListService
                 .Distinct()
                 .ToList();
             
+            var adjustmentUniqueProducts = adjustmentProducts
+                .Where(a => a.Quantity != 0)
+                .Select(a => new { a.ProductCode, a.GradeCode, a.ClassCode, a.ShippingMarkCode, a.ShippingMarkName })
+                .Distinct()
+                .ToList();
+            
             _logger.LogInformation("売上伝票の商品種類: {Count}", salesUniqueProducts.Count);
             _logger.LogInformation("仕入伝票の商品種類: {Count}", purchaseUniqueProducts.Count);
+            _logger.LogInformation("在庫調整の商品種類: {Count}", adjustmentUniqueProducts.Count);
             
             // 最初の5件をログ出力して確認
             foreach (var (product, index) in salesUniqueProducts.Take(5).Select((p, i) => (p, i)))
@@ -551,70 +555,44 @@ public class UnmatchListService : IUnmatchListService
                     index + 1, product.ProductCode, product.GradeCode, product.ClassCode, product.ShippingMarkCode, product.ShippingMarkName);
             }
             
-            // 1. JobDate更新処理
-            _logger.LogInformation("在庫マスタのJobDate更新を開始します");
-            int updateCount = 0;
+            // 累積管理対応：UpdateOrCreateFromVouchersAsyncメソッドを使用
+            _logger.LogInformation("在庫マスタの更新または作成を開始します（累積管理対応）");
+            int processedCount = 0;
             try
             {
-                updateCount = await _inventoryRepository.UpdateJobDateForVouchersAsync(jobDate);
-                _logger.LogInformation("在庫マスタのJobDate更新完了: {Count}件", updateCount);
+                processedCount = await _inventoryRepository.UpdateOrCreateFromVouchersAsync(jobDate);
+                _logger.LogInformation("在庫マスタの更新または作成完了: {Count}件", processedCount);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "在庫マスタのJobDate更新でエラーが発生しました");
+                _logger.LogError(ex, "在庫マスタの更新または作成でエラーが発生しました");
                 // エラーが発生しても処理を継続
             }
             
-            // 2. 新規商品登録処理
-            _logger.LogInformation("新規商品の在庫マスタ登録を開始します");
-            int registerCount = 0;
-            try
-            {
-                registerCount = await _inventoryRepository.RegisterNewProductsAsync(jobDate);
-                _logger.LogInformation("新規商品の在庫マスタ登録完了: {Count}件", registerCount);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "新規商品の在庫マスタ登録でエラーが発生しました");
-                // エラーが発生しても処理を継続
-            }
-            
-            // 処理後の状態確認
-            var afterCount = await _inventoryRepository.GetByJobDateAsync(jobDate);
-            _logger.LogInformation("最適化後の在庫マスタ件数: {Count}", afterCount.Count());
+            // 処理後の状態確認（累積管理では全体数を確認）
+            var currentInventoryCount = await _inventoryRepository.GetCountByJobDateAsync(jobDate);
+            _logger.LogInformation("現在の在庫マスタ総件数（JobDate={JobDate}）: {Count}", jobDate, currentInventoryCount);
             
             // 結果の検証
-            var expectedMinCount = Math.Max(salesUniqueProducts.Count, purchaseUniqueProducts.Count);
-            if (afterCount.Count() < expectedMinCount * 0.8)
+            var allUniqueProducts = salesUniqueProducts
+                .Union(purchaseUniqueProducts)
+                .Union(adjustmentUniqueProducts)
+                .Select(p => $"{p.ProductCode}|{p.GradeCode}|{p.ClassCode}|{p.ShippingMarkCode}|{p.ShippingMarkName}")
+                .Distinct()
+                .Count();
+            
+            _logger.LogInformation("本日の伝票に含まれる商品種類（重複なし）: {Count}", allUniqueProducts);
+            
+            if (processedCount < allUniqueProducts * 0.8)
             {
                 _logger.LogWarning(
                     "在庫マスタ最適化が不完全な可能性があります。" +
-                    "期待最小値: {Expected}件, 実際: {Actual}件", 
-                    expectedMinCount, afterCount.Count());
-                
-                // 詳細な診断情報を出力
-                _logger.LogWarning("売上商品のうち在庫マスタに存在しない可能性のある商品を確認中...");
-                var inventoryList = afterCount.ToList();
-                var missingProducts = salesUniqueProducts
-                    .Where(s => !inventoryList.Any(i => 
-                        i.Key.ProductCode == s.ProductCode &&
-                        i.Key.GradeCode == s.GradeCode &&
-                        i.Key.ClassCode == s.ClassCode &&
-                        i.Key.ShippingMarkCode == s.ShippingMarkCode &&
-                        i.Key.ShippingMarkName == s.ShippingMarkName))
-                    .Take(10)
-                    .ToList();
-                
-                foreach (var missing in missingProducts)
-                {
-                    _logger.LogWarning("在庫マスタに存在しない商品: 商品={ProductCode}, 等級={GradeCode}, 階級={ClassCode}, 荷印={ShippingMarkCode}, 荷印名='{ShippingMarkName}'",
-                        missing.ProductCode, missing.GradeCode, missing.ClassCode, missing.ShippingMarkCode, missing.ShippingMarkName);
-                }
+                    "期待値: {Expected}件, 実際: {Actual}件", 
+                    allUniqueProducts, processedCount);
             }
             
-            _logger.LogInformation("=== 在庫マスタ最適化処理完了 ===");
-            _logger.LogInformation("更新: {Update}件, 新規: {Register}件, 合計: {Total}件",
-                updateCount, registerCount, updateCount + registerCount);
+            _logger.LogInformation("=== 在庫マスタ最適化処理完了（累積管理版） ===");
+            _logger.LogInformation("処理件数: {Count}件", processedCount);
         }
         catch (Exception ex)
         {

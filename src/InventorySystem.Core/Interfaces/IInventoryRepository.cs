@@ -41,4 +41,9 @@ public interface IInventoryRepository
     /// 指定日付の在庫マスタ件数を取得
     /// </summary>
     Task<int> GetCountByJobDateAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// 伝票データから在庫マスタを更新または作成（累積管理対応）
+    /// </summary>
+    Task<int> UpdateOrCreateFromVouchersAsync(DateTime jobDate);
 }
