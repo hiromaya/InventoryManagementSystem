@@ -91,4 +91,19 @@ public interface IInventoryRepository
     /// 最新の有効な在庫データを取得（日付に関係なく）
     /// </summary>
     Task<List<InventoryMaster>> GetLatestActiveInventoryAsync();
+    
+    /// <summary>
+    /// 最終処理日（最新のJobDate）を取得
+    /// </summary>
+    Task<DateTime> GetMaxJobDateAsync();
+    
+    /// <summary>
+    /// 全有効在庫データを取得（日付関係なく最新の状態）
+    /// </summary>
+    Task<List<InventoryMaster>> GetAllActiveInventoryAsync();
+    
+    /// <summary>
+    /// 在庫データのMERGE処理（既存は更新、新規は挿入）
+    /// </summary>
+    Task<int> MergeInventoryAsync(List<InventoryMaster> inventories, DateTime targetDate, string dataSetId);
 }

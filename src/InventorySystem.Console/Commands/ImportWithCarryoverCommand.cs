@@ -33,140 +33,73 @@ public class ImportWithCarryoverCommand
         _logger = logger;
     }
 
-    public async Task ExecuteAsync(string department, DateTime targetDate)
+    public async Task ExecuteAsync(string department)  // 日付引数を削除
     {
-        var dataSetId = DatasetManagement.GenerateDataSetId("CARRYOVER");
-        
-        _logger.LogInformation("===== 在庫引継インポート開始 =====");
+        System.Console.WriteLine("===== 在庫引継インポート開始 =====");
         _logger.LogInformation("部門: {Department}", department);
-        _logger.LogInformation("対象日付: {TargetDate:yyyy-MM-dd}", targetDate);
-        _logger.LogInformation("DataSetId: {DataSetId}", dataSetId);
-        
+
         try
         {
-            // 1. 最新の有効な在庫データを取得（日付に依存しない）
-            var previousInventory = await GetLatestActiveInventoryAsync(targetDate);
+            // 1. 最終処理日を取得
+            var lastProcessedDate = await _inventoryRepository.GetMaxJobDateAsync();
+            _logger.LogInformation("最終処理日: {Date:yyyy-MM-dd}", lastProcessedDate);
             
-            // 2. 当日の伝票データを取得
-            var salesVouchers = await _salesVoucherRepository.GetByJobDateAsync(targetDate);
-            var purchaseVouchers = await _purchaseVoucherRepository.GetByJobDateAsync(targetDate);
-            var adjustmentVouchers = await _adjustmentRepository.GetByJobDateAsync(targetDate);
+            // 2. 処理対象日を決定（最終処理日の翌日）
+            var targetDate = lastProcessedDate.AddDays(1);
+            _logger.LogInformation("処理対象日: {Date:yyyy-MM-dd}", targetDate);
+            
+            // 3. DataSetIdを生成
+            var dataSetId = $"CARRYOVER_{targetDate:yyyyMMdd}_{DateTime.Now:HHmmss}_{GenerateRandomString(6)}";
+            _logger.LogInformation("DataSetId: {DataSetId}", dataSetId);
+            
+            // 4. 現在の在庫マスタ全データを取得（最新の有効データ）
+            var currentInventory = await _inventoryRepository.GetAllActiveInventoryAsync();
+            _logger.LogInformation("現在の在庫マスタ: {Count}件", currentInventory.Count);
+            
+            // 5. 処理対象日の伝票データを取得
+            var salesVouchers = (await _salesVoucherRepository.GetByJobDateAsync(targetDate)).ToList();
+            var purchaseVouchers = (await _purchaseVoucherRepository.GetByJobDateAsync(targetDate)).ToList();
+            var adjustmentVouchers = (await _adjustmentRepository.GetByJobDateAsync(targetDate)).ToList();
             
             _logger.LogInformation("当日伝票数 - 売上: {Sales}件, 仕入: {Purchase}件, 在庫調整: {Adjustment}件",
-                salesVouchers.Count(), purchaseVouchers.Count(), adjustmentVouchers.Count());
+                salesVouchers.Count, purchaseVouchers.Count, adjustmentVouchers.Count);
             
-            // 3. 5項目キーを抽出
-            var voucherKeys = ExtractInventoryKeys(salesVouchers, purchaseVouchers, adjustmentVouchers);
-            _logger.LogInformation("伝票から抽出したキー: {Count}件（重複除去後）", voucherKeys.Count);
+            // 6. 在庫計算処理
+            var mergedInventory = CalculateInventory(
+                currentInventory,
+                salesVouchers,
+                purchaseVouchers,
+                adjustmentVouchers,
+                targetDate,
+                dataSetId
+            );
             
-            // 4. 前日在庫と当日伝票のキーをマージ
-            var allKeys = new HashSet<InventoryKey>(new InventoryKeyEqualityComparer());
+            _logger.LogInformation("計算後の在庫: {Count}件", mergedInventory.Count);
             
-            // 前日在庫のキーを追加
-            foreach (var inv in previousInventory)
-            {
-                allKeys.Add(inv.Key);
-            }
+            // 7. MERGE処理で保存（既存は更新、新規は挿入）
+            var affectedRows = await _inventoryRepository.MergeInventoryAsync(mergedInventory, targetDate, dataSetId);
             
-            // 当日伝票のキーを追加
-            allKeys.UnionWith(voucherKeys);
-            
-            _logger.LogInformation("統合後の総キー数: {Count}件", allKeys.Count);
-            
-            // 5. 在庫マスタを作成
-            var inventoryList = new List<InventoryMaster>();
-            var inheritedCount = 0;
-            var newCount = 0;
-            
-            foreach (var key in allKeys)
-            {
-                var inventory = new InventoryMaster
-                {
-                    Key = key,
-                    JobDate = targetDate,
-                    DataSetId = dataSetId,
-                    ImportType = "CARRYOVER",
-                    IsActive = true,
-                    CreatedAt = DateTime.Now,
-                    CreatedDate = DateTime.Now,
-                    UpdatedDate = DateTime.Now,
-                    DailyFlag = '9'
-                };
-                
-                // 前日在庫から引き継ぎ
-                var prevInv = previousInventory.FirstOrDefault(p => 
-                    new InventoryKeyEqualityComparer().Equals(p.Key, key));
-                
-                if (prevInv != null)
-                {
-                    inventory.CurrentStock = prevInv.CurrentStock;
-                    inventory.CurrentStockAmount = prevInv.CurrentStockAmount;
-                    inventory.DailyStock = prevInv.CurrentStock;
-                    inventory.DailyStockAmount = prevInv.CurrentStockAmount;
-                    inventory.StandardPrice = prevInv.StandardPrice;
-                    inventory.ParentDataSetId = prevInv.DataSetId;
-                    inventory.ProductName = prevInv.ProductName;
-                    inventory.Unit = prevInv.Unit;
-                    inventory.StandardPrice = prevInv.StandardPrice;
-                    inventory.ProductCategory1 = prevInv.ProductCategory1;
-                    inventory.ProductCategory2 = prevInv.ProductCategory2;
-                    inventory.PreviousMonthQuantity = prevInv.PreviousMonthQuantity;
-                    inventory.PreviousMonthAmount = prevInv.PreviousMonthAmount;
-                    inheritedCount++;
-                }
-                else
-                {
-                    inventory.CurrentStock = 0;
-                    inventory.CurrentStockAmount = 0;
-                    inventory.DailyStock = 0;
-                    inventory.DailyStockAmount = 0;
-                    inventory.StandardPrice = 0;
-                    inventory.ProductName = "商品名未設定";
-                    inventory.Unit = "PCS";
-                    inventory.ProductCategory1 = "";
-                    inventory.ProductCategory2 = "";
-                    inventory.PreviousMonthQuantity = 0;
-                    inventory.PreviousMonthAmount = 0;
-                    newCount++;
-                }
-                
-                inventoryList.Add(inventory);
-            }
-            
-            // 6. 既存データを無効化
-            await _inventoryRepository.DeactivateByJobDateAsync(targetDate);
-            
-            // 7. 新規データを保存
-            if (inventoryList.Any())
-            {
-                await _inventoryRepository.BulkInsertAsync(inventoryList);
-            }
-            
-            // 8. DataSet管理テーブルに記録
+            // 8. DataSetManagementに記録
             await _dataSetRepository.CreateAsync(new DatasetManagement
             {
                 DatasetId = dataSetId,
                 JobDate = targetDate,
                 ProcessType = "CARRYOVER",
                 ImportType = "CARRYOVER",
-                RecordCount = inventoryList.Count,
-                ParentDataSetId = previousInventory.FirstOrDefault()?.DataSetId,
+                RecordCount = affectedRows,
                 IsActive = true,
                 CreatedAt = DateTime.Now,
-                CreatedBy = "System",
-                Notes = $"前日在庫引継: {inheritedCount}件, 新規: {newCount}件"
+                CreatedBy = "ImportWithCarryover"
             });
             
-            // 9. 結果表示
-            System.Console.WriteLine("===== 在庫引継インポート完了 =====");
-            System.Console.WriteLine($"対象日付: {targetDate:yyyy-MM-dd}");
+            // 9. 完了メッセージ
+            System.Console.WriteLine($"===== 在庫引継インポート完了 =====");
+            System.Console.WriteLine($"処理対象日: {targetDate:yyyy-MM-dd}");
             System.Console.WriteLine($"DataSetId: {dataSetId}");
-            System.Console.WriteLine($"前日在庫引継: {inheritedCount}件");
-            System.Console.WriteLine($"新規作成: {newCount}件");
-            System.Console.WriteLine($"合計: {inventoryList.Count}件");
-            System.Console.WriteLine($"売上伝票: {salesVouchers.Count()}件");
-            System.Console.WriteLine($"仕入伝票: {purchaseVouchers.Count()}件");
-            System.Console.WriteLine($"在庫調整: {adjustmentVouchers.Count()}件");
+            System.Console.WriteLine($"更新/挿入件数: {affectedRows}件");
+            System.Console.WriteLine($"売上伝票: {salesVouchers.Count}件");
+            System.Console.WriteLine($"仕入伝票: {purchaseVouchers.Count}件");
+            System.Console.WriteLine($"在庫調整: {adjustmentVouchers.Count}件");
             
             _logger.LogInformation("在庫引継インポートが正常に完了しました");
         }
@@ -179,95 +112,208 @@ public class ImportWithCarryoverCommand
     }
     
     /// <summary>
-    /// 伝票から5項目キーを抽出
+    /// 在庫計算メソッド（新規追加）
     /// </summary>
-    private HashSet<InventoryKey> ExtractInventoryKeys(
-        IEnumerable<SalesVoucher> salesVouchers,
-        IEnumerable<PurchaseVoucher> purchaseVouchers,
-        IEnumerable<InventoryAdjustment> adjustmentVouchers)
+    private List<InventoryMaster> CalculateInventory(
+        List<InventoryMaster> currentInventory,
+        List<SalesVoucher> salesVouchers,
+        List<PurchaseVoucher> purchaseVouchers,
+        List<InventoryAdjustment> adjustmentVouchers,
+        DateTime targetDate,
+        string dataSetId)
     {
-        var keys = new HashSet<InventoryKey>(new InventoryKeyEqualityComparer());
-        
-        // 売上伝票
-        foreach (var sv in salesVouchers)
-        {
-            keys.Add(new InventoryKey
+        // 現在在庫を辞書化（5項目キーで管理）
+        var inventoryDict = currentInventory.ToDictionary(
+            i => $"{i.Key.ProductCode}_{i.Key.GradeCode}_{i.Key.ClassCode}_{i.Key.ShippingMarkCode}_{i.Key.ShippingMarkName}",
+            i => new InventoryMaster
             {
-                ProductCode = sv.ProductCode,
-                GradeCode = sv.GradeCode,
-                ClassCode = sv.ClassCode,
-                ShippingMarkCode = sv.ShippingMarkCode,
-                ShippingMarkName = sv.ShippingMarkName
-            });
+                Key = i.Key,
+                ProductName = i.ProductName,
+                Unit = i.Unit,
+                StandardPrice = i.StandardPrice,
+                ProductCategory1 = i.ProductCategory1,
+                ProductCategory2 = i.ProductCategory2,
+                CurrentStock = i.CurrentStock,
+                CurrentStockAmount = i.CurrentStockAmount,
+                DailyStock = 0,  // 当日変動をリセット
+                DailyStockAmount = 0,
+                JobDate = targetDate,
+                DataSetId = dataSetId,
+                IsActive = true,
+                UpdatedDate = DateTime.Now,
+                PreviousMonthQuantity = i.PreviousMonthQuantity,
+                PreviousMonthAmount = i.PreviousMonthAmount
+            }
+        );
+        
+        // 売上伝票の反映（在庫減少）
+        foreach (var sales in salesVouchers)
+        {
+            var key = $"{sales.ProductCode}_{sales.GradeCode}_{sales.ClassCode}_{sales.ShippingMarkCode}_{sales.ShippingMarkName}";
+            if (inventoryDict.TryGetValue(key, out var inv))
+            {
+                inv.DailyStock -= sales.Quantity;
+                inv.CurrentStock -= sales.Quantity;
+                inv.DailyStockAmount -= sales.Amount;
+                inv.CurrentStockAmount -= sales.Amount;
+            }
+            else
+            {
+                // 新規商品（在庫なしで売上）
+                inventoryDict[key] = CreateNewInventory(sales, targetDate, dataSetId, -sales.Quantity, -sales.Amount);
+            }
         }
         
-        // 仕入伝票
-        foreach (var pv in purchaseVouchers)
+        // 仕入伝票の反映（在庫増加）
+        foreach (var purchase in purchaseVouchers)
         {
-            keys.Add(new InventoryKey
+            var key = $"{purchase.ProductCode}_{purchase.GradeCode}_{purchase.ClassCode}_{purchase.ShippingMarkCode}_{purchase.ShippingMarkName}";
+            if (inventoryDict.TryGetValue(key, out var inv))
             {
-                ProductCode = pv.ProductCode,
-                GradeCode = pv.GradeCode,
-                ClassCode = pv.ClassCode,
-                ShippingMarkCode = pv.ShippingMarkCode,
-                ShippingMarkName = pv.ShippingMarkName
-            });
+                inv.DailyStock += purchase.Quantity;
+                inv.CurrentStock += purchase.Quantity;
+                inv.DailyStockAmount += purchase.Amount;
+                inv.CurrentStockAmount += purchase.Amount;
+            }
+            else
+            {
+                // 新規商品
+                inventoryDict[key] = CreateNewInventory(purchase, targetDate, dataSetId, purchase.Quantity, purchase.Amount);
+            }
         }
         
-        // 在庫調整
-        foreach (var ia in adjustmentVouchers)
+        // 在庫調整の反映（区分1, 4, 6のみ）
+        foreach (var adj in adjustmentVouchers.Where(a => a.CategoryCode == 1 || a.CategoryCode == 4 || a.CategoryCode == 6))
         {
-            keys.Add(new InventoryKey
+            var key = $"{adj.ProductCode}_{adj.GradeCode}_{adj.ClassCode}_{adj.ShippingMarkCode}_{adj.ShippingMarkName}";
+            if (inventoryDict.TryGetValue(key, out var inv))
             {
-                ProductCode = ia.ProductCode,
-                GradeCode = ia.GradeCode,
-                ClassCode = ia.ClassCode,
-                ShippingMarkCode = ia.ShippingMarkCode,
-                ShippingMarkName = ia.ShippingMarkName
-            });
+                inv.DailyStock += adj.Quantity;
+                inv.CurrentStock += adj.Quantity;
+                inv.DailyStockAmount += adj.Amount;
+                inv.CurrentStockAmount += adj.Amount;
+            }
+            else
+            {
+                // 新規商品
+                inventoryDict[key] = CreateNewInventory(adj, targetDate, dataSetId, adj.Quantity, adj.Amount);
+            }
         }
         
-        return keys;
+        return inventoryDict.Values.ToList();
     }
     
     /// <summary>
-    /// 最新の有効な在庫データを取得（日付に依存しない）
+    /// 新規在庫レコードを作成（売上伝票用）
     /// </summary>
-    private async Task<List<InventoryMaster>> GetLatestActiveInventoryAsync(DateTime targetDate)
+    private InventoryMaster CreateNewInventory(SalesVoucher voucher, DateTime targetDate, string dataSetId, decimal quantity, decimal amount)
     {
-        // 方法1: 前日の在庫を確認
-        var previousDate = targetDate.AddDays(-1);
-        var previousDayInventory = await _inventoryRepository.GetActiveByJobDateAsync(previousDate);
-        
-        if (previousDayInventory.Any())
+        return new InventoryMaster
         {
-            _logger.LogInformation("前日（{Date:yyyy-MM-dd}）の在庫を使用: {Count}件", 
-                previousDate, previousDayInventory.Count);
-            return previousDayInventory;
-        }
-        
-        // 方法2: 最新のINIT（前月末在庫）データを取得
-        var initInventory = await _inventoryRepository.GetLatestInitInventoryAsync();
-        
-        if (initInventory.Any())
+            Key = new InventoryKey
+            {
+                ProductCode = voucher.ProductCode,
+                GradeCode = voucher.GradeCode,
+                ClassCode = voucher.ClassCode,
+                ShippingMarkCode = voucher.ShippingMarkCode,
+                ShippingMarkName = voucher.ShippingMarkName
+            },
+            ProductName = voucher.ProductName ?? "商品名未設定",
+            Unit = "PCS",
+            StandardPrice = 0,
+            ProductCategory1 = "",
+            ProductCategory2 = "",
+            CurrentStock = quantity,
+            CurrentStockAmount = amount,
+            DailyStock = quantity,
+            DailyStockAmount = amount,
+            JobDate = targetDate,
+            DataSetId = dataSetId,
+            IsActive = true,
+            CreatedDate = DateTime.Now,
+            UpdatedDate = DateTime.Now,
+            PreviousMonthQuantity = 0,
+            PreviousMonthAmount = 0
+        };
+    }
+    
+    /// <summary>
+    /// 新規在庫レコードを作成（仕入伝票用）
+    /// </summary>
+    private InventoryMaster CreateNewInventory(PurchaseVoucher voucher, DateTime targetDate, string dataSetId, decimal quantity, decimal amount)
+    {
+        return new InventoryMaster
         {
-            _logger.LogInformation("前月末在庫（DataSetId: {DataSetId}）を使用: {Count}件", 
-                initInventory.First().DataSetId, initInventory.Count);
-            return initInventory;
-        }
-        
-        // 方法3: 最新の有効な在庫データを取得（日付に関係なく）
-        var latestInventory = await _inventoryRepository.GetLatestActiveInventoryAsync();
-        
-        if (latestInventory.Any())
+            Key = new InventoryKey
+            {
+                ProductCode = voucher.ProductCode,
+                GradeCode = voucher.GradeCode,
+                ClassCode = voucher.ClassCode,
+                ShippingMarkCode = voucher.ShippingMarkCode,
+                ShippingMarkName = voucher.ShippingMarkName
+            },
+            ProductName = voucher.ProductName ?? "商品名未設定",
+            Unit = "PCS",
+            StandardPrice = 0,
+            ProductCategory1 = "",
+            ProductCategory2 = "",
+            CurrentStock = quantity,
+            CurrentStockAmount = amount,
+            DailyStock = quantity,
+            DailyStockAmount = amount,
+            JobDate = targetDate,
+            DataSetId = dataSetId,
+            IsActive = true,
+            CreatedDate = DateTime.Now,
+            UpdatedDate = DateTime.Now,
+            PreviousMonthQuantity = 0,
+            PreviousMonthAmount = 0
+        };
+    }
+    
+    /// <summary>
+    /// 新規在庫レコードを作成（在庫調整用）
+    /// </summary>
+    private InventoryMaster CreateNewInventory(InventoryAdjustment voucher, DateTime targetDate, string dataSetId, decimal quantity, decimal amount)
+    {
+        return new InventoryMaster
         {
-            _logger.LogInformation("最新の在庫（JobDate: {Date:yyyy-MM-dd}, DataSetId: {DataSetId}）を使用: {Count}件", 
-                latestInventory.First().JobDate, latestInventory.First().DataSetId, latestInventory.Count);
-            return latestInventory;
-        }
-        
-        _logger.LogWarning("使用可能な在庫データが見つかりません。");
-        return new List<InventoryMaster>();
+            Key = new InventoryKey
+            {
+                ProductCode = voucher.ProductCode,
+                GradeCode = voucher.GradeCode,
+                ClassCode = voucher.ClassCode,
+                ShippingMarkCode = voucher.ShippingMarkCode,
+                ShippingMarkName = voucher.ShippingMarkName
+            },
+            ProductName = voucher.ProductName ?? "商品名未設定",
+            Unit = "PCS",
+            StandardPrice = 0,
+            ProductCategory1 = "",
+            ProductCategory2 = "",
+            CurrentStock = quantity,
+            CurrentStockAmount = amount,
+            DailyStock = quantity,
+            DailyStockAmount = amount,
+            JobDate = targetDate,
+            DataSetId = dataSetId,
+            IsActive = true,
+            CreatedDate = DateTime.Now,
+            UpdatedDate = DateTime.Now,
+            PreviousMonthQuantity = 0,
+            PreviousMonthAmount = 0
+        };
+    }
+    
+    /// <summary>
+    /// ランダム文字列生成
+    /// </summary>
+    private string GenerateRandomString(int length)
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        var random = new Random();
+        return new string(Enumerable.Repeat(chars, length)
+            .Select(s => s[random.Next(s.Length)]).ToArray());
     }
 }
 

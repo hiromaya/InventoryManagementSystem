@@ -1012,4 +1012,160 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             throw;
         }
     }
+    
+    /// <summary>
+    /// 最終処理日（最新のJobDate）を取得
+    /// </summary>
+    public async Task<DateTime> GetMaxJobDateAsync()
+    {
+        const string sql = @"
+            SELECT ISNULL(MAX(JobDate), '2025-05-31') as MaxJobDate
+            FROM InventoryMaster
+            WHERE IsActive = 1";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.QuerySingleAsync<DateTime>(sql);
+            LogInfo($"最終処理日を取得しました: {result:yyyy-MM-dd}");
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetMaxJobDateAsync));
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 全有効在庫データを取得（日付関係なく最新の状態）
+    /// </summary>
+    public async Task<List<InventoryMaster>> GetAllActiveInventoryAsync()
+    {
+        const string sql = @"
+            SELECT * FROM InventoryMaster 
+            WHERE IsActive = 1
+            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.QueryAsync<dynamic>(sql);
+            var inventories = result.Select(MapToInventoryMaster).ToList();
+            LogInfo($"全有効在庫データを取得しました: {inventories.Count}件");
+            return inventories;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetAllActiveInventoryAsync));
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 在庫データのMERGE処理（既存は更新、新規は挿入）
+    /// </summary>
+    public async Task<int> MergeInventoryAsync(List<InventoryMaster> inventories, DateTime targetDate, string dataSetId)
+    {
+        const string sql = @"
+            MERGE InventoryMaster AS target
+            USING (
+                SELECT 
+                    @ProductCode as ProductCode,
+                    @GradeCode as GradeCode,
+                    @ClassCode as ClassCode,
+                    @ShippingMarkCode as ShippingMarkCode,
+                    @ShippingMarkName as ShippingMarkName,
+                    @ProductName as ProductName,
+                    @Unit as Unit,
+                    @StandardPrice as StandardPrice,
+                    @CurrentStock as CurrentStock,
+                    @CurrentStockAmount as CurrentStockAmount,
+                    @DailyStock as DailyStock,
+                    @DailyStockAmount as DailyStockAmount,
+                    @PreviousMonthQuantity as PreviousMonthQuantity,
+                    @PreviousMonthAmount as PreviousMonthAmount
+            ) AS source
+            ON (
+                target.ProductCode = source.ProductCode AND
+                target.GradeCode = source.GradeCode AND
+                target.ClassCode = source.ClassCode AND
+                target.ShippingMarkCode = source.ShippingMarkCode AND
+                target.ShippingMarkName COLLATE Japanese_CI_AS = source.ShippingMarkName COLLATE Japanese_CI_AS
+            )
+            WHEN MATCHED THEN
+                UPDATE SET 
+                    ProductName = source.ProductName,
+                    Unit = source.Unit,
+                    StandardPrice = source.StandardPrice,
+                    CurrentStock = source.CurrentStock,
+                    CurrentStockAmount = source.CurrentStockAmount,
+                    DailyStock = source.DailyStock,
+                    DailyStockAmount = source.DailyStockAmount,
+                    PreviousMonthQuantity = source.PreviousMonthQuantity,
+                    PreviousMonthAmount = source.PreviousMonthAmount,
+                    JobDate = @TargetDate,
+                    DataSetId = @DataSetId,
+                    UpdatedDate = GETDATE()
+            WHEN NOT MATCHED THEN
+                INSERT (
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductName, Unit, StandardPrice,
+                    CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
+                    PreviousMonthQuantity, PreviousMonthAmount,
+                    JobDate, DataSetId, IsActive, CreatedDate, UpdatedDate
+                )
+                VALUES (
+                    source.ProductCode, source.GradeCode, source.ClassCode, 
+                    source.ShippingMarkCode, source.ShippingMarkName,
+                    source.ProductName, source.Unit, source.StandardPrice,
+                    source.CurrentStock, source.CurrentStockAmount, 
+                    source.DailyStock, source.DailyStockAmount,
+                    source.PreviousMonthQuantity, source.PreviousMonthAmount,
+                    @TargetDate, @DataSetId, 1, GETDATE(), GETDATE()
+                );";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            await connection.OpenAsync();
+            using var transaction = connection.BeginTransaction();
+            
+            var totalAffected = 0;
+            
+            foreach (var inventory in inventories)
+            {
+                var parameters = new
+                {
+                    ProductCode = inventory.Key.ProductCode,
+                    GradeCode = inventory.Key.GradeCode,
+                    ClassCode = inventory.Key.ClassCode,
+                    ShippingMarkCode = inventory.Key.ShippingMarkCode,
+                    ShippingMarkName = inventory.Key.ShippingMarkName,
+                    inventory.ProductName,
+                    inventory.Unit,
+                    inventory.StandardPrice,
+                    inventory.CurrentStock,
+                    inventory.CurrentStockAmount,
+                    inventory.DailyStock,
+                    inventory.DailyStockAmount,
+                    inventory.PreviousMonthQuantity,
+                    inventory.PreviousMonthAmount,
+                    TargetDate = targetDate,
+                    DataSetId = dataSetId
+                };
+                
+                totalAffected += await connection.ExecuteAsync(sql, parameters, transaction);
+            }
+            
+            await transaction.CommitAsync();
+            LogInfo($"在庫マスタMERGE処理完了: {totalAffected}件", new { targetDate, dataSetId });
+            return totalAffected;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(MergeInventoryAsync), new { targetDate, dataSetId, count = inventories.Count });
+            throw;
+        }
+    }
 }

@@ -1793,9 +1793,11 @@ static async Task ExecuteInitInventoryAsync(IServiceProvider services, string[] 
 
 static async Task ExecuteImportWithCarryoverAsync(IServiceProvider services, string[] args)
 {
-    if (args.Length < 4)
+    if (args.Length < 3)
     {
-        Console.WriteLine("使用方法: import-with-carryover <部門名> <YYYY-MM-DD>");
+        Console.WriteLine("使用方法: import-with-carryover <部門>");
+        Console.WriteLine("例: import-with-carryover DeptA");
+        Console.WriteLine("※処理対象日は最終処理日の翌日が自動的に選択されます");
         return;
     }
 
@@ -1803,23 +1805,16 @@ static async Task ExecuteImportWithCarryoverAsync(IServiceProvider services, str
     {
         var scopedServices = scope.ServiceProvider;
         var department = args[2];
-        var targetDateStr = args[3];
-        
-        if (!DateTime.TryParse(targetDateStr, out var targetDate))
-        {
-            Console.WriteLine($"❌ 無効な日付形式です: {targetDateStr}");
-            return;
-        }
         
         var command = scopedServices.GetRequiredService<ImportWithCarryoverCommand>();
         var logger = scopedServices.GetRequiredService<ILogger<Program>>();
         
         logger.LogInformation("=== 在庫引継インポート開始 ===");
-        logger.LogInformation("部門: {Department}, 対象日付: {TargetDate:yyyy-MM-dd}", department, targetDate);
+        logger.LogInformation("部門: {Department}", department);
         
         try
         {
-            await command.ExecuteAsync(department, targetDate);
+            await command.ExecuteAsync(department);
         }
         catch (Exception ex)
         {
