@@ -292,7 +292,7 @@
         <div class="header">
             <h1>🏭 在庫管理システム</h1>
             <p>2025年6月データ シミュレーション手順書</p>
-            <p><strong>最終更新:</strong> 2025年7月9日 | <strong>対象:</strong> 開発・動作確認</p>
+            <p><strong>最終更新:</strong> 2025年7月11日 | <strong>対象:</strong> 開発・動作確認</p>
         </div>
 
         <div class="data-info">
@@ -470,6 +470,52 @@
                     <li>初期在庫件数が1,000件以上あること</li>
                     <li>PreviousMonthQuantity（前月末在庫数量）に値が設定されていること</li>
                     <li>PreviousMonthAmount（前月末在庫金額）に値が設定されていること</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="phase" style="background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);">
+            <div class="phase-header">
+                <div class="phase-number">🆕</div>
+                <div class="phase-title">特殊なケースの処理（import-with-carryoverコマンド）</div>
+            </div>
+
+            <div class="info">
+                <h4>📝 import-with-carryoverコマンドについて</h4>
+                <p><strong>用途：</strong>前日の在庫を引き継いで当日の在庫マスタを作成する特殊なコマンドです。</p>
+                <p><strong>使用場面：</strong></p>
+                <ul>
+                    <li>日次終了処理を忘れた場合の復旧</li>
+                    <li>6月1日のように伝票データがない日の処理</li>
+                    <li>前日在庫と当日伝票の統合処理が必要な場合</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h4>使用例1: 伝票データがない日の処理</h4>
+                <div class="command-block">
+<span class="comment"># 6月1日は伝票データがない場合</span>
+<span class="command-line">dotnet run import-with-carryover DeptA 2025-06-01</span>
+<span class="comment"># 前月末在庫（5月31日）を引き継いで6月1日の在庫マスタを作成</span>
+                </div>
+            </div>
+
+            <div class="step">
+                <h4>使用例2: 日次終了処理忘れの復旧</h4>
+                <div class="command-block">
+<span class="comment"># 6月10日の日次終了処理を忘れた場合</span>
+<span class="command-line">dotnet run import-with-carryover DeptA 2025-06-11</span>
+<span class="comment"># 6月10日の在庫を引き継いで6月11日の在庫マスタを作成</span>
+                </div>
+            </div>
+
+            <div class="success">
+                <strong>✅ このコマンドの特徴：</strong>
+                <ul>
+                    <li>前日の有効な在庫データを自動検索</li>
+                    <li>当日の伝票データと自動統合</li>
+                    <li>DataSetIdによる世代管理</li>
+                    <li>既存データの自動無効化と新規データの挿入</li>
                 </ul>
             </div>
         </div>
@@ -792,10 +838,15 @@
             <div class="step">
                 <strong>原因:</strong> 前日の日次終了処理（在庫繰り越し）未実行
                 <div class="command-block">
-<span class="comment"># 対処法: 前日の日次終了処理を実行</span>
+<span class="comment"># 対処法1: 前日の日次終了処理を実行</span>
 <span class="command-line">dotnet run dev-daily-close 2025-06-01  # 前日分を実行</span>
 <span class="comment"># その後、当日の処理を再実行</span>
 <span class="command-line">dotnet run unmatch-list 2025-06-02</span>
+                </div>
+                <div class="command-block">
+<span class="comment"># 対処法2: import-with-carryoverコマンドを使用（推奨）</span>
+<span class="command-line">dotnet run import-with-carryover DeptA 2025-06-02</span>
+<span class="comment"># このコマンドは前日の在庫を自動的に引き継ぎます</span>
                 </div>
             </div>
 
