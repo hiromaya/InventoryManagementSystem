@@ -151,6 +151,9 @@ public class PreviousMonthInventoryImportService
                         inventoryMaster.PreviousMonthQuantity = record.Quantity;
                         inventoryMaster.PreviousMonthAmount = record.Amount;
                         inventoryMaster.UpdatedDate = DateTime.Now;
+                        inventoryMaster.DataSetId = dataSetId;      // DataSetIdを設定
+                        inventoryMaster.ImportType = "INIT";        // ImportTypeを設定
+                        inventoryMaster.IsActive = true;            // アクティブフラグ
                         
                         await _inventoryRepository.UpdateAsync(inventoryMaster);
                         _logger.LogDebug("在庫マスタ更新: {Key}, JobDate={JobDate:yyyy-MM-dd}, 初期在庫数量={Qty}, 初期在庫金額={Amt}", 
@@ -179,11 +182,14 @@ public class PreviousMonthInventoryImportService
                             DailyStock = record.Quantity,
                             DailyStockAmount = record.Amount,
                             DailyFlag = '9',
-                            DataSetId = "",
+                            DataSetId = dataSetId,             // 生成したDataSetIdを使用
                             DailyGrossProfit = 0,
                             DailyAdjustmentAmount = 0,
                             DailyProcessingCost = 0,
-                            FinalGrossProfit = 0
+                            FinalGrossProfit = 0,
+                            ImportType = "INIT",               // 前月末在庫を示す"INIT"
+                            IsActive = true,                   // アクティブフラグ追加
+                            CreatedBy = "init-inventory"       // 作成者情報追加
                         };
                         
                         await _inventoryRepository.CreateAsync(inventoryMaster);
@@ -279,6 +285,26 @@ public class PreviousMonthInventoryImportService
                     invalid.GetValidationError());
             }
 
+            // DataSetIdを生成
+            var dataSetId = DatasetManagement.GenerateDataSetId("INIT");
+            _logger.LogInformation("DataSetId生成: {DataSetId}", dataSetId);
+            
+            // 既存のINITデータを確認（対象期間のもの）
+            if (!preserveCsvDates)
+            {
+                // 通常モード：指定日付のINITデータを確認
+                var existingInitData = await _inventoryRepository.GetActiveInitInventoryAsync(startDate);
+                if (existingInitData.Any())
+                {
+                    _logger.LogWarning("既存の前月末在庫データが存在します。DataSetId: {DataSetId}, 件数: {Count}件",
+                        existingInitData.First().DataSetId, existingInitData.Count);
+                    
+                    // 既存データを無効化
+                    await _inventoryRepository.DeactivateDataSetAsync(existingInitData.First().DataSetId);
+                    _logger.LogInformation("既存データを無効化しました");
+                }
+            }
+
             // 3. スキップ数のカウント
             var skippedByDateFilter = 0;
             var processedCount = 0;
@@ -349,6 +375,9 @@ public class PreviousMonthInventoryImportService
                         inventoryMaster.PreviousMonthQuantity = record.Quantity;
                         inventoryMaster.PreviousMonthAmount = record.Amount;
                         inventoryMaster.UpdatedDate = DateTime.Now;
+                        inventoryMaster.DataSetId = dataSetId;      // DataSetIdを設定
+                        inventoryMaster.ImportType = "INIT";        // ImportTypeを設定
+                        inventoryMaster.IsActive = true;            // アクティブフラグ
                         
                         await _inventoryRepository.UpdateAsync(inventoryMaster);
                         _logger.LogDebug("在庫マスタ更新: {Key}, JobDate維持: {OldDate}, 前月末数量={Qty}, 前月末金額={Amt}", 
@@ -377,11 +406,14 @@ public class PreviousMonthInventoryImportService
                             DailyStock = record.Quantity,
                             DailyStockAmount = record.Amount,
                             DailyFlag = '9',
-                            DataSetId = "",
+                            DataSetId = dataSetId,             // 生成したDataSetIdを使用
                             DailyGrossProfit = 0,
                             DailyAdjustmentAmount = 0,
                             DailyProcessingCost = 0,
-                            FinalGrossProfit = 0
+                            FinalGrossProfit = 0,
+                            ImportType = "INIT",               // 前月末在庫を示す"INIT"
+                            IsActive = true,                   // アクティブフラグ追加
+                            CreatedBy = "init-inventory"       // 作成者情報追加
                         };
                         
                         await _inventoryRepository.CreateAsync(inventoryMaster);

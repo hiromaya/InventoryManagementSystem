@@ -954,4 +954,62 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             throw;
         }
     }
+    
+    /// <summary>
+    /// 最新のINIT（前月末在庫）データを取得
+    /// </summary>
+    public async Task<List<InventoryMaster>> GetLatestInitInventoryAsync()
+    {
+        const string sql = @"
+            SELECT * FROM InventoryMaster
+            WHERE ImportType = 'INIT'
+              AND IsActive = 1
+            ORDER BY CreatedDate DESC";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.QueryAsync<dynamic>(sql);
+            return result.Select(MapToInventoryMaster).ToList();
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetLatestInitInventoryAsync));
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 最新の有効な在庫データを取得（日付に関係なく）
+    /// </summary>
+    public async Task<List<InventoryMaster>> GetLatestActiveInventoryAsync()
+    {
+        const string sql = @"
+            WITH LatestInventory AS (
+                SELECT 
+                    DataSetId,
+                    MAX(CreatedDate) as LatestDate
+                FROM InventoryMaster
+                WHERE IsActive = 1
+                GROUP BY DataSetId
+            )
+            SELECT im.* 
+            FROM InventoryMaster im
+            INNER JOIN LatestInventory li 
+                ON im.DataSetId = li.DataSetId 
+                AND im.CreatedDate = li.LatestDate
+            WHERE im.IsActive = 1";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.QueryAsync<dynamic>(sql);
+            return result.Select(MapToInventoryMaster).ToList();
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetLatestActiveInventoryAsync));
+            throw;
+        }
+    }
 }

@@ -44,33 +44,8 @@ public class ImportWithCarryoverCommand
         
         try
         {
-            // 1. 前日の有効な在庫マスタを取得
-            var previousDate = targetDate.AddDays(-1);
-            var previousInventory = await _inventoryRepository.GetActiveByJobDateAsync(previousDate);
-            
-            // 前日在庫が存在しない場合、前月末在庫を探す
-            if (!previousInventory.Any())
-            {
-                _logger.LogInformation("前日の在庫が見つかりません。前月末在庫を検索します。");
-                
-                var lastMonthEnd = new DateTime(targetDate.Year, targetDate.Month, 1).AddDays(-1);
-                var initInventory = await _inventoryRepository.GetActiveInitInventoryAsync(lastMonthEnd);
-                
-                if (initInventory.Any())
-                {
-                    previousInventory = initInventory;
-                    _logger.LogInformation("前月末在庫 {Count}件を使用します", initInventory.Count);
-                }
-                else
-                {
-                    _logger.LogWarning("前月末在庫も見つかりません。新規在庫として処理します。");
-                    previousInventory = new List<InventoryMaster>();
-                }
-            }
-            else
-            {
-                _logger.LogInformation("前日在庫 {Count}件を引き継ぎます", previousInventory.Count);
-            }
+            // 1. 最新の有効な在庫データを取得（日付に依存しない）
+            var previousInventory = await GetLatestActiveInventoryAsync(targetDate);
             
             // 2. 当日の伝票データを取得
             var salesVouchers = await _salesVoucherRepository.GetByJobDateAsync(targetDate);
@@ -253,6 +228,46 @@ public class ImportWithCarryoverCommand
         }
         
         return keys;
+    }
+    
+    /// <summary>
+    /// 最新の有効な在庫データを取得（日付に依存しない）
+    /// </summary>
+    private async Task<List<InventoryMaster>> GetLatestActiveInventoryAsync(DateTime targetDate)
+    {
+        // 方法1: 前日の在庫を確認
+        var previousDate = targetDate.AddDays(-1);
+        var previousDayInventory = await _inventoryRepository.GetActiveByJobDateAsync(previousDate);
+        
+        if (previousDayInventory.Any())
+        {
+            _logger.LogInformation("前日（{Date:yyyy-MM-dd}）の在庫を使用: {Count}件", 
+                previousDate, previousDayInventory.Count);
+            return previousDayInventory;
+        }
+        
+        // 方法2: 最新のINIT（前月末在庫）データを取得
+        var initInventory = await _inventoryRepository.GetLatestInitInventoryAsync();
+        
+        if (initInventory.Any())
+        {
+            _logger.LogInformation("前月末在庫（DataSetId: {DataSetId}）を使用: {Count}件", 
+                initInventory.First().DataSetId, initInventory.Count);
+            return initInventory;
+        }
+        
+        // 方法3: 最新の有効な在庫データを取得（日付に関係なく）
+        var latestInventory = await _inventoryRepository.GetLatestActiveInventoryAsync();
+        
+        if (latestInventory.Any())
+        {
+            _logger.LogInformation("最新の在庫（JobDate: {Date:yyyy-MM-dd}, DataSetId: {DataSetId}）を使用: {Count}件", 
+                latestInventory.First().JobDate, latestInventory.First().DataSetId, latestInventory.Count);
+            return latestInventory;
+        }
+        
+        _logger.LogWarning("使用可能な在庫データが見つかりません。");
+        return new List<InventoryMaster>();
     }
 }
 

@@ -81,4 +81,14 @@ public interface IInventoryRepository
     /// 指定日付のデータを無効化
     /// </summary>
     Task DeactivateByJobDateAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// 最新のINIT（前月末在庫）データを取得
+    /// </summary>
+    Task<List<InventoryMaster>> GetLatestInitInventoryAsync();
+    
+    /// <summary>
+    /// 最新の有効な在庫データを取得（日付に関係なく）
+    /// </summary>
+    Task<List<InventoryMaster>> GetLatestActiveInventoryAsync();
 }
