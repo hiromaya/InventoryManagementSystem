@@ -292,7 +292,7 @@
         <div class="header">
             <h1>🏭 在庫管理システム</h1>
             <p>2025年6月データ シミュレーション手順書</p>
-            <p><strong>最終更新:</strong> 2025年7月11日 | <strong>対象:</strong> 開発・動作確認</p>
+            <p><strong>最終更新:</strong> 2025年7月11日 - unmatch-listコマンド更新 | <strong>対象:</strong> 開発・動作確認</p>
         </div>
 
         <div class="data-info">
@@ -316,6 +316,7 @@
                 <ul>
                     <li><strong>init-inventory</strong>コマンドの新設 - システム導入時の初期在庫設定専用</li>
                     <li><strong>import-folder</strong>コマンドの仕様変更 - 前月末在庫.csvを自動スキップ</li>
+                    <li><strong>unmatch-list</strong>コマンドの仕様変更 - 日付パラメータ削除（累積管理対応）</li>
                     <li>初期在庫と日次処理の明確な分離</li>
                 </ul>
             </div>
@@ -343,8 +344,8 @@
                         </tr>
                         <tr>
                             <td>日次処理（毎日）</td>
-                            <td><code>unmatch-list [日付]</code></td>
-                            <td>アンマッチリストと在庫マスタ更新</td>
+                            <td><code>unmatch-list</code></td>
+                            <td>アンマッチリストと在庫マスタ更新<br><small>※全期間対象の累積処理</small></td>
                         </tr>
                         <tr>
                             <td>日次処理（毎日）</td>
@@ -513,6 +514,8 @@
                 <br><br>
                 <strong>💡 注意:</strong> import-folderコマンドは前月末在庫.csvを自動的にスキップします。前月末在庫の設定は必ずinit-inventoryコマンドを使用してください。
                 <br><br>
+                <strong>🔵 重要な変更:</strong> unmatch-listコマンドは日付パラメータが不要になりました。全期間の伝票データを対象に累積管理を行います。
+                <br><br>
                 <strong>🔴 最重要:</strong> 各日の処理の最後に必ず<strong>dev-daily-close</strong>（日次終了処理）を実行してください。これにより当日在庫が翌日の前日在庫として繰り越されます。
                 <br><br>
                 <strong>📝 注意:</strong> 「データが存在しません」エラーが出た場合は、先にデータインポートを実行するか、<code>--skip-validation</code>オプションを使用してください。
@@ -548,8 +551,8 @@
 <span class="comment"># 6月1日の伝票データインポート（マスタファイルも同時にインポートされます）</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
 
-<span class="comment"># アンマッチリスト作成（在庫マスタ更新）</span>
-<span class="command-line">dotnet run unmatch-list 2025-06-01</span>
+<span class="comment"># アンマッチリスト作成（在庫マスタ更新）※全期間対象</span>
+<span class="command-line">dotnet run unmatch-list</span>
 
 <span class="comment"># 商品日報作成（通常版 - 7日以内の制限あり）</span>
 <span class="command-line">dotnet run daily-report 2025-06-01</span>
@@ -587,7 +590,7 @@
                     <div class="command-block">
 <span class="comment"># 6月2日の処理（開発環境）</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-02</span>
-<span class="command-line">dotnet run unmatch-list 2025-06-02</span>
+<span class="command-line">dotnet run unmatch-list</span>
 <span class="command-line">.\dev.ps1 dev-daily-report 2025-06-02</span>
 <span class="command-line">.\dev.ps1 dev-daily-close 2025-06-02</span>
                     </div>
@@ -598,7 +601,7 @@
                     <div class="command-block">
 <span class="comment"># 6月3日の処理（開発環境）</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-03</span>
-<span class="command-line">dotnet run unmatch-list 2025-06-03</span>
+<span class="command-line">dotnet run unmatch-list</span>
 <span class="command-line">.\dev.ps1 dev-daily-report 2025-06-03</span>
 <span class="command-line">.\dev.ps1 dev-daily-close 2025-06-03</span>
                     </div>
@@ -699,7 +702,7 @@
 <span class="command-line">    $date = "2025-06-$('{0:D2}' -f $i)"</span>
 <span class="command-line">    Write-Host "=== $date の処理開始 ===" -ForegroundColor Cyan</span>
 <span class="command-line">    dotnet run import-folder DeptA $date</span>
-<span class="command-line">    dotnet run unmatch-list $date</span>
+<span class="command-line">    dotnet run unmatch-list  <span class="comment"># 日付不要（全期間対象）</span></span>
 <span class="command-line">    .\dev.ps1 dev-daily-report $date  <span class="comment"># 開発用（日付制限なし）</span></span>
 <span class="command-line">    .\dev.ps1 dev-daily-close $date   <span class="comment"># 在庫繰り越し（重要）</span></span>
 <span class="command-line">    Write-Host "=== $date の処理完了 ===" -ForegroundColor Green</span>
@@ -819,7 +822,7 @@
 <span class="comment"># 対処法</span>
 <span class="command-line">dotnet run init-inventory DeptA</span>
 <span class="command-line">dotnet run check-data-status 2025-06-01</span>
-<span class="command-line">dotnet run unmatch-list 2025-06-01</span>
+<span class="command-line">dotnet run unmatch-list</span>
                 </div>
             </div>
 
@@ -830,7 +833,7 @@
 <span class="comment"># 対処法1: 前日の日次終了処理を実行</span>
 <span class="command-line">dotnet run dev-daily-close 2025-06-01  # 前日分を実行</span>
 <span class="comment"># その後、当日の処理を再実行</span>
-<span class="command-line">dotnet run unmatch-list 2025-06-02</span>
+<span class="command-line">dotnet run unmatch-list</span>
                 </div>
                 <div class="command-block">
 <span class="comment"># 対処法2: import-with-carryoverコマンドを使用（推奨）</span>
@@ -849,7 +852,7 @@
                 <div class="command-block">
 <span class="comment"># 対処法２: データがない場合は先にインポート</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
-<span class="command-line">dotnet run unmatch-list 2025-06-01</span>
+<span class="command-line">dotnet run unmatch-list</span>
 <span class="command-line">dotnet run daily-report 2025-06-01</span>
                 </div>
                 <div class="command-block">
