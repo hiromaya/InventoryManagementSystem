@@ -18,12 +18,12 @@ public class PreviousMonthInventoryImportService
     private readonly IInventoryRepository _inventoryRepository;
     private readonly ILogger<PreviousMonthInventoryImportService> _logger;
     private readonly string _importPath;
-    private readonly DataSetManagementRepository _dataSetRepository;
+    private readonly IDatasetManagementRepository _dataSetRepository;
 
     public PreviousMonthInventoryImportService(
         IInventoryRepository inventoryRepository,
         ILogger<PreviousMonthInventoryImportService> logger,
-        DataSetManagementRepository dataSetRepository)
+        IDatasetManagementRepository dataSetRepository)
     {
         _inventoryRepository = inventoryRepository;
         _logger = logger;
@@ -90,7 +90,7 @@ public class PreviousMonthInventoryImportService
             }
 
             // DataSetIdを生成
-            var dataSetId = DataSetManagement.GenerateDataSetId("INIT");
+            var dataSetId = DatasetManagement.GenerateDataSetId("INIT");
             _logger.LogInformation("DataSetId生成: {DataSetId}", dataSetId);
             
             // 前月末の日付を取得

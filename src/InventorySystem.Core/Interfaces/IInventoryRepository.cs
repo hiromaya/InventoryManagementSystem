@@ -61,4 +61,24 @@ public interface IInventoryRepository
     /// 指定されたキーで最新の在庫マスタを取得（全期間対象）
     /// </summary>
     Task<InventoryMaster?> GetLatestByKeyAsync(InventoryKey key);
+    
+    /// <summary>
+    /// 指定日付のアクティブな在庫マスタを取得
+    /// </summary>
+    Task<List<InventoryMaster>> GetActiveByJobDateAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// 指定日付のアクティブな初期在庫を取得
+    /// </summary>
+    Task<List<InventoryMaster>> GetActiveInitInventoryAsync(DateTime lastMonthEnd);
+    
+    /// <summary>
+    /// データセットIDを指定して無効化
+    /// </summary>
+    Task DeactivateDataSetAsync(string dataSetId);
+    
+    /// <summary>
+    /// 指定日付のデータを無効化
+    /// </summary>
+    Task DeactivateByJobDateAsync(DateTime jobDate);
 }

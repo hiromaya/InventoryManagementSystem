@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Data.Repositories;
-using InventorySystem.Data.Repositories.Vouchers;
 
 namespace InventorySystem.Console.Commands;
 
@@ -15,7 +14,7 @@ public class ImportWithCarryoverCommand
     private readonly ISalesVoucherRepository _salesVoucherRepository;
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _adjustmentRepository;
-    private readonly DataSetManagementRepository _dataSetRepository;
+    private readonly IDatasetManagementRepository _dataSetRepository;
     private readonly ILogger<ImportWithCarryoverCommand> _logger;
 
     public ImportWithCarryoverCommand(
@@ -23,7 +22,7 @@ public class ImportWithCarryoverCommand
         ISalesVoucherRepository salesVoucherRepository,
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository adjustmentRepository,
-        DataSetManagementRepository dataSetRepository,
+        IDatasetManagementRepository dataSetRepository,
         ILogger<ImportWithCarryoverCommand> logger)
     {
         _inventoryRepository = inventoryRepository;
@@ -36,7 +35,7 @@ public class ImportWithCarryoverCommand
 
     public async Task ExecuteAsync(string department, DateTime targetDate)
     {
-        var dataSetId = DataSetManagement.GenerateDataSetId("CARRYOVER");
+        var dataSetId = DatasetManagement.GenerateDataSetId("CARRYOVER");
         
         _logger.LogInformation("===== 在庫引継インポート開始 =====");
         _logger.LogInformation("部門: {Department}", department);
@@ -129,7 +128,7 @@ public class ImportWithCarryoverCommand
                     inventory.CurrentStockAmount = prevInv.CurrentStockAmount;
                     inventory.DailyStock = prevInv.CurrentStock;
                     inventory.DailyStockAmount = prevInv.CurrentStockAmount;
-                    inventory.UnitPrice = prevInv.StandardPrice;
+                    inventory.StandardPrice = prevInv.StandardPrice;
                     inventory.ParentDataSetId = prevInv.DataSetId;
                     inventory.ProductName = prevInv.ProductName;
                     inventory.Unit = prevInv.Unit;
@@ -146,7 +145,6 @@ public class ImportWithCarryoverCommand
                     inventory.CurrentStockAmount = 0;
                     inventory.DailyStock = 0;
                     inventory.DailyStockAmount = 0;
-                    inventory.UnitPrice = 0;
                     inventory.StandardPrice = 0;
                     inventory.ProductName = "商品名未設定";
                     inventory.Unit = "PCS";
@@ -170,15 +168,17 @@ public class ImportWithCarryoverCommand
             }
             
             // 8. DataSet管理テーブルに記録
-            await _dataSetRepository.RegisterDataSetAsync(new DataSetManagement
+            await _dataSetRepository.CreateAsync(new DatasetManagement
             {
-                DataSetId = dataSetId,
+                DatasetId = dataSetId,
                 JobDate = targetDate,
+                ProcessType = "CARRYOVER",
                 ImportType = "CARRYOVER",
                 RecordCount = inventoryList.Count,
                 ParentDataSetId = previousInventory.FirstOrDefault()?.DataSetId,
                 IsActive = true,
                 CreatedAt = DateTime.Now,
+                CreatedBy = "System",
                 Notes = $"前日在庫引継: {inheritedCount}件, 新規: {newCount}件"
             });
             

@@ -26,4 +26,14 @@ public interface IDatasetManagementRepository
     /// 指定日付のデータセット一覧を取得
     /// </summary>
     Task<IEnumerable<DatasetManagement>> GetByJobDateAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// JobDateで有効なデータセットを取得
+    /// </summary>
+    Task<DatasetManagement?> GetActiveByJobDateAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// データセットを無効化
+    /// </summary>
+    Task<int> DeactivateDataSetAsync(string dataSetId, string? deactivatedBy = null);
 }

@@ -27,6 +27,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using InventorySystem.Data.Services;
 using InventorySystem.Data.Services.Development;
+using InventorySystem.Console.Commands;
 
 // Program クラスの定義
 public class Program
@@ -213,7 +214,6 @@ builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
 builder.Services.AddScoped<InventoryAdjustmentImportService>();
 builder.Services.AddScoped<PreviousMonthInventoryImportService>();
-builder.Services.AddScoped<DataSetManagementRepository>();
 builder.Services.AddScoped<ImportWithCarryoverCommand>();
 
 // 在庫マスタ最適化サービス

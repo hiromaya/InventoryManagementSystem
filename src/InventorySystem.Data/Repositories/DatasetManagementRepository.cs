@@ -21,9 +21,11 @@ public class DatasetManagementRepository : BaseRepository, IDatasetManagementRep
     {
         const string sql = @"
             INSERT INTO DatasetManagement (
-                DatasetId, JobDate, ProcessType, ImportedFiles, CreatedAt, CreatedBy
+                DatasetId, JobDate, ProcessType, ImportType, RecordCount, IsActive, IsArchived,
+                ParentDataSetId, ImportedFiles, CreatedAt, CreatedBy, Notes
             ) VALUES (
-                @DatasetId, @JobDate, @ProcessType, @ImportedFiles, @CreatedAt, @CreatedBy
+                @DatasetId, @JobDate, @ProcessType, @ImportType, @RecordCount, @IsActive, @IsArchived,
+                @ParentDataSetId, @ImportedFiles, @CreatedAt, @CreatedBy, @Notes
             )";
         
         try
@@ -105,6 +107,52 @@ public class DatasetManagementRepository : BaseRepository, IDatasetManagementRep
         catch (Exception ex)
         {
             _logger.LogError(ex, "データセット一覧取得エラー: JobDate={JobDate}", jobDate);
+            throw;
+        }
+    }
+    
+    /// <inheritdoc/>
+    public async Task<DatasetManagement?> GetActiveByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            SELECT TOP 1 *
+            FROM DatasetManagement
+            WHERE JobDate = @JobDate AND IsActive = 1
+            ORDER BY CreatedAt DESC";
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<DatasetManagement>(sql, new { JobDate = jobDate });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "アクティブデータセット取得エラー: JobDate={JobDate}", jobDate);
+            throw;
+        }
+    }
+    
+    /// <inheritdoc/>
+    public async Task<int> DeactivateDataSetAsync(string dataSetId, string? deactivatedBy = null)
+    {
+        const string sql = @"
+            UPDATE DatasetManagement
+            SET IsActive = 0, 
+                DeactivatedAt = GETDATE(),
+                DeactivatedBy = @DeactivatedBy
+            WHERE DatasetId = @DataSetId";
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var result = await connection.ExecuteAsync(sql, new { DataSetId = dataSetId, DeactivatedBy = deactivatedBy });
+            
+            _logger.LogInformation("データセット無効化完了: DatasetId={DatasetId}", dataSetId);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "データセット無効化エラー: DatasetId={DatasetId}", dataSetId);
             throw;
         }
     }
