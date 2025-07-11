@@ -59,17 +59,20 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
     /// <summary>
     /// アンマッチリスト処理を実行（誤操作防止機能対応）
     /// </summary>
-    public async Task<UnmatchListResult> ProcessUnmatchListAsync(DateTime jobDate)
+    public async Task<UnmatchListResult> ProcessUnmatchListAsync()
     {
         ProcessContext? context = null;
         var stopwatch = Stopwatch.StartNew();
         
         try
         {
+            // 在庫マスタから最新JobDateを取得
+            var jobDate = await _inventoryRepository.GetMaxJobDateAsync();
+            
             // 処理初期化（日付検証、データセット登録、履歴開始）
             context = await InitializeProcess(jobDate, "UNMATCH_CHECK");
             
-            _logger.LogInformation("アンマッチリスト処理開始 - ジョブ日付: {JobDate}, データセットID: {DataSetId}", 
+            _logger.LogInformation("アンマッチリスト処理開始 - 最新JobDate: {JobDate}, データセットID: {DataSetId}", 
                 jobDate, context.DatasetId);
 
             // 処理1-1: CP在庫M作成（全期間対象）
@@ -95,9 +98,9 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
             await _cpInventoryRepository.SetDailyFlagToProcessedAsync(context.DatasetId);
             _logger.LogInformation("当日在庫計算完了");
 
-            // 処理1-6: アンマッチリスト生成
-            _logger.LogInformation("アンマッチリスト生成開始");
-            var unmatchItems = await GenerateUnmatchListAsync(context.DatasetId, jobDate);
+            // 処理1-6: アンマッチリスト生成（全期間対象）
+            _logger.LogInformation("アンマッチリスト生成開始（全期間）");
+            var unmatchItems = await GenerateUnmatchListAsync(context.DatasetId);
             var unmatchList = unmatchItems.ToList();
             _logger.LogInformation("アンマッチリスト生成完了 - アンマッチ件数: {Count}", unmatchList.Count);
 
@@ -155,20 +158,20 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
     }
 
     // 以下、既存のUnmatchListServiceから必要なメソッドをコピー
-    public async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId, DateTime jobDate)
+    public async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId)
     {
         var unmatchItems = new List<UnmatchItem>();
 
-        // 売上伝票のアンマッチチェック
-        var salesUnmatches = await CheckSalesUnmatchAsync(dataSetId, jobDate);
+        // 売上伝票のアンマッチチェック（全期間）
+        var salesUnmatches = await CheckSalesUnmatchAsync(dataSetId);
         unmatchItems.AddRange(salesUnmatches);
 
-        // 仕入伝票のアンマッチチェック
-        var purchaseUnmatches = await CheckPurchaseUnmatchAsync(dataSetId, jobDate);
+        // 仕入伝票のアンマッチチェック（全期間）
+        var purchaseUnmatches = await CheckPurchaseUnmatchAsync(dataSetId);
         unmatchItems.AddRange(purchaseUnmatches);
 
-        // 在庫調整のアンマッチチェック
-        var adjustmentUnmatches = await CheckInventoryAdjustmentUnmatchAsync(dataSetId, jobDate);
+        // 在庫調整のアンマッチチェック（全期間）
+        var adjustmentUnmatches = await CheckInventoryAdjustmentUnmatchAsync(dataSetId);
         unmatchItems.AddRange(adjustmentUnmatches);
 
         // マスタデータで名前を補完
@@ -189,7 +192,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
             .ThenBy(x => x.Key.ClassCode);
     }
 
-    private async Task<IEnumerable<UnmatchItem>> CheckSalesUnmatchAsync(string dataSetId, DateTime jobDate)
+    private async Task<IEnumerable<UnmatchItem>> CheckSalesUnmatchAsync(string dataSetId)
     {
         var unmatchItems = new List<UnmatchItem>();
 
@@ -223,7 +226,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
             {
                 // 該当無エラー - 商品分類1を取得
                 var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
-                    sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode, jobDate);
+                    sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", productCategory1);
                 unmatchItem.AlertType2 = "該当無";
@@ -241,7 +244,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
         return unmatchItems;
     }
 
-    private async Task<IEnumerable<UnmatchItem>> CheckPurchaseUnmatchAsync(string dataSetId, DateTime jobDate)
+    private async Task<IEnumerable<UnmatchItem>> CheckPurchaseUnmatchAsync(string dataSetId)
     {
         var unmatchItems = new List<UnmatchItem>();
 
@@ -271,7 +274,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
             {
                 // 該当無エラー - 商品分類1を取得
                 var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
-                    purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode, jobDate);
+                    purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "", productCategory1);
                 unmatchItem.AlertType2 = "該当無";
@@ -290,7 +293,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
     }
 
     private async Task<string> GetProductCategory1FromInventoryMasterAsync(
-        string productCode, string gradeCode, string classCode, string shippingMarkCode, DateTime jobDate)
+        string productCode, string gradeCode, string classCode, string shippingMarkCode)
     {
         var inventoryKey = new InventoryKey
         {
@@ -306,7 +309,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
         return inventory?.ProductCategory1 ?? string.Empty;
     }
 
-    private async Task<IEnumerable<UnmatchItem>> CheckInventoryAdjustmentUnmatchAsync(string dataSetId, DateTime jobDate)
+    private async Task<IEnumerable<UnmatchItem>> CheckInventoryAdjustmentUnmatchAsync(string dataSetId)
     {
         var unmatchItems = new List<UnmatchItem>();
 
@@ -339,7 +342,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
                 // 該当無エラー - 商品分類1を取得
                 var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
                     adjustment.ProductCode, adjustment.GradeCode, adjustment.ClassCode, 
-                    adjustment.ShippingMarkCode, jobDate);
+                    adjustment.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromInventoryAdjustment(adjustment, "", productCategory1);
                 unmatchItem.AlertType2 = "該当無";

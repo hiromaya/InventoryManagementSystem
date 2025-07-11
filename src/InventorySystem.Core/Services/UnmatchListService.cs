@@ -47,19 +47,21 @@ public class UnmatchListService : IUnmatchListService
         _logger = logger;
     }
 
-    public async Task<UnmatchListResult> ProcessUnmatchListAsync(DateTime jobDate)
+    public async Task<UnmatchListResult> ProcessUnmatchListAsync()
     {
         var stopwatch = Stopwatch.StartNew();
         var dataSetId = Guid.NewGuid().ToString();
         
         try
         {
-            _logger.LogInformation("アンマッチリスト処理開始 - ジョブ日付: {JobDate}, データセットID: {DataSetId}", 
-                jobDate, dataSetId);
+            // 在庫マスタから最新JobDateを取得（表示用）
+            var latestJobDate = await _inventoryRepository.GetMaxJobDateAsync();
+            _logger.LogInformation("アンマッチリスト処理開始 - 最新JobDate: {JobDate}, データセットID: {DataSetId}", 
+                latestJobDate, dataSetId);
 
-            // 在庫マスタ最適化処理
-            _logger.LogInformation("在庫マスタの最適化を開始します");
-            await OptimizeInventoryMasterAsync(jobDate, dataSetId);
+            // 在庫マスタ最適化処理（全期間対象）
+            _logger.LogInformation("在庫マスタの最適化を開始します（全期間）");
+            await OptimizeInventoryMasterAsync(dataSetId);
             _logger.LogInformation("在庫マスタの最適化が完了しました");
 
             // CP在庫マスタの削除を保留（日次終了処理まで保持）
@@ -74,16 +76,13 @@ public class UnmatchListService : IUnmatchListService
             _logger.LogInformation("CP在庫マスタから{Count}件のレコードを削除しました", deletedCount);
             */
 
-            // 処理1-1: CP在庫M作成
-            _logger.LogInformation("CP在庫マスタ作成開始");
-            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, jobDate);
+            // 処理1-1: CP在庫M作成（全期間の在庫マスタから）
+            _logger.LogInformation("CP在庫マスタ作成開始（全期間）");
+            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, null);
             _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
 
-            // 新規追加：前日在庫の引き継ぎ処理
-            _logger.LogInformation("前日在庫の引き継ぎ開始");
-            var previousDate = jobDate.AddDays(-1);
-            var inheritResult = await _cpInventoryRepository.InheritPreviousDayStockAsync(dataSetId, jobDate, previousDate);
-            _logger.LogInformation("前日在庫を引き継ぎました - 更新件数: {Count}", inheritResult);
+            // 前日在庫の引き継ぎ処理は不要（全期間対象のため）
+            _logger.LogInformation("全期間対象のため、前日在庫引き継ぎ処理はスキップします");
 
             // 処理1-2: 当日エリアクリア
             _logger.LogInformation("当日エリアクリア開始");
@@ -99,15 +98,13 @@ public class UnmatchListService : IUnmatchListService
                 _logger.LogInformation("文字化けデータ{Count}件を修復しました。", repairCount);
             }
 
-            // 当日データ集計と検証
-            _logger.LogInformation("当日データ集計開始");
-            await AggregateDailyDataWithValidationAsync(dataSetId, jobDate);
-            _logger.LogInformation("当日データ集計完了");
+            // 全期間データ集計と検証
+            _logger.LogInformation("全期間データ集計開始");
+            await AggregateDailyDataWithValidationAsync(dataSetId);
+            _logger.LogInformation("全期間データ集計完了");
             
-            // 月計データを集計
-            _logger.LogInformation("月計データ集計開始");
-            await AggregateMonthlyDataAsync(jobDate);
-            _logger.LogInformation("月計データ集計完了");
+            // 月計データ集計はスキップ（全期間対象のため）
+            _logger.LogInformation("全期間対象のため、月計データ集計はスキップします");
 
             // 集計結果の検証
             var aggregationResult = await ValidateAggregationResultAsync(dataSetId);
@@ -119,9 +116,9 @@ public class UnmatchListService : IUnmatchListService
                 _logger.LogWarning("未集計のレコードが{Count}件存在します", aggregationResult.NotAggregatedCount);
             }
 
-            // 処理1-6: アンマッチリスト生成
-            _logger.LogInformation("アンマッチリスト生成開始");
-            var unmatchItems = await GenerateUnmatchListAsync(dataSetId, jobDate);
+            // 処理1-6: アンマッチリスト生成（全期間対象）
+            _logger.LogInformation("アンマッチリスト生成開始（全期間）");
+            var unmatchItems = await GenerateUnmatchListAsync(dataSetId);
             var unmatchList = unmatchItems.ToList();
             _logger.LogInformation("アンマッチリスト生成完了 - アンマッチ件数: {Count}", unmatchList.Count);
 
@@ -184,20 +181,20 @@ public class UnmatchListService : IUnmatchListService
         }
     }
 
-    public async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId, DateTime jobDate)
+    public async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId)
     {
         var unmatchItems = new List<UnmatchItem>();
 
-        // 売上伝票のアンマッチチェック
-        var salesUnmatches = await CheckSalesUnmatchAsync(dataSetId, jobDate);
+        // 売上伝票のアンマッチチェック（全期間）
+        var salesUnmatches = await CheckSalesUnmatchAsync(dataSetId);
         unmatchItems.AddRange(salesUnmatches);
 
-        // 仕入伝票のアンマッチチェック
-        var purchaseUnmatches = await CheckPurchaseUnmatchAsync(dataSetId, jobDate);
+        // 仕入伝票のアンマッチチェック（全期間）
+        var purchaseUnmatches = await CheckPurchaseUnmatchAsync(dataSetId);
         unmatchItems.AddRange(purchaseUnmatches);
 
-        // 在庫調整のアンマッチチェック
-        var adjustmentUnmatches = await CheckInventoryAdjustmentUnmatchAsync(dataSetId, jobDate);
+        // 在庫調整のアンマッチチェック（全期間）
+        var adjustmentUnmatches = await CheckInventoryAdjustmentUnmatchAsync(dataSetId);
         unmatchItems.AddRange(adjustmentUnmatches);
 
         // マスタデータで名前を補完
@@ -218,12 +215,12 @@ public class UnmatchListService : IUnmatchListService
             .ThenBy(x => x.Key.ClassCode);
     }
 
-    private async Task<IEnumerable<UnmatchItem>> CheckSalesUnmatchAsync(string dataSetId, DateTime jobDate)
+    private async Task<IEnumerable<UnmatchItem>> CheckSalesUnmatchAsync(string dataSetId)
     {
         var unmatchItems = new List<UnmatchItem>();
 
-        // 売上伝票取得
-        var salesVouchers = await _salesVoucherRepository.GetByJobDateAsync(jobDate);
+        // 売上伝票取得（全期間）
+        var salesVouchers = await _salesVoucherRepository.GetAllAsync();
         _logger.LogDebug("売上伝票取得: 総件数={TotalCount}", salesVouchers.Count());
         
         var salesList = salesVouchers
@@ -259,7 +256,7 @@ public class UnmatchListService : IUnmatchListService
             {
                 // 該当無エラー - 商品分類1を取得
                 var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
-                    sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode, jobDate);
+                    sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", productCategory1);
                 unmatchItem.AlertType2 = "該当無";
@@ -281,12 +278,12 @@ public class UnmatchListService : IUnmatchListService
         return unmatchItems;
     }
 
-    private async Task<IEnumerable<UnmatchItem>> CheckPurchaseUnmatchAsync(string dataSetId, DateTime jobDate)
+    private async Task<IEnumerable<UnmatchItem>> CheckPurchaseUnmatchAsync(string dataSetId)
     {
         var unmatchItems = new List<UnmatchItem>();
 
-        // 仕入伝票取得
-        var purchaseVouchers = await _purchaseVoucherRepository.GetByJobDateAsync(jobDate);
+        // 仕入伝票取得（全期間）
+        var purchaseVouchers = await _purchaseVoucherRepository.GetAllAsync();
         var purchaseList = purchaseVouchers
             .Where(p => p.VoucherType == "11" || p.VoucherType == "12") // 仕入伝票
             .Where(p => p.DetailType == "1" || p.DetailType == "2")     // 明細種
@@ -311,7 +308,7 @@ public class UnmatchListService : IUnmatchListService
             {
                 // 該当無エラー - 商品分類1を取得
                 var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
-                    purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode, jobDate);
+                    purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "", productCategory1);
                 unmatchItem.AlertType2 = "該当無";
@@ -330,7 +327,7 @@ public class UnmatchListService : IUnmatchListService
     }
 
     private async Task<string> GetProductCategory1FromInventoryMasterAsync(
-        string productCode, string gradeCode, string classCode, string shippingMarkCode, DateTime jobDate)
+        string productCode, string gradeCode, string classCode, string shippingMarkCode)
     {
         // 商品コードだけでなく、全てのキー項目で在庫マスタを検索
         var inventoryKey = new InventoryKey
@@ -342,7 +339,7 @@ public class UnmatchListService : IUnmatchListService
             ShippingMarkName = string.Empty // 荷印名は検索キーに含めない
         };
 
-        var inventory = await _inventoryRepository.GetByKeyAsync(inventoryKey, jobDate);
+        var inventory = await _inventoryRepository.GetLatestByKeyAsync(inventoryKey);
         
         if (inventory != null)
         {
@@ -357,7 +354,7 @@ public class UnmatchListService : IUnmatchListService
     {
         // 非同期メソッドを同期的に呼び出す（理想的ではないが、既存のインターフェースを維持するため）
         var task = GetProductCategory1FromInventoryMasterAsync(
-            sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode, sales.JobDate);
+            sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode);
         task.Wait();
         return task.Result;
     }
@@ -366,7 +363,7 @@ public class UnmatchListService : IUnmatchListService
     {
         // 非同期メソッドを同期的に呼び出す（理想的ではないが、既存のインターフェースを維持するため）
         var task = GetProductCategory1FromInventoryMasterAsync(
-            purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode, purchase.JobDate);
+            purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode);
         task.Wait();
         return task.Result;
     }
@@ -385,12 +382,12 @@ public class UnmatchListService : IUnmatchListService
         return className ?? $"階{classCode}";
     }
 
-    private async Task<IEnumerable<UnmatchItem>> CheckInventoryAdjustmentUnmatchAsync(string dataSetId, DateTime jobDate)
+    private async Task<IEnumerable<UnmatchItem>> CheckInventoryAdjustmentUnmatchAsync(string dataSetId)
     {
         var unmatchItems = new List<UnmatchItem>();
 
-        // 在庫調整伝票取得
-        var adjustments = await _inventoryAdjustmentRepository.GetByJobDateAsync(jobDate);
+        // 在庫調整伝票取得（全期間）
+        var adjustments = await _inventoryAdjustmentRepository.GetAllAsync();
         var adjustmentList = adjustments
             .Where(a => a.VoucherType == "71" || a.VoucherType == "72")  // 在庫調整伝票
             .Where(a => a.DetailType == "1")                             // 明細種
@@ -418,7 +415,7 @@ public class UnmatchListService : IUnmatchListService
                 // 該当無エラー - 商品分類1を取得
                 var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
                     adjustment.ProductCode, adjustment.GradeCode, adjustment.ClassCode, 
-                    adjustment.ShippingMarkCode, jobDate);
+                    adjustment.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromInventoryAdjustment(adjustment, "", productCategory1);
                 unmatchItem.AlertType2 = "該当無";
@@ -441,7 +438,7 @@ public class UnmatchListService : IUnmatchListService
         // 非同期メソッドを同期的に呼び出す（理想的ではないが、既存のインターフェースを維持するため）
         var task = GetProductCategory1FromInventoryMasterAsync(
             adjustment.ProductCode, adjustment.GradeCode, adjustment.ClassCode, 
-            adjustment.ShippingMarkCode, adjustment.JobDate);
+            adjustment.ShippingMarkCode);
         task.Wait();
         return task.Result;
     }
@@ -528,17 +525,19 @@ public class UnmatchListService : IUnmatchListService
     /// <summary>
     /// 在庫マスタ最適化処理（累積管理対応版）
     /// </summary>
-    private async Task OptimizeInventoryMasterAsync(DateTime jobDate, string dataSetId)
+    private async Task OptimizeInventoryMasterAsync(string dataSetId)
     {
         try
         {
-            _logger.LogInformation("=== 在庫マスタ最適化処理開始（累積管理版） ===");
-            _logger.LogInformation("対象日付: {JobDate:yyyy-MM-dd}", jobDate);
+            _logger.LogInformation("=== 在庫マスタ最適化処理開始（累積管理版・全期間） ===");
             
-            // 売上・仕入・在庫調整伝票の商品数を確認
-            var salesProducts = await _salesVoucherRepository.GetByJobDateAsync(jobDate);
-            var purchaseProducts = await _purchaseVoucherRepository.GetByJobDateAsync(jobDate);
-            var adjustmentProducts = await _inventoryAdjustmentRepository.GetByJobDateAsync(jobDate);
+            // 最新のJobDateを取得（表示用）
+            var latestJobDate = await _inventoryRepository.GetMaxJobDateAsync();
+            
+            // 全期間の売上・仕入・在庫調整伝票の商品数を確認
+            var salesProducts = await _salesVoucherRepository.GetAllAsync();
+            var purchaseProducts = await _purchaseVoucherRepository.GetAllAsync();
+            var adjustmentProducts = await _inventoryAdjustmentRepository.GetAllAsync();
             
             // 5項目での商品種類を正確にカウント
             var salesUniqueProducts = salesProducts
@@ -579,7 +578,7 @@ public class UnmatchListService : IUnmatchListService
             int processedCount = 0;
             try
             {
-                processedCount = await _inventoryRepository.UpdateOrCreateFromVouchersAsync(jobDate, dataSetId);
+                processedCount = await _inventoryRepository.UpdateOrCreateFromVouchersAsync(latestJobDate, dataSetId);
                 _logger.LogInformation("在庫マスタの更新または作成完了: {Count}件", processedCount);
             }
             catch (Exception ex)
@@ -589,8 +588,8 @@ public class UnmatchListService : IUnmatchListService
             }
             
             // 処理後の状態確認（累積管理では全体数を確認）
-            var currentInventoryCount = await _inventoryRepository.GetCountByJobDateAsync(jobDate);
-            _logger.LogInformation("現在の在庫マスタ総件数（JobDate={JobDate}）: {Count}", jobDate, currentInventoryCount);
+            var currentInventoryCount = await _inventoryRepository.GetCountByJobDateAsync(latestJobDate);
+            _logger.LogInformation("現在の在庫マスタ総件数（JobDate={JobDate}）: {Count}", latestJobDate, currentInventoryCount);
             
             // 結果の検証
             var allUniqueProducts = salesUniqueProducts
@@ -624,21 +623,21 @@ public class UnmatchListService : IUnmatchListService
     /// <summary>
     /// 当日データ集計と検証処理
     /// </summary>
-    private async Task AggregateDailyDataWithValidationAsync(string dataSetId, DateTime jobDate)
+    private async Task AggregateDailyDataWithValidationAsync(string dataSetId)
     {
         try
         {
-            // 1. 仕入データの集計
-            var purchaseCount = await _cpInventoryRepository.AggregatePurchaseDataAsync(dataSetId, jobDate);
-            _logger.LogInformation("仕入データを集計しました。更新件数: {Count}件", purchaseCount);
+            // 1. 仕入データの集計（全期間）
+            var purchaseCount = await _cpInventoryRepository.AggregatePurchaseDataAsync(dataSetId, null);
+            _logger.LogInformation("仕入データを集計しました（全期間）。更新件数: {Count}件", purchaseCount);
             
-            // 2. 売上データの集計
-            var salesCount = await _cpInventoryRepository.AggregateSalesDataAsync(dataSetId, jobDate);
-            _logger.LogInformation("売上データを集計しました。更新件数: {Count}件", salesCount);
+            // 2. 売上データの集計（全期間）
+            var salesCount = await _cpInventoryRepository.AggregateSalesDataAsync(dataSetId, null);
+            _logger.LogInformation("売上データを集計しました（全期間）。更新件数: {Count}件", salesCount);
             
-            // 3. 在庫調整データの集計
-            var adjustmentCount = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, jobDate);
-            _logger.LogInformation("在庫調整データを集計しました。更新件数: {Count}件", adjustmentCount);
+            // 3. 在庫調整データの集計（全期間）
+            var adjustmentCount = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, null);
+            _logger.LogInformation("在庫調整データを集計しました（全期間）。更新件数: {Count}件", adjustmentCount);
             
             // 4. 当日在庫計算
             var calculatedCount = await _cpInventoryRepository.CalculateDailyStockAsync(dataSetId);

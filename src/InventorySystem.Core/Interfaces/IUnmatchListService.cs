@@ -5,14 +5,14 @@ namespace InventorySystem.Core.Interfaces;
 public interface IUnmatchListService
 {
     /// <summary>
-    /// アンマッチリスト処理を実行する
+    /// アンマッチリスト処理を実行する（全期間対象）
     /// </summary>
-    Task<UnmatchListResult> ProcessUnmatchListAsync(DateTime jobDate);
+    Task<UnmatchListResult> ProcessUnmatchListAsync();
     
     /// <summary>
-    /// アンマッチリストを生成する
+    /// アンマッチリストを生成する（全期間対象）
     /// </summary>
-    Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId, DateTime jobDate);
+    Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId);
 }
 
 public class UnmatchListResult

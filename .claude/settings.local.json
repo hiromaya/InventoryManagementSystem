@@ -37,7 +37,8 @@
       "Bash(docker exec:*)",
       "Bash(rg:*)",
       "Bash(mv:*)",
-      "Bash(gemini:*)"
+      "Bash(gemini:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

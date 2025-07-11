@@ -465,27 +465,27 @@ try
         var unmatchListService = scopedServices.GetRequiredService<IUnmatchListService>();
         var reportService = scopedServices.GetRequiredService<IUnmatchListReportService>();
         var fileManagementService = scopedServices.GetRequiredService<IFileManagementService>();
+        var inventoryRepository = scopedServices.GetRequiredService<IInventoryRepository>();
         
-        // ジョブ日付を取得（引数から、またはデフォルト値）
-        DateTime jobDate;
-        if (args.Length >= 3 && DateTime.TryParse(args[2], out jobDate))
+        // 部門指定（オプション）
+        string? department = null;
+        if (args.Length >= 3)
         {
-            logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
-        }
-        else
-        {
-            jobDate = DateTime.Today;
-            logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+            department = args[2];
+            logger.LogInformation("指定された部門: {Department}", department);
         }
         
         var stopwatch = Stopwatch.StartNew();
         
         Console.WriteLine("=== アンマッチリスト処理開始 ===");
-        Console.WriteLine($"ジョブ日付: {jobDate:yyyy-MM-dd}");
+        
+        // 在庫マスタから最新JobDateを取得（表示用）
+        var latestJobDate = await inventoryRepository.GetMaxJobDateAsync();
+        Console.WriteLine($"在庫マスタ最新JobDate: {latestJobDate:yyyy-MM-dd}");
         Console.WriteLine();
         
-        // アンマッチリスト処理実行
-    var result = await unmatchListService.ProcessUnmatchListAsync(jobDate);
+        // アンマッチリスト処理実行（日付パラメータなし）
+    var result = await unmatchListService.ProcessUnmatchListAsync();
     
     stopwatch.Stop();
     
@@ -527,12 +527,12 @@ try
             // ===== サービス診断情報 終了 =====
             
             Console.WriteLine("PDF生成中...");
-            var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, jobDate);
+            var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, latestJobDate);
             
             if (pdfBytes != null && pdfBytes.Length > 0)
             {
                 // FileManagementServiceを使用してレポートパスを取得
-                var pdfPath = await fileManagementService.GetReportOutputPathAsync("UnmatchList", jobDate, "pdf");
+                var pdfPath = await fileManagementService.GetReportOutputPathAsync("UnmatchList", latestJobDate, "pdf");
                 
                 await File.WriteAllBytesAsync(pdfPath, pdfBytes);
                 
@@ -2570,7 +2570,7 @@ private static async Task ExecuteUnmatchListAfterImport(IServiceProvider service
         var fileManagementService = services.GetRequiredService<IFileManagementService>();
         
         // アンマッチリスト処理実行
-        var result = await unmatchListService.ProcessUnmatchListAsync(jobDate);
+        var result = await unmatchListService.ProcessUnmatchListAsync();
         
         if (result.Success)
         {

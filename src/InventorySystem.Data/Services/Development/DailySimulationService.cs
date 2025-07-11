@@ -267,7 +267,7 @@ public class DailySimulationService : IDailySimulationService
             if (!isDryRun)
             {
                 // アンマッチリスト作成
-                var unmatchResult = await _unmatchListService.ProcessUnmatchListAsync(jobDate);
+                var unmatchResult = await _unmatchListService.ProcessUnmatchListAsync();
                 
                 result.Success = unmatchResult.Success;
                 result.Message = $"アンマッチリストを作成しました（件数: {unmatchResult.UnmatchCount}件）";
