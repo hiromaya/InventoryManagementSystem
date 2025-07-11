@@ -53,7 +53,29 @@ public class ImportWithCarryoverCommand
             _logger.LogInformation("DataSetId: {DataSetId}", dataSetId);
             
             // 4. 現在の在庫マスタ全データを取得（最新の有効データ）
-            var currentInventory = await _inventoryRepository.GetAllActiveInventoryAsync();
+            List<InventoryMaster> currentInventory;
+            
+            // 最終処理日が基準日（2025-05-31）の場合、INITデータを検索
+            if (lastProcessedDate == new DateTime(2025, 5, 31))
+            {
+                _logger.LogInformation("初回処理のため、前月末在庫（ImportType='INIT'）を検索します。");
+                currentInventory = (await _inventoryRepository.GetByImportTypeAsync("INIT"))
+                    .Where(x => x.IsActive)
+                    .ToList();
+                    
+                if (!currentInventory.Any())
+                {
+                    _logger.LogWarning("前月末在庫が見つかりません。init-inventoryコマンドを先に実行してください。");
+                    System.Console.WriteLine("❌ 前月末在庫が見つかりません。init-inventoryコマンドを先に実行してください。");
+                    return;
+                }
+            }
+            else
+            {
+                // 通常処理：全有効在庫データを取得
+                currentInventory = await _inventoryRepository.GetAllActiveInventoryAsync();
+            }
+            
             _logger.LogInformation("現在の在庫マスタ: {Count}件", currentInventory.Count);
             
             // 5. 処理対象日の伝票データを取得
@@ -76,27 +98,32 @@ public class ImportWithCarryoverCommand
             
             _logger.LogInformation("計算後の在庫: {Count}件", mergedInventory.Count);
             
-            // 7. MERGE処理で保存（既存は更新、新規は挿入）
-            var affectedRows = await _inventoryRepository.MergeInventoryAsync(mergedInventory, targetDate, dataSetId);
-            
-            // 8. DataSetManagementに記録
-            await _dataSetRepository.CreateAsync(new DatasetManagement
+            // 7. DatasetManagementエンティティを作成
+            var datasetManagement = new DatasetManagement
             {
                 DatasetId = dataSetId,
                 JobDate = targetDate,
                 ProcessType = "CARRYOVER",
                 ImportType = "CARRYOVER",
-                RecordCount = affectedRows,
-                TotalRecordCount = affectedRows,  // 追加
+                RecordCount = mergedInventory.Count,
+                TotalRecordCount = mergedInventory.Count,
                 ParentDataSetId = currentInventory.FirstOrDefault()?.DataSetId,
                 IsActive = true,
-                IsArchived = false,  // 追加
+                IsArchived = false,
                 CreatedAt = DateTime.Now,
                 CreatedBy = "System",
-                Department = department,  // 追加
-                ImportedFiles = null,  // 追加（引継ぎの場合はファイルがないため）
-                Notes = $"前日在庫引継: {currentInventory.Count}件, 処理結果: {affectedRows}件"
-            });
+                Department = department,
+                ImportedFiles = null,  // 引継ぎの場合はファイルがないため
+                Notes = $"前日在庫引継: {currentInventory.Count}件"
+            };
+            
+            // 8. トランザクション内でMERGE処理とDatasetManagement登録を実行
+            var affectedRows = await _inventoryRepository.ProcessCarryoverInTransactionAsync(
+                mergedInventory, 
+                targetDate, 
+                dataSetId,
+                datasetManagement
+            );
             
             // 9. 完了メッセージ
             System.Console.WriteLine($"===== 在庫引継インポート完了 =====");

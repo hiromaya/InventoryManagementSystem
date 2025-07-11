@@ -1168,4 +1168,364 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             throw;
         }
     }
+    
+    /// <summary>
+    /// ImportTypeで在庫データを取得
+    /// </summary>
+    public async Task<IEnumerable<InventoryMaster>> GetByImportTypeAsync(string importType)
+    {
+        const string sql = @"
+            SELECT 
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+                JobDate, CreatedDate, UpdatedDate,
+                CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
+                DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount,
+                IsActive, ParentDataSetId, ImportType, CreatedBy, CreatedAt, UpdatedAt
+            FROM InventoryMaster 
+            WHERE ImportType = @ImportType 
+            AND IsActive = 1
+            ORDER BY JobDate DESC, CreatedDate DESC";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.QueryAsync<dynamic>(sql, new { ImportType = importType });
+            
+            LogInfo($"ImportType '{importType}' で {result.Count()} 件の在庫データを取得");
+            return result.Select(MapToInventoryMaster).ToList();
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetByImportTypeAsync), new { importType });
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// ImportTypeで在庫データを無効化
+    /// </summary>
+    public async Task<int> DeactivateByImportTypeAsync(string importType)
+    {
+        const string sql = @"
+            UPDATE InventoryMaster 
+            SET IsActive = 0,
+                UpdatedDate = GETDATE()
+            WHERE ImportType = @ImportType 
+            AND IsActive = 1";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var count = await connection.ExecuteAsync(sql, new { ImportType = importType });
+            
+            LogInfo($"ImportType '{importType}' の {count} 件の在庫データを無効化");
+            return count;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(DeactivateByImportTypeAsync), new { importType });
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// トランザクション内で初期在庫データを一括処理
+    /// </summary>
+    public async Task<int> ProcessInitialInventoryInTransactionAsync(
+        List<InventoryMaster> inventories, 
+        DatasetManagement datasetManagement,
+        bool deactivateExisting = true)
+    {
+        if (inventories == null || !inventories.Any())
+        {
+            LogWarning("処理対象の在庫データがありません");
+            return 0;
+        }
+        
+        return await ExecuteInTransactionAsync(async (connection, transaction) =>
+        {
+            var totalProcessed = 0;
+            
+            try
+            {
+                // 1. 既存のINITデータを無効化
+                if (deactivateExisting)
+                {
+                    const string deactivateSql = @"
+                        UPDATE InventoryMaster 
+                        SET IsActive = 0,
+                            UpdatedDate = GETDATE()
+                        WHERE ImportType = 'INIT' 
+                        AND IsActive = 1";
+                    
+                    var deactivatedCount = await connection.ExecuteAsync(deactivateSql, transaction: transaction);
+                    LogInfo($"既存のINITデータ {deactivatedCount} 件を無効化しました");
+                }
+                
+                // 2. 新規在庫データの一括登録
+                // 既存データの更新と新規データの挿入を分ける
+                var updateSql = @"
+                    UPDATE InventoryMaster SET
+                        PreviousMonthQuantity = @PreviousMonthQuantity,
+                        PreviousMonthAmount = @PreviousMonthAmount,
+                        CurrentStock = @CurrentStock,
+                        CurrentStockAmount = @CurrentStockAmount,
+                        DailyStock = @DailyStock,
+                        DailyStockAmount = @DailyStockAmount,
+                        JobDate = @JobDate,
+                        UpdatedDate = GETDATE(),
+                        DataSetId = @DataSetId,
+                        ImportType = @ImportType,
+                        IsActive = @IsActive,
+                        ProductName = @ProductName
+                    WHERE ProductCode = @ProductCode
+                      AND GradeCode = @GradeCode
+                      AND ClassCode = @ClassCode
+                      AND ShippingMarkCode = @ShippingMarkCode
+                      AND ShippingMarkName = @ShippingMarkName";
+                
+                var insertSql = @"
+                    INSERT INTO InventoryMaster (
+                        ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                        ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+                        JobDate, CreatedDate, UpdatedDate,
+                        CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
+                        DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost,
+                        FinalGrossProfit, DataSetId, PreviousMonthQuantity, PreviousMonthAmount,
+                        IsActive, ImportType, CreatedBy
+                    ) VALUES (
+                        @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                        @ProductName, @Unit, @StandardPrice, @ProductCategory1, @ProductCategory2,
+                        @JobDate, @CreatedDate, @UpdatedDate,
+                        @CurrentStock, @CurrentStockAmount, @DailyStock, @DailyStockAmount,
+                        @DailyFlag, @DailyGrossProfit, @DailyAdjustmentAmount, @DailyProcessingCost,
+                        @FinalGrossProfit, @DataSetId, @PreviousMonthQuantity, @PreviousMonthAmount,
+                        @IsActive, @ImportType, @CreatedBy
+                    )";
+                
+                // バッチ処理で効率化（1000件ずつ）
+                const int batchSize = 1000;
+                for (int i = 0; i < inventories.Count; i += batchSize)
+                {
+                    var batch = inventories.Skip(i).Take(batchSize).ToList();
+                    var parameters = batch.Select(inv => new
+                    {
+                        ProductCode = inv.Key.ProductCode,
+                        GradeCode = inv.Key.GradeCode,
+                        ClassCode = inv.Key.ClassCode,
+                        ShippingMarkCode = inv.Key.ShippingMarkCode,
+                        ShippingMarkName = inv.Key.ShippingMarkName,
+                        inv.ProductName,
+                        inv.Unit,
+                        inv.StandardPrice,
+                        inv.ProductCategory1,
+                        inv.ProductCategory2,
+                        inv.JobDate,
+                        inv.CreatedDate,
+                        inv.UpdatedDate,
+                        inv.CurrentStock,
+                        inv.CurrentStockAmount,
+                        inv.DailyStock,
+                        inv.DailyStockAmount,
+                        inv.DailyFlag,
+                        inv.DailyGrossProfit,
+                        inv.DailyAdjustmentAmount,
+                        inv.DailyProcessingCost,
+                        inv.FinalGrossProfit,
+                        inv.DataSetId,
+                        inv.PreviousMonthQuantity,
+                        inv.PreviousMonthAmount,
+                        inv.IsActive,
+                        inv.ImportType,
+                        inv.CreatedBy
+                    }).ToList();
+                    
+                    // まず更新を試み、更新されなかった場合は挿入
+                    foreach (var param in parameters)
+                    {
+                        var updated = await connection.ExecuteAsync(updateSql, param, transaction);
+                        if (updated == 0)
+                        {
+                            await connection.ExecuteAsync(insertSql, param, transaction);
+                        }
+                        totalProcessed++;
+                    }
+                }
+                
+                LogInfo($"在庫データ {totalProcessed} 件を処理しました");
+                
+                // 3. DatasetManagementテーブルへの登録
+                const string datasetSql = @"
+                    INSERT INTO DatasetManagement (
+                        DatasetId, JobDate, ProcessType, ImportType, RecordCount, TotalRecordCount,
+                        IsActive, IsArchived, ParentDataSetId, ImportedFiles, CreatedAt, CreatedBy, 
+                        Notes, Department
+                    ) VALUES (
+                        @DatasetId, @JobDate, @ProcessType, @ImportType, @RecordCount, @TotalRecordCount,
+                        @IsActive, @IsArchived, @ParentDataSetId, @ImportedFiles, @CreatedAt, @CreatedBy, 
+                        @Notes, @Department
+                    )";
+                
+                await connection.ExecuteAsync(datasetSql, datasetManagement, transaction);
+                LogInfo($"DatasetManagement登録完了: DataSetId={datasetManagement.DatasetId}");
+                
+                return totalProcessed;
+            }
+            catch (Exception ex)
+            {
+                LogError(ex, "トランザクション内でエラーが発生しました", new { 
+                    InventoryCount = inventories.Count,
+                    DatasetId = datasetManagement.DatasetId 
+                });
+                throw;
+            }
+        });
+    }
+    
+    /// <summary>
+    /// トランザクション内で在庫引継ぎ処理を実行
+    /// </summary>
+    public async Task<int> ProcessCarryoverInTransactionAsync(
+        List<InventoryMaster> inventories,
+        DateTime targetDate,
+        string dataSetId,
+        DatasetManagement datasetManagement)
+    {
+        if (inventories == null || !inventories.Any())
+        {
+            LogWarning("処理対象の在庫データがありません");
+            return 0;
+        }
+        
+        return await ExecuteInTransactionAsync(async (connection, transaction) =>
+        {
+            try
+            {
+                // 1. MERGE処理で在庫データを更新
+                var mergeSql = @"
+                    MERGE InventoryMaster AS target
+                    USING (
+                        SELECT 
+                            @ProductCode as ProductCode,
+                            @GradeCode as GradeCode,
+                            @ClassCode as ClassCode,
+                            @ShippingMarkCode as ShippingMarkCode,
+                            @ShippingMarkName as ShippingMarkName,
+                            @ProductName as ProductName,
+                            @Unit as Unit,
+                            @StandardPrice as StandardPrice,
+                            @CurrentStock as CurrentStock,
+                            @CurrentStockAmount as CurrentStockAmount,
+                            @DailyStock as DailyStock,
+                            @DailyStockAmount as DailyStockAmount,
+                            @PreviousMonthQuantity as PreviousMonthQuantity,
+                            @PreviousMonthAmount as PreviousMonthAmount
+                    ) AS source
+                    ON (
+                        target.ProductCode = source.ProductCode AND
+                        target.GradeCode = source.GradeCode AND
+                        target.ClassCode = source.ClassCode AND
+                        target.ShippingMarkCode = source.ShippingMarkCode AND
+                        target.ShippingMarkName COLLATE Japanese_CI_AS = source.ShippingMarkName COLLATE Japanese_CI_AS
+                    )
+                    WHEN MATCHED THEN
+                        UPDATE SET 
+                            ProductName = source.ProductName,
+                            Unit = source.Unit,
+                            StandardPrice = source.StandardPrice,
+                            CurrentStock = source.CurrentStock,
+                            CurrentStockAmount = source.CurrentStockAmount,
+                            DailyStock = source.DailyStock,
+                            DailyStockAmount = source.DailyStockAmount,
+                            PreviousMonthQuantity = source.PreviousMonthQuantity,
+                            PreviousMonthAmount = source.PreviousMonthAmount,
+                            JobDate = @TargetDate,
+                            DataSetId = @DataSetId,
+                            UpdatedDate = GETDATE(),
+                            ImportType = 'CARRYOVER',
+                            IsActive = 1
+                    WHEN NOT MATCHED THEN
+                        INSERT (
+                            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                            ProductName, Unit, StandardPrice,
+                            CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
+                            PreviousMonthQuantity, PreviousMonthAmount,
+                            JobDate, DataSetId, IsActive, ImportType, CreatedDate, UpdatedDate
+                        )
+                        VALUES (
+                            source.ProductCode, source.GradeCode, source.ClassCode, 
+                            source.ShippingMarkCode, source.ShippingMarkName,
+                            source.ProductName, source.Unit, source.StandardPrice,
+                            source.CurrentStock, source.CurrentStockAmount, 
+                            source.DailyStock, source.DailyStockAmount,
+                            source.PreviousMonthQuantity, source.PreviousMonthAmount,
+                            @TargetDate, @DataSetId, 1, 'CARRYOVER', GETDATE(), GETDATE()
+                        );";
+                
+                var totalAffected = 0;
+                
+                // バッチ処理で効率化
+                const int batchSize = 1000;
+                for (int i = 0; i < inventories.Count; i += batchSize)
+                {
+                    var batch = inventories.Skip(i).Take(batchSize).ToList();
+                    
+                    foreach (var inventory in batch)
+                    {
+                        var parameters = new
+                        {
+                            ProductCode = inventory.Key.ProductCode,
+                            GradeCode = inventory.Key.GradeCode,
+                            ClassCode = inventory.Key.ClassCode,
+                            ShippingMarkCode = inventory.Key.ShippingMarkCode,
+                            ShippingMarkName = inventory.Key.ShippingMarkName,
+                            inventory.ProductName,
+                            inventory.Unit,
+                            inventory.StandardPrice,
+                            inventory.CurrentStock,
+                            inventory.CurrentStockAmount,
+                            inventory.DailyStock,
+                            inventory.DailyStockAmount,
+                            inventory.PreviousMonthQuantity,
+                            inventory.PreviousMonthAmount,
+                            TargetDate = targetDate,
+                            DataSetId = dataSetId
+                        };
+                        
+                        totalAffected += await connection.ExecuteAsync(mergeSql, parameters, transaction);
+                    }
+                }
+                
+                LogInfo($"在庫引継ぎMERGE処理: {totalAffected}件");
+                
+                // 2. DatasetManagementテーブルへの登録
+                const string datasetSql = @"
+                    INSERT INTO DatasetManagement (
+                        DatasetId, JobDate, ProcessType, ImportType, RecordCount, TotalRecordCount,
+                        IsActive, IsArchived, ParentDataSetId, ImportedFiles, CreatedAt, CreatedBy, 
+                        Notes, Department
+                    ) VALUES (
+                        @DatasetId, @JobDate, @ProcessType, @ImportType, @RecordCount, @TotalRecordCount,
+                        @IsActive, @IsArchived, @ParentDataSetId, @ImportedFiles, @CreatedAt, @CreatedBy, 
+                        @Notes, @Department
+                    )";
+                
+                await connection.ExecuteAsync(datasetSql, datasetManagement, transaction);
+                LogInfo($"DatasetManagement登録完了: DataSetId={datasetManagement.DatasetId}");
+                
+                return totalAffected;
+            }
+            catch (Exception ex)
+            {
+                LogError(ex, "在庫引継ぎトランザクション処理でエラーが発生しました", new { 
+                    InventoryCount = inventories.Count,
+                    TargetDate = targetDate,
+                    DatasetId = dataSetId 
+                });
+                throw;
+            }
+        });
+    }
 }

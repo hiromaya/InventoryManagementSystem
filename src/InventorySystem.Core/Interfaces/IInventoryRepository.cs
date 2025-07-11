@@ -106,4 +106,40 @@ public interface IInventoryRepository
     /// 在庫データのMERGE処理（既存は更新、新規は挿入）
     /// </summary>
     Task<int> MergeInventoryAsync(List<InventoryMaster> inventories, DateTime targetDate, string dataSetId);
+    
+    /// <summary>
+    /// ImportTypeで在庫データを取得
+    /// </summary>
+    Task<IEnumerable<InventoryMaster>> GetByImportTypeAsync(string importType);
+    
+    /// <summary>
+    /// ImportTypeで在庫データを無効化
+    /// </summary>
+    Task<int> DeactivateByImportTypeAsync(string importType);
+    
+    /// <summary>
+    /// トランザクション内で初期在庫データを一括処理
+    /// </summary>
+    /// <param name="inventories">登録する在庫データリスト</param>
+    /// <param name="datasetManagement">データセット管理情報</param>
+    /// <param name="deactivateExisting">既存のINITデータを無効化するか</param>
+    /// <returns>処理件数</returns>
+    Task<int> ProcessInitialInventoryInTransactionAsync(
+        List<InventoryMaster> inventories, 
+        DatasetManagement datasetManagement,
+        bool deactivateExisting = true);
+    
+    /// <summary>
+    /// トランザクション内で在庫引継ぎ処理を実行
+    /// </summary>
+    /// <param name="inventories">更新する在庫データリスト</param>
+    /// <param name="targetDate">処理対象日</param>
+    /// <param name="dataSetId">データセットID</param>
+    /// <param name="datasetManagement">データセット管理情報</param>
+    /// <returns>処理件数</returns>
+    Task<int> ProcessCarryoverInTransactionAsync(
+        List<InventoryMaster> inventories,
+        DateTime targetDate,
+        string dataSetId,
+        DatasetManagement datasetManagement);
 }

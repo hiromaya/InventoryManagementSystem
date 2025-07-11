@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>在庫管理システム - 2025年6月データ シミュレーション手順</title>
+    <title>在庫管理システム - 新しい運用手順ガイド（初期導入から日次処理まで）</title>
     <style>
         * {
             margin: 0;
@@ -290,201 +290,138 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏭 在庫管理システム</h1>
-            <p>2025年6月データ シミュレーション手順書</p>
-            <p><strong>最終更新:</strong> 2025年7月11日 - unmatch-listコマンド更新 | <strong>対象:</strong> 開発・動作確認</p>
+            <h1>📋 在庫管理システム</h1>
+            <p>新しい運用手順ガイド（初期導入から日次処理まで）</p>
+            <p><strong>最終更新:</strong> 2025年7月11日 - トランザクション管理実装 | <strong>対象:</strong> 開発・運用</p>
         </div>
 
-        <div class="data-info">
-            <h3>📊 サンプルデータ概要</h3>
-            <ul>
-                <li><strong>伝票データ期間:</strong> <span class="date-range">2025年6月1日</span> ～ <span class="date-range">2025年6月27日</span> (27日間)</li>
-                <li><strong>期末在庫データ:</strong> 2025年5月末時点の在庫（前月末在庫として使用）</li>
-                <li><strong>データ基準:</strong> ジョブデート（汎用日付2）でフィルタリング</li>
-                <li><strong>伝票件数:</strong> 売上500～1,200件/日、仕入200～400件/日、在庫調整50～150件/日</li>
-            </ul>
-        </div>
-
-        <div class="phase" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+        <div class="phase" style="background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); color: white;">
             <div class="phase-header">
-                <div class="phase-number">🚀</div>
-                <div class="phase-title">クイックスタートガイド</div>
+                <div class="phase-number" style="background: white; color: #3498db;">🎯</div>
+                <div class="phase-title" style="color: white;">Phase 1: 初期導入（システム開始時のみ）</div>
             </div>
             
-            <div class="success">
-                <h4>📌 重要な変更点（2025年7月）</h4>
-                <ul>
-                    <li><strong>init-inventory</strong>コマンドの新設 - システム導入時の初期在庫設定専用</li>
-                    <li><strong>import-folder</strong>コマンドの仕様変更 - 前月末在庫.csvを自動スキップ</li>
-                    <li><strong>unmatch-list</strong>コマンドの仕様変更 - 日付パラメータ削除（累積管理対応）</li>
-                    <li>初期在庫と日次処理の明確な分離</li>
-                </ul>
-            </div>
-
-            <div class="step">
-                <h4>正しい処理順序</h4>
-                <table style="margin-top: 15px;">
-                    <thead>
-                        <tr>
-                            <th>タイミング</th>
-                            <th>コマンド</th>
-                            <th>説明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>システム導入時（1回のみ）</td>
-                            <td><code>init-inventory DeptA</code></td>
-                            <td>前月末在庫.csvから初期在庫を設定</td>
-                        </tr>
-                        <tr>
-                            <td>日次処理（毎日）</td>
-                            <td><code>import-folder DeptA [日付]</code></td>
-                            <td>売上・仕入・在庫調整を取込<br><small>※初回実行時はマスタも自動取込</small></td>
-                        </tr>
-                        <tr>
-                            <td>日次処理（毎日）</td>
-                            <td><code>unmatch-list</code></td>
-                            <td>アンマッチリストと在庫マスタ更新<br><small>※全期間対象の累積処理</small></td>
-                        </tr>
-                        <tr>
-                            <td>日次処理（毎日）</td>
-                            <td><code>daily-report [日付]</code></td>
-                            <td>商品日報PDF出力</td>
-                        </tr>
-                        <tr>
-                            <td>日次終了処理（毎日最後）</td>
-                            <td><code>dev-daily-close [日付]</code></td>
-                            <td>在庫繰り越し（当日在庫→翌日前日在庫）</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="phase">
-            <div class="phase-header">
-                <div class="phase-number">1</div>
-                <div class="phase-title">環境準備</div>
-            </div>
-            
-            <div class="step">
-                <h4>Step 1: データベース初期化</h4>
+            <div class="step" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
+                <h4 style="color: white;">Step 1: データベース準備</h4>
                 <div class="command-block">
-<span class="comment"># データベース完全初期化</span>
+<span class="comment"># データベース初期化（必要な場合のみ）</span>
 <span class="command-line">dotnet run init-database --force</span>
-                </div>
-            </div>
 
-            <div class="step">
-                <h4>Step 2: 接続確認</h4>
-                <div class="command-block">
-<span class="comment"># 接続テスト</span>
+<span class="comment"># 接続確認</span>
 <span class="command-line">dotnet run test-connection</span>
                 </div>
             </div>
-        </div>
 
-        <div class="phase">
-            <div class="phase-header">
-                <div class="phase-number">2</div>
-                <div class="phase-title">初期在庫設定（システム導入時のみ）</div>
-            </div>
-
-            <div class="warning">
-                <strong>⚠️ 最重要:</strong> システム導入時の初回のみ実行する手順です。この手順により5月末在庫が初期在庫として設定され、6月1日以降の在庫計算の基準となります。<br><br>
-                <strong>前提条件：</strong> Phase 1でマスタデータ（特に商品マスタ）がインポート済みであること。商品マスタが未登録の場合、すべての在庫データがスキップされます。
-            </div>
-
-            <div class="info">
-                <strong>📝 新コマンドについて:</strong> 2025年7月より、前月末在庫の設定は専用の<code>init-inventory</code>コマンドで行います。<code>import-folder</code>コマンドは前月末在庫.csvを自動的にスキップします。
-            </div>
-
-            <div class="step">
-                <h4>Step 1: 初期在庫設定（前月末在庫.csv取込）</h4>
+            <div class="step" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
+                <h4 style="color: white;">Step 2: 前月末在庫の登録（最重要）</h4>
                 <div class="command-block">
-<span class="comment"># 初期在庫設定（前月末在庫.csvを取込）</span>
+<span class="comment"># 前月末在庫.csvをD:\InventoryImport\DeptA\Import\に配置</span>
+
+<span class="comment"># 前月末在庫を登録（DataSetId付与）</span>
 <span class="command-line">dotnet run init-inventory DeptA</span>
-                </div>
-                <p style="margin-top: 10px;">このコマンドは以下の処理を実行します：</p>
-                <ul>
-                    <li>D:\InventoryImport\DeptA\Import\前月末在庫.csv を読み込み</li>
-                    <li>在庫マスタの前月末在庫数量・金額に設定</li>
-                    <li>処理完了後、ファイルを Processed フォルダに移動</li>
-                </ul>
-            </div>
 
-            <div class="step">
-                <h4>Step 2: 初期在庫の確認</h4>
-                <div class="command-block">
-<span class="comment"># 在庫マスタの件数確認（コマンドラインから実行）</span>
-<span class="command-line">dotnet run check-data-status 2025-06-01</span>
+<span class="comment"># 登録確認</span>
+<span class="command-line">dotnet run check-inventory-status</span>
                 </div>
-                <p style="margin-top: 10px;">または、SQL Server Management Studio で以下のクエリを個別に実行：</p>
-                <div class="command-block">
-<span class="comment">-- 初期在庫件数の確認</span>
-<span class="command-line">SELECT COUNT(*) as 初期在庫件数 FROM InventoryMaster WHERE PreviousMonthQuantity > 0</span>
+                <div class="success" style="margin-top: 15px;">
+                    <strong>✅ 重要ポイント:</strong>
+                    <ul>
+                        <li>DataSetIdが自動的に付与されます（形式: INIT_YYYYMMDD_HHmmss_XXXXXX）</li>
+                        <li>重複実行しても安全です（既存データは自動的に無効化）</li>
+                        <li>トランザクション管理により、処理の原子性が保証されます</li>
+                    </ul>
                 </div>
-                <div class="command-block">
-<span class="comment">-- 初期在庫データのサンプル確認</span>
-<span class="command-line">SELECT TOP 10 * FROM InventoryMaster WHERE PreviousMonthQuantity > 0</span>
-                </div>
-            </div>
-
-            <div class="success">
-                <strong>✅ 確認ポイント:</strong>
-                <ul>
-                    <li>初期在庫件数が1,000件以上あること</li>
-                    <li>PreviousMonthQuantity（前月末在庫数量）に値が設定されていること</li>
-                    <li>PreviousMonthAmount（前月末在庫金額）に値が設定されていること</li>
-                </ul>
             </div>
         </div>
 
-        <div class="phase" style="background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);">
+        <div class="phase" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white;">
             <div class="phase-header">
-                <div class="phase-number">🆕</div>
-                <div class="phase-title">特殊なケースの処理（import-with-carryoverコマンド）</div>
+                <div class="phase-number" style="background: white; color: #e74c3c;">🎯</div>
+                <div class="phase-title" style="color: white;">Phase 2: 月初処理（6月1日）</div>
             </div>
-
-            <div class="info">
-                <h4>📝 import-with-carryoverコマンドについて</h4>
-                <p><strong>用途：</strong>最終処理日の在庫を引き継いで翌日の在庫マスタを作成する特殊なコマンドです。</p>
-                <p><strong>使用場面：</strong></p>
-                <ul>
-                    <li>日次終了処理を忘れた場合の復旧</li>
-                    <li>伝票データがない日の処理</li>
-                    <li>前日在庫と当日伝票の統合処理が必要な場合</li>
-                </ul>
-                <p><strong>🔵 重要：</strong>日付パラメータは不要です。システムが最終処理日を自動的に検出し、その翌日を処理対象とします。</p>
-            </div>
-
-            <div class="step">
-                <h4>使用例1: 伝票データがない日の処理</h4>
+            
+            <div class="step" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
+                <h4 style="color: white;">Step 1: 前月末在庫を6月1日に引き継ぐ</h4>
                 <div class="command-block">
-<span class="comment"># 6月1日は伝票データがない場合</span>
-<span class="command-line">dotnet run import-with-carryover DeptA 2025-06-01</span>
-<span class="comment"># 前月末在庫（5月31日）を引き継いで6月1日の在庫マスタを作成</span>
+<span class="comment"># import-with-carryoverで自動的に翌日（6/1）に引き継ぎ</span>
+<span class="command-line">dotnet run import-with-carryover DeptA</span>
+                </div>
+                <p style="color: white; margin-top: 10px;">→ 最終処理日（5/31）の在庫を6/1に自動引継ぎ</p>
+            </div>
+
+            <div class="step" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
+                <h4 style="color: white;">Step 2: 6月1日の伝票データをインポート（ある場合）</h4>
+                <div class="command-block">
+<span class="comment"># 6月1日の伝票ファイルをImportフォルダに配置</span>
+<span class="comment"># 売上伝票_20250601.csv, 仕入伝票_20250601.csv等</span>
+
+<span class="comment"># インポート実行</span>
+<span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
                 </div>
             </div>
 
-            <div class="step">
-                <h4>使用例2: 日次終了処理忘れの復旧</h4>
+            <div class="step" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
+                <h4 style="color: white;">Step 3: 6月1日の帳票作成</h4>
                 <div class="command-block">
-<span class="comment"># 6月10日の日次終了処理を忘れた場合</span>
-<span class="command-line">dotnet run import-with-carryover DeptA 2025-06-11</span>
-<span class="comment"># 6月10日の在庫を引き継いで6月11日の在庫マスタを作成</span>
+<span class="comment"># アンマッチリスト</span>
+<span class="command-line">dotnet run unmatch-list</span>
+
+<span class="comment"># 商品日報</span>
+<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-01</span>
+
+<span class="comment"># 在庫表（必要に応じて）</span>
+<span class="command-line">dotnet run inventory-list 2025-06-01</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="phase" style="background: linear-gradient(135deg, #27ae60 0%, #16a085 100%); color: white;">
+            <div class="phase-header">
+                <div class="phase-number" style="background: white; color: #27ae60;">🎯</div>
+                <div class="phase-title" style="color: white;">Phase 3: 日次処理（6月2日以降）</div>
+            </div>
+            
+            <div class="info" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3);">
+                <h4>📝 2つの処理方法</h4>
+                <p>日次処理には2つの方法があります。状況に応じて使い分けてください。</p>
+            </div>
+
+            <div class="step" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
+                <h4 style="color: white;">オプション1: import-with-carryover使用（推奨）</h4>
+                <div class="command-block">
+<span class="comment"># 前日在庫を自動引き継ぎ + 当日伝票処理</span>
+<span class="command-line">dotnet run import-with-carryover DeptA</span>
+
+<span class="comment"># 帳票作成</span>
+<span class="command-line">dotnet run unmatch-list</span>
+<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-02</span>
+                </div>
+                <div class="success" style="margin-top: 15px;">
+                    <strong>メリット：</strong>
+                    <ul>
+                        <li>日付を自動判定（最終処理日の翌日を処理）</li>
+                        <li>前日在庫と当日伝票を一括処理</li>
+                        <li>日次終了処理が不要</li>
+                    </ul>
                 </div>
             </div>
 
-            <div class="success">
-                <strong>✅ このコマンドの特徴：</strong>
-                <ul>
-                    <li>前日の有効な在庫データを自動検索</li>
-                    <li>当日の伝票データと自動統合</li>
-                    <li>DataSetIdによる世代管理</li>
-                    <li>既存データの自動無効化と新規データの挿入</li>
-                </ul>
+            <div class="step" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
+                <h4 style="color: white;">オプション2: 従来の方法</h4>
+                <div class="command-block">
+<span class="comment"># 伝票データインポート</span>
+<span class="command-line">dotnet run import-folder DeptA 2025-06-02</span>
+
+<span class="comment"># 帳票作成</span>
+<span class="command-line">dotnet run unmatch-list</span>
+<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-02</span>
+
+<span class="comment"># 日次終了処理（在庫繰り越し）</span>
+<span class="command-line">dotnet run dev-daily-close 2025-06-02</span>
+                </div>
+                <div class="warning" style="margin-top: 15px;">
+                    <strong>注意：</strong>日次終了処理を忘れると、翌日の在庫計算に影響します
+                </div>
             </div>
         </div>
 
@@ -838,8 +775,8 @@
                 </div>
                 <div class="command-block">
 <span class="comment"># 対処法2: import-with-carryoverコマンドを使用（推奨）</span>
-<span class="command-line">dotnet run import-with-carryover DeptA 2025-06-02</span>
-<span class="comment"># このコマンドは前日の在庫を自動的に引き継ぎます</span>
+<span class="command-line">dotnet run import-with-carryover DeptA</span>
+<span class="comment"># このコマンドは最終処理日の在庫を自動的に引き継ぎます</span>
                 </div>
             </div>
 
@@ -967,9 +904,89 @@
             </div>
         </div>
 
-        <div class="header" style="margin-top: 50px;">
-            <p><strong>🎯 シミュレーション成功の鍵</strong></p>
-            <p>前月末在庫の設定 → 順序正しい日次処理 → データ継続性の確認</p>
+        <!-- Phase 4: 実行例 -->
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-number">4</div>
+                <div class="phase-title">実行例（6月1日〜3日）</div>
+            </div>
+            
+            <div class="example-section">
+                <h4>📅 6月1日（土曜日）の処理</h4>
+                <div class="command-block">
+                    <span class="comment"># オプション1: CSVインポート</span>
+                    <span class="command-line">dotnet run -- import-folder DeptA 2025-06-01</span>
+                    <br><br>
+                    <span class="comment"># オプション2: 在庫引継（推奨）</span>
+                    <span class="command-line">dotnet run -- import-with-carryover DeptA</span>
+                </div>
+                
+                <h4>📅 6月2日（日曜日）の処理</h4>
+                <div class="command-block">
+                    <span class="comment"># CSVインポート（必要な場合）</span>
+                    <span class="command-line">dotnet run -- import-folder DeptA 2025-06-02</span>
+                    <br><br>
+                    <span class="comment"># または在庫引継</span>
+                    <span class="command-line">dotnet run -- import-with-carryover DeptA</span>
+                </div>
+                
+                <h4>📅 6月3日（月曜日）の処理</h4>
+                <div class="command-block">
+                    <span class="comment"># 在庫引継（前日の在庫を基に計算）</span>
+                    <span class="command-line">dotnet run -- import-with-carryover DeptA</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Important Points -->
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-number">💡</div>
+                <div class="phase-title">重要なポイント</div>
+            </div>
+            
+            <div class="info">
+                <ul>
+                    <li><strong>初期在庫の重要性</strong>: init-inventoryで正確な前月末在庫を設定することが、その後の全処理の基盤となります</li>
+                    <li><strong>累積管理の利点</strong>: import-with-carryoverは前日在庫を自動的に引き継ぐため、データの連続性が保証されます</li>
+                    <li><strong>処理の選択</strong>: 
+                        <ul>
+                            <li>通常はimport-with-carryoverを使用（安全・確実）</li>
+                            <li>特定日のデータを再処理する場合のみimport-folderを使用</li>
+                        </ul>
+                    </li>
+                    <li><strong>エラー対策</strong>: import-with-carryoverで「前月末在庫が見つかりません」エラーが出た場合は、init-inventoryの実行を確認</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Caution Section -->
+        <div class="phase" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white;">
+            <div class="phase-header">
+                <div class="phase-number" style="background: white; color: #e74c3c;">🚨</div>
+                <div class="phase-title" style="color: white;">注意事項</div>
+            </div>
+            
+            <div class="warning" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3);">
+                <h4 style="color: white;">❌ やってはいけないこと</h4>
+                <ul style="color: white;">
+                    <li>init-inventoryを実行せずに6月1日の処理を開始する</li>
+                    <li>日付を飛ばしてimport-with-carryoverを実行する（例：6/1の次に6/3を処理）</li>
+                    <li>同じ日付で複数回import-folderを実行する（重複データの原因）</li>
+                </ul>
+                
+                <h4 style="color: white;">✅ 推奨される運用</h4>
+                <ul style="color: white;">
+                    <li>毎日定時にimport-with-carryoverを実行</li>
+                    <li>処理漏れがあった場合は、漏れた日から順番に処理</li>
+                    <li>データ修正が必要な場合は、該当日以降を再処理</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="header" style="margin-top: 50px; background: rgba(255, 255, 255, 0.95); padding: 20px; border-radius: 10px;">
+            <p><strong>🎯 この手順により、安全で確実な在庫管理が実現できます</strong></p>
+            <p>初期導入から日次処理まで、段階的に進めることで確実な運用が可能です</p>
             <br>
             <button class="button" onclick="window.print()">📄 この手順書を印刷</button>
         </div>

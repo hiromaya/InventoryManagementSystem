@@ -64,13 +64,13 @@ public class PreviousMonthInventoryImportService
                 throw new FileNotFoundException($"インポートファイルが見つかりません: {_importPath}");
             }
 
-            // 1. CSV読み込み
+            // 1. CSV読み込み（トランザクション外で実行）
             var records = await ReadCsvAsync(_importPath);
             result.TotalRecords = records.Count;
             _logger.LogInformation("=== ステップ1: CSV読み込み完了 ===");
             _logger.LogInformation("読み込みレコード数: {Count}", records.Count);
 
-            // 2. 有効レコードフィルタリング
+            // 2. 有効レコードフィルタリング（トランザクション外で実行）
             var validRecords = records.Where(r => r.IsValid()).ToList();
             var invalidRecords = records.Where(r => !r.IsValid()).ToList();
             
@@ -96,26 +96,14 @@ public class PreviousMonthInventoryImportService
             // 前月末の日付を取得
             var importDate = GetLastDayOfPreviousMonth();
             
-            // 既存のINITデータを確認
-            var existingInitData = await _inventoryRepository.GetActiveInitInventoryAsync(importDate);
-            if (existingInitData.Any())
-            {
-                _logger.LogWarning("既存の前月末在庫データが存在します。DataSetId: {DataSetId}, 件数: {Count}件",
-                    existingInitData.First().DataSetId, existingInitData.Count);
-                
-                // 既存データを無効化
-                await _inventoryRepository.DeactivateDataSetAsync(existingInitData.First().DataSetId);
-                _logger.LogInformation("既存データを無効化しました");
-            }
-
-            // 3. 初期在庫設定用処理（日付フィルタなし）
-            var processedCount = 0;
-            var errorCount = 0;
+            // 3. トランザクション内での一括処理準備
             var inventoryList = new List<InventoryMaster>();
+            var errorCount = 0;
 
-            _logger.LogInformation("=== ステップ3: 初期在庫設定処理開始 ===");
+            _logger.LogInformation("=== ステップ3: 初期在庫設定データ準備 ===");
             _logger.LogInformation("JobDate設定: {JobDate:yyyy-MM-dd}", importDate);
 
+            // 在庫データリストを作成（トランザクション外で準備）
             foreach (var record in validRecords)
             {
                 try
@@ -128,75 +116,45 @@ public class PreviousMonthInventoryImportService
                     _logger.LogDebug("処理中レコード: 商品={Product}, 等級={Grade}, 階級={Class}, 荷印={Mark}, 荷印名={MarkName}, JobDate={JobDate:yyyy-MM-dd}",
                         key.ProductCode, key.GradeCode, key.ClassCode, key.ShippingMarkCode, key.ShippingMarkName, jobDate);
 
-                    // 在庫マスタの更新または作成
-                    var inventoryKey = new InventoryKey
+                    // 在庫データを作成
+                    var inventoryMaster = new InventoryMaster
                     {
-                        ProductCode = key.ProductCode,
-                        GradeCode = key.GradeCode,
-                        ClassCode = key.ClassCode,
-                        ShippingMarkCode = key.ShippingMarkCode,
-                        ShippingMarkName = key.ShippingMarkName
+                        Key = new InventoryKey
+                        {
+                            ProductCode = key.ProductCode,
+                            GradeCode = key.GradeCode,
+                            ClassCode = key.ClassCode,
+                            ShippingMarkCode = key.ShippingMarkCode,
+                            ShippingMarkName = key.ShippingMarkName
+                        },
+                        PreviousMonthQuantity = record.Quantity,
+                        PreviousMonthAmount = record.Amount,
+                        // 前月末在庫を現在在庫として初期化
+                        CurrentStock = record.Quantity,
+                        CurrentStockAmount = record.Amount,
+                        JobDate = jobDate,
+                        CreatedDate = DateTime.Now,
+                        UpdatedDate = DateTime.Now,
+                        ProductName = "商品名未設定",
+                        Unit = "PCS",
+                        StandardPrice = 0,
+                        ProductCategory1 = "",
+                        ProductCategory2 = "",
+                        // 前月末在庫を日次在庫として初期化
+                        DailyStock = record.Quantity,
+                        DailyStockAmount = record.Amount,
+                        DailyFlag = '9',
+                        DataSetId = dataSetId,
+                        DailyGrossProfit = 0,
+                        DailyAdjustmentAmount = 0,
+                        DailyProcessingCost = 0,
+                        FinalGrossProfit = 0,
+                        ImportType = "INIT",
+                        IsActive = true,
+                        CreatedBy = "init-inventory"
                     };
                     
-                    // JobDateに関係なく既存レコードを検索
-                    var inventoryMaster = await _inventoryRepository.GetByKeyAnyDateAsync(inventoryKey);
-                    
-                    _logger.LogDebug("在庫マスタ検索結果: {Result}",
-                        inventoryMaster != null ? "既存レコード更新" : "新規レコード作成");
-
-                    if (inventoryMaster != null)
-                    {
-                        // 既存レコードの初期在庫を設定（CSVのJobDateを使用）
-                        inventoryMaster.JobDate = jobDate;
-                        inventoryMaster.PreviousMonthQuantity = record.Quantity;
-                        inventoryMaster.PreviousMonthAmount = record.Amount;
-                        inventoryMaster.UpdatedDate = DateTime.Now;
-                        inventoryMaster.DataSetId = dataSetId;      // DataSetIdを設定
-                        inventoryMaster.ImportType = "INIT";        // ImportTypeを設定
-                        inventoryMaster.IsActive = true;            // アクティブフラグ
-                        
-                        await _inventoryRepository.UpdateAsync(inventoryMaster);
-                        _logger.LogDebug("在庫マスタ更新: {Key}, JobDate={JobDate:yyyy-MM-dd}, 初期在庫数量={Qty}, 初期在庫金額={Amt}", 
-                            key, jobDate, record.Quantity, record.Amount);
-                    }
-                    else
-                    {
-                        // 新規レコードの作成（CSVのJobDateを使用）
-                        inventoryMaster = new InventoryMaster
-                        {
-                            Key = inventoryKey,
-                            PreviousMonthQuantity = record.Quantity,
-                            PreviousMonthAmount = record.Amount,
-                            // 前月末在庫を現在在庫として初期化
-                            CurrentStock = record.Quantity,
-                            CurrentStockAmount = record.Amount,
-                            JobDate = jobDate,
-                            CreatedDate = DateTime.Now,
-                            UpdatedDate = DateTime.Now,
-                            ProductName = "商品名未設定",
-                            Unit = "PCS",
-                            StandardPrice = 0,
-                            ProductCategory1 = "",
-                            ProductCategory2 = "",
-                            // 前月末在庫を日次在庫として初期化
-                            DailyStock = record.Quantity,
-                            DailyStockAmount = record.Amount,
-                            DailyFlag = '9',
-                            DataSetId = dataSetId,             // 生成したDataSetIdを使用
-                            DailyGrossProfit = 0,
-                            DailyAdjustmentAmount = 0,
-                            DailyProcessingCost = 0,
-                            FinalGrossProfit = 0,
-                            ImportType = "INIT",               // 前月末在庫を示す"INIT"
-                            IsActive = true,                   // アクティブフラグ追加
-                            CreatedBy = "init-inventory"       // 作成者情報追加
-                        };
-                        
-                        await _inventoryRepository.CreateAsync(inventoryMaster);
-                        _logger.LogDebug("在庫マスタ新規作成: {Key}, JobDate={JobDate:yyyy-MM-dd}", key, jobDate);
-                    }
-
-                    processedCount++;
+                    inventoryList.Add(inventoryMaster);
                 }
                 catch (Exception ex)
                 {
@@ -206,15 +164,52 @@ public class PreviousMonthInventoryImportService
                 }
             }
             
-            _logger.LogInformation("=== ステップ4: 処理完了 ===");
-            _logger.LogInformation("処理済み: {Processed}件", processedCount);
-            _logger.LogInformation("エラー: {Error}件", errorCount);
+            _logger.LogInformation("データ準備完了: 処理対象 {Count}件, エラー {Error}件", inventoryList.Count, errorCount);
+            
+            // 4. トランザクション内で一括処理
+            if (inventoryList.Any())
+            {
+                _logger.LogInformation("=== ステップ4: トランザクション処理開始 ===");
+                
+                // DatasetManagementエンティティを作成
+                var datasetManagement = new DatasetManagement
+                {
+                    DatasetId = dataSetId,
+                    JobDate = importDate,
+                    ProcessType = "INIT_INVENTORY",
+                    ImportType = "INIT",
+                    RecordCount = inventoryList.Count,
+                    TotalRecordCount = inventoryList.Count,
+                    IsActive = true,
+                    IsArchived = false,
+                    ParentDataSetId = null,
+                    ImportedFiles = Path.GetFileName(_importPath),
+                    CreatedAt = DateTime.Now,
+                    CreatedBy = "init-inventory",
+                    Department = "DeptA",
+                    Notes = $"前月末在庫インポート: {inventoryList.Count}件"
+                };
+                
+                // トランザクション内で一括処理
+                var processedCount = await _inventoryRepository.ProcessInitialInventoryInTransactionAsync(
+                    inventoryList, 
+                    datasetManagement,
+                    deactivateExisting: true
+                );
+                
+                _logger.LogInformation("=== ステップ5: トランザクション処理完了 ===");
+                _logger.LogInformation("処理済み: {Processed}件", processedCount);
+            }
+            else
+            {
+                _logger.LogWarning("処理対象のデータがありません");
+            }
 
-            result.ProcessedRecords = processedCount;
+            result.ProcessedRecords = inventoryList.Count;
             result.ErrorRecords = errorCount;
             result.EndTime = DateTime.Now;
-            result.IsSuccess = errorCount == 0;
-            result.Message = $"初期在庫設定完了: 処理 {processedCount}件, エラー {errorCount}件";
+            result.IsSuccess = errorCount == 0 && inventoryList.Any();
+            result.Message = $"初期在庫設定完了: 処理 {inventoryList.Count}件, エラー {errorCount}件";
 
             return result;
         }
@@ -455,6 +450,30 @@ public class PreviousMonthInventoryImportService
             _logger.LogInformation("処理済み: {Processed}件", processedCount);
             _logger.LogInformation("日付フィルタでスキップ: {DateSkipped}件", skippedByDateFilter);
             _logger.LogInformation("エラー: {Error}件", errorCount);
+            
+            // DatasetManagementに登録
+            if (processedCount > 0)
+            {
+                await _dataSetRepository.CreateAsync(new DatasetManagement
+                {
+                    DatasetId = dataSetId,
+                    JobDate = startDate,
+                    ProcessType = "INIT_INVENTORY",
+                    ImportType = "INIT",
+                    RecordCount = processedCount,
+                    TotalRecordCount = processedCount,
+                    IsActive = true,
+                    IsArchived = false,
+                    ParentDataSetId = null,
+                    ImportedFiles = Path.GetFileName(_importPath),
+                    CreatedAt = DateTime.Now,
+                    CreatedBy = "init-inventory",
+                    Department = "DeptA",
+                    Notes = $"前月末在庫インポート: {processedCount}件"
+                });
+                
+                _logger.LogInformation("DatasetManagementに登録完了: DataSetId={DataSetId}", dataSetId);
+            }
 
             result.ProcessedRecords = processedCount;
             result.ErrorRecords = errorCount;
