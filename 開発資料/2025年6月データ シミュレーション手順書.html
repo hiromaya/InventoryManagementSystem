@@ -339,7 +339,7 @@
                         <tr>
                             <td>日次処理（毎日）</td>
                             <td><code>import-folder DeptA [日付]</code></td>
-                            <td>売上・仕入・在庫調整・マスタを取込</td>
+                            <td>売上・仕入・在庫調整を取込<br><small>※初回実行時はマスタも自動取込</small></td>
                         </tr>
                         <tr>
                             <td>日次処理（毎日）</td>
@@ -380,40 +380,6 @@
                 <div class="command-block">
 <span class="comment"># 接続テスト</span>
 <span class="command-line">dotnet run test-connection</span>
-                </div>
-            </div>
-
-            <div class="step">
-                <h4>Step 3: マスタデータインポート</h4>
-                <div class="command-block">
-<span class="comment"># マスタデータを一括インポート（商品・得意先・仕入先・等級・階級・荷印マスタ）</span>
-<span class="command-line">dotnet run import-folder DeptA</span>
-                </div>
-                <p style="margin-top: 10px;"><strong>重要：</strong> このコマンドで以下のマスタファイルがインポートされます：</p>
-                <ul>
-                    <li>商品.csv（商品マスタ）</li>
-                    <li>得意先.csv（得意先マスタ）</li>
-                    <li>仕入先.csv（仕入先マスタ）</li>
-                    <li>等級汎用マスター.csv（等級マスタ）</li>
-                    <li>階級汎用マスター.csv（階級マスタ）</li>
-                    <li>荷印汎用マスター.csv（荷印マスタ）</li>
-                </ul>
-            </div>
-
-            <div class="step">
-                <h4>Step 4: マスタデータ確認</h4>
-                <div class="command-block">
-<span class="comment"># マスタデータ確認（コマンドラインから実行）</span>
-<span class="command-line">dotnet run check-masters</span>
-                </div>
-                <p style="margin-top: 10px;">または、SQL Server Management Studio で以下のクエリを個別に実行：</p>
-                <div class="command-block">
-<span class="comment">-- 各マスタテーブルの件数確認</span>
-<span class="command-line">SELECT COUNT(*) as 商品マスタ件数 FROM ProductMaster</span>
-<span class="command-line">SELECT COUNT(*) as 得意先マスタ件数 FROM CustomerMaster</span>
-<span class="command-line">SELECT COUNT(*) as 仕入先マスタ件数 FROM SupplierMaster</span>
-<span class="command-line">SELECT COUNT(*) as 等級マスタ件数 FROM GradeMaster</span>
-<span class="command-line">SELECT COUNT(*) as 階級マスタ件数 FROM ClassMaster</span>
                 </div>
             </div>
         </div>
@@ -554,9 +520,32 @@
 
             <div class="timeline">
                 <div class="timeline-item">
+                    <h4>初回処理前の準備（マスタデータ確認）</h4>
+                    <div class="info" style="margin-bottom: 15px;">
+                        <strong>重要：</strong> 初回処理前に、マスタデータがインポートされているか確認してください。
+                    </div>
+                    <div class="command-block">
+<span class="comment"># マスタデータ確認（コマンドラインから実行）</span>
+<span class="command-line">dotnet run check-masters</span>
+                    </div>
+                    <p style="margin-top: 10px;">または、SQL Server Management Studio で以下のクエリを個別に実行：</p>
+                    <div class="command-block">
+<span class="comment">-- 各マスタテーブルの件数確認</span>
+<span class="command-line">SELECT COUNT(*) as 商品マスタ件数 FROM ProductMaster</span>
+<span class="command-line">SELECT COUNT(*) as 得意先マスタ件数 FROM CustomerMaster</span>
+<span class="command-line">SELECT COUNT(*) as 仕入先マスタ件数 FROM SupplierMaster</span>
+<span class="command-line">SELECT COUNT(*) as 等級マスタ件数 FROM GradeMaster</span>
+<span class="command-line">SELECT COUNT(*) as 階級マスタ件数 FROM ClassMaster</span>
+                    </div>
+                    <div class="warning" style="margin-top: 15px;">
+                        <strong>⚠️ 注意：</strong> import-folderコマンドを使用すると、マスタファイルと一緒に伝票データもインポートされます。初回処理では必ず日付を指定してください。
+                    </div>
+                </div>
+
+                <div class="timeline-item">
                     <h4>6月1日の処理</h4>
                     <div class="command-block">
-<span class="comment"># 6月1日の伝票データインポート</span>
+<span class="comment"># 6月1日の伝票データインポート（マスタファイルも同時にインポートされます）</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
 
 <span class="comment"># アンマッチリスト作成（在庫マスタ更新）</span>
@@ -938,8 +927,6 @@
                 <h4>□ 環境準備完了</h4>
                 <ul>
                     <li>□ データベース初期化済み</li>
-                    <li>□ マスタデータインポート済み（import-folder DeptA実行）</li>
-                    <li>□ 商品マスタ登録確認済み（ProductMasterテーブルにデータあり）</li>
                     <li>□ 接続確認済み</li>
                 </ul>
             </div>
@@ -956,6 +943,8 @@
             <div class="step">
                 <h4>□ 日次処理動作確認完了</h4>
                 <ul>
+                    <li>□ マスタデータインポート済み（初回のimport-folderで自動インポート）</li>
+                    <li>□ 商品マスタ登録確認済み（ProductMasterテーブルにデータあり）</li>
                     <li>□ 6月1日〜3日の連続処理確認済み</li>
                     <li>□ アンマッチリスト正常生成</li>
                     <li>□ 商品日報正常生成</li>
