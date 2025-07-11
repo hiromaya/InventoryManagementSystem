@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Import.Models;
+using InventorySystem.Data.Repositories;
 
 namespace InventorySystem.Import.Services;
 
@@ -17,13 +18,16 @@ public class PreviousMonthInventoryImportService
     private readonly IInventoryRepository _inventoryRepository;
     private readonly ILogger<PreviousMonthInventoryImportService> _logger;
     private readonly string _importPath;
+    private readonly DataSetManagementRepository _dataSetRepository;
 
     public PreviousMonthInventoryImportService(
         IInventoryRepository inventoryRepository,
-        ILogger<PreviousMonthInventoryImportService> logger)
+        ILogger<PreviousMonthInventoryImportService> logger,
+        DataSetManagementRepository dataSetRepository)
     {
         _inventoryRepository = inventoryRepository;
         _logger = logger;
+        _dataSetRepository = dataSetRepository;
         _importPath = @"D:\InventoryImport\DeptA\Import\前月末在庫.csv";
     }
 
@@ -85,12 +89,32 @@ public class PreviousMonthInventoryImportService
                     invalid.GetValidationError());
             }
 
+            // DataSetIdを生成
+            var dataSetId = DataSetManagement.GenerateDataSetId("INIT");
+            _logger.LogInformation("DataSetId生成: {DataSetId}", dataSetId);
+            
+            // 前月末の日付を取得
+            var importDate = GetLastDayOfPreviousMonth();
+            
+            // 既存のINITデータを確認
+            var existingInitData = await _inventoryRepository.GetActiveInitInventoryAsync(importDate);
+            if (existingInitData.Any())
+            {
+                _logger.LogWarning("既存の前月末在庫データが存在します。DataSetId: {DataSetId}, 件数: {Count}件",
+                    existingInitData.First().DataSetId, existingInitData.Count);
+                
+                // 既存データを無効化
+                await _inventoryRepository.DeactivateDataSetAsync(existingInitData.First().DataSetId);
+                _logger.LogInformation("既存データを無効化しました");
+            }
+
             // 3. 初期在庫設定用処理（日付フィルタなし）
             var processedCount = 0;
             var errorCount = 0;
+            var inventoryList = new List<InventoryMaster>();
 
             _logger.LogInformation("=== ステップ3: 初期在庫設定処理開始 ===");
-            _logger.LogInformation("JobDate設定: CSVの48列目ジョブデート項目を使用（日付フィルタは無効）");
+            _logger.LogInformation("JobDate設定: {JobDate:yyyy-MM-dd}", importDate);
 
             foreach (var record in validRecords)
             {
@@ -518,6 +542,16 @@ public class PreviousMonthInventoryImportService
 
         _logger.LogInformation("CSVファイル読み込み完了: {Count}件", records.Count);
         return records;
+    }
+    
+    /// <summary>
+    /// 前月末の最終日を取得する
+    /// </summary>
+    private static DateTime GetLastDayOfPreviousMonth()
+    {
+        var today = DateTime.Today;
+        var firstDayOfThisMonth = new DateTime(today.Year, today.Month, 1);
+        return firstDayOfThisMonth.AddDays(-1);
     }
 }
 

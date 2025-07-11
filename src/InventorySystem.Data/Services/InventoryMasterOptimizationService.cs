@@ -44,7 +44,9 @@ namespace InventorySystem.Data.Services
         /// </summary>
         public async Task<int> OptimizeInventoryMasterAsync(DateTime jobDate)
         {
-            var dataSetId = $"AUTO_OPTIMIZE_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}";
+            // Gemini推奨のランダム文字列を含むDataSetId
+            var random = GenerateRandomString(6);
+            var dataSetId = $"IMPORT_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}_{random}";
             
             // 月初の場合は前月末在庫処理を追加
             if (jobDate.Day == 1)
@@ -54,6 +56,17 @@ namespace InventorySystem.Data.Services
             
             var result = await OptimizeAsync(jobDate, dataSetId);
             return result.ProcessedCount;
+        }
+        
+        /// <summary>
+        /// ランダム文字列を生成する
+        /// </summary>
+        private static string GenerateRandomString(int length)
+        {
+            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         /// <summary>

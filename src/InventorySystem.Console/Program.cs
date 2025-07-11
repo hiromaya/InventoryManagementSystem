@@ -213,6 +213,8 @@ builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
 builder.Services.AddScoped<InventoryAdjustmentImportService>();
 builder.Services.AddScoped<PreviousMonthInventoryImportService>();
+builder.Services.AddScoped<DataSetManagementRepository>();
+builder.Services.AddScoped<ImportWithCarryoverCommand>();
 
 // 在庫マスタ最適化サービス
 builder.Services.AddScoped<IInventoryMasterOptimizationService, InventorySystem.Data.Services.InventoryMasterOptimizationService>();
@@ -277,6 +279,7 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  dotnet run import-masters                    - 等級・階級マスタをインポート");
     Console.WriteLine("  dotnet run check-masters                     - 等級・階級マスタの登録状況を確認");
     Console.WriteLine("  dotnet run init-inventory <dept>             - 初期在庫設定（前月末在庫.csv取込）");
+    Console.WriteLine("  dotnet run import-with-carryover <dept> <YYYY-MM-DD> - 前日在庫を引き継いでインポート");
     Console.WriteLine("");
     Console.WriteLine("【開発環境用コマンド】");
     Console.WriteLine("  dotnet run init-database [--force]           - データベース初期化");
@@ -396,6 +399,10 @@ try
         
         case "init-inventory":
             await ExecuteInitInventoryAsync(host.Services, commandArgs);
+            break;
+            
+        case "import-with-carryover":
+            await ExecuteImportWithCarryoverAsync(host.Services, commandArgs);
             break;
         
         case "check-daily-close":
@@ -1779,6 +1786,44 @@ static async Task ExecuteInitInventoryAsync(IServiceProvider services, string[] 
         catch (Exception ex)
         {
             logger.LogError(ex, "初期在庫設定中にエラーが発生しました");
+            Console.WriteLine($"❌ エラーが発生しました: {ex.Message}");
+        }
+    }
+}
+
+static async Task ExecuteImportWithCarryoverAsync(IServiceProvider services, string[] args)
+{
+    if (args.Length < 4)
+    {
+        Console.WriteLine("使用方法: import-with-carryover <部門名> <YYYY-MM-DD>");
+        return;
+    }
+
+    using (var scope = services.CreateScope())
+    {
+        var scopedServices = scope.ServiceProvider;
+        var department = args[2];
+        var targetDateStr = args[3];
+        
+        if (!DateTime.TryParse(targetDateStr, out var targetDate))
+        {
+            Console.WriteLine($"❌ 無効な日付形式です: {targetDateStr}");
+            return;
+        }
+        
+        var command = scopedServices.GetRequiredService<ImportWithCarryoverCommand>();
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        
+        logger.LogInformation("=== 在庫引継インポート開始 ===");
+        logger.LogInformation("部門: {Department}, 対象日付: {TargetDate:yyyy-MM-dd}", department, targetDate);
+        
+        try
+        {
+            await command.ExecuteAsync(department, targetDate);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "在庫引継インポート中にエラーが発生しました");
             Console.WriteLine($"❌ エラーが発生しました: {ex.Message}");
         }
     }

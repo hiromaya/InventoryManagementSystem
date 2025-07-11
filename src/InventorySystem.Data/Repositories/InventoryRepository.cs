@@ -22,7 +22,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
-                DataSetId, PreviousMonthQuantity, PreviousMonthAmount
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount,
+                IsActive, ParentDataSetId, ImportType, CreatedBy, CreatedAt, UpdatedAt
             FROM InventoryMaster 
             WHERE JobDate = @JobDate
             ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
@@ -266,7 +267,14 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             FinalGrossProfit = row.FinalGrossProfit ?? 0m,
             DataSetId = row.DataSetId ?? string.Empty,
             PreviousMonthQuantity = row.PreviousMonthQuantity ?? 0m,
-            PreviousMonthAmount = row.PreviousMonthAmount ?? 0m
+            PreviousMonthAmount = row.PreviousMonthAmount ?? 0m,
+            // 新規フィールド
+            IsActive = row.IsActive ?? true,
+            ParentDataSetId = row.ParentDataSetId,
+            ImportType = row.ImportType ?? "UNKNOWN",
+            CreatedBy = row.CreatedBy,
+            CreatedAt = row.CreatedAt ?? DateTime.Now,
+            UpdatedAt = row.UpdatedAt
         };
     }
 
@@ -298,7 +306,14 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             inventory.FinalGrossProfit,
             inventory.DataSetId,
             inventory.PreviousMonthQuantity,
-            inventory.PreviousMonthAmount
+            inventory.PreviousMonthAmount,
+            // 新規フィールド
+            inventory.IsActive,
+            inventory.ParentDataSetId,
+            inventory.ImportType,
+            inventory.CreatedBy,
+            inventory.CreatedAt,
+            inventory.UpdatedAt
         };
     }
     
@@ -672,6 +687,115 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
         catch (Exception ex)
         {
             LogError(ex, nameof(GetCountByJobDateAsync), new { jobDate });
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// アクティブなデータのみ取得
+    /// </summary>
+    public async Task<List<InventoryMaster>> GetActiveByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            SELECT 
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+                JobDate, CreatedDate, UpdatedDate,
+                CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
+                DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount,
+                IsActive, ParentDataSetId, ImportType, CreatedBy, CreatedAt, UpdatedAt
+            FROM InventoryMaster 
+            WHERE JobDate = @JobDate AND IsActive = 1
+            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
+    
+        try
+        {
+            using var connection = CreateConnection();
+            var inventories = await connection.QueryAsync<dynamic>(sql, new { JobDate = jobDate });
+            return inventories.Select(MapToInventoryMaster).ToList();
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetActiveByJobDateAsync), new { jobDate });
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// データセットを無効化（削除しない）
+    /// </summary>
+    public async Task DeactivateDataSetAsync(string dataSetId)
+    {
+        const string sql = @"
+            UPDATE InventoryMaster 
+            SET IsActive = 0, UpdatedAt = GETDATE()
+            WHERE DataSetId = @DataSetId";
+    
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+            LogInfo($"Deactivated {result} records for DataSetId: {dataSetId}");
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(DeactivateDataSetAsync), new { dataSetId });
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// JobDateのデータを無効化
+    /// </summary>
+    public async Task DeactivateByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE InventoryMaster 
+            SET IsActive = 0, UpdatedAt = GETDATE()
+            WHERE JobDate = @JobDate AND IsActive = 1";
+    
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+            LogInfo($"Deactivated {result} records for JobDate: {jobDate:yyyy-MM-dd}");
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(DeactivateByJobDateAsync), new { jobDate });
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 前月末在庫（INIT）の取得
+    /// </summary>
+    public async Task<List<InventoryMaster>> GetActiveInitInventoryAsync(DateTime lastMonthEnd)
+    {
+        const string sql = @"
+            SELECT 
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+                JobDate, CreatedDate, UpdatedDate,
+                CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
+                DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
+                DataSetId, PreviousMonthQuantity, PreviousMonthAmount,
+                IsActive, ParentDataSetId, ImportType, CreatedBy, CreatedAt, UpdatedAt
+            FROM InventoryMaster 
+            WHERE JobDate = @JobDate 
+            AND ImportType = 'INIT'
+            AND IsActive = 1";
+    
+        try
+        {
+            using var connection = CreateConnection();
+            var inventories = await connection.QueryAsync<dynamic>(sql, new { JobDate = lastMonthEnd });
+            return inventories.Select(MapToInventoryMaster).ToList();
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetActiveInitInventoryAsync), new { lastMonthEnd });
             throw;
         }
     }

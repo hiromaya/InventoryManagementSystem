@@ -100,9 +100,26 @@ if (-not $SkipDatabaseInit) {
         exit 1
     }
     Write-Success "Database initialized successfully"
+    
+    # Test database connection
+    Write-Info "Testing database connection..."
+    dotnet run test-connection
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Database connection test failed!"
+        exit 1
+    }
+    Write-Success "Database connection verified"
     Start-Sleep -Seconds 2
 } else {
     Write-Warning "Skipping database initialization (--SkipDatabaseInit flag set)"
+    
+    # Still test connection even if skipping init
+    Write-Info "Testing database connection..."
+    dotnet run test-connection
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Database connection test failed!"
+        exit 1
+    }
 }
 
 # Step 2: Initial inventory setup
@@ -206,7 +223,24 @@ Write-Info "Average time per day: $([Math]::Round($duration.TotalSeconds / $dayC
 
 # Final verification
 Write-Header "Running Final Verification"
-Write-Info "Checking inventory status for last date..."
-dotnet run query-inventory $EndDate
 
+# Check data status for the last date
+Write-Info "Checking data status for last date: $EndDate"
+dotnet run check-data-status $EndDate
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "Data status check returned with warnings or errors"
+}
+
+# Check master data integrity
+Write-Info "`nChecking master data integrity..."
+dotnet run check-masters
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "Master data check returned with warnings or errors"
+}
+
+# Summary
 Write-Success "`nAll processing completed!"
+Write-Info "Please review the data status output above to verify:"
+Write-Info " - Voucher counts (Sales, Purchase, Inventory Adjustment)"
+Write-Info " - Master data integrity"
+Write-Info " - Daily processing status"

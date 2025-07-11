@@ -36,6 +36,14 @@ public class InventoryMaster
     // データセットID管理
     public string DataSetId { get; set; } = string.Empty;       // データセットID
     
+    // 世代管理用の新規フィールド
+    public bool IsActive { get; set; } = true;                  // アクティブフラグ
+    public string? ParentDataSetId { get; set; }                // 親データセットID
+    public string ImportType { get; set; } = "UNKNOWN";         // インポートタイプ (INIT/IMPORT/CARRYOVER/MANUAL/UNKNOWN)
+    public string? CreatedBy { get; set; }                      // 作成者
+    public DateTime CreatedAt { get; set; } = DateTime.Now;     // 作成日時（CreatedDateとは別管理）
+    public DateTime? UpdatedAt { get; set; }                    // 更新日時
+    
     public bool IsExcluded
     {
         get
