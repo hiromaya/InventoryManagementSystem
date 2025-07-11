@@ -318,6 +318,10 @@ namespace InventorySystem.Data.Services
                     return result;
                 }
                 
+                // 4.5. 前日在庫の引き継ぎ処理（累積管理のため）
+                var inheritResult = await InheritPreviousDayInventoryAsync(connection, transaction, jobDate);
+                _logger.LogInformation("前日在庫引き継ぎ完了: {Count}件", inheritResult);
+                
                 // 5. MERGE文で一括処理
                 var mergeResults = await MergeInventoryMasterAsync(connection, transaction, jobDate, dataSetId);
                 result.InsertedCount = mergeResults.insertCount;
@@ -422,6 +426,66 @@ namespace InventorySystem.Data.Services
                 transaction);
             
             return products.ToList();
+        }
+
+        /// <summary>
+        /// 前日在庫を当日に引き継ぐ処理（累積管理のため）
+        /// </summary>
+        /// <param name="connection">データベース接続</param>
+        /// <param name="transaction">トランザクション</param>
+        /// <param name="jobDate">当日日付</param>
+        /// <returns>引き継いだ在庫件数</returns>
+        private async Task<int> InheritPreviousDayInventoryAsync(
+            SqlConnection connection, 
+            SqlTransaction transaction, 
+            DateTime jobDate)
+        {
+            var previousDate = jobDate.AddDays(-1);
+            
+            _logger.LogInformation("前日在庫引き継ぎ開始: 前日={PreviousDate:yyyy-MM-dd}, 当日={JobDate:yyyy-MM-dd}", 
+                previousDate, jobDate);
+            
+            const string inheritSql = @"
+                -- 前日の在庫マスタを当日にコピー（CurrentStockを引き継ぎ）
+                INSERT INTO InventoryMaster (
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+                    JobDate, CreatedDate, UpdatedDate,
+                    CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount, DailyFlag,
+                    PreviousMonthQuantity, PreviousMonthAmount, UnitPrice
+                )
+                SELECT 
+                    prev.ProductCode, prev.GradeCode, prev.ClassCode, 
+                    prev.ShippingMarkCode, prev.ShippingMarkName,
+                    prev.ProductName, prev.Unit, prev.StandardPrice, 
+                    prev.ProductCategory1, prev.ProductCategory2,
+                    @JobDate, GETDATE(), GETDATE(),
+                    prev.CurrentStock, prev.CurrentStockAmount,  -- 前日在庫を引き継ぎ
+                    prev.CurrentStock, prev.CurrentStockAmount,  -- 日次在庫も初期値として設定
+                    '9',  -- 未処理フラグ
+                    prev.PreviousMonthQuantity, prev.PreviousMonthAmount,
+                    prev.UnitPrice
+                FROM InventoryMaster prev
+                WHERE CAST(prev.JobDate AS DATE) = CAST(@PreviousDate AS DATE)
+                    AND NOT EXISTS (
+                        -- 当日のデータが既に存在する場合はスキップ（月初処理との重複回避）
+                        SELECT 1 FROM InventoryMaster curr
+                        WHERE curr.ProductCode = prev.ProductCode
+                            AND curr.GradeCode = prev.GradeCode
+                            AND curr.ClassCode = prev.ClassCode
+                            AND curr.ShippingMarkCode = prev.ShippingMarkCode
+                            AND curr.ShippingMarkName = prev.ShippingMarkName
+                            AND CAST(curr.JobDate AS DATE) = CAST(@JobDate AS DATE)
+                    );";
+            
+            var inheritedCount = await connection.ExecuteAsync(inheritSql, 
+                new { JobDate = jobDate, PreviousDate = previousDate }, 
+                transaction);
+            
+            _logger.LogInformation("前日在庫引き継ぎ完了: {Count}件（前日={PreviousDate:yyyy-MM-dd}→当日={JobDate:yyyy-MM-dd}）", 
+                inheritedCount, previousDate, jobDate);
+            
+            return inheritedCount;
         }
 
         private async Task<(int insertCount, int updateCount)> MergeInventoryMasterAsync(
