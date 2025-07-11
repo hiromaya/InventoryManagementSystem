@@ -78,9 +78,24 @@ public class DatasetManager : IDatasetManager
             DatasetId = datasetId,
             JobDate = jobDate,
             ProcessType = processType,
+            ImportType = processType switch 
+            {
+                "IMPORT" => "IMPORT",
+                "CARRYOVER" => "CARRYOVER",
+                "INIT" => "INIT",
+                "MANUAL" => "MANUAL",
+                _ => "UNKNOWN"
+            },
+            RecordCount = 0,  // 呼び出し元で設定
+            TotalRecordCount = 0,  // 呼び出し元で設定
+            IsActive = true,
+            IsArchived = false,
+            ParentDataSetId = null,
             ImportedFiles = importedFiles != null ? JsonSerializer.Serialize(importedFiles) : null,
             CreatedAt = DateTime.Now,
-            CreatedBy = createdBy
+            CreatedBy = createdBy,
+            Department = "DeptA",  // 呼び出し元で適切に設定
+            Notes = null
         };
     }
 }

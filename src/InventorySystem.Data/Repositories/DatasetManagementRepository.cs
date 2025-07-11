@@ -21,19 +21,29 @@ public class DatasetManagementRepository : BaseRepository, IDatasetManagementRep
     {
         const string sql = @"
             INSERT INTO DatasetManagement (
-                DatasetId, JobDate, ProcessType, ImportType, RecordCount, IsActive, IsArchived,
-                ParentDataSetId, ImportedFiles, CreatedAt, CreatedBy, Notes
+                DatasetId, JobDate, ProcessType, ImportType, RecordCount, TotalRecordCount,
+                IsActive, IsArchived, ParentDataSetId, ImportedFiles, CreatedAt, CreatedBy, 
+                Notes, Department
             ) VALUES (
-                @DatasetId, @JobDate, @ProcessType, @ImportType, @RecordCount, @IsActive, @IsArchived,
-                @ParentDataSetId, @ImportedFiles, @CreatedAt, @CreatedBy, @Notes
+                @DatasetId, @JobDate, @ProcessType, @ImportType, @RecordCount, @TotalRecordCount,
+                @IsActive, @IsArchived, @ParentDataSetId, @ImportedFiles, @CreatedAt, @CreatedBy, 
+                @Notes, @Department
             )";
         
         try
         {
             using var connection = new SqlConnection(_connectionString);
+            
+            // TotalRecordCountがセットされていない場合はRecordCountと同じ値を設定
+            if (dataset.TotalRecordCount == 0 && dataset.RecordCount > 0)
+            {
+                dataset.TotalRecordCount = dataset.RecordCount;
+            }
+            
             await connection.ExecuteAsync(sql, dataset);
             
-            _logger.LogInformation("データセット作成完了: DatasetId={DatasetId}", dataset.DatasetId);
+            _logger.LogInformation("データセット作成完了: DatasetId={DatasetId}, Department={Department}", 
+                dataset.DatasetId, dataset.Department);
             
             return dataset;
         }

@@ -87,9 +87,15 @@ public class ImportWithCarryoverCommand
                 ProcessType = "CARRYOVER",
                 ImportType = "CARRYOVER",
                 RecordCount = affectedRows,
+                TotalRecordCount = affectedRows,  // 追加
+                ParentDataSetId = currentInventory.FirstOrDefault()?.DataSetId,
                 IsActive = true,
+                IsArchived = false,  // 追加
                 CreatedAt = DateTime.Now,
-                CreatedBy = "ImportWithCarryover"
+                CreatedBy = "System",
+                Department = department,  // 追加
+                ImportedFiles = null,  // 追加（引継ぎの場合はファイルがないため）
+                Notes = $"前日在庫引継: {currentInventory.Count}件, 処理結果: {affectedRows}件"
             });
             
             // 9. 完了メッセージ

@@ -31,6 +31,11 @@ public class DatasetManagement
     public int RecordCount { get; set; }
     
     /// <summary>
+    /// 総レコード数（RecordCountと同じ値を設定）
+    /// </summary>
+    public int TotalRecordCount { get; set; }
+    
+    /// <summary>
     /// アクティブフラグ
     /// </summary>
     public bool IsActive { get; set; } = true;
@@ -84,6 +89,11 @@ public class DatasetManagement
     /// 備考
     /// </summary>
     public string? Notes { get; set; }
+    
+    /// <summary>
+    /// 部門コード
+    /// </summary>
+    public string Department { get; set; } = "DeptA";
     
     /// <summary>
     /// 処理履歴（ナビゲーションプロパティ）
