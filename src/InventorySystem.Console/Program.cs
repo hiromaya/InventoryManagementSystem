@@ -279,7 +279,7 @@ if (commandArgs.Length < 2)
     Console.WriteLine("  dotnet run import-masters                    - 等級・階級マスタをインポート");
     Console.WriteLine("  dotnet run check-masters                     - 等級・階級マスタの登録状況を確認");
     Console.WriteLine("  dotnet run init-inventory <dept>             - 初期在庫設定（前月末在庫.csv取込）");
-    Console.WriteLine("  dotnet run import-with-carryover <dept> <YYYY-MM-DD> - 前日在庫を引き継いでインポート");
+    Console.WriteLine("  dotnet run import-with-carryover <dept>      - 前日在庫を引き継いでインポート");
     Console.WriteLine("");
     Console.WriteLine("【開発環境用コマンド】");
     Console.WriteLine("  dotnet run init-database [--force]           - データベース初期化");
