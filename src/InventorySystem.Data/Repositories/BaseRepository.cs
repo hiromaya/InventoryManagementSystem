@@ -34,6 +34,11 @@ public abstract class BaseRepository
     {
         _logger.LogDebug("{Message}. Parameters: {@Parameters}", message, parameters);
     }
+
+    protected void LogWarning(string message, object? parameters = null)
+    {
+        _logger.LogWarning("{Message}. Parameters: {@Parameters}", message, parameters);
+    }
     
     /// <summary>
     /// トランザクション内で処理を実行するヘルパーメソッド
