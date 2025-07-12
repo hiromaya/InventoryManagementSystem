@@ -226,12 +226,12 @@ public class PurchaseVoucherImportService
                 _logger.LogInformation("仕入伝票CSV取込完了: {Count}件", importedCount);
                 
                 // 最終仕入日を更新
-                if (targetDate.HasValue && importedCount > 0)
+                if (startDate.HasValue && importedCount > 0)
                 {
                     try
                     {
-                        await _inventoryRepository.UpdateLastPurchaseDateAsync(targetDate.Value);
-                        _logger.LogInformation("最終仕入日を更新しました: {TargetDate:yyyy-MM-dd}", targetDate.Value);
+                        await _inventoryRepository.UpdateLastPurchaseDateAsync(startDate.Value);
+                        _logger.LogInformation("最終仕入日を更新しました: {TargetDate:yyyy-MM-dd}", startDate.Value);
                     }
                     catch (Exception updateEx)
                     {
