@@ -15,6 +15,8 @@ public class InventoryMaster
     public DateTime JobDate { get; set; }                        // 汎用日付2（ジョブデート）
     public DateTime CreatedDate { get; set; }                    // 作成日
     public DateTime UpdatedDate { get; set; }                    // 更新日
+    public DateTime? LastSalesDate { get; set; }                 // 最終売上日
+    public DateTime? LastPurchaseDate { get; set; }              // 最終仕入日
     
     // 在庫情報
     public decimal CurrentStock { get; set; }                    // 現在在庫数

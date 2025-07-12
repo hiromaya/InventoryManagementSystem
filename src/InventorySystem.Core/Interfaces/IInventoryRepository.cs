@@ -158,4 +158,16 @@ public interface IInventoryRepository
     /// <param name="inactiveDays">非アクティブ化までの日数</param>
     /// <returns>非アクティブ化した件数</returns>
     Task<int> DeactivateZeroStockItemsAsync(DateTime jobDate, int inactiveDays);
+    
+    /// <summary>
+    /// 最終売上日を更新する
+    /// </summary>
+    /// <param name="jobDate">処理対象日</param>
+    Task UpdateLastSalesDateAsync(DateTime jobDate);
+    
+    /// <summary>
+    /// 最終仕入日を更新する
+    /// </summary>
+    /// <param name="jobDate">処理対象日</param>
+    Task UpdateLastPurchaseDateAsync(DateTime jobDate);
 }

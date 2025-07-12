@@ -1541,7 +1541,14 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 AND ISNULL(PreviousMonthQuantity, 0) = 0
                 AND IsActive = 1
                 AND DATEDIFF(DAY, 
-                    COALESCE(UpdatedDate, JobDate), 
+                    ISNULL(
+                        CASE 
+                            WHEN ISNULL(LastSalesDate, '1900-01-01') > ISNULL(LastPurchaseDate, '1900-01-01') 
+                            THEN LastSalesDate
+                            ELSE LastPurchaseDate
+                        END,
+                        JobDate  -- LastSalesDate/LastPurchaseDateが両方NULLの場合のみJobDateを使用
+                    ), 
                     @JobDate) >= @InactiveDays";
         
         try
@@ -1569,12 +1576,21 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
         const string sql = @"
             UPDATE InventoryMaster
             SET IsActive = 0,
-                UpdatedDate = GETDATE()
+                UpdatedDate = GETDATE(),  -- これは単なる更新日時の記録
+                Notes = CONCAT('Auto-deactivated on ', CONVERT(varchar, @JobDate, 23), 
+                              ': Zero stock for ', @InactiveDays, '+ days since last transaction')
             WHERE CurrentStock = 0
                 AND ISNULL(PreviousMonthQuantity, 0) = 0
                 AND IsActive = 1
                 AND DATEDIFF(DAY, 
-                    COALESCE(UpdatedDate, JobDate), 
+                    ISNULL(
+                        CASE 
+                            WHEN ISNULL(LastSalesDate, '1900-01-01') > ISNULL(LastPurchaseDate, '1900-01-01') 
+                            THEN LastSalesDate
+                            ELSE LastPurchaseDate
+                        END,
+                        JobDate
+                    ), 
                     @JobDate) >= @InactiveDays";
         
         try
@@ -1590,6 +1606,206 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
         catch (Exception ex)
         {
             LogError(ex, nameof(DeactivateZeroStockItemsAsync), new { jobDate, inactiveDays });
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 最終売上日を更新する
+    /// </summary>
+    public async Task UpdateLastSalesDateAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE im
+            SET im.LastSalesDate = sv.JobDate,
+                im.UpdatedDate = GETDATE()
+            FROM InventoryMaster im
+            INNER JOIN (
+                SELECT DISTINCT 
+                    ProductCode, GradeCode, ClassCode, 
+                    ShippingMarkCode, ShippingMarkName,
+                    MAX(JobDate) as JobDate
+                FROM SalesVouchers
+                WHERE JobDate = @JobDate
+                GROUP BY ProductCode, GradeCode, ClassCode, 
+                         ShippingMarkCode, ShippingMarkName
+            ) sv ON 
+                im.ProductCode = sv.ProductCode AND
+                im.GradeCode = sv.GradeCode AND
+                im.ClassCode = sv.ClassCode AND
+                im.ShippingMarkCode = sv.ShippingMarkCode AND
+                im.ShippingMarkName = sv.ShippingMarkName
+            WHERE sv.JobDate > ISNULL(im.LastSalesDate, '1900-01-01')";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var affected = await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+            LogInfo($"最終売上日を更新しました: {affected}件", new { jobDate, affected });
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(UpdateLastSalesDateAsync), new { jobDate });
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 最終仕入日を更新する
+    /// </summary>
+    public async Task UpdateLastPurchaseDateAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE im
+            SET im.LastPurchaseDate = pv.JobDate,
+                im.UpdatedDate = GETDATE()
+            FROM InventoryMaster im
+            INNER JOIN (
+                SELECT DISTINCT 
+                    ProductCode, GradeCode, ClassCode, 
+                    ShippingMarkCode, ShippingMarkName,
+                    MAX(JobDate) as JobDate
+                FROM PurchaseVouchers
+                WHERE JobDate = @JobDate
+                GROUP BY ProductCode, GradeCode, ClassCode, 
+                         ShippingMarkCode, ShippingMarkName
+            ) pv ON 
+                im.ProductCode = pv.ProductCode AND
+                im.GradeCode = pv.GradeCode AND
+                im.ClassCode = pv.ClassCode AND
+                im.ShippingMarkCode = pv.ShippingMarkCode AND
+                im.ShippingMarkName = pv.ShippingMarkName
+            WHERE pv.JobDate > ISNULL(im.LastPurchaseDate, '1900-01-01')";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var affected = await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+            LogInfo($"最終仕入日を更新しました: {affected}件", new { jobDate, affected });
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(UpdateLastPurchaseDateAsync), new { jobDate });
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 最大ジョブ日付を取得する
+    /// </summary>
+    public async Task<DateTime> GetMaxJobDateAsync()
+    {
+        const string sql = @"
+            SELECT ISNULL(MAX(JobDate), '1900-01-01')
+            FROM InventoryMaster
+            WHERE IsActive = 1";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            return await connection.ExecuteScalarAsync<DateTime>(sql);
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetMaxJobDateAsync));
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// すべてのアクティブな在庫を取得する
+    /// </summary>
+    public async Task<List<InventoryMaster>> GetAllActiveInventoryAsync()
+    {
+        const string sql = @"
+            SELECT *
+            FROM InventoryMaster
+            WHERE IsActive = 1
+            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var results = await connection.QueryAsync<dynamic>(sql);
+            return results.Select(MapToInventoryMaster).ToList();
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetAllActiveInventoryAsync));
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 在庫マスタをマージする（MERGE処理）
+    /// </summary>
+    public async Task<int> MergeInventoryAsync(List<InventoryMaster> inventories, DateTime targetDate, string dataSetId)
+    {
+        const string sql = @"
+            MERGE InventoryMaster AS target
+            USING @Inventories AS source
+            ON (target.ProductCode = source.ProductCode 
+                AND target.GradeCode = source.GradeCode 
+                AND target.ClassCode = source.ClassCode 
+                AND target.ShippingMarkCode = source.ShippingMarkCode 
+                AND target.ShippingMarkName = source.ShippingMarkName)
+            WHEN MATCHED THEN
+                UPDATE SET
+                    target.CurrentStock = source.CurrentStock,
+                    target.CurrentStockAmount = source.CurrentStockAmount,
+                    target.DailyStock = source.DailyStock,
+                    target.DailyStockAmount = source.DailyStockAmount,
+                    target.DailyFlag = source.DailyFlag,
+                    target.JobDate = @JobDate,
+                    target.DataSetId = @DataSetId,
+                    target.UpdatedDate = GETDATE()
+            WHEN NOT MATCHED THEN
+                INSERT (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                        ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+                        JobDate, CreatedDate, UpdatedDate,
+                        CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
+                        DailyFlag, DataSetId, IsActive)
+                VALUES (source.ProductCode, source.GradeCode, source.ClassCode, 
+                        source.ShippingMarkCode, source.ShippingMarkName,
+                        source.ProductName, source.Unit, source.StandardPrice, 
+                        source.ProductCategory1, source.ProductCategory2,
+                        @JobDate, GETDATE(), GETDATE(),
+                        source.CurrentStock, source.CurrentStockAmount, 
+                        source.DailyStock, source.DailyStockAmount,
+                        source.DailyFlag, @DataSetId, 1);";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var inventoryData = inventories.Select(inv => new
+            {
+                inv.Key.ProductCode,
+                inv.Key.GradeCode,
+                inv.Key.ClassCode,
+                inv.Key.ShippingMarkCode,
+                inv.Key.ShippingMarkName,
+                inv.ProductName,
+                inv.Unit,
+                inv.StandardPrice,
+                inv.ProductCategory1,
+                inv.ProductCategory2,
+                inv.CurrentStock,
+                inv.CurrentStockAmount,
+                inv.DailyStock,
+                inv.DailyStockAmount,
+                inv.DailyFlag
+            }).ToList();
+            
+            return await connection.ExecuteAsync(sql, new 
+            { 
+                Inventories = inventoryData.AsTableValuedParameter("InventoryMasterType"),
+                JobDate = targetDate,
+                DataSetId = dataSetId
+            });
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(MergeInventoryAsync), new { count = inventories.Count, targetDate, dataSetId });
             throw;
         }
     }

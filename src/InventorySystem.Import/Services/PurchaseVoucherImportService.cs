@@ -18,15 +18,18 @@ public class PurchaseVoucherImportService
     private readonly PurchaseVoucherCsvRepository _purchaseVoucherRepository;
     private readonly IDataSetRepository _dataSetRepository;
     private readonly ILogger<PurchaseVoucherImportService> _logger;
+    private readonly IInventoryRepository _inventoryRepository;
     
     public PurchaseVoucherImportService(
         PurchaseVoucherCsvRepository purchaseVoucherRepository,
         IDataSetRepository dataSetRepository,
-        ILogger<PurchaseVoucherImportService> logger)
+        ILogger<PurchaseVoucherImportService> logger,
+        IInventoryRepository inventoryRepository)
     {
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _dataSetRepository = dataSetRepository;
         _logger = logger;
+        _inventoryRepository = inventoryRepository;
     }
 
     /// <summary>
@@ -221,6 +224,20 @@ public class PurchaseVoucherImportService
             {
                 await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Completed);
                 _logger.LogInformation("仕入伝票CSV取込完了: {Count}件", importedCount);
+                
+                // 最終仕入日を更新
+                if (targetDate.HasValue && importedCount > 0)
+                {
+                    try
+                    {
+                        await _inventoryRepository.UpdateLastPurchaseDateAsync(targetDate.Value);
+                        _logger.LogInformation("最終仕入日を更新しました: {TargetDate:yyyy-MM-dd}", targetDate.Value);
+                    }
+                    catch (Exception updateEx)
+                    {
+                        _logger.LogWarning(updateEx, "最終仕入日の更新に失敗しました。処理は継続します。");
+                    }
+                }
             }
 
             return dataSetId;

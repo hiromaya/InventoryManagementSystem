@@ -24,19 +24,22 @@ public class SalesVoucherImportService
     private readonly ILogger<SalesVoucherImportService> _logger;
     private readonly DepartmentSettings _departmentSettings;
     private readonly ICsvFileProcessor _csvProcessor;
+    private readonly IInventoryRepository _inventoryRepository;
     
     public SalesVoucherImportService(
         SalesVoucherCsvRepository salesVoucherRepository,
         IDataSetRepository dataSetRepository,
         ILogger<SalesVoucherImportService> logger,
         IOptions<DepartmentSettings> departmentOptions,
-        ICsvFileProcessor csvProcessor)
+        ICsvFileProcessor csvProcessor,
+        IInventoryRepository inventoryRepository)
     {
         _salesVoucherRepository = salesVoucherRepository;
         _dataSetRepository = dataSetRepository;
         _logger = logger;
         _departmentSettings = departmentOptions.Value;
         _csvProcessor = csvProcessor;
+        _inventoryRepository = inventoryRepository;
     }
 
     /// <summary>
@@ -234,6 +237,20 @@ public class SalesVoucherImportService
             {
                 await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Completed);
                 _logger.LogInformation("売上伝票CSV取込完了: {Count}件", importedCount);
+                
+                // 最終売上日を更新
+                if (targetDate.HasValue && importedCount > 0)
+                {
+                    try
+                    {
+                        await _inventoryRepository.UpdateLastSalesDateAsync(targetDate.Value);
+                        _logger.LogInformation("最終売上日を更新しました: {TargetDate:yyyy-MM-dd}", targetDate.Value);
+                    }
+                    catch (Exception updateEx)
+                    {
+                        _logger.LogWarning(updateEx, "最終売上日の更新に失敗しました。処理は継続します。");
+                    }
+                }
             }
 
             // CSV処理成功時、ファイルをProcessedフォルダへ移動

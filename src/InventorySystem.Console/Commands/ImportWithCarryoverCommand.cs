@@ -125,7 +125,34 @@ public class ImportWithCarryoverCommand
                 datasetManagement
             );
             
-            // 9. 完了メッセージ
+            // 9. 最終取引日を更新
+            if (salesVouchers.Any())
+            {
+                try
+                {
+                    await _inventoryRepository.UpdateLastSalesDateAsync(targetDate);
+                    _logger.LogInformation("最終売上日を更新しました: {TargetDate:yyyy-MM-dd}", targetDate);
+                }
+                catch (Exception updateEx)
+                {
+                    _logger.LogWarning(updateEx, "最終売上日の更新に失敗しました。処理は継続します。");
+                }
+            }
+            
+            if (purchaseVouchers.Any())
+            {
+                try
+                {
+                    await _inventoryRepository.UpdateLastPurchaseDateAsync(targetDate);
+                    _logger.LogInformation("最終仕入日を更新しました: {TargetDate:yyyy-MM-dd}", targetDate);
+                }
+                catch (Exception updateEx)
+                {
+                    _logger.LogWarning(updateEx, "最終仕入日の更新に失敗しました。処理は継続します。");
+                }
+            }
+            
+            // 10. 完了メッセージ
             System.Console.WriteLine($"===== 在庫引継インポート完了 =====");
             System.Console.WriteLine($"処理対象日: {targetDate:yyyy-MM-dd}");
             System.Console.WriteLine($"DataSetId: {dataSetId}");
