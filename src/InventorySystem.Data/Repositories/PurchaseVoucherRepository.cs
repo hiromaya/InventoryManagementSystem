@@ -187,6 +187,14 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
         return await connection.ExecuteScalarAsync<int>(sql, new { jobDate });
     }
     
+    public async Task<int> GetCountByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = "SELECT COUNT(*) FROM PurchaseVouchers WHERE JobDate = @jobDate";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteScalarAsync<int>(sql, new { jobDate });
+    }
+    
     public async Task<decimal> GetTotalAmountAsync(DateTime jobDate)
     {
         const string sql = "SELECT ISNULL(SUM(Amount), 0) FROM PurchaseVouchers WHERE JobDate = @jobDate";

@@ -374,6 +374,18 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
         return await connection.ExecuteScalarAsync<int>(sql, new { jobDate });
     }
     
+    public async Task<int> GetInventoryAdjustmentCountByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            SELECT COUNT(*) 
+            FROM InventoryAdjustments 
+            WHERE JobDate = @jobDate 
+            AND CategoryCode IN (1, 4, 6)";
+        
+        using var connection = CreateConnection();
+        return await connection.ExecuteScalarAsync<int>(sql, new { jobDate });
+    }
+    
     public async Task<int> GetModifiedAfterAsync(DateTime jobDate, DateTime modifiedAfter)
     {
         const string sql = @"

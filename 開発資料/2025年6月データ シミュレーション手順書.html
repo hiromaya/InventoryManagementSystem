@@ -908,33 +908,113 @@
         <div class="phase">
             <div class="phase-header">
                 <div class="phase-number">4</div>
-                <div class="phase-title">実行例（6月1日〜3日）</div>
+                <div class="phase-title">実行例（6月1日〜3日）- 伝票の有無による処理フロー</div>
+            </div>
+            
+            <div class="info" style="margin-bottom: 20px;">
+                <h4>📌 コマンドの役割整理</h4>
+                <table style="width: 100%; margin-top: 10px;">
+                    <tr style="background: rgba(52, 152, 219, 0.2);">
+                        <th style="padding: 10px; text-align: left;">コマンド</th>
+                        <th style="padding: 10px; text-align: left;">用途</th>
+                        <th style="padding: 10px; text-align: left;">実行タイミング</th>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px;"><code>import-folder</code></td>
+                        <td style="padding: 10px;">伝票がある日の取込</td>
+                        <td style="padding: 10px;">朝</td>
+                    </tr>
+                    <tr style="background: rgba(46, 204, 113, 0.1);">
+                        <td style="padding: 10px;"><code>import-with-carryover</code></td>
+                        <td style="padding: 10px;">伝票がない日の在庫引継</td>
+                        <td style="padding: 10px;">朝</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px;"><code>daily-close</code></td>
+                        <td style="padding: 10px;">日次終了処理（共通）</td>
+                        <td style="padding: 10px;">夕方</td>
+                    </tr>
+                </table>
             </div>
             
             <div class="example-section">
-                <h4>📅 6月1日（土曜日）の処理</h4>
-                <div class="command-block">
-                    <span class="comment"># オプション1: CSVインポート</span>
-                    <span class="command-line">dotnet run -- import-folder DeptA 2025-06-01</span>
-                    <br><br>
-                    <span class="comment"># オプション2: 在庫引継（推奨）</span>
-                    <span class="command-line">dotnet run -- import-with-carryover DeptA</span>
+                <h4>📅 6月1日（土曜日）- 伝票データが一切ない日の処理</h4>
+                <div class="warning" style="margin-bottom: 15px;">
+                    <strong>⚠️ 重要：</strong>6月1日は土曜日のため、売上・仕入・在庫調整の伝票データは一切ありません。CSVファイルも存在しません。
+                </div>
+                <div class="step" style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                    <h5 style="color: #3498db;">1. 朝：在庫引継のみ実行</h5>
+                    <div class="command-block">
+                        <span class="comment"># 前日（5/31）の在庫166件を6/1付けで引き継ぎ</span>
+                        <span class="comment"># 6/1の伝票CSVファイルは存在しないため、import-folderは使用不可</span>
+                        <span class="comment"># import-with-carryoverで前日在庫を引き継ぐだけ</span>
+                        <span class="command-line">dotnet run -- import-with-carryover DeptA</span>
+                    </div>
+                    
+                    <h5 style="color: #3498db; margin-top: 20px;">2. 日中：各種帳票作成（在庫のみ）</h5>
+                    <div class="command-block">
+                        <span class="comment"># アンマッチリスト（CP在庫マスタ作成）</span>
+                        <span class="comment"># 売上・仕入データなし、在庫166件のみ</span>
+                        <span class="command-line">dotnet run -- create-unmatch-list 2025-06-01</span>
+                        <br><br>
+                        <span class="comment"># 商品日報（売上0円、仕入0円、在庫166件）</span>
+                        <span class="command-line">.\dev.ps1 dev-daily-report 2025-06-01</span>
+                        <br><br>
+                        <span class="comment"># 在庫表（前日から引き継いだ166件の在庫を表示）</span>
+                        <span class="command-line">dotnet run -- inventory-list 2025-06-01</span>
+                    </div>
+                    
+                    <h5 style="color: #3498db; margin-top: 20px;">3. 夕方：日次終了処理</h5>
+                    <div class="command-block">
+                        <span class="comment"># CP在庫マスタを削除し、翌日（6/2）への準備</span>
+                        <span class="command-line">dotnet run -- daily-close 2025-06-01</span>
+                    </div>
                 </div>
                 
-                <h4>📅 6月2日（日曜日）の処理</h4>
-                <div class="command-block">
-                    <span class="comment"># CSVインポート（必要な場合）</span>
-                    <span class="command-line">dotnet run -- import-folder DeptA 2025-06-02</span>
-                    <br><br>
-                    <span class="comment"># または在庫引継</span>
-                    <span class="command-line">dotnet run -- import-with-carryover DeptA</span>
+                <h4>📅 6月2日（日曜日）- 伝票がある日の処理</h4>
+                <div class="step" style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                    <h5 style="color: #27ae60;">1. 朝：伝票取込</h5>
+                    <div class="command-block">
+                        <span class="comment"># CSVファイルから伝票データをインポート</span>
+                        <span class="command-line">dotnet run -- import-folder DeptA 2025-06-02</span>
+                    </div>
+                    
+                    <h5 style="color: #27ae60; margin-top: 20px;">2. 日中：帳票作成（同じ流れ）</h5>
+                    <div class="command-block">
+                        <span class="comment"># アンマッチリスト</span>
+                        <span class="command-line">dotnet run -- create-unmatch-list 2025-06-02</span>
+                        <br><br>
+                        <span class="comment"># 商品日報</span>
+                        <span class="command-line">.\dev.ps1 dev-daily-report 2025-06-02</span>
+                        <br><br>
+                        <span class="comment"># 在庫表</span>
+                        <span class="command-line">dotnet run -- inventory-list 2025-06-02</span>
+                    </div>
+                    
+                    <h5 style="color: #27ae60; margin-top: 20px;">3. 夕方：日次終了処理（共通）</h5>
+                    <div class="command-block">
+                        <span class="command-line">dotnet run -- daily-close 2025-06-02</span>
+                    </div>
                 </div>
                 
-                <h4>📅 6月3日（月曜日）の処理</h4>
+                <h4>📅 6月3日（月曜日）- 営業日の処理</h4>
                 <div class="command-block">
-                    <span class="comment"># 在庫引継（前日の在庫を基に計算）</span>
-                    <span class="command-line">dotnet run -- import-with-carryover DeptA</span>
+                    <span class="comment"># 通常の営業日は import-folder を使用</span>
+                    <span class="command-line">dotnet run -- import-folder DeptA 2025-06-03</span>
+                    <br><br>
+                    <span class="comment"># 以降、帳票作成と日次終了処理</span>
+                    <span class="command-line"># （省略）</span>
                 </div>
+            </div>
+            
+            <div class="warning" style="margin-top: 20px;">
+                <h4>🚨 重要なポイント</h4>
+                <ul>
+                    <li><strong>帳票は毎日作成</strong> - 伝票がなくても在庫状況の帳票は必要（売上・仕入が0円でも記録として残す）</li>
+                    <li><strong>在庫の連続性を保つ</strong> - 伝票がない日も在庫データは引き継ぐ（JobDateを更新して管理）</li>
+                    <li><strong>日次終了処理は共通</strong> - 伝票の有無に関わらず`daily-close`を実行（CP在庫マスタの削除など必要な処理）</li>
+                    <li><strong>import-with-carryoverは伝票取込用</strong> - 日次終了は別途`daily-close`コマンドで実行</li>
+                </ul>
             </div>
         </div>
         

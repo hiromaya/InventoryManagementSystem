@@ -1882,6 +1882,10 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         var gradeRepo = scopedServices.GetService<IGradeMasterRepository>();
         var classRepo = scopedServices.GetService<IClassMasterRepository>();
         var inventoryRepo = scopedServices.GetRequiredService<IInventoryRepository>();
+        var salesVoucherRepo = scopedServices.GetRequiredService<ISalesVoucherRepository>();
+        var purchaseVoucherRepo = scopedServices.GetRequiredService<IPurchaseVoucherRepository>();
+        var adjustmentRepo = scopedServices.GetRequiredService<IInventoryAdjustmentRepository>();
+        var datasetRepo = scopedServices.GetRequiredService<IDatasetManagementRepository>();
         
         // 在庫マスタ最適化サービス
         var optimizationService = scopedServices.GetService<IInventoryMasterOptimizationService>();
@@ -2318,37 +2322,75 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 Console.WriteLine(); // 各ファイル処理後に改行
             }
             
-            // ========== Phase 4: 在庫マスタ最適化 ==========
-            Console.WriteLine("\n========== Phase 4: 在庫マスタ最適化 ==========");
-            Console.WriteLine("売上・仕入・在庫調整伝票から在庫マスタを自動生成します...\n");
+            // ========== Phase 4: 在庫マスタ最適化または前日在庫引継 ==========
+            Console.WriteLine("\n========== Phase 4: 在庫マスタ処理 ==========");
 
-            if (optimizationService != null && startDate.HasValue && endDate.HasValue)
+            if (startDate.HasValue && endDate.HasValue)
             {
                 try
                 {
-                    // 期間内の各日付に対して最適化を実行
+                    // 期間内の各日付に対して処理を実行
                     var currentDate = startDate.Value;
                     while (currentDate <= endDate.Value)
                     {
-                        var stopwatch = Stopwatch.StartNew();
-                        var dataSetId = $"AUTO_OPTIMIZE_{currentDate:yyyyMMdd}_{DateTime.Now:HHmmss}";
-                        var result = await optimizationService.OptimizeAsync(currentDate, dataSetId);
-                        stopwatch.Stop();
-                    
-                        processedCounts[$"在庫マスタ最適化_{currentDate:yyyy-MM-dd}"] = result.InsertedCount + result.UpdatedCount;
-                        
-                        // カバレッジ率を計算（簡易版）
-                        var coverageRate = result.ProcessedCount > 0 ? 
-                            (double)(result.InsertedCount + result.UpdatedCount) / result.ProcessedCount : 0.0;
-                        
-                        Console.WriteLine($"✅ 在庫マスタ最適化完了 [{currentDate:yyyy-MM-dd}] ({stopwatch.ElapsedMilliseconds}ms)");
-                        Console.WriteLine($"   - 新規作成: {result.InsertedCount}件");
-                        Console.WriteLine($"   - JobDate更新: {result.UpdatedCount}件");  
-                        Console.WriteLine($"   - カバレッジ率: {coverageRate:P1}");
+                        // 在庫影響伝票の件数を確認
+                        var salesCount = await salesVoucherRepo.GetCountByJobDateAsync(currentDate);
+                        var purchaseCount = await purchaseVoucherRepo.GetCountByJobDateAsync(currentDate);
+                        var adjustmentCount = await adjustmentRepo.GetInventoryAdjustmentCountByJobDateAsync(currentDate);
+                        var totalInventoryVouchers = salesCount + purchaseCount + adjustmentCount;
                         
                         logger.LogInformation(
-                            "在庫マスタ最適化完了 - 日付: {Date}, 新規: {Created}, 更新: {Updated}, カバレッジ: {Coverage:P1}, 処理時間: {ElapsedMs}ms",
-                            currentDate, result.InsertedCount, result.UpdatedCount, coverageRate, stopwatch.ElapsedMilliseconds);
+                            "在庫影響伝票数 [{Date:yyyy-MM-dd}] - 売上: {SalesCount}件, 仕入: {PurchaseCount}件, 在庫調整: {AdjustmentCount}件",
+                            currentDate, salesCount, purchaseCount, adjustmentCount);
+                        
+                        var stopwatch = Stopwatch.StartNew();
+                        string dataSetId;
+                        string importType = "UNKNOWN";
+                        
+                        if (totalInventoryVouchers == 0)
+                        {
+                            // 前日在庫引継モード
+                            Console.WriteLine($"\n[{currentDate:yyyy-MM-dd}] 在庫影響伝票が0件のため、前日在庫引継モードで処理します。");
+                            Console.WriteLine($"  売上: {salesCount}件, 仕入: {purchaseCount}件, 在庫調整: {adjustmentCount}件");
+                            
+                            dataSetId = $"CARRYOVER_{currentDate:yyyyMMdd}_{DateTime.Now:HHmmss}_{GenerateRandomString(6)}";
+                            importType = "CARRYOVER";
+                            
+                            // 前日在庫引継処理を実行
+                            await ExecuteCarryoverModeAsync(inventoryRepo, datasetRepo, currentDate, dataSetId, department, logger);
+                        }
+                        else if (optimizationService != null)
+                        {
+                            // 通常の在庫マスタ最適化
+                            Console.WriteLine($"\n[{currentDate:yyyy-MM-dd}] 在庫マスタ最適化を開始します。");
+                            Console.WriteLine($"  売上: {salesCount}件, 仕入: {purchaseCount}件, 在庫調整: {adjustmentCount}件");
+                            
+                            dataSetId = $"AUTO_OPTIMIZE_{currentDate:yyyyMMdd}_{DateTime.Now:HHmmss}";
+                            importType = "OPTIMIZE";
+                            
+                            var result = await optimizationService.OptimizeAsync(currentDate, dataSetId);
+                            processedCounts[$"在庫マスタ最適化_{currentDate:yyyy-MM-dd}"] = result.InsertedCount + result.UpdatedCount;
+                            
+                            // カバレッジ率を計算（簡易版）
+                            var coverageRate = result.ProcessedCount > 0 ? 
+                                (double)(result.InsertedCount + result.UpdatedCount) / result.ProcessedCount : 0.0;
+                            
+                            Console.WriteLine($"✅ 在庫マスタ最適化完了 [{currentDate:yyyy-MM-dd}] ({stopwatch.ElapsedMilliseconds}ms)");
+                            Console.WriteLine($"   - 新規作成: {result.InsertedCount}件");
+                            Console.WriteLine($"   - JobDate更新: {result.UpdatedCount}件");  
+                            Console.WriteLine($"   - カバレッジ率: {coverageRate:P1}");
+                        }
+                        else
+                        {
+                            logger.LogWarning("在庫マスタ最適化サービスが未実装のため、スキップします。");
+                            Console.WriteLine($"⚠️ [{currentDate:yyyy-MM-dd}] 在庫マスタ最適化サービスが未実装のためスキップ");
+                        }
+                        
+                        stopwatch.Stop();
+                        
+                        logger.LogInformation(
+                            "在庫処理完了 - 日付: {Date}, モード: {Mode}, 処理時間: {ElapsedMs}ms",
+                            currentDate, importType, stopwatch.ElapsedMilliseconds);
                         
                         currentDate = currentDate.AddDays(1);
                     }
@@ -2362,15 +2404,10 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             }
             else
             {
-                if (optimizationService == null)
+                if (!startDate.HasValue || !endDate.HasValue)
                 {
-                    logger.LogWarning("在庫マスタ最適化サービスが登録されていません");
-                    Console.WriteLine("⚠️ 在庫マスタ最適化サービスが未実装のためスキップ");
-                }
-                else if (!startDate.HasValue || !endDate.HasValue)
-                {
-                    logger.LogWarning("在庫マスタ最適化には日付指定が必要です");
-                    Console.WriteLine("⚠️ 在庫マスタ最適化には日付指定が必要です");
+                    logger.LogWarning("在庫処理には日付指定が必要です");
+                    Console.WriteLine("⚠️ 在庫処理には日付指定が必要です");
                 }
             }
             
@@ -3334,6 +3371,124 @@ private static async Task<bool> EnsureRequiredTablesExistAsync(IServiceProvider 
             logger.LogError(ex, "月初在庫初期化中にエラーが発生しました");
             Console.WriteLine($"❌ エラー: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// 前日在庫引継モードの実行
+    /// </summary>
+    private static async Task ExecuteCarryoverModeAsync(
+        IInventoryRepository inventoryRepository,
+        IDatasetManagementRepository datasetRepository,
+        DateTime targetDate, 
+        string dataSetId,
+        string department,
+        ILogger logger)
+    {
+        try
+        {
+            // 1. 最終処理日の取得
+            var lastProcessedDate = await inventoryRepository.GetMaxJobDateAsync();
+            if (lastProcessedDate == DateTime.MinValue || lastProcessedDate >= targetDate)
+            {
+                logger.LogWarning("前日の在庫データが見つかりません。処理をスキップします。");
+                Console.WriteLine("⚠️ 前日の在庫データが見つかりません。処理をスキップします。");
+                return;
+            }
+
+            logger.LogInformation("前日（{LastDate}）の在庫を引き継ぎます。", lastProcessedDate);
+
+            // 2. 前日の在庫データ取得
+            var previousInventory = await inventoryRepository.GetAllActiveInventoryAsync();
+            logger.LogInformation("前日在庫: {Count}件", previousInventory.Count);
+
+            // 3. 在庫データのコピー（JobDateとDataSetIdを更新）
+            var carryoverInventory = previousInventory.Select(inv => new InventoryMaster
+            {
+                // 5項目複合キー
+                Key = inv.Key,
+                
+                // その他の項目
+                ProductName = inv.ProductName,
+                Unit = inv.Unit,
+                StandardPrice = inv.StandardPrice,
+                ProductCategory1 = inv.ProductCategory1,
+                ProductCategory2 = inv.ProductCategory2,
+                
+                // 在庫数量（変更なし）
+                CurrentStock = inv.CurrentStock,
+                CurrentStockAmount = inv.CurrentStockAmount,
+                
+                // 当日発生はゼロ
+                DailyStock = 0,
+                DailyStockAmount = 0,
+                DailyFlag = '0',
+                
+                // 更新項目
+                JobDate = targetDate,
+                DataSetId = dataSetId,
+                ImportType = "CARRYOVER",
+                IsActive = true,
+                UpdatedDate = DateTime.Now,
+                
+                // 前月繰越
+                PreviousMonthQuantity = inv.PreviousMonthQuantity,
+                PreviousMonthAmount = inv.PreviousMonthAmount
+            }).ToList();
+
+            // 4. DatasetManagementエンティティを作成
+            var datasetManagement = new DatasetManagement
+            {
+                DatasetId = dataSetId,
+                JobDate = targetDate,
+                ProcessType = "CARRYOVER",
+                ImportType = "CARRYOVER",
+                RecordCount = carryoverInventory.Count(),
+                TotalRecordCount = carryoverInventory.Count(),
+                ParentDataSetId = previousInventory.FirstOrDefault()?.DataSetId,
+                IsActive = true,
+                IsArchived = false,
+                CreatedAt = DateTime.Now,
+                CreatedBy = "System",
+                Department = department,
+                ImportedFiles = null,  // 引継ぎの場合はファイルがないため
+                Notes = $"前日在庫引継: {previousInventory.Count}件（伝票データ0件）"
+            };
+            
+            // 5. データセット管理レコードは ProcessCarryoverInTransactionAsync 内で作成されるためここでは不要
+
+            // 6. 在庫マスタへの保存（MERGE処理）
+            // 在庫マスタへの保存（トランザクション処理）
+            var affectedRows = await inventoryRepository.ProcessCarryoverInTransactionAsync(
+                carryoverInventory, 
+                targetDate, 
+                dataSetId,
+                datasetManagement);
+            
+            logger.LogInformation(
+                "前日在庫引継完了 - 対象日: {TargetDate}, 件数: {Count}件",
+                targetDate, carryoverInventory.Count());
+                
+            Console.WriteLine($"✅ 前日在庫引継完了 [{targetDate:yyyy-MM-dd}]");
+            Console.WriteLine($"   - 引継在庫数: {carryoverInventory.Count()}件");
+            Console.WriteLine($"   - DataSetId: {dataSetId}");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "前日在庫引継処理中にエラーが発生しました");
+            Console.WriteLine($"❌ 前日在庫引継エラー: {ex.Message}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// ランダム文字列生成
+    /// </summary>
+    private static string GenerateRandomString(int length)
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        var random = new Random();
+        return new string(Enumerable.Repeat(chars, length)
+            .Select(s => s[random.Next(s.Length)]).ToArray());
     }
 
 } // Program クラスの終了
