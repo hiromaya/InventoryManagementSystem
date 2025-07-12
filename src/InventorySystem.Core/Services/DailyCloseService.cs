@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using InventorySystem.Core.Base;
 using InventorySystem.Core.Configuration;
 using InventorySystem.Core.Constants;
@@ -25,6 +26,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     private readonly ISalesVoucherRepository _salesRepository;
     private readonly IPurchaseVoucherRepository _purchaseRepository;
     private readonly IInventoryAdjustmentRepository _adjustmentRepository;
+    private readonly IConfiguration _configuration;
     
     public DailyCloseService(
         IDateValidationService dateValidator,
@@ -37,6 +39,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         ISalesVoucherRepository salesRepository,
         IPurchaseVoucherRepository purchaseRepository,
         IInventoryAdjustmentRepository adjustmentRepository,
+        IConfiguration configuration,
         ILogger<DailyCloseService> logger)
         : base(dateValidator, datasetManager, historyService, logger)
     {
@@ -47,6 +50,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         _salesRepository = salesRepository;
         _purchaseRepository = purchaseRepository;
         _adjustmentRepository = adjustmentRepository;
+        _configuration = configuration;
     }
     
     /// <inheritdoc/>
@@ -728,6 +732,12 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             // Phase 1改修: CP在庫マスタのクリーンアップ（日次終了処理後）
             await CleanupCpInventoryMaster(jobDate, dailyReportDatasetId);
             
+            // ステップ5: 在庫ゼロ商品の非アクティブ化
+            _logger.LogInformation("ステップ5: 在庫ゼロ商品の非アクティブ化を開始");
+            var deactivatedCount = await DeactivateZeroStockItemsAsync(jobDate);
+            _logger.LogInformation("非アクティブ化完了: {Count}件", deactivatedCount);
+            result.DeactivatedCount = deactivatedCount;
+            
             result.Success = true;
             result.DataHash = validationResult.CurrentHash;
             
@@ -791,6 +801,70 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         {
             _logger.LogError(ex, "CP在庫マスタのクリーンアップ中にエラーが発生しました");
             // エラーが発生しても日次終了処理は継続
+        }
+    }
+    
+    /// <summary>
+    /// 在庫ゼロ商品の非アクティブ化
+    /// </summary>
+    /// <param name="jobDate">処理対象日</param>
+    /// <returns>非アクティブ化した件数</returns>
+    private async Task<int> DeactivateZeroStockItemsAsync(DateTime jobDate)
+    {
+        try
+        {
+            // 設定値の取得
+            var isEnabled = _configuration.GetValue<bool>("InventorySystem:DailyClose:DeactivateZeroStock:Enabled", true);
+            if (!isEnabled)
+            {
+                _logger.LogInformation("在庫ゼロ商品の非アクティブ化は設定により無効化されています");
+                return 0;
+            }
+            
+            var inactiveDays = _configuration.GetValue<int>("InventorySystem:DailyClose:DeactivateZeroStock:InactiveDaysThreshold", 180);
+            var dryRunMode = _configuration.GetValue<bool>("InventorySystem:DailyClose:DeactivateZeroStock:DryRunMode", false);
+            
+            // 非アクティブ化対象の確認（ドライラン）
+            var targetCount = await _inventoryRepository.GetInactiveTargetCountAsync(jobDate, inactiveDays);
+            
+            if (targetCount > 0)
+            {
+                _logger.LogWarning("非アクティブ化対象: {Count}件が見つかりました（基準: {Days}日以上更新なし）", 
+                    targetCount, inactiveDays);
+                
+                if (dryRunMode)
+                {
+                    _logger.LogInformation("ドライランモード: 実際の非アクティブ化は行いません（対象: {Count}件）", targetCount);
+                    return 0;
+                }
+                
+                // 実際の非アクティブ化
+                var deactivatedCount = await _inventoryRepository.DeactivateZeroStockItemsAsync(jobDate, inactiveDays);
+                
+                // 監査ログ記録（ProcessHistoryServiceを使用）
+                var auditHistory = await _historyService.StartProcess(
+                    $"DEACTIVATE_ZERO_STOCK_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}",
+                    jobDate,
+                    "DEACTIVATE_ZERO_STOCK",
+                    Environment.UserName);
+                
+                var auditMessage = $"在庫ゼロ商品の非アクティブ化完了: {deactivatedCount}件（基準: {inactiveDays}日以上更新なし）";
+                await _historyService.CompleteProcess(auditHistory.Id, true, auditMessage);
+                _logger.LogInformation(auditMessage);
+                
+                return deactivatedCount;
+            }
+            else
+            {
+                _logger.LogInformation("非アクティブ化対象の在庫ゼロ商品はありませんでした（基準: {Days}日以上更新なし）", inactiveDays);
+                return 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "在庫ゼロ商品の非アクティブ化中にエラーが発生しました");
+            // エラーが発生しても日次終了処理は継続
+            return 0;
         }
     }
 }

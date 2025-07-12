@@ -10,9 +10,19 @@ public interface IUnmatchListService
     Task<UnmatchListResult> ProcessUnmatchListAsync();
     
     /// <summary>
+    /// アンマッチリスト処理を実行する（指定日以前対象）
+    /// </summary>
+    Task<UnmatchListResult> ProcessUnmatchListAsync(DateTime targetDate);
+    
+    /// <summary>
     /// アンマッチリストを生成する（全期間対象）
     /// </summary>
     Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId);
+    
+    /// <summary>
+    /// アンマッチリストを生成する（指定日以前対象）
+    /// </summary>
+    Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId, DateTime targetDate);
 }
 
 public class UnmatchListResult

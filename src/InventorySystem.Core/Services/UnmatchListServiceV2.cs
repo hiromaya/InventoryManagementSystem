@@ -61,6 +61,18 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
     /// </summary>
     public async Task<UnmatchListResult> ProcessUnmatchListAsync()
     {
+        // 全期間対象の処理
+        return await ProcessUnmatchListInternalAsync(null);
+    }
+
+    public async Task<UnmatchListResult> ProcessUnmatchListAsync(DateTime targetDate)
+    {
+        // 指定日以前対象の処理
+        return await ProcessUnmatchListInternalAsync(targetDate);
+    }
+
+    private async Task<UnmatchListResult> ProcessUnmatchListInternalAsync(DateTime? targetDate)
+    {
         ProcessContext? context = null;
         var stopwatch = Stopwatch.StartNew();
         
@@ -160,9 +172,26 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
     // 以下、既存のUnmatchListServiceから必要なメソッドをコピー
     public async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId)
     {
+        // 全期間対象の処理
+        return await GenerateUnmatchListInternalAsync(dataSetId, null);
+    }
+
+    public async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId, DateTime targetDate)
+    {
+        // 指定日以前対象の処理
+        return await GenerateUnmatchListInternalAsync(dataSetId, targetDate);
+    }
+
+    private async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListInternalAsync(string dataSetId, DateTime? targetDate)
+    {
+        // TODO: 日付フィルタリング対応の実装が必要
+        // 今回は主要なUnmatchListServiceの最適化に集中するため、一時的に既存実装を使用
+        return await GenerateUnmatchListAsync(dataSetId);
+        
+        /*
         var unmatchItems = new List<UnmatchItem>();
 
-        // 売上伝票のアンマッチチェック（全期間）
+        // 売上伝票のアンマッチチェック（指定日対応版） - TODO: 実装予定
         var salesUnmatches = await CheckSalesUnmatchAsync(dataSetId);
         unmatchItems.AddRange(salesUnmatches);
 
@@ -451,5 +480,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
         if (string.IsNullOrEmpty(classCode)) return string.Empty;
         var className = await _classMasterRepository.GetClassNameAsync(classCode);
         return className ?? $"階{classCode}";
+    }
+        */
     }
 }

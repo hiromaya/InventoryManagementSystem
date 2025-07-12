@@ -142,4 +142,20 @@ public interface IInventoryRepository
         DateTime targetDate,
         string dataSetId,
         DatasetManagement datasetManagement);
+    
+    /// <summary>
+    /// 非アクティブ化対象の在庫件数を取得
+    /// </summary>
+    /// <param name="jobDate">処理対象日</param>
+    /// <param name="inactiveDays">非アクティブ化までの日数</param>
+    /// <returns>対象件数</returns>
+    Task<int> GetInactiveTargetCountAsync(DateTime jobDate, int inactiveDays);
+    
+    /// <summary>
+    /// 在庫ゼロの商品を非アクティブ化
+    /// </summary>
+    /// <param name="jobDate">処理対象日</param>
+    /// <param name="inactiveDays">非アクティブ化までの日数</param>
+    /// <returns>非アクティブ化した件数</returns>
+    Task<int> DeactivateZeroStockItemsAsync(DateTime jobDate, int inactiveDays);
 }

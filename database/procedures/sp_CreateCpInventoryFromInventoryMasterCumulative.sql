@@ -1,7 +1,7 @@
 -- =============================================
 -- 累積管理対応版 CP在庫マスタ作成ストアドプロシージャ
 -- 作成日: 2025-07-10
--- 説明: 在庫マスタから当日の伝票に関連する5項目キーのレコードのみをCP在庫マスタにコピー
+-- 説明: 在庫マスタから指定日以前のアクティブな在庫で、対象期間の伝票に関連する5項目キーのレコードのみをCP在庫マスタにコピー
 -- =============================================
 USE InventoryManagementDB;
 GO
@@ -103,10 +103,12 @@ BEGIN
         FROM InventoryMaster im
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
         LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode  -- 正しい結合
-        WHERE EXISTS (
-            -- 伝票に存在する5項目キーのみ（@JobDateがNULLの場合は全期間）
+        WHERE im.IsActive = 1  -- アクティブな在庫のみ対象
+        AND (@JobDate IS NULL OR im.JobDate <= @JobDate)  -- 指定日以前の在庫のみ
+        AND EXISTS (
+            -- 伝票に存在する5項目キーのみ（指定日以前の期間対象）
             SELECT 1 FROM SalesVouchers sv 
-            WHERE (@JobDate IS NULL OR sv.JobDate = @JobDate) 
+            WHERE (@JobDate IS NULL OR sv.JobDate <= @JobDate) 
             AND sv.ProductCode = im.ProductCode
             AND sv.GradeCode = im.GradeCode
             AND sv.ClassCode = im.ClassCode
@@ -114,7 +116,7 @@ BEGIN
             AND sv.ShippingMarkName = im.ShippingMarkName
             UNION
             SELECT 1 FROM PurchaseVouchers pv
-            WHERE (@JobDate IS NULL OR pv.JobDate = @JobDate)
+            WHERE (@JobDate IS NULL OR pv.JobDate <= @JobDate)
             AND pv.ProductCode = im.ProductCode
             AND pv.GradeCode = im.GradeCode
             AND pv.ClassCode = im.ClassCode
@@ -122,7 +124,7 @@ BEGIN
             AND pv.ShippingMarkName = im.ShippingMarkName
             UNION
             SELECT 1 FROM InventoryAdjustments ia
-            WHERE (@JobDate IS NULL OR ia.JobDate = @JobDate)
+            WHERE (@JobDate IS NULL OR ia.JobDate <= @JobDate)
             AND ia.ProductCode = im.ProductCode
             AND ia.GradeCode = im.GradeCode
             AND ia.ClassCode = im.ClassCode

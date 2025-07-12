@@ -1528,4 +1528,69 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             }
         });
     }
+    
+    /// <summary>
+    /// 非アクティブ化対象の在庫件数を取得
+    /// </summary>
+    public async Task<int> GetInactiveTargetCountAsync(DateTime jobDate, int inactiveDays)
+    {
+        const string sql = @"
+            SELECT COUNT(*)
+            FROM InventoryMaster
+            WHERE CurrentStock = 0
+                AND ISNULL(PreviousMonthQuantity, 0) = 0
+                AND IsActive = 1
+                AND DATEDIFF(DAY, 
+                    COALESCE(UpdatedDate, JobDate), 
+                    @JobDate) >= @InactiveDays";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { JobDate = jobDate, InactiveDays = inactiveDays });
+            
+            LogInfo($"非アクティブ化対象件数: {count}件（基準: {inactiveDays}日以上更新なし）", 
+                new { jobDate, inactiveDays });
+            
+            return count;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetInactiveTargetCountAsync), new { jobDate, inactiveDays });
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// 在庫ゼロの商品を非アクティブ化
+    /// </summary>
+    public async Task<int> DeactivateZeroStockItemsAsync(DateTime jobDate, int inactiveDays)
+    {
+        const string sql = @"
+            UPDATE InventoryMaster
+            SET IsActive = 0,
+                UpdatedDate = GETDATE()
+            WHERE CurrentStock = 0
+                AND ISNULL(PreviousMonthQuantity, 0) = 0
+                AND IsActive = 1
+                AND DATEDIFF(DAY, 
+                    COALESCE(UpdatedDate, JobDate), 
+                    @JobDate) >= @InactiveDays";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var affected = await connection.ExecuteAsync(sql, new { JobDate = jobDate, InactiveDays = inactiveDays });
+            
+            LogInfo($"在庫ゼロ商品を非アクティブ化しました: {affected}件（基準: {inactiveDays}日以上更新なし）", 
+                new { jobDate, inactiveDays, affected });
+            
+            return affected;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(DeactivateZeroStockItemsAsync), new { jobDate, inactiveDays });
+            throw;
+        }
+    }
 }

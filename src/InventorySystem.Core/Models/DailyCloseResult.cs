@@ -48,6 +48,11 @@ public class DailyCloseResult
     public int UpdatedInventoryCount { get; set; }
     
     /// <summary>
+    /// 非アクティブ化された在庫件数
+    /// </summary>
+    public int DeactivatedCount { get; set; }
+    
+    /// <summary>
     /// バックアップパス
     /// </summary>
     public string? BackupPath { get; set; }
@@ -82,6 +87,11 @@ public class DailyCloseResult
         
         summary += $"処理時間: {ProcessingTime.TotalSeconds:F1}秒\n";
         summary += $"更新在庫数: {UpdatedInventoryCount:N0}件\n";
+        
+        if (DeactivatedCount > 0)
+        {
+            summary += $"非アクティブ化: {DeactivatedCount:N0}件\n";
+        }
         
         if (!string.IsNullOrEmpty(BackupPath))
         {

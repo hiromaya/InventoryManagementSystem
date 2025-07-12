@@ -467,6 +467,14 @@ try
         var fileManagementService = scopedServices.GetRequiredService<IFileManagementService>();
         var inventoryRepository = scopedServices.GetRequiredService<IInventoryRepository>();
         
+        // 日付指定の確認（オプション）
+        DateTime? targetDate = null;
+        if (args.Length >= 2 && DateTime.TryParse(args[1], out var parsedDate))
+        {
+            targetDate = parsedDate;
+            logger.LogInformation("指定された対象日: {TargetDate:yyyy-MM-dd}", targetDate);
+        }
+        
         // 部門指定（オプション）
         string? department = null;
         if (args.Length >= 3)
@@ -482,10 +490,20 @@ try
         // 在庫マスタから最新JobDateを取得（表示用）
         var latestJobDate = await inventoryRepository.GetMaxJobDateAsync();
         Console.WriteLine($"在庫マスタ最新JobDate: {latestJobDate:yyyy-MM-dd}");
+        if (targetDate.HasValue)
+        {
+            Console.WriteLine($"処理対象: {targetDate:yyyy-MM-dd}以前のアクティブ在庫");
+        }
+        else
+        {
+            Console.WriteLine("処理対象: 全期間のアクティブ在庫");
+        }
         Console.WriteLine();
         
-        // アンマッチリスト処理実行（日付パラメータなし）
-    var result = await unmatchListService.ProcessUnmatchListAsync();
+        // アンマッチリスト処理実行
+        var result = targetDate.HasValue 
+            ? await unmatchListService.ProcessUnmatchListAsync(targetDate.Value)
+            : await unmatchListService.ProcessUnmatchListAsync();
     
     stopwatch.Stop();
     
