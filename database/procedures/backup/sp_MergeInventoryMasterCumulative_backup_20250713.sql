@@ -1,11 +1,7 @@
 -- =============================================
--- 日付別累積在庫管理用 MERGE ストアドプロシージャ
+-- 累積在庫管理用 MERGE ストアドプロシージャ
 -- 作成日: 2025-07-10
--- 修正日: 2025-07-13
--- 説明: 当日の伝票データから在庫マスタを日付別に累積更新
--- 変更内容:
---   - MERGE条件にJobDateを追加し、日付別管理を実現
---   - 累積計算ロジックを修正（前日引継分に当日取引を加算）
+-- 説明: 当日の伝票データから在庫マスタを累積更新
 -- =============================================
 
 USE InventoryManagementDB;
@@ -116,21 +112,21 @@ BEGIN
             AND target.ClassCode = source.ClassCode
             AND target.ShippingMarkCode = source.ShippingMarkCode
             AND LEFT(RTRIM(COALESCE(target.ShippingMarkName, '')) + REPLICATE(' ', 8), 8) = source.ShippingMarkName  -- 8桁固定長で比較
-            AND target.JobDate = @JobDate  -- JobDateを追加して日付別管理を実現
         )
         
-        -- 既存レコード：前日引継分に当日取引を反映
+        -- 既存レコード：在庫を累積更新
         WHEN MATCHED THEN
             UPDATE SET
-                -- CurrentStockには前日引継分が既に設定されているため、それに当日取引分を加算
-                CurrentStock = target.CurrentStock + source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
-                CurrentStockAmount = target.CurrentStockAmount + source.TotalSalesAmount + source.TotalPurchaseAmount + source.TotalAdjustmentAmount,
+                -- 在庫数量の累積更新
+                CurrentStock = ISNULL(target.CurrentStock, 0) + source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
+                CurrentStockAmount = ISNULL(target.CurrentStockAmount, 0) + source.TotalSalesAmount + source.TotalPurchaseAmount + source.TotalAdjustmentAmount,
                 
-                -- 当日在庫の更新（当日の取引分のみ）
+                -- 当日在庫の更新
                 DailyStock = source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
                 DailyStockAmount = source.TotalSalesAmount + source.TotalPurchaseAmount + source.TotalAdjustmentAmount,
                 
                 -- メタデータの更新
+                JobDate = @JobDate,  -- 最終更新日として使用
                 UpdatedDate = GETDATE(),
                 DataSetId = @DataSetId,
                 DailyFlag = N'0'  -- データありフラグ
