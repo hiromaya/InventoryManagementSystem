@@ -192,13 +192,15 @@ public class InitialInventoryImportService
                 _logger.LogWarning("不正なデータ: 行{Row}, フィールド{Field}", 
                     context.Context?.Parser?.Row ?? 0, 
                     context.Field ?? "不明");
-            }
+            },
+            IgnoreBlankLines = true,
+            TrimOptions = TrimOptions.Trim
         };
 
         using var reader = new StreamReader(filePath, Encoding.UTF8);
         using var csv = new CsvReader(reader, config);
         
-        csv.Context.RegisterClassMap<InitialInventoryRecordMap>();
+        // csv.Context.RegisterClassMap<InitialInventoryRecordMap>();  // 削除（属性ベースマッピングと競合するため）
         
         var rowNumber = 1;
         await csv.ReadAsync();
@@ -256,12 +258,37 @@ public class InitialInventoryImportService
         if (string.IsNullOrWhiteSpace(record.ShippingMarkCode))
             errors.Add($"行{rowNumber}: 荷印コードが空です");
 
+        if (string.IsNullOrWhiteSpace(record.ShippingMarkName))
+            errors.Add($"行{rowNumber}: 荷印名が空です");
+
         // 数値妥当性チェック
         if (record.CurrentStockQuantity < 0)
             errors.Add($"行{rowNumber}: 在庫数量が負の値です ({record.CurrentStockQuantity})");
 
         if (record.CurrentStockAmount < 0)
             errors.Add($"行{rowNumber}: 在庫金額が負の値です ({record.CurrentStockAmount})");
+
+        if (record.StandardPrice < 0)
+            errors.Add($"行{rowNumber}: 単価が負の値です ({record.StandardPrice})");
+
+        // データ整合性チェック（金額 = 数量 × 単価）
+        if (record.CurrentStockQuantity > 0 && record.StandardPrice > 0)
+        {
+            var calculatedAmount = record.CurrentStockQuantity * record.StandardPrice;
+            var difference = Math.Abs(calculatedAmount - record.CurrentStockAmount);
+            
+            // 誤差許容範囲: ±1円
+            if (difference > 1)
+            {
+                errors.Add($"行{rowNumber}: 在庫金額の整合性エラー - 計算値: {calculatedAmount:F2}, 実際値: {record.CurrentStockAmount:F2}, 差額: {difference:F2}");
+            }
+        }
+
+        // 除外対象チェック（商品コード00000）
+        if (record.ProductCode == "00000")
+        {
+            errors.Add($"行{rowNumber}: 商品コード00000は除外対象です");
+        }
 
         return errors;
     }
