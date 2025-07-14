@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Services;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Interfaces.Masters;
 
 namespace InventorySystem.Console.Commands;
 

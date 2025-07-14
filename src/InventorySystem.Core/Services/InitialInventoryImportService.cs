@@ -5,6 +5,7 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Core.Models;
 using Microsoft.Extensions.Logging;
 
