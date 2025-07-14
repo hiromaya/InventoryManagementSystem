@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>在庫管理システム - 新しい運用手順ガイド（初期導入から日次処理まで）</title>
+    <title>在庫管理システム - 新しい運用手順ガイド（初期在庫読込から日次処理まで）</title>
     <style>
         * {
             margin: 0;
@@ -110,10 +110,11 @@
             font-family: 'Courier New', monospace;
             position: relative;
             overflow-x: auto;
+            cursor: pointer;
         }
         
         .command-block::before {
-            content: 'PowerShell';
+            content: 'PowerShell (Click to Copy)';
             position: absolute;
             top: 5px;
             right: 10px;
@@ -291,8 +292,8 @@
     <div class="container">
         <div class="header">
             <h1>📋 在庫管理システム</h1>
-            <p>新しい運用手順ガイド（初期導入から日次処理まで）</p>
-            <p><strong>最終更新:</strong> 2025年7月12日 - import-folder自動引継機能追加 | <strong>対象:</strong> 開発・運用</p>
+            <p>新しい運用手順ガイド（初期在庫読込から日次処理まで）</p>
+            <p><strong>最終更新:</strong> 2025年7月14日 - import-initial-inventory機能追加対応 | <strong>対象:</strong> 開発・運用</p>
         </div>
 
         <div class="phase" style="background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); color: white;">
@@ -313,21 +314,28 @@
             </div>
 
             <div class="step" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
-                <h4 style="color: white;">Step 2: 前月末在庫の登録（最重要）</h4>
+                <h4 style="color: white;">Step 2: 移行用在庫マスタの読込（最重要）</h4>
+                <div class="warning" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); margin-bottom: 20px;">
+                    <strong style="color: white;">⚠️ 重要な変更点：</strong>
+                    <p style="color: white;">前月末在庫.csvではなく、<strong>ZAIK*.csv（移行用在庫マスタ）</strong>を使用します。</p>
+                </div>
                 <div class="command-block">
-<span class="comment"># 前月末在庫.csvをD:\InventoryImport\DeptA\Import\に配置</span>
+<span class="comment"># ZAIK*.csvをD:\InventoryImport\DeptA\Import\に配置</span>
+<span class="comment"># 例: ZAIK20250531.csv （2025年5月31日の在庫データ）</span>
 
-<span class="comment"># 前月末在庫を登録（DataSetId付与）</span>
-<span class="command-line">dotnet run init-inventory DeptA</span>
+<span class="comment"># 移行用在庫マスタを読込</span>
+<span class="command-line">dotnet run import-initial-inventory DeptA</span>
 
 <span class="comment"># 登録確認</span>
 <span class="command-line">dotnet run check-inventory-status</span>
                 </div>
-                <div class="success" style="margin-top: 15px;">
-                    <strong>✅ 重要ポイント:</strong>
-                    <ul>
-                        <li>DataSetIdが自動的に付与されます（形式: INIT_YYYYMMDD_HHmmss_XXXXXX）</li>
-                        <li>重複実行しても安全です（既存データは自動的に無効化）</li>
+                <div class="success" style="margin-top: 15px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
+                    <strong style="color: white;">✅ 重要ポイント:</strong>
+                    <ul style="color: white;">
+                        <li>ファイル名から自動的に日付を抽出（ZAIK20250531.csv → 2025-05-31）</li>
+                        <li>PersonInChargeCode（担当者コード）とAveragePrice（平均単価）も自動設定</li>
+                        <li>DataSetIdが自動的に付与されます（形式: INITIAL_YYYYMMDD_HHmmss）</li>
+                        <li>重複実行しても安全です（既存の初期データは自動的に無効化）</li>
                         <li>トランザクション管理により、処理の原子性が保証されます</li>
                     </ul>
                 </div>
@@ -360,7 +368,7 @@
                 </div>
                 <p style="color: white; margin-top: 10px;">→ 6月1日（土）は伝票0件なので、自動的に5/31の在庫を引き継ぎます</p>
                 <div class="success" style="margin-top: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
-                    <strong>ログ出力例（自動引継モード）：</strong>
+                    <strong style="color: white;">ログ出力例（自動引継モード）：</strong>
                     <pre style="background: rgba(0, 0, 0, 0.2); padding: 10px; border-radius: 5px; color: white;">
 [2025-06-01] 在庫影響伝票が0件のため、前日在庫引継モードで処理します。
   売上: 0件, 仕入: 0件, 在庫調整: 0件
@@ -396,8 +404,8 @@
             </div>
             
             <div class="info" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3);">
-                <h4>📝 統一されたシンプルな処理方法</h4>
-                <p>import-folderコマンドの自動引継機能により、伝票の有無に関わらず同じコマンドで処理できます。</p>
+                <h4 style="color: white;">📝 統一されたシンプルな処理方法</h4>
+                <p style="color: white;">import-folderコマンドの自動引継機能により、伝票の有無に関わらず同じコマンドで処理できます。</p>
             </div>
 
             <div class="step" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
@@ -416,8 +424,8 @@
 <span class="command-line">.\dev.ps1 dev-daily-close 2025-06-02</span>
                 </div>
                 <div class="success" style="margin-top: 15px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
-                    <strong>✨ 自動引継機能のメリット：</strong>
-                    <ul>
+                    <strong style="color: white;">✨ 自動引継機能のメリット：</strong>
+                    <ul style="color: white;">
                         <li>伝票の有無を事前に確認する必要がない</li>
                         <li>週末・祝日・年末年始でも同じコマンドで処理可能</li>
                         <li>処理モードは自動判定され、ログで確認可能</li>
@@ -429,15 +437,15 @@
             <div class="step" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
                 <h4 style="color: white;">処理モードの自動判定ログ例</h4>
                 <div class="info" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
-                    <p><strong>通常モード（伝票あり）の場合：</strong></p>
-                    <pre style="background: rgba(0, 0, 0, 0.2); padding: 10px; border-radius: 5px;">
+                    <p style="color: white;"><strong>通常モード（伝票あり）の場合：</strong></p>
+                    <pre style="background: rgba(0, 0, 0, 0.2); padding: 10px; border-radius: 5px; color: white;">
 [2025-06-02] 在庫マスタ最適化を開始します。
   売上: 150件, 仕入: 200件, 在庫調整: 10件
 ✅ 在庫マスタ最適化完了 [2025-06-02] (1234ms)
    - DataSetId: AUTO_OPTIMIZE_20250602_090000</pre>
                     
-                    <p style="margin-top: 15px;"><strong>引継モード（伝票なし）の場合：</strong></p>
-                    <pre style="background: rgba(0, 0, 0, 0.2); padding: 10px; border-radius: 5px;">
+                    <p style="margin-top: 15px; color: white;"><strong>引継モード（伝票なし）の場合：</strong></p>
+                    <pre style="background: rgba(0, 0, 0, 0.2); padding: 10px; border-radius: 5px; color: white;">
 [2025-06-02] 在庫影響伝票が0件のため、前日在庫引継モードで処理します。
   売上: 0件, 仕入: 0件, 在庫調整: 0件
 ✅ 前日在庫引継完了 [2025-06-02]
@@ -448,7 +456,84 @@
 
         <div class="phase">
             <div class="phase-header">
-                <div class="phase-number">3</div>
+                <div class="phase-number">🔄</div>
+                <div class="phase-title">移行用在庫マスタの詳細仕様</div>
+            </div>
+
+            <div class="info">
+                <h4>📋 ZAIK*.csvファイルの特徴</h4>
+                <ul>
+                    <li><strong>ファイル名形式</strong>: ZAIK{YYYYMMDD}.csv（例: ZAIK20250531.csv）</li>
+                    <li><strong>内容</strong>: 販売大臣からエクスポートした在庫データ</li>
+                    <li><strong>日付</strong>: ファイル名から自動抽出される</li>
+                    <li><strong>用途</strong>: システム開始時の初期在庫設定</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h4>移行用在庫マスタの処理内容</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>項目</th>
+                            <th>説明</th>
+                            <th>設定値</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>JobDate</td>
+                            <td>処理対象日</td>
+                            <td>ファイル名から自動抽出</td>
+                        </tr>
+                        <tr>
+                            <td>DataSetId</td>
+                            <td>データセット識別子</td>
+                            <td>INITIAL_{YYYYMMDD}_{HHmmss}</td>
+                        </tr>
+                        <tr>
+                            <td>ImportType</td>
+                            <td>インポート種別</td>
+                            <td>INITIAL</td>
+                        </tr>
+                        <tr>
+                            <td>PersonInChargeCode</td>
+                            <td>担当者コード</td>
+                            <td>CSVから取得</td>
+                        </tr>
+                        <tr>
+                            <td>AveragePrice</td>
+                            <td>平均単価</td>
+                            <td>CSVから取得</td>
+                        </tr>
+                        <tr>
+                            <td>CurrentStock</td>
+                            <td>当日在庫数量</td>
+                            <td>CSVの在庫数量</td>
+                        </tr>
+                        <tr>
+                            <td>CurrentStockAmount</td>
+                            <td>当日在庫金額</td>
+                            <td>CSVの在庫金額</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="warning">
+                <h4>⚠️ 従来の前月末在庫.csvとの違い</h4>
+                <ul>
+                    <li><strong>前月末在庫.csv</strong>: import-folderコマンドでスキップされる</li>
+                    <li><strong>ZAIK*.csv</strong>: import-initial-inventoryコマンド専用</li>
+                    <li>前月末在庫.csvは今後使用しません</li>
+                    <li>移行時は必ずZAIK*.csvを使用してください</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-number">📊</div>
                 <div class="phase-title">日次処理シミュレーション</div>
             </div>
 
@@ -469,9 +554,9 @@
             </div>
 
             <div class="info">
-                <strong>📝 処理順序:</strong> import-folder → unmatch-list → daily-report → inventory-list → <span style="color: #e74c3c; font-weight: bold;">daily-close</span>
+                <strong>📝 処理順序:</strong> import-initial-inventory → import-folder → unmatch-list → daily-report → inventory-list → <span style="color: #e74c3c; font-weight: bold;">daily-close</span>
                 <br><br>
-                <strong>💡 注意:</strong> import-folderコマンドは前月末在庫.csvを自動的にスキップします。前月末在庫の設定は必ずinit-inventoryコマンドを使用してください。
+                <strong>💡 注意:</strong> 初期在庫設定にはimport-initial-inventoryコマンドを使用し、その後の日次処理はimport-folderコマンドを使用してください。
                 <br><br>
                 <strong>🔵 重要な変更:</strong> unmatch-listコマンドは日付パラメータが不要になりました。全期間の伝票データを対象に累積管理を行います。
                 <br><br>
@@ -482,30 +567,32 @@
 
             <div class="timeline">
                 <div class="timeline-item">
-                    <h4>初回処理前の準備（マスタデータ確認）</h4>
+                    <h4>システム開始前の準備（移行用在庫マスタ読込）</h4>
                     <div class="info" style="margin-bottom: 15px;">
-                        <strong>重要：</strong> 初回処理前に、マスタデータがインポートされているか確認してください。
+                        <strong>重要：</strong> システム開始前に、移行用在庫マスタ（ZAIK*.csv）を読み込んでください。
                     </div>
                     <div class="command-block">
-<span class="comment"># マスタデータ確認（コマンドラインから実行）</span>
-<span class="command-line">dotnet run check-masters</span>
+<span class="comment"># ZAIK*.csvファイルを配置</span>
+<span class="command-line">copy ZAIK20250531.csv D:\InventoryImport\DeptA\Import\</span>
+
+<span class="comment"># 移行用在庫マスタ読込</span>
+<span class="command-line">dotnet run import-initial-inventory DeptA</span>
+
+<span class="comment"># 読込結果確認</span>
+<span class="command-line">dotnet run check-inventory-status</span>
                     </div>
-                    <p style="margin-top: 10px;">または、SQL Server Management Studio で以下のクエリを個別に実行：</p>
-                    <div class="command-block">
-<span class="comment">-- 各マスタテーブルの件数確認</span>
-<span class="command-line">SELECT COUNT(*) as 商品マスタ件数 FROM ProductMaster</span>
-<span class="command-line">SELECT COUNT(*) as 得意先マスタ件数 FROM CustomerMaster</span>
-<span class="command-line">SELECT COUNT(*) as 仕入先マスタ件数 FROM SupplierMaster</span>
-<span class="command-line">SELECT COUNT(*) as 等級マスタ件数 FROM GradeMaster</span>
-<span class="command-line">SELECT COUNT(*) as 階級マスタ件数 FROM ClassMaster</span>
-                    </div>
-                    <div class="warning" style="margin-top: 15px;">
-                        <strong>⚠️ 注意：</strong> import-folderコマンドを使用すると、マスタファイルと一緒に伝票データもインポートされます。初回処理では必ず日付を指定してください。
+                    <div class="success" style="margin-top: 15px;">
+                        <strong>✅ 読込完了後の確認事項：</strong>
+                        <ul>
+                            <li>InventoryMasterテーブルに初期在庫データが登録されること</li>
+                            <li>DataSetIdがINITIAL_*形式で設定されること</li>
+                            <li>PersonInChargeCodeとAveragePriceが正しく設定されること</li>
+                        </ul>
                     </div>
                 </div>
 
                 <div class="timeline-item">
-                    <h4>6月1日の処理</h4>
+                    <h4>6月1日の処理（初期在庫読込後の最初の日次処理）</h4>
                     <div class="command-block">
 <span class="comment"># 6月1日の伝票データインポート（マスタファイルも同時にインポートされます）</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
@@ -513,23 +600,17 @@
 <span class="comment"># アンマッチリスト作成（在庫マスタ更新）※全期間対象</span>
 <span class="command-line">dotnet run unmatch-list</span>
 
-<span class="comment"># 商品日報作成（通常版 - 7日以内の制限あり）</span>
-<span class="command-line">dotnet run daily-report 2025-06-01</span>
-
-<span class="comment"># または開発用コマンド（PowerShellスクリプト経由 - 推奨）</span>
+<span class="comment"># 商品日報作成（開発用 - 推奨）</span>
 <span class="command-line">.\dev.ps1 dev-daily-report 2025-06-01</span>
 
 <span class="comment"># 在庫表作成（必要に応じて）</span>
 <span class="command-line">dotnet run inventory-list 2025-06-01</span>
 
-<span class="comment"># 日次終了処理の事前確認（通常版 - 15:00以降の制限あり）</span>
-<span class="command-line">dotnet run check-daily-close 2025-06-01</span>
-
-<span class="comment"># または開発用コマンド（PowerShellスクリプト経由 - 推奨）</span>
+<span class="comment"># 日次終了処理の事前確認</span>
 <span class="command-line">.\dev.ps1 dev-check-daily-close 2025-06-01</span>
 
 <span class="comment"># 日次終了処理（在庫繰り越し）※重要</span>
-<span class="command-line">dotnet run dev-daily-close 2025-06-01</span>
+<span class="command-line">.\dev.ps1 dev-daily-close 2025-06-01</span>
                     </div>
                     <div class="warning" style="margin-top: 15px;">
                         <strong>⚠️ 重要：日次終了処理について</strong>
@@ -537,7 +618,7 @@
                             <li>日次終了処理により、当日の在庫が翌日の前日在庫として設定されます</li>
                             <li>この処理を行わないと、翌日のアンマッチが大量に発生します</li>
                             <li><strong>コマンド：</strong> <code>dev-daily-close</code>（開発用、時間制約なし）</li>
-                            <li><strong>事前確認：</strong> <code>check-daily-close</code>で実行可能か確認可能</li>
+                            <li><strong>事前確認：</strong> <code>dev-check-daily-close</code>で実行可能か確認可能</li>
                             <li><strong>オプション：</strong> <code>--skip-validation</code>でデータチェックをスキップ</li>
                             <li>本番環境では15:00以降に実行（開発環境では時間制約なし）</li>
                         </ul>
@@ -545,20 +626,15 @@
                 </div>
 
                 <div class="timeline-item">
-                    <h4>6月2日の処理</h4>
+                    <h4>6月2日以降の処理</h4>
                     <div class="command-block">
 <span class="comment"># 6月2日の処理（開発環境）</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-02</span>
 <span class="command-line">dotnet run unmatch-list</span>
 <span class="command-line">.\dev.ps1 dev-daily-report 2025-06-02</span>
 <span class="command-line">.\dev.ps1 dev-daily-close 2025-06-02</span>
-                    </div>
-                </div>
 
-                <div class="timeline-item">
-                    <h4>6月3日の処理</h4>
-                    <div class="command-block">
-<span class="comment"># 6月3日の処理（開発環境）</span>
+<span class="comment"># 6月3日の処理</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-03</span>
 <span class="command-line">dotnet run unmatch-list</span>
 <span class="command-line">.\dev.ps1 dev-daily-report 2025-06-03</span>
@@ -572,127 +648,67 @@
                     <p>最大で6月27日まで処理可能です。</p>
                 </div>
             </div>
-            
-            <!-- 開発用コマンドのセクション追加 -->
-            <div class="info" style="background: rgba(155, 89, 182, 0.1); border-left: 4px solid #9b59b6;">
-                <h3 style="margin-top: 0;">🛠️ 開発環境用コマンド</h3>
-                <p><strong>開発環境での制限解除について：</strong></p>
-                <ul style="margin: 10px 0;">
-                    <li><strong>日付制限：</strong> 7日以内の制限なし（過去の任意の日付を処理可能）</li>
-                    <li><strong>時間制限：</strong> 15:00以降の制限なし（任意の時刻に実行可能）</li>
-                </ul>
-                
-                <h4 style="margin-top: 20px;">⚡ PowerShellスクリプトを使用した実行（推奨）</h4>
-                <div class="success" style="margin: 15px 0;">
-                    <p><strong>dev.ps1スクリプトを使用することで、環境変数が自動的に設定されます：</strong></p>
-                    <div class="command-block">
-<span class="comment"># ディレクトリに移動</span>
-<span class="command-line">cd C:\Development\InventoryManagementSystem\src\InventorySystem.Console</span>
-
-<span class="comment"># 開発用商品日報（過去日付OK）</span>
-<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-01</span>
-
-<span class="comment"># 開発用日次終了確認（時間制限なし）</span>
-<span class="command-line">.\dev.ps1 dev-check-daily-close 2025-06-01</span>
-
-<span class="comment"># 開発用日次終了処理</span>
-<span class="command-line">.\dev.ps1 dev-daily-close 2025-06-01</span>
-                    </div>
-                </div>
-                
-                <h4 style="margin-top: 20px;">開発用コマンド一覧</h4>
-                <table style="width: 100%; margin: 15px 0; border-collapse: collapse; background: white;">
-                    <thead>
-                        <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
-                            <th style="padding: 10px; text-align: left;">コマンド</th>
-                            <th style="padding: 10px; text-align: left;">通常版との違い</th>
-                            <th style="padding: 10px; text-align: left;">使用例（dev.ps1経由）</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr style="border-bottom: 1px solid #dee2e6;">
-                            <td style="padding: 10px;"><code>dev-daily-report</code></td>
-                            <td style="padding: 10px;">日付制限なし（7日以上前も処理可能）</td>
-                            <td style="padding: 10px;"><code>.\dev.ps1 dev-daily-report 2025-06-01</code></td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #dee2e6;">
-                            <td style="padding: 10px;"><code>dev-check-daily-close</code></td>
-                            <td style="padding: 10px;">時間制限なし（15:00前でも実行可能）</td>
-                            <td style="padding: 10px;"><code>.\dev.ps1 dev-check-daily-close 2025-06-01</code></td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #dee2e6;">
-                            <td style="padding: 10px;"><code>dev-daily-close</code></td>
-                            <td style="padding: 10px;">検証スキップ、時間制限なし</td>
-                            <td style="padding: 10px;"><code>.\dev.ps1 dev-daily-close 2025-06-01</code></td>
-                        </tr>
-                    </tbody>
-                </table>
-                
-                <h4 style="margin-top: 20px;">手動での環境変数設定（代替方法）</h4>
-                <div class="command-block">
-<span class="comment"># PowerShellで環境変数を設定</span>
-<span class="command-line">$env:DOTNET_ENVIRONMENT = "Development"</span>
-<span class="command-line">$env:ASPNETCORE_ENVIRONMENT = "Development"</span>
-
-<span class="comment"># その後、開発用コマンドを実行</span>
-<span class="command-line">dotnet run dev-daily-report 2025-06-01</span>
-                </div>
-                
-                <div class="warning" style="margin-top: 20px;">
-                    <strong>⚠️ 重要な注意事項</strong>
-                    <ul>
-                        <li><strong style="color: #e74c3c;">必ず dev.ps1 スクリプト経由で実行してください</strong></li>
-                        <li>直接 <code>dotnet run</code> を実行すると、Production環境として動作します</li>
-                        <li>本番環境では開発用コマンドは自動的に無効化されます</li>
-                        <li>環境変数の確認: <code>echo $env:DOTNET_ENVIRONMENT</code></li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="success">
-                <strong>💡 PowerShell一括実行スクリプト例（開発環境）:</strong>
-                <div class="command-block">
-<span class="comment"># 環境変数を設定（一括処理の前に実行）</span>
-<span class="command-line">$env:DOTNET_ENVIRONMENT = "Development"</span>
-<span class="command-line">$env:ASPNETCORE_ENVIRONMENT = "Development"</span>
-
-<span class="comment"># PowerShell一括実行例（日次終了処理を含む）</span>
-<span class="command-line">for ($i=1; $i -le 7; $i++) {</span>
-<span class="command-line">    $date = "2025-06-$('{0:D2}' -f $i)"</span>
-<span class="command-line">    Write-Host "=== $date の処理開始 ===" -ForegroundColor Cyan</span>
-<span class="command-line">    dotnet run import-folder DeptA $date</span>
-<span class="command-line">    dotnet run unmatch-list  <span class="comment"># 日付不要（全期間対象）</span></span>
-<span class="command-line">    .\dev.ps1 dev-daily-report $date  <span class="comment"># 開発用（日付制限なし）</span></span>
-<span class="command-line">    .\dev.ps1 dev-daily-close $date   <span class="comment"># 在庫繰り越し（重要）</span></span>
-<span class="command-line">    Write-Host "=== $date の処理完了 ===" -ForegroundColor Green</span>
-<span class="command-line">}</span>
-                </div>
-                
-                <p style="margin-top: 10px;"><strong>💡 ヒント:</strong> 開発用コマンドを使用する場合は、必ず <code>.\dev.ps1</code> 経由で実行してください。</p>
-            </div>
         </div>
 
-        <div class="phase">
-            <div class="phase-header">
-                <div class="phase-number">4</div>
-                <div class="phase-title">月間処理確認</div>
-            </div>
+        <div class="troubleshooting">
+            <h3>🛠️ よくある問題と対処法</h3>
 
+            <h4>❌ 問題1: 移行用在庫マスタの読込エラー</h4>
             <div class="step">
-                <h4>月中任意日での確認</h4>
+                <strong>原因:</strong> ZAIK*.csvファイルが見つからない、または形式が正しくない
                 <div class="command-block">
-<span class="comment"># 月中の状況確認</span>
-<span class="command-line">dotnet run daily-report 2025-06-15</span>
-<span class="command-line">dotnet run check-data-status 2025-06-15</span>
+<span class="comment"># 対処法1: ファイル存在確認</span>
+<span class="command-line">dir D:\InventoryImport\DeptA\Import\ZAIK*.csv</span>
+
+<span class="comment"># 対処法2: ファイル名確認（正しい形式: ZAIK20250531.csv）</span>
+<span class="command-line">dotnet run import-initial-inventory DeptA</span>
                 </div>
             </div>
 
+            <h4>❌ 問題2: 商品マスタ未登録エラー</h4>
             <div class="step">
-                <h4>月末での確認</h4>
+                <strong>原因:</strong> 商品マスタがインポートされていない
                 <div class="command-block">
-<span class="comment"># 月末の最終確認</span>
-<span class="command-line">dotnet run daily-report 2025-06-27</span>
-<span class="command-line">dotnet run inventory-list 2025-06-27</span>
+<span class="comment"># 対処法: マスタデータを先にインポート</span>
+<span class="command-line">dotnet run import-folder DeptA  # マスタファイルのみインポート</span>
+
+<span class="comment"># 商品マスタ確認</span>
+<span class="command-line">dotnet run check-masters</span>
+                </div>
+            </div>
+
+            <h4>❌ 問題3: PersonInChargeCodeやAveragePriceが設定されない</h4>
+            <div class="step">
+                <strong>原因:</strong> CSVファイルの列構成が正しくない
+                <div class="command-block">
+<span class="comment"># 対処法: CSVファイルの内容確認</span>
+<span class="comment"># PersonInChargeCode（担当者コード）</span>
+<span class="comment"># AveragePrice（平均単価）</span>
+<span class="comment"># が正しい列に設定されているか確認</span>
+                </div>
+            </div>
+
+            <h4>❌ 問題4: 翌日のアンマッチが大量発生</h4>
+            <div class="step">
+                <strong>原因:</strong> 前日の日次終了処理（在庫繰り越し）未実行
+                <div class="command-block">
+<span class="comment"># 対処法1: 前日の日次終了処理を実行</span>
+<span class="command-line">.\dev.ps1 dev-daily-close 2025-06-01  # 前日分を実行</span>
+
+<span class="comment"># その後、当日の処理を再実行</span>
+<span class="command-line">dotnet run unmatch-list</span>
+                </div>
+            </div>
+
+            <h4>❌ 問題5: import-initial-inventoryで重複エラー</h4>
+            <div class="step">
+                <strong>原因:</strong> 既に初期在庫データが存在する
+                <div class="command-block">
+<span class="comment"># 対処法: 既存データは自動的に無効化されます</span>
+<span class="comment"># 重複実行しても安全です</span>
+<span class="command-line">dotnet run import-initial-inventory DeptA</span>
+
+<span class="comment"># 最新の初期在庫データのみがアクティブになります</span>
                 </div>
             </div>
         </div>
@@ -700,7 +716,7 @@
         <div class="verification">
             <h3>🔍 検証ポイント</h3>
             
-            <h4>1. データ継続性の確認</h4>
+            <h4>1. 移行用在庫マスタの確認</h4>
             <table>
                 <thead>
                     <tr>
@@ -711,172 +727,36 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td>在庫マスタ件数</td>
-                        <td>SELECT COUNT(*) FROM InventoryMaster WHERE JobDate = '2025-06-01'</td>
+                        <td>初期在庫件数</td>
+                        <td>SELECT COUNT(*) FROM InventoryMaster WHERE ImportType = 'INITIAL' AND IsActive = 1</td>
                         <td>1,500件程度</td>
                     </tr>
                     <tr>
-                        <td>売上伝票件数</td>
-                        <td>SELECT COUNT(*) FROM SalesVouchers WHERE JobDate = '2025-06-01'</td>
-                        <td>500-1,200件</td>
+                        <td>PersonInChargeCode設定</td>
+                        <td>SELECT COUNT(*) FROM InventoryMaster WHERE PersonInChargeCode > 0</td>
+                        <td>設定済み件数</td>
                     </tr>
                     <tr>
-                        <td>在庫継続性</td>
-                        <td>前日在庫 + 当日仕入 - 当日売上 = 当日在庫</td>
-                        <td>数式一致</td>
+                        <td>AveragePrice設定</td>
+                        <td>SELECT COUNT(*) FROM InventoryMaster WHERE AveragePrice > 0</td>
+                        <td>設定済み件数</td>
                     </tr>
                 </tbody>
             </table>
 
-            <h4>2. 計算精度の確認</h4>
+            <h4>2. データ継続性の確認</h4>
             <div class="command-block">
-<span class="comment">-- 粗利計算確認（SQL Server Management Studioで実行）</span>
+<span class="comment">-- 在庫継続性確認（SQL Server Management Studioで実行）</span>
 <span class="command-line">SELECT TOP 10</span>
 <span class="command-line">    ProductCode, GradeCode,</span>
-<span class="command-line">    PreviousDayAmount,</span>
-<span class="command-line">    CurrentDayPurchaseAmount,</span>
-<span class="command-line">    CurrentDayAmount,</span>
-<span class="command-line">    CurrentDayGrossProfit</span>
+<span class="command-line">    PreviousMonthQuantity,  -- 前月末在庫数量</span>
+<span class="command-line">    CurrentStock,          -- 当日在庫数量</span>
+<span class="command-line">    PersonInChargeCode,    -- 担当者コード</span>
+<span class="command-line">    AveragePrice          -- 平均単価</span>
 <span class="command-line">FROM InventoryMaster</span>
-<span class="command-line">WHERE JobDate = '2025-06-01' AND CurrentDayGrossProfit <> 0</span>
-<span class="command-line">ORDER BY CurrentDayGrossProfit DESC</span>
+<span class="command-line">WHERE ImportType = 'INITIAL' AND IsActive = 1</span>
+<span class="command-line">ORDER BY JobDate DESC</span>
             </div>
-        </div>
-
-        <div class="troubleshooting">
-            <h3>🛠️ よくある問題と対処法</h3>
-
-            <h4>❌ 問題1: 前月末在庫が設定されない（商品マスタ未登録エラー）</h4>
-            <div class="step">
-                <strong>原因:</strong> 商品マスタがインポートされていない
-                <div class="command-block">
-<span class="comment"># 対処法: マスタデータを先にインポート</span>
-<span class="command-line">dotnet run import-folder DeptA  # マスタファイルのみインポート</span>
-                </div>
-                <div class="command-block">
-<span class="comment"># 商品マスタ確認（SQL Server Management Studioで実行）</span>
-<span class="command-line">SELECT COUNT(*) as 商品マスタ件数 FROM ProductMaster</span>
-                </div>
-                <div class="command-block">
-<span class="comment"># その後、初期在庫設定</span>
-<span class="command-line">dotnet run init-inventory DeptA</span>
-                </div>
-            </div>
-
-            <h4>❌ 問題1-2: import-folderを使用している</h4>
-            <div class="step">
-                <strong>原因:</strong> import-folderコマンドは前月末在庫.csvをスキップする仕様
-                <div class="command-block">
-<span class="comment"># 対処法: 正しいコマンドを使用</span>
-<span class="command-line">dotnet run init-inventory DeptA</span>
-<span class="comment"># ファイル存在確認</span>
-<span class="command-line">dir D:\InventoryImport\DeptA\Import\前月末在庫.csv</span>
-                </div>
-            </div>
-
-            <h4>❌ 問題2: 商品日報にデータが表示されない</h4>
-            <div class="step">
-                <strong>原因:</strong> 初期在庫未設定、または在庫マスタが空
-                <div class="command-block">
-<span class="comment"># 対処法</span>
-<span class="command-line">dotnet run init-inventory DeptA</span>
-<span class="command-line">dotnet run check-data-status 2025-06-01</span>
-<span class="command-line">dotnet run unmatch-list</span>
-                </div>
-            </div>
-
-            <h4>❌ 問題2-2: 翌日のアンマッチが大量発生</h4>
-            <div class="step">
-                <strong>原因:</strong> 前日の日次終了処理（在庫繰り越し）未実行
-                <div class="command-block">
-<span class="comment"># 対処法1: 前日の日次終了処理を実行</span>
-<span class="command-line">dotnet run dev-daily-close 2025-06-01  # 前日分を実行</span>
-<span class="comment"># その後、当日の処理を再実行</span>
-<span class="command-line">dotnet run unmatch-list</span>
-                </div>
-                <div class="command-block">
-<span class="comment"># 対処法2: import-folderコマンドを使用（推奨）</span>
-<span class="command-line">dotnet run import-folder DeptA 2025-06-02</span>
-<span class="comment"># 伝票が0件の場合は自動的に前日在庫を引き継ぎます</span>
-                </div>
-            </div>
-
-            <h4>❌ 問題2-3: 日次終了処理で「データが存在しません」エラー</h4>
-            <div class="step">
-                <strong>原因:</strong> 指定日付の売上・仕入・在庫調整データが存在しない
-                <div class="command-block">
-<span class="comment"># 対処法１: データの存在確認</span>
-<span class="command-line">dotnet run check-data-status 2025-06-01</span>
-                </div>
-                <div class="command-block">
-<span class="comment"># 対処法２: データがない場合は先にインポート</span>
-<span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
-<span class="command-line">dotnet run unmatch-list</span>
-<span class="command-line">dotnet run daily-report 2025-06-01</span>
-                </div>
-                <div class="command-block">
-<span class="comment"># 対処法３: バリデーションをスキップして実行</span>
-<span class="command-line">dotnet run dev-daily-close 2025-06-01 --skip-validation</span>
-                </div>
-            </div>
-
-            <h4>❌ 問題3: アンマッチ件数が多い</h4>
-            <div class="step">
-                <strong>原因:</strong> マスタ未登録データ（等級コード「000」、荷印コード「8001」等）
-                <div class="command-block">
-<span class="comment"># 対処法: マスタ確認</span>
-<span class="command-line">dotnet run check-masters</span>
-                </div>
-            </div>
-
-            <h4>❌ 問題4: FastReport関連エラー</h4>
-            <div class="step">
-                <strong>原因:</strong> Windows環境での実行エラー
-                <div class="command-block">
-<span class="comment"># 対処法: Windows環境での実行</span>
-<span class="command-line">dotnet run -c Debug -p:DefineConstants="WINDOWS" -- daily-report 2025-06-01</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="info">
-            <h3>📋 パフォーマンス目標</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>処理項目</th>
-                        <th>現状</th>
-                        <th>目標</th>
-                        <th>改善率</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>データ取込</td>
-                        <td>5分</td>
-                        <td>2分</td>
-                        <td>60%短縮</td>
-                    </tr>
-                    <tr>
-                        <td>アンマッチ処理</td>
-                        <td>12分</td>
-                        <td>3分</td>
-                        <td>75%短縮</td>
-                    </tr>
-                    <tr>
-                        <td>帳票出力</td>
-                        <td>10分</td>
-                        <td>5分</td>
-                        <td>50%短縮</td>
-                    </tr>
-                    <tr>
-                        <td>在庫計算</td>
-                        <td>15分</td>
-                        <td>5分</td>
-                        <td>67%短縮</td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
 
         <div class="phase">
@@ -894,11 +774,13 @@
             </div>
 
             <div class="step">
-                <h4>□ 初期在庫設定完了</h4>
+                <h4>□ 移行用在庫マスタ設定完了</h4>
                 <ul>
-                    <li>□ init-inventoryコマンドで前月末在庫.csvインポート済み</li>
+                    <li>□ ZAIK*.csvファイルの配置済み</li>
+                    <li>□ import-initial-inventoryコマンドで読込済み</li>
                     <li>□ 在庫マスタに初期在庫が設定済み</li>
-                    <li>□ SQL実行で初期在庫データ確認済み</li>
+                    <li>□ PersonInChargeCodeとAveragePriceが設定済み</li>
+                    <li>□ SQLで初期在庫データ確認済み</li>
                 </ul>
             </div>
 
@@ -921,6 +803,7 @@
                     <li>□ 1週間分の連続処理確認済み</li>
                     <li>□ パフォーマンス測定済み</li>
                     <li>□ エラーハンドリング確認済み</li>
+                    <li>□ 移行用在庫マスタの重複実行テスト済み</li>
                 </ul>
             </div>
         </div>
@@ -928,129 +811,113 @@
         <!-- Phase 4: 実行例 -->
         <div class="phase">
             <div class="phase-header">
-                <div class="phase-number">4</div>
-                <div class="phase-title">実行例（6月1日〜3日）- 統一されたコマンドで処理</div>
+                <div class="phase-number">🚀</div>
+                <div class="phase-title">実行例（移行用在庫マスタ → 6月1日〜3日）</div>
             </div>
             
             <div class="info" style="margin-bottom: 20px;">
-                <h4>🆕 import-folderコマンドの自動判定機能</h4>
-                <p>import-folderコマンドは処理対象日の在庫影響伝票（売上・仕入・在庫調整）を確認し、自動的に処理モードを切り替えます。</p>
+                <h4>🆕 新しい運用フロー（移行用在庫マスタ対応）</h4>
+                <p>移行用在庫マスタ（ZAIK*.csv）の読込から日次処理まで、シンプルで統一されたコマンドで処理できます。</p>
                 <table style="margin: 15px 0;">
                     <thead>
                         <tr>
-                            <th>伝票状況</th>
-                            <th>処理モード</th>
-                            <th>DataSetId形式</th>
-                            <th>主な用途</th>
+                            <th>段階</th>
+                            <th>コマンド</th>
+                            <th>用途</th>
+                            <th>実行頻度</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>伝票あり（1件以上）</td>
-                            <td>通常モード（OPTIMIZE）</td>
-                            <td>AUTO_OPTIMIZE_*</td>
-                            <td>平日の通常営業日</td>
+                            <td>初期設定</td>
+                            <td>import-initial-inventory</td>
+                            <td>移行用在庫マスタ読込</td>
+                            <td>システム開始時のみ</td>
                         </tr>
                         <tr>
-                            <td>伝票なし（0件）</td>
-                            <td>引継モード（CARRYOVER）</td>
-                            <td>CARRYOVER_*</td>
-                            <td>週末・祝日・年末年始</td>
+                            <td>日次処理</td>
+                            <td>import-folder</td>
+                            <td>伝票データ取込・自動引継</td>
+                            <td>毎日</td>
+                        </tr>
+                        <tr>
+                            <td>帳票出力</td>
+                            <td>unmatch-list, daily-report</td>
+                            <td>アンマッチリスト・商品日報</td>
+                            <td>毎日</td>
+                        </tr>
+                        <tr>
+                            <td>在庫繰越</td>
+                            <td>daily-close</td>
+                            <td>翌日への在庫引継</td>
+                            <td>毎日</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
             
             <div class="example-section">
-                <h4>📅 6月1日（土曜日）- 伝票データなしの自動処理</h4>
-                <div class="warning" style="margin-bottom: 15px;">
-                    <strong>⚠️ 状況：</strong>6月1日は土曜日のため、売上・仕入・在庫調整の伝票データは0件です。
-                </div>
-                <div class="step" style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                    <h5 style="color: #3498db;">実行コマンド（すべて同じ）</h5>
+                <h4>📅 Step 0: 移行用在庫マスタ読込（システム開始時のみ）</h4>
+                <div class="step" style="background: rgba(52, 152, 219, 0.1); padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                    <h5 style="color: #3498db;">移行用在庫マスタの準備と読込</h5>
                     <div class="command-block">
-<span class="comment"># 1. import-folderが伝票0件を検出し、自動的に前日在庫引継モードで処理</span>
+<span class="comment"># 1. ZAIK*.csvファイルを配置</span>
+<span class="command-line">copy ZAIK20250531.csv D:\InventoryImport\DeptA\Import\</span>
+
+<span class="comment"># 2. 移行用在庫マスタ読込</span>
+<span class="command-line">dotnet run import-initial-inventory DeptA</span>
+
+<span class="comment"># 3. 読込結果確認</span>
+<span class="command-line">dotnet run check-inventory-status</span>
+                    </div>
+                    <div class="success" style="margin-top: 10px;">
+                        <strong>実際のログ出力例：</strong>
+                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px;">
+=== 初期在庫インポートコマンド開始 ===
+対象ファイル: ZAIK20250531.csv
+推定日付: 2025-05-31
+DataSetId: INITIAL_20250531_090000
+読み込み完了 - 有効: 1234件, エラー: 0件
+変換完了 - 成功: 1234件, エラー: 0件
+データベース登録完了: 1234件処理
+=== 初期在庫インポートコマンド完了 ===</pre>
+                    </div>
+                </div>
+                
+                <h4>📅 Step 1: 6月1日（土曜日）- 伝票データなしの自動処理</h4>
+                <div class="step" style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                    <h5 style="color: #e74c3c;">実行コマンド（移行用在庫マスタ読込後の最初の日次処理）</h5>
+                    <div class="command-block">
+<span class="comment"># 1. import-folderが自動的に処理モードを判断</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
 
-<span class="comment"># 2. アンマッチリスト作成（累積管理）</span>
+<span class="comment"># 2. アンマッチリスト作成</span>
 <span class="command-line">dotnet run unmatch-list</span>
 
-<span class="comment"># 3. 商品日報作成（売上0円、仕入0円でも作成）</span>
+<span class="comment"># 3. 商品日報作成</span>
 <span class="command-line">.\dev.ps1 dev-daily-report 2025-06-01</span>
 
-<span class="comment"># 4. 日次終了処理（重要）</span>
+<span class="comment"># 4. 日次終了処理</span>
 <span class="command-line">.\dev.ps1 dev-daily-close 2025-06-01</span>
                     </div>
-                    <div class="info" style="margin-top: 10px;">
-                        <strong>実際のログ出力：</strong>
-                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px;">
-=== Phase 1: マスタ・初期在庫インポート ===
-✅ 等級マスタをインポートしました（218件）
-✅ 階級マスタをインポートしました（76件）
-（略）
-
-=== Phase 4: 在庫マスタ最適化 ===
-[2025-06-01] 在庫影響伝票が0件のため、前日在庫引継モードで処理します。
-  売上: 0件, 仕入: 0件, 在庫調整: 0件
-前日（2025-05-31）の在庫を引き継ぎます。
-前日在庫: 1234件
-✅ 前日在庫引継完了 [2025-06-01]
-   - 引継在庫数: 1234件
-   - DataSetId: CARRYOVER_20250601_090000_ABC123</pre>
-                    </div>
                 </div>
                 
-                <h4>📅 6月2日（日曜日）- 伝票データありの通常処理</h4>
-                <div class="step" style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                    <h5 style="color: #27ae60;">実行コマンド（6月1日と全く同じ）</h5>
-                    <div class="command-block">
-<span class="comment"># 1. import-folderが伝票データを検出し、通常モードで処理</span>
-<span class="command-line">dotnet run import-folder DeptA 2025-06-02</span>
-
-<span class="comment"># 2〜4. 帳票作成と日次終了（同じコマンド）</span>
-<span class="command-line">dotnet run unmatch-list</span>
-<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-02</span>
-<span class="command-line">.\dev.ps1 dev-daily-close 2025-06-02</span>
-                    </div>
-                    <div class="info" style="margin-top: 10px;">
-                        <strong>実際のログ出力（通常モード）：</strong>
-                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px;">
-=== Phase 2: 売上伝票インポート ===
-✅ 売上伝票をインポートしました（DataSetId: DS_20250602_090000_XYZ789）
-  - 成功: 1234件（略）
-
-=== Phase 4: 在庫マスタ最適化 ===
-[2025-06-02] 在庫マスタ最適化を開始します。
-  売上: 1234件, 仕入: 567件, 在庫調整: 10件
-✅ 在庫マスタ最適化完了 [2025-06-02] (2345ms)
-   - 新規作成: 50件
-   - JobDate更新: 1200件
-   - DataSetId: AUTO_OPTIMIZE_20250602_090000</pre>
-                    </div>
-                </div>
-                
-                <h4>📅 継続的な処理（6月3日以降）</h4>
+                <h4>📅 Step 2以降: 継続的な日次処理</h4>
                 <div class="success">
                     <p><strong>✨ ポイント：毎日同じ4つのコマンドを実行するだけ</strong></p>
                     <div class="command-block">
 <span class="comment"># PowerShellスクリプトで一括実行（推奨）</span>
-<span class="command-line">$date = "2025-06-03"</span>
-<span class="command-line">dotnet run import-folder DeptA $date</span>
-<span class="command-line">dotnet run unmatch-list</span>
-<span class="command-line">.\dev.ps1 dev-daily-report $date</span>
-<span class="command-line">.\dev.ps1 dev-daily-close $date</span>
+<span class="command-line">$dates = @("2025-06-02", "2025-06-03", "2025-06-04")</span>
+<span class="command-line">foreach ($date in $dates) {</span>
+<span class="command-line">    Write-Host "=== $date の処理開始 ===" -ForegroundColor Cyan</span>
+<span class="command-line">    dotnet run import-folder DeptA $date</span>
+<span class="command-line">    dotnet run unmatch-list</span>
+<span class="command-line">    .\dev.ps1 dev-daily-report $date</span>
+<span class="command-line">    .\dev.ps1 dev-daily-close $date</span>
+<span class="command-line">    Write-Host "=== $date の処理完了 ===" -ForegroundColor Green</span>
+<span class="command-line">}</span>
                     </div>
                 </div>
-            </div>
-            
-            <div class="warning" style="margin-top: 20px;">
-                <h4>🚨 運用上の重要なポイント</h4>
-                <ul>
-                    <li><strong>同一コマンドで処理</strong> - 伝票の有無に関わらず、毎日同じ4つのコマンドを実行</li>
-                    <li><strong>自動モード切替</strong> - import-folderが伝票件数を確認し、適切な処理モードを自動選択</li>
-                    <li><strong>ログで確認</strong> - 処理モード（OPTIMIZE/CARRYOVER）はログで確認可能</li>
-                    <li><strong>日次終了は必須</strong> - 伝票の有無に関わらず、必ず日次終了処理を実行</li>
-                </ul>
             </div>
         </div>
         
@@ -1063,16 +930,17 @@
             
             <div class="info">
                 <ul>
-                    <li><strong>初期在庫の重要性</strong>: init-inventoryで正確な前月末在庫を設定することが、その後の全処理の基盤となります</li>
+                    <li><strong>移行用在庫マスタの重要性</strong>: import-initial-inventoryで正確な初期在庫を設定することが、その後の全処理の基盤となります</li>
+                    <li><strong>PersonInChargeCodeとAveragePrice</strong>: 移行用在庫マスタから担当者コードと平均単価も自動設定されます</li>
                     <li><strong>統一されたコマンド</strong>: import-folderコマンドが自動的に伝票の有無を判定し、適切な処理モードを選択します</li>
                     <li><strong>シンプルな運用</strong>: 
                         <ul>
-                            <li>毎日同じ4つのコマンドを実行するだけ</li>
+                            <li>初期設定：import-initial-inventory（1回のみ）</li>
+                            <li>日次処理：毎日同じ4つのコマンドを実行</li>
                             <li>伝票の有無を事前に確認する必要なし</li>
-                            <li>週末・祝日・年末年始も同じ手順</li>
                         </ul>
                     </li>
-                    <li><strong>処理モードの確認</strong>: ログ出力で「AUTO_OPTIMIZE」（通常）か「CARRYOVER」（引継）かを確認できます</li>
+                    <li><strong>安全性</strong>: 移行用在庫マスタは重複実行しても安全（既存データは自動無効化）</li>
                     <li><strong>日次終了処理の重要性</strong>: 伝票の有無に関わらず、必ず日次終了処理を実行して在庫を繰り越してください</li>
                 </ul>
             </div>
@@ -1088,7 +956,8 @@
             <div class="warning" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3);">
                 <h4 style="color: white;">❌ やってはいけないこと</h4>
                 <ul style="color: white;">
-                    <li>init-inventoryを実行せずに6月1日の処理を開始する</li>
+                    <li>import-initial-inventoryを実行せずに6月1日の処理を開始する</li>
+                    <li>前月末在庫.csvを使用する（廃止済み）</li>
                     <li>日付を飛ばして処理する（例：6/1の次に6/3を処理）</li>
                     <li>同じ日付で複数回import-folderを実行する（重複データの原因）</li>
                     <li>日次終了処理をスキップする（翌日のアンマッチ大量発生の原因）</li>
@@ -1096,17 +965,18 @@
                 
                 <h4 style="color: white;">✅ 推奨される運用</h4>
                 <ul style="color: white;">
+                    <li>システム開始時：import-initial-inventoryで移行用在庫マスタを読込</li>
                     <li>毎日定時に同じ4つのコマンドを実行（import-folder → unmatch-list → daily-report → daily-close）</li>
                     <li>処理漏れがあった場合は、漏れた日から順番に処理</li>
                     <li>伝票の有無は意識せず、import-folderの自動判定に任せる</li>
-                    <li>処理モードはログで確認（人為的な判断は不要）</li>
+                    <li>移行用在庫マスタは重複実行しても安全（必要に応じて再実行可能）</li>
                 </ul>
             </div>
         </div>
 
         <div class="header" style="margin-top: 50px; background: rgba(255, 255, 255, 0.95); padding: 20px; border-radius: 10px;">
-            <p><strong>🎯 この手順により、安全で確実な在庫管理が実現できます</strong></p>
-            <p>初期導入から日次処理まで、段階的に進めることで確実な運用が可能です</p>
+            <p><strong>🎯 この手順により、移行用在庫マスタを基盤とした安全で確実な在庫管理が実現できます</strong></p>
+            <p>import-initial-inventoryによる初期設定から日次処理まで、段階的に進めることで確実な運用が可能です</p>
             <br>
             <button class="button" onclick="window.print()">📄 この手順書を印刷</button>
         </div>
@@ -1133,7 +1003,7 @@
         // コマンドブロックのクリックでコピー機能
         document.querySelectorAll('.command-block').forEach(block => {
             block.addEventListener('click', function() {
-                const text = this.textContent.replace(/PowerShell/g, '').trim();
+                const text = this.textContent.replace(/PowerShell \(Click to Copy\)/g, '').trim();
                 navigator.clipboard.writeText(text).then(() => {
                     const originalBg = this.style.background;
                     this.style.background = '#2ecc71';
