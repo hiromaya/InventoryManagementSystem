@@ -3521,13 +3521,14 @@ private static async Task<bool> EnsureRequiredTablesExistAsync(IServiceProvider 
         using var scope = services.CreateScope();
         var scopedServices = scope.ServiceProvider;
         var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var commandLogger = scopedServices.GetRequiredService<ILogger<ImportInitialInventoryCommand>>();
         
         // 部門の指定（デフォルト: DeptA）
         var department = args.Length >= 3 ? args[2] : "DeptA";
         
         try
         {
-            var command = new ImportInitialInventoryCommand(scopedServices, logger, scopedServices.GetRequiredService<IConfiguration>());
+            var command = new ImportInitialInventoryCommand(scopedServices, commandLogger, scopedServices.GetRequiredService<IConfiguration>());
             await command.ExecuteAsync(department);
         }
         catch (Exception ex)
