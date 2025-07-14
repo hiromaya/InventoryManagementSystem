@@ -258,7 +258,8 @@ public class InitialInventoryImportService
         if (string.IsNullOrWhiteSpace(record.ShippingMarkCode))
             errors.Add($"行{rowNumber}: 荷印コードが空です");
 
-        if (string.IsNullOrWhiteSpace(record.ShippingMarkName))
+        // 荷印名の検証：nullまたは空文字列の場合のみエラーとする（空白8文字は有効）
+        if (string.IsNullOrEmpty(record.ShippingMarkName))
             errors.Add($"行{rowNumber}: 荷印名が空です");
 
         // 数値妥当性チェック
@@ -272,13 +273,21 @@ public class InitialInventoryImportService
             errors.Add($"行{rowNumber}: 単価が負の値です ({record.StandardPrice})");
 
         // データ整合性チェック（金額 = 数量 × 単価）
-        if (record.CurrentStockQuantity > 0 && record.StandardPrice > 0)
+        // 数量0の場合は金額も0であることを確認し、単価は問わない
+        if (record.CurrentStockQuantity == 0)
+        {
+            if (record.CurrentStockAmount != 0)
+            {
+                errors.Add($"行{rowNumber}: 在庫数量が0の場合、在庫金額も0である必要があります（実際値: {record.CurrentStockAmount}）");
+            }
+        }
+        else if (record.CurrentStockQuantity > 0 && record.StandardPrice > 0)
         {
             var calculatedAmount = record.CurrentStockQuantity * record.StandardPrice;
             var difference = Math.Abs(calculatedAmount - record.CurrentStockAmount);
             
-            // 誤差許容範囲: ±1円
-            if (difference > 1)
+            // 誤差許容範囲: ±10円（小数点計算誤差を考慮）
+            if (difference > 10)
             {
                 errors.Add($"行{rowNumber}: 在庫金額の整合性エラー - 計算値: {calculatedAmount:F2}, 実際値: {record.CurrentStockAmount:F2}, 差額: {difference:F2}");
             }
@@ -337,7 +346,7 @@ public class InitialInventoryImportService
             // メタデータ
             JobDate = jobDate,
             DataSetId = dataSetId,
-            ImportType = "INITIAL",
+            ImportType = "INIT",
             IsActive = true,
             CreatedDate = DateTime.Now,
             UpdatedDate = DateTime.Now,
@@ -368,7 +377,7 @@ public class InitialInventoryImportService
             DatasetId = dataSetId,
             JobDate = jobDate,
             ProcessType = "INITIAL_INVENTORY",
-            ImportType = "INITIAL",
+            ImportType = "INIT",
             RecordCount = inventories.Count,
             TotalRecordCount = inventories.Count,
             IsActive = true,
