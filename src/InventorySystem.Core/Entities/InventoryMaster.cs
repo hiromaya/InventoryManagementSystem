@@ -8,6 +8,8 @@ public class InventoryMaster
     public string ProductName { get; set; } = string.Empty;      // 商品名
     public string Unit { get; set; } = string.Empty;             // 単位
     public decimal StandardPrice { get; set; }                   // 標準単価
+    public decimal AveragePrice { get; set; }                    // 平均単価（粗利計算用）
+    public int PersonInChargeCode { get; set; }                  // 商品分類１担当者コード
     public string ProductCategory1 { get; set; } = string.Empty; // 商品分類1
     public string ProductCategory2 { get; set; } = string.Empty; // 商品分類2
     

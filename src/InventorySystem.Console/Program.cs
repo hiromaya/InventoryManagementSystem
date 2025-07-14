@@ -441,6 +441,10 @@ try
         case "init-monthly-inventory":
             await ExecuteInitMonthlyInventoryAsync(host.Services, commandArgs);
             break;
+            
+        case "import-initial-inventory":
+            await ExecuteImportInitialInventoryAsync(host.Services, commandArgs);
+            break;
         
         default:
             Console.WriteLine($"不明なコマンド: {command}");
@@ -3507,6 +3511,30 @@ private static async Task<bool> EnsureRequiredTablesExistAsync(IServiceProvider 
         var random = new Random();
         return new string(Enumerable.Repeat(chars, length)
             .Select(s => s[random.Next(s.Length)]).ToArray());
+    }
+
+    /// <summary>
+    /// 初期在庫インポートコマンドを実行
+    /// </summary>
+    private static async Task ExecuteImportInitialInventoryAsync(IServiceProvider services, string[] args)
+    {
+        using var scope = services.CreateScope();
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        
+        // 部門の指定（デフォルト: DeptA）
+        var department = args.Length >= 3 ? args[2] : "DeptA";
+        
+        try
+        {
+            var command = new ImportInitialInventoryCommand(scopedServices, logger, scopedServices.GetRequiredService<IConfiguration>());
+            await command.ExecuteAsync(department);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "初期在庫インポートコマンドでエラーが発生しました");
+            Console.WriteLine($"エラー: {ex.Message}");
+        }
     }
 
 } // Program クラスの終了
