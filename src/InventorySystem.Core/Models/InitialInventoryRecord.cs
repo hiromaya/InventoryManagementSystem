@@ -71,9 +71,9 @@ public sealed class InitialInventoryRecordMap : ClassMap<InitialInventoryRecord>
 {
     public InitialInventoryRecordMap()
     {
-        AutoMap(CultureInfo.InvariantCulture);
+        // AutoMap削除 - 明示的マッピングのみ使用（AttributeとClassMapの競合を回避）
         
-        // 明示的にマッピング（Indexアトリビュートで設定済みだが、念のため）
+        // 明示的にマッピング
         Map(m => m.ProductCode).Index(0).Name("商品ＣＤ");
         Map(m => m.GradeCode).Index(1).Name("等級ＣＤ");
         Map(m => m.ClassCode).Index(2).Name("階級ＣＤ");
