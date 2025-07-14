@@ -199,7 +199,8 @@ public class InitialInventoryImportService
             TrimOptions = TrimOptions.Trim
         });
         
-        // csv.Context.RegisterClassMap<InitialInventoryRecordMap>();  // 削除（属性ベースマッピングと競合するため）
+        // ClassMapを明示的に登録（属性を削除したため必須）
+        csv.Context.RegisterClassMap<InitialInventoryRecordMap>();
         
         var rowNumber = 1;
         await csv.ReadAsync();
