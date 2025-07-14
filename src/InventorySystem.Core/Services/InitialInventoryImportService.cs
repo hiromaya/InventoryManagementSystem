@@ -182,7 +182,9 @@ public class InitialInventoryImportService
         var validRecords = new List<InitialInventoryRecord>();
         var errorRecords = new List<(InitialInventoryRecord record, string error)>();
 
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        // CsvReader内で直接CsvConfigurationを初期化（他のサービスと同じパターン）
+        using var reader = new StreamReader(filePath, Encoding.UTF8);
+        using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HasHeaderRecord = true,
             HeaderValidated = null,
@@ -195,10 +197,7 @@ public class InitialInventoryImportService
             },
             IgnoreBlankLines = true,
             TrimOptions = TrimOptions.Trim
-        };
-
-        using var reader = new StreamReader(filePath, Encoding.UTF8);
-        using var csv = new CsvReader(reader, config);
+        });
         
         // csv.Context.RegisterClassMap<InitialInventoryRecordMap>();  // 削除（属性ベースマッピングと競合するため）
         
