@@ -311,8 +311,17 @@ public class InitialInventoryImportService
     private async Task<InventoryMaster> ConvertToInventoryMasterAsync(
         InitialInventoryRecord record, DateTime jobDate, string dataSetId)
     {
-        // 商品マスタから商品情報を取得
-        var product = await _productRepository.GetByCodeAsync(record.ProductCode);
+        // 商品マスタから商品情報を取得（エラーハンドリング追加）
+        ProductMaster? product = null;
+        try
+        {
+            product = await _productRepository.GetByCodeAsync(record.ProductCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("商品マスタ取得エラー: 商品{ProductCode} - {Error}", record.ProductCode, ex.Message);
+            // 商品マスタが存在しない場合はnullのまま処理を続行
+        }
 
         // デバッグログを追加
         _logger.LogDebug($"商品{record.ProductCode}: PersonInChargeCode={record.PersonInChargeCode}");
