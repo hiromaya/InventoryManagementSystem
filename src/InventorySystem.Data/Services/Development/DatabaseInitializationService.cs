@@ -704,29 +704,43 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         {
             var script = await File.ReadAllTextAsync(filePath);
             
-            // GOステートメントで分割
-            var batches = script.Split(new[] { "\r\nGO\r\n", "\nGO\n", "\rGO\r", " GO ", " go " }, 
-                StringSplitOptions.RemoveEmptyEntries);
+            // GOステートメントで分割（正規表現を使用）
+            // 行の先頭にあるGO（前後の空白を許可、大文字小文字を区別しない）を区切りとする
+            var regex = new System.Text.RegularExpressions.Regex(
+                @"^\s*GO\s*$", 
+                System.Text.RegularExpressions.RegexOptions.Multiline | 
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             
-            foreach (var batch in batches)
+            var batches = regex.Split(script);
+            
+            // InfoMessageイベントハンドラを一度だけ登録
+            EventHandler<SqlInfoMessageEventArgs> infoMessageHandler = (sender, e) =>
             {
-                if (!string.IsNullOrWhiteSpace(batch))
+                _logger.LogInformation("[SQL] {Message}", e.Message);
+            };
+            connection.InfoMessage += infoMessageHandler;
+            
+            try
+            {
+                foreach (var batch in batches)
                 {
-                    // PRINTステートメントの出力を取得するためにInfoMessageイベントを使用
-                    connection.InfoMessage += (sender, e) =>
+                    if (!string.IsNullOrWhiteSpace(batch))
                     {
-                        _logger.LogInformation("[SQL] {Message}", e.Message);
-                    };
-                    
-                    if (transaction != null)
-                    {
-                        await connection.ExecuteAsync(batch, transaction: transaction);
-                    }
-                    else
-                    {
-                        await connection.ExecuteAsync(batch);
+                        if (transaction != null)
+                        {
+                            await connection.ExecuteAsync(batch, transaction: transaction);
+                        }
+                        else
+                        {
+                            await connection.ExecuteAsync(batch);
+                        }
                     }
                 }
+            }
+            finally
+            {
+                // イベントハンドラを確実に削除
+                connection.InfoMessage -= infoMessageHandler;
             }
         }
         catch (Exception ex)
