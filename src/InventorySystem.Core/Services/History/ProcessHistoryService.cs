@@ -34,7 +34,7 @@ public class ProcessHistoryService : IProcessHistoryService
         
         var history = new ProcessHistory
         {
-            DatasetId = datasetId,
+            DataSetId = datasetId,
             JobDate = jobDate,
             ProcessType = processType,
             StartTime = DateTime.Now,

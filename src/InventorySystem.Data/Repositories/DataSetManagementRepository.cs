@@ -43,7 +43,7 @@ public class DataSetManagementRepository : BaseRepository, IDataSetManagementRep
             await connection.ExecuteAsync(sql, dataset);
             
             _logger.LogInformation("データセット作成完了: DatasetId={DatasetId}, Department={Department}", 
-                dataset.DatasetId, dataset.Department);
+                dataset.DataSetId, dataset.Department);
             
             return dataset;
         }

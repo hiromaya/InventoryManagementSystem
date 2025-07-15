@@ -101,7 +101,7 @@ public class ImportWithCarryoverCommand
             // 7. DataSetManagementエンティティを作成
             var dataSetManagement = new DataSetManagement
             {
-                DatasetId = dataSetId,
+                DataSetId = dataSetId,
                 JobDate = targetDate,
                 ProcessType = "CARRYOVER",
                 ImportType = "CARRYOVER",

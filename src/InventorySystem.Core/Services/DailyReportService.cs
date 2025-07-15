@@ -54,59 +54,59 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
                 // 新規作成時は InitializeProcess を使用してDataSetManagementに登録
                 context = await InitializeProcess(reportDate, "DAILY_REPORT", null, executedBy);
                 
-                _logger.LogInformation("新規データセット作成 - DataSetId: {DataSetId}", context.DatasetId);
+                _logger.LogInformation("新規データセット作成 - DataSetId: {DataSetId}", context.DataSetId);
                 // 1. CP在庫M作成
                 _logger.LogInformation("CP在庫マスタ作成開始");
-                var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(context.DatasetId, reportDate);
+                var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(context.DataSetId, reportDate);
                 _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
 
                 // 2. 当日エリアクリア
                 _logger.LogInformation("当日エリアクリア開始");
-                await _cpInventoryRepository.ClearDailyAreaAsync(context.DatasetId);
+                await _cpInventoryRepository.ClearDailyAreaAsync(context.DataSetId);
                 _logger.LogInformation("当日エリアクリア完了");
 
                 // 3. 当日データ集計
                 _logger.LogInformation("当日データ集計開始");
-                var salesResult = await _cpInventoryRepository.AggregateSalesDataAsync(context.DatasetId, reportDate);
+                var salesResult = await _cpInventoryRepository.AggregateSalesDataAsync(context.DataSetId, reportDate);
                 _logger.LogInformation("売上データ集計完了 - 更新件数: {Count}", salesResult);
                 
-                var purchaseResult = await _cpInventoryRepository.AggregatePurchaseDataAsync(context.DatasetId, reportDate);
+                var purchaseResult = await _cpInventoryRepository.AggregatePurchaseDataAsync(context.DataSetId, reportDate);
                 _logger.LogInformation("仕入データ集計完了 - 更新件数: {Count}", purchaseResult);
                 
-                var adjustmentResult = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(context.DatasetId, reportDate);
+                var adjustmentResult = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(context.DataSetId, reportDate);
                 _logger.LogInformation("在庫調整データ集計完了 - 更新件数: {Count}", adjustmentResult);
                 
                 // 経費項目の計算を追加
-                var discountResult = await _cpInventoryRepository.CalculatePurchaseDiscountAsync(context.DatasetId, reportDate);
+                var discountResult = await _cpInventoryRepository.CalculatePurchaseDiscountAsync(context.DataSetId, reportDate);
                 _logger.LogInformation("仕入値引計算完了 - 更新件数: {Count}", discountResult);
 
-                var incentiveResult = await _cpInventoryRepository.CalculateIncentiveAsync(context.DatasetId, reportDate);
+                var incentiveResult = await _cpInventoryRepository.CalculateIncentiveAsync(context.DataSetId, reportDate);
                 _logger.LogInformation("奨励金計算完了 - 更新件数: {Count}", incentiveResult);
 
-                var walkingResult = await _cpInventoryRepository.CalculateWalkingAmountAsync(context.DatasetId, reportDate);
+                var walkingResult = await _cpInventoryRepository.CalculateWalkingAmountAsync(context.DataSetId, reportDate);
                 _logger.LogInformation("歩引き金計算完了 - 更新件数: {Count}", walkingResult);
                 
                 _logger.LogInformation("当日データ集計完了");
 
                 // 4. 当日在庫計算
                 _logger.LogInformation("当日在庫計算開始");
-                await _cpInventoryRepository.CalculateDailyStockAsync(context.DatasetId);
-                await _cpInventoryRepository.SetDailyFlagToProcessedAsync(context.DatasetId);
+                await _cpInventoryRepository.CalculateDailyStockAsync(context.DataSetId);
+                await _cpInventoryRepository.SetDailyFlagToProcessedAsync(context.DataSetId);
                 _logger.LogInformation("当日在庫計算完了");
                 
                 // 処理2-4: 在庫単価計算
                 _logger.LogInformation("在庫単価計算開始");
-                await _cpInventoryRepository.CalculateInventoryUnitPriceAsync(context.DatasetId);
+                await _cpInventoryRepository.CalculateInventoryUnitPriceAsync(context.DataSetId);
                 _logger.LogInformation("在庫単価計算完了");
 
                 // 処理2-5: 粗利計算
                 _logger.LogInformation("粗利計算開始");
-                await _cpInventoryRepository.CalculateGrossProfitAsync(context.DatasetId, reportDate);
+                await _cpInventoryRepository.CalculateGrossProfitAsync(context.DataSetId, reportDate);
                 _logger.LogInformation("粗利計算完了");
 
                 // 月計計算
                 _logger.LogInformation("月計計算開始");
-                await _cpInventoryRepository.CalculateMonthlyTotalsAsync(context.DatasetId, reportDate);
+                await _cpInventoryRepository.CalculateMonthlyTotalsAsync(context.DataSetId, reportDate);
                 _logger.LogInformation("月計計算完了");
             }
             else

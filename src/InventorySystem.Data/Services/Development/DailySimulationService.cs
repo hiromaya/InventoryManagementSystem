@@ -9,7 +9,7 @@ using InventorySystem.Core.Interfaces.Development;
 using InventorySystem.Core.Interfaces.Services;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Models;
-using InventorySystem.Core.Services.Dataset;
+using InventorySystem.Core.Services.DataSet;
 
 namespace InventorySystem.Data.Services.Development;
 
@@ -20,7 +20,7 @@ public class DailySimulationService : IDailySimulationService
 {
     private readonly ILogger<DailySimulationService> _logger;
     private readonly IProcessingHistoryService _processingHistoryService;
-    private readonly IDatasetManager _datasetManager;
+    private readonly IDataSetManager _datasetManager;
     private readonly IUnmatchListService _unmatchListService;
     private readonly IDailyReportService _dailyReportService;
     private readonly IDailyCloseService _dailyCloseService;
@@ -35,7 +35,7 @@ public class DailySimulationService : IDailySimulationService
     public DailySimulationService(
         ILogger<DailySimulationService> logger,
         IProcessingHistoryService processingHistoryService,
-        IDatasetManager datasetManager,
+        IDataSetManager datasetManager,
         IUnmatchListService unmatchListService,
         IDailyReportService dailyReportService,
         IDailyCloseService dailyCloseService)
@@ -256,7 +256,7 @@ public class DailySimulationService : IDailySimulationService
         try
         {
             // データセット取得
-            var datasetId = await _datasetManager.GetLatestDatasetId("Import", jobDate);
+            var datasetId = await _datasetManager.GetLatestDataSetId("Import", jobDate);
             if (string.IsNullOrEmpty(datasetId))
             {
                 result.Success = false;

@@ -174,7 +174,7 @@ builder.Services.AddSingleton<IJapanTimeService, JapanTimeService>();
 
 // Error prevention services
 builder.Services.AddScoped<InventorySystem.Core.Services.Validation.IDateValidationService, InventorySystem.Core.Services.Validation.DateValidationService>();
-builder.Services.AddScoped<InventorySystem.Core.Services.Dataset.IDatasetManager, InventorySystem.Core.Services.Dataset.DatasetManager>();
+builder.Services.AddScoped<InventorySystem.Core.Services.DataSet.IDataSetManager, InventorySystem.Core.Services.DataSet.DataSetManager>();
 builder.Services.AddScoped<InventorySystem.Core.Services.History.IProcessHistoryService, InventorySystem.Core.Services.History.ProcessHistoryService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddScoped<IDailyCloseService, DailyCloseService>();
@@ -1096,7 +1096,7 @@ static async Task ExecuteDevCheckDailyCloseAsync(IServiceProvider services, stri
         {
             Console.WriteLine($"  作成時刻: {confirmation.DailyReport.CreatedAt:yyyy-MM-dd HH:mm:ss}");
             Console.WriteLine($"  作成者: {confirmation.DailyReport.CreatedBy}");
-            Console.WriteLine($"  DatasetId: {confirmation.DailyReport.DatasetId}");
+            Console.WriteLine($"  DatasetId: {confirmation.DailyReport.DataSetId}");
         }
         else
         {
@@ -2711,7 +2711,7 @@ private static async Task ExecuteCheckDailyCloseAsync(IServiceProvider services,
                 Console.WriteLine("【商品日報情報】");
                 Console.WriteLine($"  作成時刻: {confirmation.DailyReport.CreatedAt:yyyy-MM-dd HH:mm:ss}");
                 Console.WriteLine($"  作成者: {confirmation.DailyReport.CreatedBy}");
-                Console.WriteLine($"  DatasetId: {confirmation.DailyReport.DatasetId}");
+                Console.WriteLine($"  DatasetId: {confirmation.DailyReport.DataSetId}");
                 Console.WriteLine();
             }
             
@@ -3458,9 +3458,9 @@ private static async Task<bool> EnsureRequiredTablesExistAsync(IServiceProvider 
             }).ToList();
 
             // 4. DatasetManagementエンティティを作成
-            var datasetManagement = new DatasetManagement
+            var datasetManagement = new DataSetManagement
             {
-                DatasetId = dataSetId,
+                DataSetId = dataSetId,
                 JobDate = targetDate,
                 ProcessType = "CARRYOVER",
                 ImportType = "CARRYOVER",

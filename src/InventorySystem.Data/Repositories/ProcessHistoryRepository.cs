@@ -34,7 +34,7 @@ public class ProcessHistoryRepository : BaseRepository, IProcessHistoryRepositor
             var created = await connection.QuerySingleAsync<ProcessHistory>(sql, history);
             
             _logger.LogInformation("処理履歴作成完了: Id={Id}, DatasetId={DatasetId}", 
-                created.Id, created.DatasetId);
+                created.Id, created.DataSetId);
             
             return created;
         }

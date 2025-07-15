@@ -174,7 +174,7 @@ public class PreviousMonthInventoryImportService
                 // DataSetManagementエンティティを作成
                 var dataSetManagement = new DataSetManagement
                 {
-                    DatasetId = dataSetId,
+                    DataSetId = dataSetId,
                     JobDate = importDate,
                     ProcessType = "INIT_INVENTORY",
                     ImportType = "INIT",
@@ -456,7 +456,7 @@ public class PreviousMonthInventoryImportService
             {
                 await _dataSetRepository.CreateAsync(new DataSetManagement
                 {
-                    DatasetId = dataSetId,
+                    DataSetId = dataSetId,
                     JobDate = startDate,
                     ProcessType = "INIT_INVENTORY",
                     ImportType = "INIT",

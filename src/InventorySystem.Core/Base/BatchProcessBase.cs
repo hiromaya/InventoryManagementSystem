@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Models;
 using InventorySystem.Core.Services.Validation;
-using InventorySystem.Core.Services.Dataset;
+using InventorySystem.Core.Services.DataSet;
 using InventorySystem.Core.Services.History;
 
 namespace InventorySystem.Core.Base;
@@ -12,18 +12,18 @@ namespace InventorySystem.Core.Base;
 public abstract class BatchProcessBase
 {
     protected readonly IDateValidationService _dateValidator;
-    protected readonly IDatasetManager _datasetManager;
+    protected readonly IDataSetManager _dataSetManager;
     protected readonly IProcessHistoryService _historyService;
     protected readonly ILogger _logger;
     
     protected BatchProcessBase(
         IDateValidationService dateValidator,
-        IDatasetManager datasetManager,
+        IDataSetManager dataSetManager,
         IProcessHistoryService historyService,
         ILogger logger)
     {
         _dateValidator = dateValidator;
-        _datasetManager = datasetManager;
+        _dataSetManager = dataSetManager;
         _historyService = historyService;
         _logger = logger;
     }
@@ -64,15 +64,15 @@ public abstract class BatchProcessBase
         }
         
         // 3. データセットID生成と登録
-        var datasetId = _datasetManager.GenerateDatasetId(jobDate, processType);
-        var dataset = DatasetManager.CreateDataset(
+        var datasetId = _dataSetManager.GenerateDataSetId(jobDate, processType);
+        var dataset = DataSetManager.CreateDataSet(
             datasetId, 
             jobDate, 
             processType, 
             importedFiles, 
             executedBy);
         
-        await _datasetManager.RegisterDataset(dataset);
+        await _dataSetManager.RegisterDataSet(dataset);
         
         // 4. 処理履歴開始
         var history = await _historyService.StartProcess(datasetId, jobDate, processType, executedBy);
@@ -80,7 +80,7 @@ public abstract class BatchProcessBase
         return new ProcessContext
         {
             JobDate = jobDate,
-            DatasetId = datasetId,
+            DataSetId = datasetId,
             ProcessType = processType,
             ProcessHistory = history,
             ImportedFiles = importedFiles ?? new List<string>(),
@@ -102,8 +102,8 @@ public abstract class BatchProcessBase
             return;
         }
         
-        _logger.LogInformation("処理終了: DatasetId={DatasetId}, Success={Success}, Message={Message}", 
-            context.DatasetId, success, message);
+        _logger.LogInformation("処理終了: DataSetId={DataSetId}, Success={Success}, Message={Message}", 
+            context.DataSetId, success, message);
         
         // 処理履歴を更新
         await _historyService.CompleteProcess(context.ProcessHistory.Id, success, message);

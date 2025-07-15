@@ -58,7 +58,7 @@ public class ProcessHistory
     /// <summary>
     /// データセット管理（ナビゲーションプロパティ）
     /// </summary>
-    public DatasetManagement? Dataset { get; set; }
+    public DataSetManagement? DataSet { get; set; }
 }
 
 /// <summary>

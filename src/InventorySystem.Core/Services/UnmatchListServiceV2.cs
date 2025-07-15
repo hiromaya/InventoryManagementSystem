@@ -6,7 +6,7 @@ using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Core.Models;
 using InventorySystem.Core.Services.Validation;
-using InventorySystem.Core.Services.Dataset;
+using InventorySystem.Core.Services.DataSet;
 using InventorySystem.Core.Services.History;
 
 namespace InventorySystem.Core.Services;
@@ -39,7 +39,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
         IProductMasterRepository productMasterRepository,
         ISupplierMasterRepository supplierMasterRepository,
         IDateValidationService dateValidator,
-        IDatasetManager datasetManager,
+        IDataSetManager datasetManager,
         IProcessHistoryService historyService,
         ILogger<UnmatchListServiceV2> logger)
         : base(dateValidator, datasetManager, historyService, logger)
@@ -85,36 +85,36 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
             context = await InitializeProcess(jobDate, "UNMATCH_CHECK");
             
             _logger.LogInformation("アンマッチリスト処理開始 - 最新JobDate: {JobDate}, データセットID: {DataSetId}", 
-                jobDate, context.DatasetId);
+                jobDate, context.DataSetId);
 
             // 処理1-1: CP在庫M作成（targetDateが指定されている場合は日付フィルタリング適用）
             _logger.LogInformation("CP在庫マスタ作成開始（{Mode}）", targetDate.HasValue ? $"指定日以前: {targetDate.Value:yyyy-MM-dd}" : "全期間対象");
-            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(context.DatasetId, targetDate);
+            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(context.DataSetId, targetDate);
             _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
 
             // 処理1-2: 当日エリアクリア
             _logger.LogInformation("当日エリアクリア開始");
-            await _cpInventoryRepository.ClearDailyAreaAsync(context.DatasetId);
+            await _cpInventoryRepository.ClearDailyAreaAsync(context.DataSetId);
             _logger.LogInformation("当日エリアクリア完了");
 
             // データ集計（targetDateが指定されている場合は日付フィルタリング適用）
             _logger.LogInformation("データ集計開始（{Mode}）", targetDate.HasValue ? $"指定日以前: {targetDate.Value:yyyy-MM-dd}" : "全期間");
-            await _cpInventoryRepository.AggregateSalesDataAsync(context.DatasetId, targetDate);
-            await _cpInventoryRepository.AggregatePurchaseDataAsync(context.DatasetId, targetDate);
-            await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(context.DatasetId, targetDate);
+            await _cpInventoryRepository.AggregateSalesDataAsync(context.DataSetId, targetDate);
+            await _cpInventoryRepository.AggregatePurchaseDataAsync(context.DataSetId, targetDate);
+            await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(context.DataSetId, targetDate);
             _logger.LogInformation("データ集計完了");
 
             // 処理1-3: 当日在庫計算
             _logger.LogInformation("当日在庫計算開始");
-            await _cpInventoryRepository.CalculateDailyStockAsync(context.DatasetId);
-            await _cpInventoryRepository.SetDailyFlagToProcessedAsync(context.DatasetId);
+            await _cpInventoryRepository.CalculateDailyStockAsync(context.DataSetId);
+            await _cpInventoryRepository.SetDailyFlagToProcessedAsync(context.DataSetId);
             _logger.LogInformation("当日在庫計算完了");
 
             // 処理1-6: アンマッチリスト生成（targetDateが指定されている場合は日付フィルタリング適用）
             _logger.LogInformation("アンマッチリスト生成開始（{Mode}）", targetDate.HasValue ? $"指定日以前: {targetDate.Value:yyyy-MM-dd}" : "全期間");
             var unmatchItems = targetDate.HasValue 
-                ? await GenerateUnmatchListAsync(context.DatasetId, targetDate.Value)
-                : await GenerateUnmatchListAsync(context.DatasetId);
+                ? await GenerateUnmatchListAsync(context.DataSetId, targetDate.Value)
+                : await GenerateUnmatchListAsync(context.DataSetId);
             var unmatchList = unmatchItems.ToList();
             _logger.LogInformation("アンマッチリスト生成完了 - アンマッチ件数: {Count}", unmatchList.Count);
 
@@ -123,7 +123,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
             var result = new UnmatchListResult
             {
                 Success = true,
-                DataSetId = context.DatasetId,
+                DataSetId = context.DataSetId,
                 UnmatchCount = unmatchList.Count,
                 UnmatchItems = unmatchList,
                 ProcessingTime = stopwatch.Elapsed
@@ -146,17 +146,17 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
                 
                 // CP在庫マスタの削除を保留（日次終了処理まで保持）
                 // Phase 1改修: 削除タイミングを日次終了処理後に変更
-                _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", context.DatasetId);
+                _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", context.DataSetId);
                 
                 /*
                 try
                 {
-                    await _cpInventoryRepository.DeleteByDataSetIdAsync(context.DatasetId);
+                    await _cpInventoryRepository.DeleteByDataSetIdAsync(context.DataSetId);
                 }
                 catch (Exception cleanupEx)
                 {
                     _logger.LogError(cleanupEx, "CP在庫マスタのクリーンアップに失敗しました - データセットID: {DataSetId}", 
-                        context.DatasetId);
+                        context.DataSetId);
                 }
                 */
             }
@@ -164,7 +164,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
             return new UnmatchListResult
             {
                 Success = false,
-                DataSetId = context?.DatasetId ?? string.Empty,
+                DataSetId = context?.DataSetId ?? string.Empty,
                 ErrorMessage = ex.Message,
                 ProcessingTime = stopwatch.Elapsed
             };

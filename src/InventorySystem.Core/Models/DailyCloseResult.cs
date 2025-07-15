@@ -80,9 +80,9 @@ public class DailyCloseResult
             summary += "モード: 開発環境\n";
         }
         
-        if (!string.IsNullOrEmpty(DatasetId))
+        if (!string.IsNullOrEmpty(DataSetId))
         {
-            summary += $"データセットID: {DatasetId}\n";
+            summary += $"データセットID: {DataSetId}\n";
         }
         
         summary += $"処理時間: {ProcessingTime.TotalSeconds:F1}秒\n";

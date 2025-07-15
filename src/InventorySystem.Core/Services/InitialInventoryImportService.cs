@@ -377,7 +377,7 @@ public class InitialInventoryImportService
         // DataSetManagementエンティティを作成
         var dataSetManagement = new DataSetManagement
         {
-            DatasetId = dataSetId,
+            DataSetId = dataSetId,
             JobDate = jobDate,
             ProcessType = "INITIAL_INVENTORY",
             ImportType = "INIT",

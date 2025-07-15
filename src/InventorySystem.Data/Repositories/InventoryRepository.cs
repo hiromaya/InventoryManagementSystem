@@ -1369,7 +1369,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                     )";
                 
                 await connection.ExecuteAsync(datasetSql, dataSetManagement, transaction);
-                LogInfo($"DataSetManagement登録完了: DataSetId={dataSetManagement.DatasetId}");
+                LogInfo($"DataSetManagement登録完了: DataSetId={dataSetManagement.DataSetId}");
                 
                 return totalProcessed;
             }
@@ -1377,7 +1377,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             {
                 LogError(ex, "トランザクション内でエラーが発生しました", new { 
                     InventoryCount = inventories.Count,
-                    DatasetId = dataSetManagement.DatasetId 
+                    DatasetId = dataSetManagement.DataSetId 
                 });
                 throw;
             }
@@ -1513,7 +1513,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                     )";
                 
                 await connection.ExecuteAsync(datasetSql, dataSetManagement, transaction);
-                LogInfo($"DataSetManagement登録完了: DataSetId={dataSetManagement.DatasetId}");
+                LogInfo($"DataSetManagement登録完了: DataSetId={dataSetManagement.DataSetId}");
                 
                 return totalAffected;
             }

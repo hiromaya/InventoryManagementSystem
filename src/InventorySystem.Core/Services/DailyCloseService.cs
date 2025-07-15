@@ -6,7 +6,7 @@ using InventorySystem.Core.Constants;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Models;
-using InventorySystem.Core.Services.Dataset;
+using InventorySystem.Core.Services.DataSet;
 using InventorySystem.Core.Services.History;
 using InventorySystem.Core.Services.Validation;
 using System.Security.Cryptography;
@@ -30,7 +30,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     
     public DailyCloseService(
         IDateValidationService dateValidator,
-        IDatasetManager datasetManager,
+        IDataSetManager datasetManager,
         IProcessHistoryService historyService,
         IBackupService backupService,
         IInventoryRepository inventoryRepository,
@@ -60,8 +60,8 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             jobDate, executedBy);
         
         // 1. 商品日報との紐付けチェック
-        var dailyReportDatasetId = await _datasetManager.GetLatestDatasetId("DAILY_REPORT", jobDate);
-        if (string.IsNullOrEmpty(dailyReportDatasetId))
+        var dailyReportDataSetId = await _dataSetManager.GetLatestDataSetId("DAILY_REPORT", jobDate);
+        if (string.IsNullOrEmpty(dailyReportDataSetId))
         {
             // DatasetIdが取得できない場合、ProcessHistoryを直接確認
             var dailyReportHistory = await _historyService.GetProcessHistory(jobDate, "DAILY_REPORT");
@@ -73,7 +73,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             if (completedReport != null)
             {
                 // 0件でも処理済みの場合はDatasetIdを取得
-                dailyReportDatasetId = completedReport.DatasetId;
+                dailyReportDataSetId = completedReport.DataSetId;
             }
             else
             {
@@ -82,10 +82,10 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         }
         
         // 2. 時間的制約の検証
-        await ValidateProcessingTime(jobDate, dailyReportDatasetId);
+        await ValidateProcessingTime(jobDate, dailyReportDataSetId);
         
         // 3. データ整合性の詳細確認
-        var validationResult = await ValidateDataIntegrity(jobDate, dailyReportDatasetId);
+        var validationResult = await ValidateDataIntegrity(jobDate, dailyReportDataSetId);
         if (!validationResult.IsValid)
         {
             var changesDetails = string.Join(", ", validationResult.Changes);
@@ -94,7 +94,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         
         // 4. 同じデータセットで既に処理済みかチェック
         var existingHistories = await _historyService.GetProcessHistory(jobDate, "DAILY_CLOSE");
-        if (existingHistories.Any(h => h.DatasetId == dailyReportDatasetId && h.Status == ProcessStatus.Completed))
+        if (existingHistories.Any(h => h.DataSetId == dailyReportDataSetId && h.Status == ProcessStatus.Completed))
         {
             throw new InvalidOperationException("このデータセットは既に日次終了処理済みです。");
         }
@@ -108,12 +108,12 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         var context = new ProcessContext
         {
             JobDate = jobDate,
-            DatasetId = dailyReportDatasetId, // 商品日報と同じID
+            DataSetId = dailyReportDataSetId, // 商品日報と同じID
             ProcessType = "DAILY_CLOSE",
             ExecutedBy = executedBy
         };
         
-        var history = await _historyService.StartProcess(dailyReportDatasetId, jobDate, "DAILY_CLOSE", executedBy);
+        var history = await _historyService.StartProcess(dailyReportDataSetId, jobDate, "DAILY_CLOSE", executedBy);
         context.ProcessHistory = history;
         
         try
@@ -122,7 +122,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             var updateContext = new ProcessContext
             {
                 JobDate = jobDate,
-                DatasetId = dailyReportDatasetId,
+                DataSetId = dailyReportDataSetId,
                 ProcessType = "DAILY_CLOSE",
                 ExecutedBy = executedBy,
                 ProcessHistory = history
@@ -130,7 +130,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             await UpdateInventoryMaster(updateContext);
             
             // 日次終了管理テーブルに記録（ハッシュ値付き）
-            await RecordDailyClose(jobDate, dailyReportDatasetId, backupPath, executedBy, validationResult.CurrentHash);
+            await RecordDailyClose(jobDate, dailyReportDataSetId, backupPath, executedBy, validationResult.CurrentHash);
             
             // 古いバックアップのクリーンアップ
             var retentionDays = 30; // 設定から読み取ることも可能
@@ -180,7 +180,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
                 .OrderByDescending(h => h.EndTime)
                 .FirstOrDefault();
                 
-            var dailyReportDatasetId = string.Empty;
+            var dailyReportDataSetId = string.Empty;
             
             if (completedReport != null)
             {
@@ -189,14 +189,14 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
                 {
                     CreatedAt = completedReport.EndTime ?? completedReport.StartTime,
                     CreatedBy = completedReport.ExecutedBy,
-                    DatasetId = completedReport.DatasetId ?? "EMPTY_DATASET",
+                    DataSetId = completedReport.DataSetId ?? "EMPTY_DATASET",
                     DataHash = completedReport.DataHash
                 };
                 // 後続処理用にDatasetIdを保持
-                dailyReportDatasetId = completedReport.DatasetId ?? "EMPTY_DATASET";
+                dailyReportDataSetId = completedReport.DataSetId ?? "EMPTY_DATASET";
                 
                 // 0件データの場合のログ出力
-                if (string.IsNullOrEmpty(completedReport.DatasetId) || completedReport.DatasetId == "EMPTY_DATASET")
+                if (string.IsNullOrEmpty(completedReport.DataSetId) || completedReport.DataSetId == "EMPTY_DATASET")
                 {
                     _logger.LogInformation("{JobDate}の商品日報は0件データで作成されています", jobDate);
                 }
@@ -255,9 +255,9 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             // 時間的制約の検証
             try
             {
-                if (!string.IsNullOrEmpty(dailyReportDatasetId))
+                if (!string.IsNullOrEmpty(dailyReportDataSetId))
                 {
-                    await ValidateProcessingTime(jobDate, dailyReportDatasetId);
+                    await ValidateProcessingTime(jobDate, dailyReportDataSetId);
                 }
             }
             catch (InvalidOperationException ex)
@@ -272,9 +272,9 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             }
             
             // データ整合性の検証
-            if (!string.IsNullOrEmpty(dailyReportDatasetId))
+            if (!string.IsNullOrEmpty(dailyReportDataSetId))
             {
-                var validationResult = await ValidateDataIntegrity(jobDate, dailyReportDatasetId);
+                var validationResult = await ValidateDataIntegrity(jobDate, dailyReportDataSetId);
                 if (!validationResult.IsValid)
                 {
                     confirmation.ValidationResults.Add(new ValidationMessage
@@ -340,13 +340,13 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     /// </summary>
     private async Task<int> UpdateInventoryMaster(ProcessContext context)
     {
-        _logger.LogInformation("在庫マスタ更新開始: DatasetId={DatasetId}", context.DatasetId);
+        _logger.LogInformation("在庫マスタ更新開始: DatasetId={DatasetId}", context.DataSetId);
         
         try
         {
             // CP在庫マスタから在庫マスタへ反映
             var updateCount = await _inventoryRepository.UpdateFromCpInventoryAsync(
-                context.DatasetId, context.JobDate);
+                context.DataSetId, context.JobDate);
             
             _logger.LogInformation("在庫マスタ更新完了: 更新件数={Count}", updateCount);
             return updateCount;
@@ -371,8 +371,8 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         var dailyClose = new DailyCloseManagement
         {
             JobDate = jobDate,
-            DatasetId = datasetId,
-            DailyReportDatasetId = datasetId, // 商品日報と同じID
+            DataSetId = datasetId,
+            DailyReportDataSetId = datasetId, // 商品日報と同じID
             BackupPath = backupPath,
             ProcessedAt = DateTime.Now,
             ProcessedBy = executedBy,
@@ -395,7 +395,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     /// <summary>
     /// 時間的制約の検証
     /// </summary>
-    private async Task ValidateProcessingTime(DateTime jobDate, string dailyReportDatasetId)
+    private async Task ValidateProcessingTime(DateTime jobDate, string dailyReportDataSetId)
     {
         var now = DateTime.Now;
         
@@ -409,7 +409,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         // 2. 商品日報の作成時刻を取得
         var dailyReportHistory = await _historyService.GetProcessHistory(jobDate, "DAILY_REPORT");
         var latestDailyReport = dailyReportHistory
-            .Where(h => h.DatasetId == dailyReportDatasetId && h.Status == ProcessStatus.Completed)
+            .Where(h => h.DataSetId == dailyReportDataSetId && h.Status == ProcessStatus.Completed)
             .OrderByDescending(h => h.EndTime)
             .FirstOrDefault();
             
@@ -448,7 +448,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     /// <summary>
     /// データ整合性の検証
     /// </summary>
-    private async Task<DataValidationResult> ValidateDataIntegrity(DateTime jobDate, string dailyReportDatasetId)
+    private async Task<DataValidationResult> ValidateDataIntegrity(DateTime jobDate, string dailyReportDataSetId)
     {
         var result = new DataValidationResult { IsValid = true };
         
@@ -457,7 +457,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             // 1. 商品日報のハッシュ値を取得
             var dailyReportHistory = await _historyService.GetProcessHistory(jobDate, "DAILY_REPORT");
             var latestDailyReport = dailyReportHistory
-                .Where(h => h.DatasetId == dailyReportDatasetId && h.Status == ProcessStatus.Completed)
+                .Where(h => h.DataSetId == dailyReportDataSetId && h.Status == ProcessStatus.Completed)
                 .OrderByDescending(h => h.EndTime)
                 .FirstOrDefault();
                 
@@ -472,7 +472,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
                 result.IsValid = false;
                 
                 // 変更内容の詳細を検出
-                await DetectDataChanges(jobDate, dailyReportDatasetId, result);
+                await DetectDataChanges(jobDate, dailyReportDataSetId, result);
             }
             
             // 4. データ件数の確認
@@ -533,12 +533,12 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     /// <summary>
     /// データ変更内容を検出
     /// </summary>
-    private async Task DetectDataChanges(DateTime jobDate, string dailyReportDatasetId, DataValidationResult result)
+    private async Task DetectDataChanges(DateTime jobDate, string dailyReportDataSetId, DataValidationResult result)
     {
         // 商品日報作成時刻を取得
         var dailyReportHistory = await _historyService.GetProcessHistory(jobDate, "DAILY_REPORT");
         var dailyReportTime = dailyReportHistory
-            .Where(h => h.DatasetId == dailyReportDatasetId && h.Status == ProcessStatus.Completed)
+            .Where(h => h.DataSetId == dailyReportDataSetId && h.Status == ProcessStatus.Completed)
             .Select(h => h.EndTime)
             .FirstOrDefault();
             
@@ -586,8 +586,8 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         try
         {
             // 商品日報のDatasetIdを先に取得（順序を入れ替える）
-            var dailyReportDatasetId = await _datasetManager.GetLatestDatasetId("DAILY_REPORT", jobDate);
-            if (string.IsNullOrEmpty(dailyReportDatasetId) && !skipValidation)
+            var dailyReportDataSetId = await _dataSetManager.GetLatestDataSetId("DAILY_REPORT", jobDate);
+            if (string.IsNullOrEmpty(dailyReportDataSetId) && !skipValidation)
             {
                 throw new InvalidOperationException($"{jobDate:yyyy-MM-dd}の商品日報が作成されていません");
             }
@@ -603,7 +603,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
                 }
             }
             
-            result.DatasetId = dailyReportDatasetId ?? "DEV-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+            result.DataSetId = dailyReportDataSetId ?? "DEV-" + Guid.NewGuid().ToString("N").Substring(0, 8);
             
             if (dryRun)
             {
@@ -613,7 +613,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             else
             {
                 // 実際の処理を実行（時間制約なし）
-                result = await ExecuteInternalAsync(jobDate, dailyReportDatasetId, skipTimeValidation: true);
+                result = await ExecuteInternalAsync(jobDate, dailyReportDataSetId, skipTimeValidation: true);
             }
             
             result.EndTime = DateTime.Now;
@@ -649,7 +649,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         _logger.LogInformation("更新対象在庫マスタ: {Count}件", inventoryCount);
         
         // CP在庫マスタの統計情報
-        var cpInventoryStats = await _cpInventoryRepository.GetAggregationResultAsync(result.DatasetId);
+        var cpInventoryStats = await _cpInventoryRepository.GetAggregationResultAsync(result.DataSetId);
         _logger.LogInformation("CP在庫マスタ統計:");
         _logger.LogInformation("  - 総件数: {Total}", cpInventoryStats.TotalCount);
         _logger.LogInformation("  - 集計済み: {Aggregated}", cpInventoryStats.AggregatedCount);
@@ -672,26 +672,26 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     /// <summary>
     /// 内部処理実行（時間制約スキップオプション付き）
     /// </summary>
-    private async Task<DailyCloseResult> ExecuteInternalAsync(DateTime jobDate, string dailyReportDatasetId, bool skipTimeValidation = false)
+    private async Task<DailyCloseResult> ExecuteInternalAsync(DateTime jobDate, string dailyReportDataSetId, bool skipTimeValidation = false)
     {
         var result = new DailyCloseResult
         {
             JobDate = jobDate,
-            DatasetId = dailyReportDatasetId,
+            DataSetId = dailyReportDataSetId,
             StartTime = DateTime.Now
         };
         
         var executedBy = Environment.UserName;
         
         // 履歴記録
-        var history = await _historyService.StartProcess(dailyReportDatasetId, jobDate, "DAILY_CLOSE", executedBy);
+        var history = await _historyService.StartProcess(dailyReportDataSetId, jobDate, "DAILY_CLOSE", executedBy);
         
         try
         {
             // 時間的制約の検証（開発モードではスキップ可能）
             if (!skipTimeValidation)
             {
-                await ValidateProcessingTime(jobDate, dailyReportDatasetId);
+                await ValidateProcessingTime(jobDate, dailyReportDataSetId);
             }
             else
             {
@@ -699,7 +699,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             }
             
             // データ整合性の検証
-            var validationResult = await ValidateDataIntegrity(jobDate, dailyReportDatasetId);
+            var validationResult = await ValidateDataIntegrity(jobDate, dailyReportDataSetId);
             if (!validationResult.IsValid)
             {
                 throw new InvalidOperationException(
@@ -715,7 +715,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             var context = new ProcessContext
             {
                 JobDate = jobDate,
-                DatasetId = dailyReportDatasetId,
+                DataSetId = dailyReportDataSetId,
                 ProcessType = "DAILY_CLOSE",
                 ExecutedBy = executedBy
             };
@@ -723,14 +723,14 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             result.UpdatedInventoryCount = updateCount;
             
             // 日次終了管理テーブルに記録
-            await RecordDailyClose(jobDate, dailyReportDatasetId, backupPath, executedBy, validationResult.CurrentHash);
+            await RecordDailyClose(jobDate, dailyReportDataSetId, backupPath, executedBy, validationResult.CurrentHash);
             
             // 完了処理
             await _historyService.CompleteProcess(history.Id, true, 
                 $"日次終了処理が正常に完了しました。更新件数: {updateCount}");
             
             // Phase 1改修: CP在庫マスタのクリーンアップ（日次終了処理後）
-            await CleanupCpInventoryMaster(jobDate, dailyReportDatasetId);
+            await CleanupCpInventoryMaster(jobDate, dailyReportDataSetId);
             
             // ステップ5: 在庫ゼロ商品の非アクティブ化
             _logger.LogInformation("ステップ5: 在庫ゼロ商品の非アクティブ化を開始");
