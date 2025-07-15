@@ -1,11 +1,11 @@
 using InventorySystem.Core.Entities;
 
-namespace InventorySystem.Core.Services.Dataset;
+namespace InventorySystem.Core.Services.DataSet;
 
 /// <summary>
 /// データセット管理インターフェース
 /// </summary>
-public interface IDatasetManager
+public interface IDataSetManager
 {
     /// <summary>
     /// データセットIDを生成
@@ -13,14 +13,14 @@ public interface IDatasetManager
     /// <param name="jobDate">ジョブ日付</param>
     /// <param name="processType">処理種別</param>
     /// <returns>データセットID</returns>
-    string GenerateDatasetId(DateTime jobDate, string processType);
+    string GenerateDataSetId(DateTime jobDate, string processType);
     
     /// <summary>
     /// データセットを登録
     /// </summary>
-    /// <param name="dataset">データセット情報</param>
+    /// <param name="dataSet">データセット情報</param>
     /// <returns>登録されたデータセット</returns>
-    Task<DatasetManagement> RegisterDataset(DatasetManagement dataset);
+    Task<DataSetManagement> RegisterDataSet(DataSetManagement dataSet);
     
     /// <summary>
     /// 指定処理種別・日付の最新データセットIDを取得
@@ -28,12 +28,12 @@ public interface IDatasetManager
     /// <param name="processType">処理種別</param>
     /// <param name="jobDate">ジョブ日付</param>
     /// <returns>データセットID（存在しない場合は空文字）</returns>
-    Task<string> GetLatestDatasetId(string processType, DateTime jobDate);
+    Task<string> GetLatestDataSetId(string processType, DateTime jobDate);
     
     /// <summary>
     /// データセットを取得
     /// </summary>
-    /// <param name="datasetId">データセットID</param>
+    /// <param name="dataSetId">データセットID</param>
     /// <returns>データセット（存在しない場合はnull）</returns>
-    Task<DatasetManagement?> GetDataset(string datasetId);
+    Task<DataSetManagement?> GetDataSet(string dataSetId);
 }

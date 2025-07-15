@@ -63,7 +63,7 @@ public class DataStatusCheckService : IDataStatusCheckService
         if (report.CsvStatus.IsImported)
         {
             Console.WriteLine($"✅ CSV取込済み");
-            Console.WriteLine($"   DatasetId: {report.CsvStatus.DatasetId}");
+            Console.WriteLine($"   DataSetId: {report.CsvStatus.DataSetId}");
             Console.WriteLine($"   取込日時: {report.CsvStatus.ImportedAt:yyyy-MM-dd HH:mm:ss}");
             Console.WriteLine($"   売上伝票: {report.CsvStatus.SalesCount:N0}件");
             Console.WriteLine($"   仕入伝票: {report.CsvStatus.PurchaseCount:N0}件");
@@ -153,20 +153,20 @@ public class DataStatusCheckService : IDataStatusCheckService
     
     private async Task CheckCsvImportStatusAsync(SqlConnection connection, DateTime jobDate, DataStatusReport.CsvImportStatus status)
     {
-        // DatasetManagementから情報取得
-        var datasetInfo = await connection.QueryFirstOrDefaultAsync<dynamic>(@"
-            SELECT TOP 1 DatasetId, CreatedAt, CreatedBy, TotalRecordCount
-            FROM DatasetManagement
+        // DataSetManagementから情報取得
+        var dataSetInfo = await connection.QueryFirstOrDefaultAsync<dynamic>(@"
+            SELECT TOP 1 DataSetId, CreatedAt, CreatedBy, TotalRecordCount
+            FROM DataSetManagement
             WHERE JobDate = @JobDate
             ORDER BY CreatedAt DESC",
             new { JobDate = jobDate });
         
-        if (datasetInfo != null)
+        if (dataSetInfo != null)
         {
             status.IsImported = true;
-            status.DatasetId = datasetInfo.DatasetId;
-            status.ImportedAt = datasetInfo.CreatedAt;
-            status.ImportedBy = datasetInfo.CreatedBy;
+            status.DataSetId = dataSetInfo.DataSetId;
+            status.ImportedAt = dataSetInfo.CreatedAt;
+            status.ImportedBy = dataSetInfo.CreatedBy;
             
             // 各種伝票の件数を取得
             status.SalesCount = await connection.ExecuteScalarAsync<int>(
@@ -199,7 +199,7 @@ public class DataStatusCheckService : IDataStatusCheckService
     private async Task CheckUnmatchListStatusAsync(SqlConnection connection, DateTime jobDate, DataStatusReport.UnmatchListStatus status)
     {
         var processInfo = await connection.QueryFirstOrDefaultAsync<dynamic>(@"
-            SELECT TOP 1 StartTime, EndTime, Status, RecordCount, DatasetId
+            SELECT TOP 1 StartTime, EndTime, Status, RecordCount, DataSetId
             FROM ProcessHistory
             WHERE JobDate = @JobDate 
                 AND ProcessType = 'UNMATCH_LIST'
@@ -212,7 +212,7 @@ public class DataStatusCheckService : IDataStatusCheckService
             status.IsCreated = true;
             status.CreatedAt = processInfo.EndTime ?? processInfo.StartTime;
             status.UnmatchCount = processInfo.RecordCount ?? 0;
-            status.DatasetId = processInfo.DatasetId;
+            status.DataSetId = processInfo.DataSetId;
             
             if (processInfo.StartTime != null && processInfo.EndTime != null)
             {
@@ -223,15 +223,15 @@ public class DataStatusCheckService : IDataStatusCheckService
             status.ProcessedItemCount = await connection.ExecuteScalarAsync<int>(@"
                 SELECT COUNT(DISTINCT CONCAT(ProductCode, '-', GradeCode, '-', ClassCode, '-', ShippingMarkCode, '-', ShippingMarkName))
                 FROM CpInventoryMaster
-                WHERE DataSetId = @DatasetId",
-                new { DatasetId = status.DatasetId });
+                WHERE DataSetId = @DataSetId",
+                new { DataSetId = status.DataSetId });
         }
     }
     
     private async Task CheckDailyReportStatusAsync(SqlConnection connection, DateTime jobDate, DataStatusReport.DailyReportStatusInfo status)
     {
         var processInfo = await connection.QueryFirstOrDefaultAsync<dynamic>(@"
-            SELECT TOP 1 StartTime, EndTime, Status, RecordCount, DatasetId, ErrorMessage
+            SELECT TOP 1 StartTime, EndTime, Status, RecordCount, DataSetId, ErrorMessage
             FROM ProcessHistory
             WHERE JobDate = @JobDate 
                 AND ProcessType = 'DAILY_REPORT'
@@ -244,7 +244,7 @@ public class DataStatusCheckService : IDataStatusCheckService
             status.IsCreated = true;
             status.CreatedAt = processInfo.EndTime ?? processInfo.StartTime;
             status.ItemCount = processInfo.RecordCount ?? 0;
-            status.DatasetId = processInfo.DatasetId;
+            status.DataSetId = processInfo.DataSetId;
             
             // メッセージからファイルパスを抽出（もし含まれていれば）
             if (processInfo.Message != null && processInfo.Message.Contains(".pdf"))
@@ -270,7 +270,7 @@ public class DataStatusCheckService : IDataStatusCheckService
     private async Task CheckDailyCloseStatusAsync(SqlConnection connection, DateTime jobDate, DataStatusReport.DailyCloseStatusInfo status)
     {
         var closeInfo = await connection.QueryFirstOrDefaultAsync<dynamic>(@"
-            SELECT ProcessedAt, ProcessedBy, DatasetId, UpdatedInventoryCount, ValidationStatus
+            SELECT ProcessedAt, ProcessedBy, DataSetId, UpdatedInventoryCount, ValidationStatus
             FROM DailyCloseManagement
             WHERE JobDate = @JobDate",
             new { JobDate = jobDate });
@@ -280,7 +280,7 @@ public class DataStatusCheckService : IDataStatusCheckService
             status.IsProcessed = true;
             status.ProcessedAt = closeInfo.ProcessedAt;
             status.ProcessedBy = closeInfo.ProcessedBy;
-            status.DatasetId = closeInfo.DatasetId;
+            status.DataSetId = closeInfo.DataSetId;
             status.UpdatedInventoryCount = closeInfo.UpdatedInventoryCount ?? 0;
             status.ValidationStatus = closeInfo.ValidationStatus;
         }

@@ -42,7 +42,7 @@ public class DataStatusReport
     public class CsvImportStatus
     {
         public bool IsImported { get; set; }
-        public string? DatasetId { get; set; }
+        public string? DataSetId { get; set; }
         public int SalesCount { get; set; }
         public int PurchaseCount { get; set; }
         public int AdjustmentCount { get; set; }
@@ -61,7 +61,7 @@ public class DataStatusReport
         public int ProcessedItemCount { get; set; }
         public TimeSpan? ProcessingTime { get; set; }
         public DateTime? CreatedAt { get; set; }
-        public string? DatasetId { get; set; }
+        public string? DataSetId { get; set; }
     }
     
     /// <summary>
@@ -75,7 +75,7 @@ public class DataStatusReport
         public decimal TotalSalesAmount { get; set; }
         public decimal TotalPurchaseAmount { get; set; }
         public DateTime? CreatedAt { get; set; }
-        public string? DatasetId { get; set; }
+        public string? DataSetId { get; set; }
     }
     
     /// <summary>
@@ -86,7 +86,7 @@ public class DataStatusReport
         public bool IsProcessed { get; set; }
         public DateTime? ProcessedAt { get; set; }
         public string? ProcessedBy { get; set; }
-        public string? DatasetId { get; set; }
+        public string? DataSetId { get; set; }
         public int UpdatedInventoryCount { get; set; }
         public string? ValidationStatus { get; set; }
     }

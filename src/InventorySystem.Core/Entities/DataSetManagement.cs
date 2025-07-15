@@ -3,12 +3,12 @@ namespace InventorySystem.Core.Entities;
 /// <summary>
 /// データセット管理エンティティ
 /// </summary>
-public class DatasetManagement
+public class DataSetManagement
 {
     /// <summary>
     /// データセットID
     /// </summary>
-    public string DatasetId { get; set; } = string.Empty;
+    public string DataSetId { get; set; } = string.Empty;
     
     /// <summary>
     /// ジョブ日付

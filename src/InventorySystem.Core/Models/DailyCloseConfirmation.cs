@@ -60,7 +60,7 @@ public class DailyReportInfo
 {
     public DateTime CreatedAt { get; set; }
     public string CreatedBy { get; set; } = string.Empty;
-    public string DatasetId { get; set; } = string.Empty;
+    public string DataSetId { get; set; } = string.Empty;
     public string? DataHash { get; set; }
 }
 

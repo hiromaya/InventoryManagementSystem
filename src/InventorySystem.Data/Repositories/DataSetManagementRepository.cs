@@ -9,18 +9,18 @@ namespace InventorySystem.Data.Repositories;
 /// <summary>
 /// データセット管理リポジトリ実装
 /// </summary>
-public class DatasetManagementRepository : BaseRepository, IDatasetManagementRepository
+public class DataSetManagementRepository : BaseRepository, IDataSetManagementRepository
 {
-    public DatasetManagementRepository(string connectionString, ILogger<DatasetManagementRepository> logger)
+    public DataSetManagementRepository(string connectionString, ILogger<DataSetManagementRepository> logger)
         : base(connectionString, logger)
     {
     }
     
     /// <inheritdoc/>
-    public async Task<DatasetManagement> CreateAsync(DatasetManagement dataset)
+    public async Task<DataSetManagement> CreateAsync(DataSetManagement dataset)
     {
         const string sql = @"
-            INSERT INTO DatasetManagement (
+            INSERT INTO DataSetManagement (
                 DatasetId, JobDate, ProcessType, ImportType, RecordCount, TotalRecordCount,
                 IsActive, IsArchived, ParentDataSetId, ImportedFiles, CreatedAt, CreatedBy, 
                 Notes, Department
@@ -55,14 +55,14 @@ public class DatasetManagementRepository : BaseRepository, IDatasetManagementRep
     }
     
     /// <inheritdoc/>
-    public async Task<DatasetManagement?> GetByIdAsync(string datasetId)
+    public async Task<DataSetManagement?> GetByIdAsync(string datasetId)
     {
-        const string sql = "SELECT * FROM DatasetManagement WHERE DatasetId = @DatasetId";
+        const string sql = "SELECT * FROM DataSetManagement WHERE DatasetId = @DatasetId";
         
         try
         {
             using var connection = new SqlConnection(_connectionString);
-            var dataset = await connection.QueryFirstOrDefaultAsync<DatasetManagement>(
+            var dataset = await connection.QueryFirstOrDefaultAsync<DataSetManagement>(
                 sql, new { DatasetId = datasetId });
             
             return dataset;
@@ -75,17 +75,17 @@ public class DatasetManagementRepository : BaseRepository, IDatasetManagementRep
     }
     
     /// <inheritdoc/>
-    public async Task<DatasetManagement?> GetLatestByJobDateAndTypeAsync(DateTime jobDate, string processType)
+    public async Task<DataSetManagement?> GetLatestByJobDateAndTypeAsync(DateTime jobDate, string processType)
     {
         const string sql = @"
-            SELECT TOP 1 * FROM DatasetManagement 
+            SELECT TOP 1 * FROM DataSetManagement 
             WHERE JobDate = @JobDate AND ProcessType = @ProcessType
             ORDER BY CreatedAt DESC";
         
         try
         {
             using var connection = new SqlConnection(_connectionString);
-            var dataset = await connection.QueryFirstOrDefaultAsync<DatasetManagement>(
+            var dataset = await connection.QueryFirstOrDefaultAsync<DataSetManagement>(
                 sql, new { JobDate = jobDate.Date, ProcessType = processType });
             
             return dataset;
@@ -99,17 +99,17 @@ public class DatasetManagementRepository : BaseRepository, IDatasetManagementRep
     }
     
     /// <inheritdoc/>
-    public async Task<IEnumerable<DatasetManagement>> GetByJobDateAsync(DateTime jobDate)
+    public async Task<IEnumerable<DataSetManagement>> GetByJobDateAsync(DateTime jobDate)
     {
         const string sql = @"
-            SELECT * FROM DatasetManagement 
+            SELECT * FROM DataSetManagement 
             WHERE JobDate = @JobDate
             ORDER BY CreatedAt DESC";
         
         try
         {
             using var connection = new SqlConnection(_connectionString);
-            var datasets = await connection.QueryAsync<DatasetManagement>(
+            var datasets = await connection.QueryAsync<DataSetManagement>(
                 sql, new { JobDate = jobDate.Date });
             
             return datasets;
@@ -122,18 +122,18 @@ public class DatasetManagementRepository : BaseRepository, IDatasetManagementRep
     }
     
     /// <inheritdoc/>
-    public async Task<DatasetManagement?> GetActiveByJobDateAsync(DateTime jobDate)
+    public async Task<DataSetManagement?> GetActiveByJobDateAsync(DateTime jobDate)
     {
         const string sql = @"
             SELECT TOP 1 *
-            FROM DatasetManagement
+            FROM DataSetManagement
             WHERE JobDate = @JobDate AND IsActive = 1
             ORDER BY CreatedAt DESC";
 
         try
         {
             using var connection = new SqlConnection(_connectionString);
-            return await connection.QueryFirstOrDefaultAsync<DatasetManagement>(sql, new { JobDate = jobDate });
+            return await connection.QueryFirstOrDefaultAsync<DataSetManagement>(sql, new { JobDate = jobDate });
         }
         catch (Exception ex)
         {
@@ -146,7 +146,7 @@ public class DatasetManagementRepository : BaseRepository, IDatasetManagementRep
     public async Task<int> DeactivateDataSetAsync(string dataSetId, string? deactivatedBy = null)
     {
         const string sql = @"
-            UPDATE DatasetManagement
+            UPDATE DataSetManagement
             SET IsActive = 0, 
                 DeactivatedAt = GETDATE(),
                 DeactivatedBy = @DeactivatedBy

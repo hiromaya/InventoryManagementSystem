@@ -45,8 +45,8 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 DataHash NVARCHAR(100)
             )",
         
-        ["DatasetManagement"] = @"
-            CREATE TABLE DatasetManagement (
+        ["DataSetManagement"] = @"
+            CREATE TABLE DataSetManagement (
                 DatasetId NVARCHAR(50) PRIMARY KEY,
                 JobDate DATE NOT NULL,
                 ProcessType NVARCHAR(50) NOT NULL,
@@ -149,9 +149,9 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             "CREATE INDEX IX_ProcessHistory_JobDate_ProcessType ON ProcessHistory(JobDate, ProcessType)",
             "CREATE INDEX IX_ProcessHistory_DatasetId ON ProcessHistory(DatasetId)"
         },
-        ["DatasetManagement"] = new List<string>
+        ["DataSetManagement"] = new List<string>
         {
-            "CREATE INDEX IX_DatasetManagement_JobDate ON DatasetManagement(JobDate)"
+            "CREATE INDEX IX_DataSetManagement_JobDate ON DataSetManagement(JobDate)"
         },
         ["DailyCloseManagement"] = new List<string>
         {
@@ -425,7 +425,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 "FileProcessingHistory",    // 他のテーブルから参照される
                 "AuditLogs",
                 "DailyCloseManagement",
-                "DatasetManagement",
+                "DataSetManagement",
                 "ProcessHistory"
             };
             

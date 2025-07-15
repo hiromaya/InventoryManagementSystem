@@ -121,12 +121,12 @@ public interface IInventoryRepository
     /// トランザクション内で初期在庫データを一括処理
     /// </summary>
     /// <param name="inventories">登録する在庫データリスト</param>
-    /// <param name="datasetManagement">データセット管理情報</param>
+    /// <param name="dataSetManagement">データセット管理情報</param>
     /// <param name="deactivateExisting">既存のINITデータを無効化するか</param>
     /// <returns>処理件数</returns>
     Task<int> ProcessInitialInventoryInTransactionAsync(
         List<InventoryMaster> inventories, 
-        DatasetManagement datasetManagement,
+        DataSetManagement dataSetManagement,
         bool deactivateExisting = true);
     
     /// <summary>
@@ -135,13 +135,13 @@ public interface IInventoryRepository
     /// <param name="inventories">更新する在庫データリスト</param>
     /// <param name="targetDate">処理対象日</param>
     /// <param name="dataSetId">データセットID</param>
-    /// <param name="datasetManagement">データセット管理情報</param>
+    /// <param name="dataSetManagement">データセット管理情報</param>
     /// <returns>処理件数</returns>
     Task<int> ProcessCarryoverInTransactionAsync(
         List<InventoryMaster> inventories,
         DateTime targetDate,
         string dataSetId,
-        DatasetManagement datasetManagement);
+        DataSetManagement dataSetManagement);
     
     /// <summary>
     /// 非アクティブ化対象の在庫件数を取得

@@ -3,79 +3,79 @@ using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using System.Text.Json;
 
-namespace InventorySystem.Core.Services.Dataset;
+namespace InventorySystem.Core.Services.DataSet;
 
 /// <summary>
 /// データセット管理サービス実装
 /// </summary>
-public class DatasetManager : IDatasetManager
+public class DataSetManager : IDataSetManager
 {
-    private readonly IDatasetManagementRepository _repository;
-    private readonly ILogger<DatasetManager> _logger;
+    private readonly IDataSetManagementRepository _repository;
+    private readonly ILogger<DataSetManager> _logger;
     
-    public DatasetManager(
-        IDatasetManagementRepository repository,
-        ILogger<DatasetManager> logger)
+    public DataSetManager(
+        IDataSetManagementRepository repository,
+        ILogger<DataSetManager> logger)
     {
         _repository = repository;
         _logger = logger;
     }
     
     /// <inheritdoc/>
-    public string GenerateDatasetId(DateTime jobDate, string processType)
+    public string GenerateDataSetId(DateTime jobDate, string processType)
     {
         // フォーマット: DS_{yyyyMMdd}_{HHmmss}_{ProcessType}
-        var datasetId = $"DS_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}_{processType}";
+        var dataSetId = $"DS_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}_{processType}";
         
-        _logger.LogInformation("データセットID生成: {DatasetId}", datasetId);
-        return datasetId;
+        _logger.LogInformation("データセットID生成: {DataSetId}", dataSetId);
+        return dataSetId;
     }
     
     /// <inheritdoc/>
-    public async Task<DatasetManagement> RegisterDataset(DatasetManagement dataset)
+    public async Task<DataSetManagement> RegisterDataSet(DataSetManagement dataSet)
     {
-        _logger.LogInformation("データセット登録開始: DatasetId={DatasetId}, ProcessType={ProcessType}, JobDate={JobDate}", 
-            dataset.DatasetId, dataset.ProcessType, dataset.JobDate);
+        _logger.LogInformation("データセット登録開始: DataSetId={DataSetId}, ProcessType={ProcessType}, JobDate={JobDate}", 
+            dataSet.DataSetId, dataSet.ProcessType, dataSet.JobDate);
         
         try
         {
-            var result = await _repository.CreateAsync(dataset);
-            _logger.LogInformation("データセット登録完了: {DatasetId}", dataset.DatasetId);
+            var result = await _repository.CreateAsync(dataSet);
+            _logger.LogInformation("データセット登録完了: {DataSetId}", dataSet.DataSetId);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "データセット登録エラー: {DatasetId}", dataset.DatasetId);
+            _logger.LogError(ex, "データセット登録エラー: {DataSetId}", dataSet.DataSetId);
             throw;
         }
     }
     
     /// <inheritdoc/>
-    public async Task<string> GetLatestDatasetId(string processType, DateTime jobDate)
+    public async Task<string> GetLatestDataSetId(string processType, DateTime jobDate)
     {
-        var dataset = await _repository.GetLatestByJobDateAndTypeAsync(jobDate, processType);
-        return dataset?.DatasetId ?? string.Empty;
+        var dataSet = await _repository.GetLatestByJobDateAndTypeAsync(jobDate, processType);
+        return dataSet?.DataSetId ?? string.Empty;
     }
     
     /// <inheritdoc/>
-    public async Task<DatasetManagement?> GetDataset(string datasetId)
+    public async Task<DataSetManagement?> GetDataSet(string dataSetId)
     {
-        return await _repository.GetByIdAsync(datasetId);
+        return await _repository.GetByIdAsync(dataSetId);
     }
     
     /// <summary>
     /// インポートファイル情報を作成
     /// </summary>
-    public static DatasetManagement CreateDataset(
-        string datasetId,
+    public static DataSetManagement CreateDataSet(
+        string dataSetId,
         DateTime jobDate,
         string processType,
         List<string>? importedFiles = null,
         string createdBy = "System")
     {
-        return new DatasetManagement
+        return new DataSetManagement
         {
-            DatasetId = datasetId,
+            DataSetId = dataSetId,
             JobDate = jobDate,
             ProcessType = processType,
             ImportType = processType switch 

@@ -18,12 +18,12 @@ public class PreviousMonthInventoryImportService
     private readonly IInventoryRepository _inventoryRepository;
     private readonly ILogger<PreviousMonthInventoryImportService> _logger;
     private readonly string _importPath;
-    private readonly IDatasetManagementRepository _dataSetRepository;
+    private readonly IDataSetManagementRepository _dataSetRepository;
 
     public PreviousMonthInventoryImportService(
         IInventoryRepository inventoryRepository,
         ILogger<PreviousMonthInventoryImportService> logger,
-        IDatasetManagementRepository dataSetRepository)
+        IDataSetManagementRepository dataSetRepository)
     {
         _inventoryRepository = inventoryRepository;
         _logger = logger;
@@ -90,7 +90,7 @@ public class PreviousMonthInventoryImportService
             }
 
             // DataSetIdを生成
-            var dataSetId = DatasetManagement.GenerateDataSetId("INIT");
+            var dataSetId = DataSetManagement.GenerateDataSetId("INIT");
             _logger.LogInformation("DataSetId生成: {DataSetId}", dataSetId);
             
             // 前月末の日付を取得
@@ -171,8 +171,8 @@ public class PreviousMonthInventoryImportService
             {
                 _logger.LogInformation("=== ステップ4: トランザクション処理開始 ===");
                 
-                // DatasetManagementエンティティを作成
-                var datasetManagement = new DatasetManagement
+                // DataSetManagementエンティティを作成
+                var dataSetManagement = new DataSetManagement
                 {
                     DatasetId = dataSetId,
                     JobDate = importDate,
@@ -193,7 +193,7 @@ public class PreviousMonthInventoryImportService
                 // トランザクション内で一括処理
                 var processedCount = await _inventoryRepository.ProcessInitialInventoryInTransactionAsync(
                     inventoryList, 
-                    datasetManagement,
+                    dataSetManagement,
                     deactivateExisting: true
                 );
                 
@@ -281,7 +281,7 @@ public class PreviousMonthInventoryImportService
             }
 
             // DataSetIdを生成
-            var dataSetId = DatasetManagement.GenerateDataSetId("INIT");
+            var dataSetId = DataSetManagement.GenerateDataSetId("INIT");
             _logger.LogInformation("DataSetId生成: {DataSetId}", dataSetId);
             
             // 既存のINITデータを確認（対象期間のもの）
@@ -451,10 +451,10 @@ public class PreviousMonthInventoryImportService
             _logger.LogInformation("日付フィルタでスキップ: {DateSkipped}件", skippedByDateFilter);
             _logger.LogInformation("エラー: {Error}件", errorCount);
             
-            // DatasetManagementに登録
+            // DataSetManagementに登録
             if (processedCount > 0)
             {
-                await _dataSetRepository.CreateAsync(new DatasetManagement
+                await _dataSetRepository.CreateAsync(new DataSetManagement
                 {
                     DatasetId = dataSetId,
                     JobDate = startDate,
@@ -472,7 +472,7 @@ public class PreviousMonthInventoryImportService
                     Notes = $"前月末在庫インポート: {processedCount}件"
                 });
                 
-                _logger.LogInformation("DatasetManagementに登録完了: DataSetId={DataSetId}", dataSetId);
+                _logger.LogInformation("DataSetManagementに登録完了: DataSetId={DataSetId}", dataSetId);
             }
 
             result.ProcessedRecords = processedCount;

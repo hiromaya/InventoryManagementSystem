@@ -1235,7 +1235,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     /// </summary>
     public async Task<int> ProcessInitialInventoryInTransactionAsync(
         List<InventoryMaster> inventories, 
-        DatasetManagement datasetManagement,
+        DataSetManagement dataSetManagement,
         bool deactivateExisting = true)
     {
         if (inventories == null || !inventories.Any())
@@ -1356,9 +1356,9 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 
                 LogInfo($"在庫データ {totalProcessed} 件を処理しました");
                 
-                // 3. DatasetManagementテーブルへの登録
+                // 3. DataSetManagementテーブルへの登録
                 const string datasetSql = @"
-                    INSERT INTO DatasetManagement (
+                    INSERT INTO DataSetManagement (
                         DatasetId, JobDate, ProcessType, ImportType, RecordCount, TotalRecordCount,
                         IsActive, IsArchived, ParentDataSetId, ImportedFiles, CreatedAt, CreatedBy, 
                         Notes, Department
@@ -1368,8 +1368,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                         @Notes, @Department
                     )";
                 
-                await connection.ExecuteAsync(datasetSql, datasetManagement, transaction);
-                LogInfo($"DatasetManagement登録完了: DataSetId={datasetManagement.DatasetId}");
+                await connection.ExecuteAsync(datasetSql, dataSetManagement, transaction);
+                LogInfo($"DataSetManagement登録完了: DataSetId={dataSetManagement.DatasetId}");
                 
                 return totalProcessed;
             }
@@ -1377,7 +1377,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             {
                 LogError(ex, "トランザクション内でエラーが発生しました", new { 
                     InventoryCount = inventories.Count,
-                    DatasetId = datasetManagement.DatasetId 
+                    DatasetId = dataSetManagement.DatasetId 
                 });
                 throw;
             }
@@ -1391,7 +1391,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
         List<InventoryMaster> inventories,
         DateTime targetDate,
         string dataSetId,
-        DatasetManagement datasetManagement)
+        DataSetManagement dataSetManagement)
     {
         if (inventories == null || !inventories.Any())
         {
@@ -1500,9 +1500,9 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 
                 LogInfo($"在庫引継ぎMERGE処理: {totalAffected}件");
                 
-                // 2. DatasetManagementテーブルへの登録
+                // 2. DataSetManagementテーブルへの登録
                 const string datasetSql = @"
-                    INSERT INTO DatasetManagement (
+                    INSERT INTO DataSetManagement (
                         DatasetId, JobDate, ProcessType, ImportType, RecordCount, TotalRecordCount,
                         IsActive, IsArchived, ParentDataSetId, ImportedFiles, CreatedAt, CreatedBy, 
                         Notes, Department
@@ -1512,8 +1512,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                         @Notes, @Department
                     )";
                 
-                await connection.ExecuteAsync(datasetSql, datasetManagement, transaction);
-                LogInfo($"DatasetManagement登録完了: DataSetId={datasetManagement.DatasetId}");
+                await connection.ExecuteAsync(datasetSql, dataSetManagement, transaction);
+                LogInfo($"DataSetManagement登録完了: DataSetId={dataSetManagement.DatasetId}");
                 
                 return totalAffected;
             }

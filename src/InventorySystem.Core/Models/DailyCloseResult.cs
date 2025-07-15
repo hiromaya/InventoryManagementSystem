@@ -15,7 +15,7 @@ public class DailyCloseResult
     /// <summary>
     /// データセットID
     /// </summary>
-    public string DatasetId { get; set; } = string.Empty;
+    public string DataSetId { get; set; } = string.Empty;
     
     /// <summary>
     /// 処理開始時刻

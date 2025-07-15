@@ -13,7 +13,7 @@ public class ProcessHistory
     /// <summary>
     /// データセットID
     /// </summary>
-    public string DatasetId { get; set; } = string.Empty;
+    public string DataSetId { get; set; } = string.Empty;
     
     /// <summary>
     /// ジョブ日付

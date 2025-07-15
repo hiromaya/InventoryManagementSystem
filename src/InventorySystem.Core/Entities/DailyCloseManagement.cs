@@ -18,12 +18,12 @@ public class DailyCloseManagement
     /// <summary>
     /// データセットID
     /// </summary>
-    public string DatasetId { get; set; } = string.Empty;
+    public string DataSetId { get; set; } = string.Empty;
     
     /// <summary>
     /// 商品日報データセットID
     /// </summary>
-    public string DailyReportDatasetId { get; set; } = string.Empty;
+    public string DailyReportDataSetId { get; set; } = string.Empty;
     
     /// <summary>
     /// バックアップパス

@@ -180,8 +180,8 @@ builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddScoped<IDailyCloseService, DailyCloseService>();
 
 // Error prevention repositories
-builder.Services.AddScoped<IDatasetManagementRepository>(provider => 
-    new DatasetManagementRepository(connectionString, provider.GetRequiredService<ILogger<DatasetManagementRepository>>()));
+builder.Services.AddScoped<IDataSetManagementRepository>(provider => 
+    new DataSetManagementRepository(connectionString, provider.GetRequiredService<ILogger<DataSetManagementRepository>>()));
 builder.Services.AddScoped<IProcessHistoryRepository>(provider => 
     new ProcessHistoryRepository(connectionString, provider.GetRequiredService<ILogger<ProcessHistoryRepository>>()));
 builder.Services.AddScoped<IDailyCloseManagementRepository>(provider => 
@@ -1907,7 +1907,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         var salesVoucherRepo = scopedServices.GetRequiredService<ISalesVoucherRepository>();
         var purchaseVoucherRepo = scopedServices.GetRequiredService<IPurchaseVoucherRepository>();
         var adjustmentRepo = scopedServices.GetRequiredService<IInventoryAdjustmentRepository>();
-        var datasetRepo = scopedServices.GetRequiredService<IDatasetManagementRepository>();
+        var datasetRepo = scopedServices.GetRequiredService<IDataSetManagementRepository>();
         
         // 在庫マスタ最適化サービス
         var optimizationService = scopedServices.GetService<IInventoryMasterOptimizationService>();
@@ -3400,7 +3400,7 @@ private static async Task<bool> EnsureRequiredTablesExistAsync(IServiceProvider 
     /// </summary>
     private static async Task ExecuteCarryoverModeAsync(
         IInventoryRepository inventoryRepository,
-        IDatasetManagementRepository datasetRepository,
+        IDataSetManagementRepository datasetRepository,
         DateTime targetDate, 
         string dataSetId,
         string department,

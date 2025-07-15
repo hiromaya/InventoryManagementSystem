@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Base;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
-using InventorySystem.Core.Services.Dataset;
+using InventorySystem.Core.Services.DataSet;
 using InventorySystem.Core.Services.History;
 using InventorySystem.Core.Services.Validation;
 using InventorySystem.Core.Models;
@@ -22,14 +22,14 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
 
     public DailyReportService(
         IDateValidationService dateValidator,
-        IDatasetManager datasetManager,
+        IDataSetManager dataSetManager,
         IProcessHistoryService historyService,
         ICpInventoryRepository cpInventoryRepository,
         ISalesVoucherRepository salesVoucherRepository,
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
         ILogger<DailyReportService> logger)
-        : base(dateValidator, datasetManager, historyService, logger)
+        : base(dateValidator, dataSetManager, historyService, logger)
     {
         _cpInventoryRepository = cpInventoryRepository;
         _salesVoucherRepository = salesVoucherRepository;
@@ -51,7 +51,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
             
             if (isNewDataSet)
             {
-                // 新規作成時は InitializeProcess を使用してDatasetManagementに登録
+                // 新規作成時は InitializeProcess を使用してDataSetManagementに登録
                 context = await InitializeProcess(reportDate, "DAILY_REPORT", null, executedBy);
                 
                 _logger.LogInformation("新規データセット作成 - DataSetId: {DataSetId}", context.DatasetId);
@@ -116,14 +116,14 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
                 context = new ProcessContext
                 {
                     JobDate = reportDate,
-                    DatasetId = existingDataSetId!,
+                    DataSetId = existingDataSetId,
                     ProcessType = "DAILY_REPORT",
                     ExecutedBy = executedBy
                 };
-                context.ProcessHistory = await _historyService.StartProcess(existingDataSetId!, reportDate, "DAILY_REPORT", executedBy);
+                context.ProcessHistory = await _historyService.StartProcess(existingDataSetId, reportDate, "DAILY_REPORT", executedBy);
             }
 
-            var dataSetId = context.DatasetId;
+            var dataSetId = context.DataSetId;
 
             // 5. 商品日報データ生成
             _logger.LogInformation("商品日報データ生成開始");
@@ -162,7 +162,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         catch (Exception ex)
         {
             stopwatch.Stop();
-            var dataSetId = context?.DatasetId ?? existingDataSetId ?? "UNKNOWN";
+            var dataSetId = context?.DataSetId ?? existingDataSetId ?? "UNKNOWN";
             _logger.LogError(ex, "商品日報処理でエラーが発生しました - データセットID: {DataSetId}", dataSetId);
             
             // 処理失敗を記録

@@ -18,7 +18,7 @@ public class InitialInventoryImportService
 {
     private readonly IInventoryRepository _inventoryRepository;
     private readonly IProductMasterRepository _productRepository;
-    private readonly IDatasetManagementRepository _dataSetRepository;
+    private readonly IDataSetManagementRepository _dataSetRepository;
     private readonly ILogger<InitialInventoryImportService> _logger;
     private readonly string _importPath;
     private readonly string _processedPath;
@@ -27,7 +27,7 @@ public class InitialInventoryImportService
     public InitialInventoryImportService(
         IInventoryRepository inventoryRepository,
         IProductMasterRepository productRepository,
-        IDatasetManagementRepository dataSetRepository,
+        IDataSetManagementRepository dataSetRepository,
         ILogger<InitialInventoryImportService> logger,
         string importPath,
         string processedPath,
@@ -374,8 +374,8 @@ public class InitialInventoryImportService
                 jobDate, existingCount);
         }
 
-        // DatasetManagementエンティティを作成
-        var datasetManagement = new DatasetManagement
+        // DataSetManagementエンティティを作成
+        var dataSetManagement = new DataSetManagement
         {
             DatasetId = dataSetId,
             JobDate = jobDate,
@@ -394,7 +394,7 @@ public class InitialInventoryImportService
         // トランザクション内で処理を実行
         var processedCount = await _inventoryRepository.ProcessInitialInventoryInTransactionAsync(
             inventories,
-            datasetManagement,
+            dataSetManagement,
             true  // 既存のINITデータを無効化
         );
 

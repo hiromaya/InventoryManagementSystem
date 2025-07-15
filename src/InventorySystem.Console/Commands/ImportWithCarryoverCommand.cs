@@ -14,7 +14,7 @@ public class ImportWithCarryoverCommand
     private readonly ISalesVoucherRepository _salesVoucherRepository;
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _adjustmentRepository;
-    private readonly IDatasetManagementRepository _dataSetRepository;
+    private readonly IDataSetManagementRepository _dataSetRepository;
     private readonly ILogger<ImportWithCarryoverCommand> _logger;
 
     public ImportWithCarryoverCommand(
@@ -22,7 +22,7 @@ public class ImportWithCarryoverCommand
         ISalesVoucherRepository salesVoucherRepository,
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository adjustmentRepository,
-        IDatasetManagementRepository dataSetRepository,
+        IDataSetManagementRepository dataSetRepository,
         ILogger<ImportWithCarryoverCommand> logger)
     {
         _inventoryRepository = inventoryRepository;
@@ -98,8 +98,8 @@ public class ImportWithCarryoverCommand
             
             _logger.LogInformation("計算後の在庫: {Count}件", mergedInventory.Count);
             
-            // 7. DatasetManagementエンティティを作成
-            var datasetManagement = new DatasetManagement
+            // 7. DataSetManagementエンティティを作成
+            var dataSetManagement = new DataSetManagement
             {
                 DatasetId = dataSetId,
                 JobDate = targetDate,
@@ -117,12 +117,12 @@ public class ImportWithCarryoverCommand
                 Notes = $"前日在庫引継: {currentInventory.Count}件"
             };
             
-            // 8. トランザクション内でMERGE処理とDatasetManagement登録を実行
+            // 8. トランザクション内でMERGE処理とDataSetManagement登録を実行
             var affectedRows = await _inventoryRepository.ProcessCarryoverInTransactionAsync(
                 mergedInventory, 
                 targetDate, 
                 dataSetId,
-                datasetManagement
+                dataSetManagement
             );
             
             // 9. 最終取引日を更新

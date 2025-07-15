@@ -23,7 +23,7 @@ public class AuditLog
     /// <summary>
     /// データセットID
     /// </summary>
-    public string DatasetId { get; set; } = string.Empty;
+    public string DataSetId { get; set; } = string.Empty;
     
     /// <summary>
     /// 実行者
