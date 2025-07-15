@@ -49,7 +49,10 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "021_VerifyInventoryMasterSchema.sql",
         "022_AddLastTransactionDates.sql",
         "023_UpdateDataSetManagement.sql",
-        "024_CreateProductMaster.sql"
+        "024_CreateProductMaster.sql",
+        "025_CreateFileProcessingHistory.sql",
+        "026_CreateDateProcessingHistory.sql",
+        "027_CreatePreviousMonthInventory.sql"
     };
     
     // 旧テーブル定義（後方互換性のため一時的に保持）
