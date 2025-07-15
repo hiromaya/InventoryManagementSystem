@@ -253,19 +253,15 @@ public class InitialInventoryImportService
         if (string.IsNullOrEmpty(record.ProductCode))
             errors.Add($"行{rowNumber}: 商品コードが空です");
 
-        // 等級・階級・荷印コードはnullのみ無効（空白文字は有効）
+        // 等級・階級コードはnullのみ無効（空白文字は有効）
         if (record.GradeCode == null)
             errors.Add($"行{rowNumber}: 等級コードがnullです");
 
         if (record.ClassCode == null)
             errors.Add($"行{rowNumber}: 階級コードがnullです");
 
-        if (record.ShippingMarkCode == null)
-            errors.Add($"行{rowNumber}: 荷印コードがnullです");
-
-        // 荷印名の検証：nullまたは空文字列の場合のみエラーとする（空白8文字は有効）
-        if (string.IsNullOrEmpty(record.ShippingMarkName))
-            errors.Add($"行{rowNumber}: 荷印名が空です");
+        // 荷印コード・荷印名は任意項目のため検証しない
+        // デフォルト値がConvertToInventoryMasterメソッドで設定される
 
         // 数値妥当性チェック
         if (record.CurrentStockQuantity < 0)
@@ -336,8 +332,8 @@ public class InitialInventoryImportService
                 ProductCode = record.ProductCode.PadLeft(5, '0'),
                 GradeCode = record.GradeCode.PadLeft(3, '0'),
                 ClassCode = record.ClassCode.PadLeft(3, '0'),
-                ShippingMarkCode = record.ShippingMarkCode.PadLeft(4, '0'),
-                ShippingMarkName = (record.ShippingMarkName ?? "").PadRight(8).Substring(0, 8)
+                ShippingMarkCode = record.ShippingMarkCode ?? "    ",  // 空白4文字をデフォルトとし、Trimしない
+                ShippingMarkName = record.ShippingMarkName ?? "        "  // 空白8文字をデフォルトとし、Trimしない
             },
             
             // 商品情報

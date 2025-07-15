@@ -98,10 +98,15 @@ public class PreviousMonthInventoryCsv
         }
 
         // 必須項目チェック
-        if (string.IsNullOrWhiteSpace(ProductCode) ||
-            string.IsNullOrWhiteSpace(GradeCode) ||
-            string.IsNullOrWhiteSpace(ClassCode) ||
-            string.IsNullOrWhiteSpace(ShippingMarkCode))
+        // 商品コードは空文字列のみ無効
+        if (string.IsNullOrEmpty(ProductCode))
+        {
+            return false;
+        }
+        
+        // 等級・階級コードはnullのみ無効（空白文字は有効）
+        // 荷印コードは任意項目のため検証しない
+        if (GradeCode == null || ClassCode == null)
         {
             return false;
         }
@@ -119,22 +124,19 @@ public class PreviousMonthInventoryCsv
             return $"商品コード00000で除外: {ProductCode}";
         }
 
-        if (string.IsNullOrWhiteSpace(ProductCode))
+        if (string.IsNullOrEmpty(ProductCode))
         {
-            return "商品コードが空白";
+            return "商品コードが空";
         }
-        if (string.IsNullOrWhiteSpace(GradeCode))
+        if (GradeCode == null)
         {
-            return "等級コードが空白";
+            return "等級コードがnull";
         }
-        if (string.IsNullOrWhiteSpace(ClassCode))
+        if (ClassCode == null)
         {
-            return "階級コードが空白";
+            return "階級コードがnull";
         }
-        if (string.IsNullOrWhiteSpace(ShippingMarkCode))
-        {
-            return "荷印コードが空白";
-        }
+        // 荷印コードは任意項目のため検証しない
 
         return "有効";
     }
@@ -148,11 +150,11 @@ public class PreviousMonthInventoryCsv
             ProductCode: (ProductCode ?? "").Trim().PadLeft(5, '0'),
             GradeCode: (GradeCode ?? "").Trim().PadLeft(3, '0'),
             ClassCode: (ClassCode ?? "").Trim().PadLeft(3, '0'),
-            ShippingMarkCode: (ShippingMarkCode ?? "").Trim().PadLeft(4, '0'),
+            ShippingMarkCode: ShippingMarkCode ?? "    ",  // 空白4文字をデフォルトとし、Trimしない
             // 荷印名は手入力項目（153列目、Index=152）から取得する
             // ※CSV内の142列目の「荷印名」フィールドは使用しない（マスタ参照値のため）
             // 伝票に直接入力された値を8桁固定で使用
-            ShippingMarkName: (HandInputItem ?? "").PadRight(8).Substring(0, 8)
+            ShippingMarkName: HandInputItem ?? "        "  // 空白8文字をデフォルトとし、Trimしない
         );
     }
 

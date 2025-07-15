@@ -152,11 +152,11 @@ public class PurchaseVoucherDaijinCsv
             ProductName = ProductName?.Trim(),
             GradeCode = GradeCode?.Trim() ?? string.Empty,
             ClassCode = ClassCode?.Trim() ?? string.Empty,
-            ShippingMarkCode = ShippingMarkCode?.Trim() ?? string.Empty,
+            ShippingMarkCode = ShippingMarkCode ?? "    ",  // 空白4文字をデフォルトとし、Trimしない
             // 荷印名は手入力項目（147列目、Index=146）から取得する
             // ※CSV内の141列目の「荷印名」フィールドは使用しない（マスタ参照値のため）
             // 伝票に直接入力された値を8桁固定で使用
-            ShippingMarkName = (HandInputItem ?? "").TrimEnd().PadRight(8).Substring(0, 8),
+            ShippingMarkName = HandInputItem ?? "        ",  // 空白8文字をデフォルトとし、Trimしない
             Quantity = Quantity,
             UnitPrice = UnitPrice,
             Amount = Amount,
@@ -263,8 +263,9 @@ public class PurchaseVoucherDaijinCsv
             return false;
         }
         
-        // 等級・階級・荷印コードはnullのみ無効（空白文字は有効）
-        if (GradeCode == null || ClassCode == null || ShippingMarkCode == null)
+        // 等級・階級コードはnullのみ無効（空白文字は有効）
+        // 荷印コードは任意項目のため検証しない
+        if (GradeCode == null || ClassCode == null)
         {
             return false;
         }
@@ -321,7 +322,8 @@ public class PurchaseVoucherDaijinCsv
             return "商品コードが空";
         }
         
-        // 等級・階級・荷印コードはnullのみ無効（空白文字は有効）
+        // 等級・階級コードはnullのみ無効（空白文字は有効）
+        // 荷印コードは任意項目のため検証しない
         if (GradeCode == null)
         {
             return "等級コードがnull";
@@ -329,10 +331,6 @@ public class PurchaseVoucherDaijinCsv
         if (ClassCode == null)
         {
             return "階級コードがnull";
-        }
-        if (ShippingMarkCode == null)
-        {
-            return "荷印コードがnull";
         }
 
         return "有効（エラーなし）";
