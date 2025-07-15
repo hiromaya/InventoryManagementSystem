@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using CsvHelper;
 using CsvHelper.Configuration;
 using InventorySystem.Core.Entities;
+using InventorySystem.Core.Entities.Masters;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Core.Models;
@@ -231,7 +232,7 @@ public class InitialInventoryImportService
             {
                 _logger.LogWarning("行{Row}の読み込みエラー: {Error}", rowNumber, ex.Message);
                 // エラー行は記録するが処理は継続
-                errorRecords.Add((null, $"行{rowNumber}: {ex.Message}"));
+                errorRecords.Add((null!, $"行{rowNumber}: {ex.Message}"));
             }
         }
 
