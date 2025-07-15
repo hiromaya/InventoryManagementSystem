@@ -38,6 +38,7 @@ public class InitializationResult
     public List<string> CreatedTables { get; set; } = new();
     public List<string> ExistingTables { get; set; } = new();
     public List<string> FailedTables { get; set; } = new();
+    public List<string> ExecutedMigrations { get; set; } = new();
     public List<string> Errors { get; set; } = new();
     public string? ErrorMessage { get; set; }
     public TimeSpan ExecutionTime { get; set; }
@@ -48,6 +49,14 @@ public class InitializationResult
         var summary = $"初期化結果: {(Success ? "成功" : "失敗")} (実行時間: {ExecutionTime.TotalSeconds:F2}秒)\n";
         summary += $"作成されたテーブル: {CreatedTables.Count}個\n";
         summary += $"既存のテーブル: {ExistingTables.Count}個\n";
+        if (ExecutedMigrations.Count > 0)
+        {
+            summary += $"実行されたマイグレーション: {ExecutedMigrations.Count}個\n";
+            foreach (var migration in ExecutedMigrations)
+            {
+                summary += $"  - {migration}\n";
+            }
+        }
         if (FailedTables.Count > 0)
         {
             summary += $"失敗したテーブル: {FailedTables.Count}個\n";

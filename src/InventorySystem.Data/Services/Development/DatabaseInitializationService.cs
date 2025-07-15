@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.SqlClient;
@@ -19,7 +21,12 @@ public class DatabaseInitializationService : IDatabaseInitializationService
     private readonly string _connectionString;
     private readonly ILogger<DatabaseInitializationService> _logger;
     
-    // テーブル定義をコード内に保持（SQLファイル依存を解消）
+    // マイグレーション関連の定数
+    private const string MigrationHistoryTable = "__SchemaVersions";
+    private const string MigrationsFolderPath = "database/migrations";
+    private const string CreateDatabaseScriptPath = "database/CreateDatabase.sql";
+    
+    // 旧テーブル定義（後方互換性のため一時的に保持）
     private readonly Dictionary<string, string> _tableDefinitions = new Dictionary<string, string>
     {
         ["ProcessHistory"] = @"
@@ -195,68 +202,45 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync();
             
-            // スキーマ不整合の自動修正（既存テーブルがある場合のみ）
-            if (!force)
-            {
-                _logger.LogInformation("スキーマ不整合をチェック中...");
-                await FixSchemaInconsistenciesAsync(connection);
-            }
-            
-            // 強制削除モードの場合、依存関係を考慮した順序で削除
+            // 強制削除モードの場合、すべてのテーブルを削除
             if (force)
             {
-                await DropTablesInOrderAsync(connection);
+                _logger.LogInformation("強制モード: 既存のテーブルを削除します");
+                await DropAllTablesAsync(connection);
             }
             
-            // 各テーブルをチェックして作成
-            foreach (var tableName in RequiredTables)
+            // CreateDatabase.sqlの実行
+            var createDbScriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, 
+                "../../../../../", CreateDatabaseScriptPath);
+            if (File.Exists(createDbScriptPath))
             {
-                try
-                {
-                    var exists = await TableExistsAsync(connection, tableName);
-                    
-                    if (!exists)
-                    {
-                        // テーブル作成
-                        await connection.ExecuteAsync(_tableDefinitions[tableName]);
-                        result.CreatedTables.Add(tableName);
-                        _logger.LogInformation("テーブル {TableName} を作成しました", tableName);
-                        
-                        // インデックス作成
-                        if (_indexDefinitions.ContainsKey(tableName))
-                        {
-                            foreach (var indexSql in _indexDefinitions[tableName])
-                            {
-                                await connection.ExecuteAsync(indexSql);
-                            }
-                            _logger.LogInformation("テーブル {TableName} のインデックスを作成しました", tableName);
-                        }
-                    }
-                    else
-                    {
-                        result.ExistingTables.Add(tableName);
-                        _logger.LogInformation("テーブル {TableName} は既に存在します", tableName);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "テーブル {TableName} の作成に失敗しました", tableName);
-                    result.FailedTables.Add(tableName);
-                    result.Errors.Add($"テーブル {tableName} の作成に失敗: {ex.Message}");
-                }
-            }
-            
-            result.Success = result.FailedTables.Count == 0;
-            
-            if (result.Success)
-            {
-                _logger.LogInformation("データベース初期化が完了しました。作成: {Created}個、既存: {Existing}個",
-                    result.CreatedTables.Count, result.ExistingTables.Count);
+                _logger.LogInformation("CreateDatabase.sql を実行します");
+                await ExecuteSqlFileAsync(connection, createDbScriptPath, "CreateDatabase.sql");
+                result.CreatedTables.Add("基本テーブル（CreateDatabase.sql）");
             }
             else
             {
-                _logger.LogError("データベース初期化で {ErrorCount} 個のエラーが発生しました。失敗: {Failed}個", 
-                    result.Errors.Count, result.FailedTables.Count);
+                _logger.LogWarning("CreateDatabase.sql が見つかりません: {Path}", createDbScriptPath);
+            }
+            
+            // マイグレーション履歴テーブルの確認・作成
+            await EnsureMigrationHistoryTableExistsAsync(connection);
+            
+            // マイグレーションスクリプトの実行
+            var executedMigrations = await ApplyMigrationsAsync(connection);
+            result.ExecutedMigrations = executedMigrations;
+            
+            result.Success = result.Errors.Count == 0;
+            
+            if (result.Success)
+            {
+                _logger.LogInformation("データベース初期化が完了しました。実行されたマイグレーション: {Count}個",
+                    executedMigrations.Count);
+            }
+            else
+            {
+                _logger.LogError("データベース初期化で {ErrorCount} 個のエラーが発生しました", 
+                    result.Errors.Count);
             }
         }
         catch (Exception ex)
@@ -512,5 +496,260 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 _logger.LogError(ex, "外部キー制約 {ConstraintName} の削除に失敗しました", constraintName);
             }
         }
+    }
+    
+    /// <summary>
+    /// すべてのテーブルを削除（forceモード用）
+    /// </summary>
+    private async Task DropAllTablesAsync(SqlConnection connection)
+    {
+        try
+        {
+            _logger.LogInformation("すべてのテーブルを削除します");
+            
+            // 外部キー制約を一時的に無効化
+            await connection.ExecuteAsync("EXEC sp_msforeachtable 'ALTER TABLE ? NOCHECK CONSTRAINT all'");
+            
+            // すべてのユーザーテーブルを削除
+            var sql = @"
+                DECLARE @sql NVARCHAR(MAX) = '';
+                SELECT @sql = @sql + 'DROP TABLE [' + SCHEMA_NAME(schema_id) + '].[' + name + ']; '
+                FROM sys.tables
+                WHERE type = 'U'
+                ORDER BY name;
+                EXEC sp_executesql @sql;";
+            
+            await connection.ExecuteAsync(sql);
+            _logger.LogInformation("すべてのテーブルを削除しました");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "テーブル削除中にエラーが発生しました");
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// マイグレーション履歴テーブルの確認・作成
+    /// </summary>
+    private async Task EnsureMigrationHistoryTableExistsAsync(SqlConnection connection)
+    {
+        var exists = await TableExistsAsync(connection, MigrationHistoryTable);
+        if (!exists)
+        {
+            _logger.LogInformation("マイグレーション履歴テーブルを作成します");
+            
+            // 000_CreateMigrationHistory.sql を探して実行
+            var migrationPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, 
+                "../../../../../", MigrationsFolderPath, "000_CreateMigrationHistory.sql");
+            
+            if (File.Exists(migrationPath))
+            {
+                await ExecuteSqlFileAsync(connection, migrationPath, "000_CreateMigrationHistory.sql");
+            }
+            else
+            {
+                // ファイルが見つからない場合は直接作成
+                await connection.ExecuteAsync(@"
+                    CREATE TABLE __SchemaVersions (
+                        MigrationId NVARCHAR(255) NOT NULL PRIMARY KEY,
+                        AppliedDate DATETIME2 NOT NULL DEFAULT GETDATE(),
+                        AppliedBy NVARCHAR(100) NOT NULL DEFAULT SYSTEM_USER,
+                        ScriptContent NVARCHAR(MAX) NULL,
+                        ExecutionTimeMs INT NULL
+                    );
+                    CREATE INDEX IX_SchemaVersions_AppliedDate ON __SchemaVersions(AppliedDate DESC);
+                ");
+                _logger.LogInformation("マイグレーション履歴テーブルを直接作成しました");
+            }
+        }
+    }
+    
+    /// <summary>
+    /// マイグレーションスクリプトの適用
+    /// </summary>
+    private async Task<List<string>> ApplyMigrationsAsync(SqlConnection connection)
+    {
+        var appliedMigrations = new List<string>();
+        
+        try
+        {
+            // マイグレーションフォルダのパスを取得
+            var migrationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, 
+                "../../../../../", MigrationsFolderPath);
+            
+            if (!Directory.Exists(migrationsPath))
+            {
+                _logger.LogWarning("マイグレーションフォルダが見つかりません: {Path}", migrationsPath);
+                return appliedMigrations;
+            }
+            
+            // 適用済みのマイグレーションIDを取得
+            var appliedMigrationIds = await GetAppliedMigrationIdsAsync(connection);
+            
+            // すべての.sqlファイルを取得し、ファイル名でソート
+            var migrationFiles = Directory.GetFiles(migrationsPath, "*.sql")
+                .OrderBy(f => Path.GetFileName(f))
+                .ToList();
+            
+            _logger.LogInformation("{Count} 個のマイグレーションファイルが見つかりました", migrationFiles.Count);
+            
+            foreach (var filePath in migrationFiles)
+            {
+                var fileName = Path.GetFileName(filePath);
+                var migrationId = fileName;
+                
+                // 既に適用済みの場合はスキップ
+                if (appliedMigrationIds.Contains(migrationId))
+                {
+                    _logger.LogDebug("マイグレーション {MigrationId} は既に適用済みです", migrationId);
+                    continue;
+                }
+                
+                // マイグレーションを実行
+                var success = await ApplyMigrationAsync(connection, filePath, migrationId);
+                if (success)
+                {
+                    appliedMigrations.Add(migrationId);
+                }
+            }
+            
+            _logger.LogInformation("{Count} 個のマイグレーションを適用しました", appliedMigrations.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "マイグレーション適用中にエラーが発生しました");
+            throw;
+        }
+        
+        return appliedMigrations;
+    }
+    
+    /// <summary>
+    /// 適用済みのマイグレーションIDを取得
+    /// </summary>
+    private async Task<HashSet<string>> GetAppliedMigrationIdsAsync(SqlConnection connection)
+    {
+        try
+        {
+            var sql = $"SELECT MigrationId FROM {MigrationHistoryTable}";
+            var ids = await connection.QueryAsync<string>(sql);
+            return new HashSet<string>(ids);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "適用済みマイグレーションの取得に失敗しました");
+            return new HashSet<string>();
+        }
+    }
+    
+    /// <summary>
+    /// 個別のマイグレーションを適用
+    /// </summary>
+    private async Task<bool> ApplyMigrationAsync(SqlConnection connection, string filePath, string migrationId)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        SqlTransaction transaction = null;
+        
+        try
+        {
+            _logger.LogInformation("マイグレーション実行中: {MigrationId}", migrationId);
+            
+            // トランザクション開始
+            transaction = connection.BeginTransaction();
+            
+            // SQLファイルを実行
+            await ExecuteSqlFileAsync(connection, filePath, migrationId, transaction);
+            
+            // マイグレーション履歴に記録
+            await RecordMigrationAsync(connection, migrationId, stopwatch.ElapsedMilliseconds, transaction);
+            
+            // コミット
+            transaction.Commit();
+            
+            _logger.LogInformation("マイグレーション完了: {MigrationId} ({ElapsedMs}ms)", 
+                migrationId, stopwatch.ElapsedMilliseconds);
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "マイグレーションエラー: {MigrationId}", migrationId);
+            
+            // ロールバック
+            try
+            {
+                transaction?.Rollback();
+            }
+            catch (Exception rollbackEx)
+            {
+                _logger.LogError(rollbackEx, "ロールバックエラー");
+            }
+            
+            return false;
+        }
+        finally
+        {
+            transaction?.Dispose();
+        }
+    }
+    
+    /// <summary>
+    /// SQLファイルを実行（GOステートメントで分割）
+    /// </summary>
+    private async Task ExecuteSqlFileAsync(SqlConnection connection, string filePath, string fileName, 
+        SqlTransaction transaction = null)
+    {
+        try
+        {
+            var script = await File.ReadAllTextAsync(filePath);
+            
+            // GOステートメントで分割
+            var batches = script.Split(new[] { "\r\nGO\r\n", "\nGO\n", "\rGO\r", " GO ", " go " }, 
+                StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (var batch in batches)
+            {
+                if (!string.IsNullOrWhiteSpace(batch))
+                {
+                    // PRINTステートメントの出力を取得するためにInfoMessageイベントを使用
+                    connection.InfoMessage += (sender, e) =>
+                    {
+                        _logger.LogInformation("[SQL] {Message}", e.Message);
+                    };
+                    
+                    if (transaction != null)
+                    {
+                        await connection.ExecuteAsync(batch, transaction: transaction);
+                    }
+                    else
+                    {
+                        await connection.ExecuteAsync(batch);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SQLファイル実行エラー: {FileName}", fileName);
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// マイグレーション履歴に記録
+    /// </summary>
+    private async Task RecordMigrationAsync(SqlConnection connection, string migrationId, 
+        long executionTimeMs, SqlTransaction transaction)
+    {
+        var sql = $@"
+            INSERT INTO {MigrationHistoryTable} 
+            (MigrationId, AppliedDate, AppliedBy, ExecutionTimeMs)
+            VALUES 
+            (@MigrationId, GETDATE(), SYSTEM_USER, @ExecutionTimeMs)";
+        
+        await connection.ExecuteAsync(sql, 
+            new { MigrationId = migrationId, ExecutionTimeMs = executionTimeMs }, 
+            transaction);
     }
 }
