@@ -41,7 +41,11 @@
       "Bash(sed:*)",
       "Bash(export PROMPT=\"在庫管理システムのアンマッチチェック処理において、「全期間対象」から「指定日以前のアクティブ在庫のみ対象」に変更する実装方針について相談したいです。\n\n現在の課題：\n- 全期間のデータを処理するためパフォーマンスが悪い\n- 未来日付のデータも含まれてしまう\n- 時系列での検証ができない\n\n変更内容：\n1. CP在庫マスタ作成時に JobDate <= @TargetDate の条件追加\n2. アンマッチ検出時に IsActive = 1 の条件を厳密適用\n3. 売上・仕入伝票も JobDate <= @TargetDate で絞り込み\n\n技術的な考慮点やリスク、実装順序について助言をください。特に以下の点：\n- SQLクエリのパフォーマンス最適化\n- データ整合性の保証方法\n- 段階的実装のアプローチ\n- テスト戦略\")",
       "Bash(dotnet script:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(export PROMPT=\"SQL Server データベースマイグレーションで複数のエラーが発生しています。以下の問題を分析し、解決策を提案してください：\n\n1. DailyCloseManagementテーブルが存在しない\n2. PreviousMonthQuantityカラムが存在しない\n3. 重複するカラム名（IsActive, MonthlySalesQuantity）\n4. 存在しないテーブル（ProductMaster, CP_InventoryMaster）\n5. 存在しないカラム（DepartmentCode, LastSalesDate）\n\nこれらのエラーパターンから、テーブル設計とマイグレーション順序の問題を特定し、適切な修正アプローチを提案してください。\")",
+      "Bash(__NEW_LINE__ /home/hiroki/.claude/gemini-search.sh \"SQL Server migration errors: missing tables columns duplicate names resolution strategy\")",
+      "Bash(export PROMPT=\"データベース初期化処理でLinux環境のビルドエラーが発生しています。Windows Desktop App framework が見つからないエラーです。以下の対応策を教えてください：\n\n1. Linux環境でのデータベース初期化テストの代替手段\n2. マイグレーションファイルの整合性チェック方法\n3. Windows環境以外での動作確認方法\n4. 削除したマイグレーションファイルの影響調査\n\n特に、残った10個のマイグレーションファイルが正しく動作することを確認する方法を教えてください。\")",
+      "Bash(__NEW_LINE__ /home/hiroki/.claude/gemini-search.sh \"linux database migration testing without windows desktop app\")"
     ],
     "deny": []
   }
