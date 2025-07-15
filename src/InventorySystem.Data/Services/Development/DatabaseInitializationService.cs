@@ -31,16 +31,24 @@ public class DatabaseInitializationService : IDatabaseInitializationService
     private readonly List<string> _migrationOrder = new()
     {
         "000_CreateMigrationHistory.sql",
+        "005_AddDailyCloseProtectionColumns.sql",
         "006_AddDataSetManagement.sql",
+        "007_AddDeactivationIndexes.sql",
         "008_AddUnmatchOptimizationIndexes.sql",
         "009_CreateInitialInventoryStagingTable.sql",
         "010_AddPersonInChargeAndAveragePrice.sql",
         "012_AddGrossProfitColumnToSalesVouchers.sql",
+        "013_AddImportTypeToInventoryMaster.sql",
         "014_AddMissingColumnsToInventoryMaster.sql",
+        "015_AddMonthlyColumnsToCpInventoryMaster.sql",
+        "016_AddMonthlyFieldsToCpInventory.sql",
         "017_Cleanup_Duplicate_InventoryMaster.sql",
+        "018_FixExistingCpInventoryProductCategories.sql",
+        "019_Fix_DepartmentCode_Size.sql",
         "020_Fix_MergeInventoryMaster_OutputClause.sql",
         "021_VerifyInventoryMasterSchema.sql",
-        "023_UpdateDataSetManagement.sql",  // 新規追加
+        "022_AddLastTransactionDates.sql",
+        "023_UpdateDataSetManagement.sql",
         "024_CreateProductMaster.sql"
     };
     
