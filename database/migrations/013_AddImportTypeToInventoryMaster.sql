@@ -94,21 +94,31 @@ END
 GO
 
 -- 既存データのImportTypeを設定（デフォルト値がUNKNOWNのものを適切に分類）
--- 前月末在庫（PreviousMonthQuantity > 0 かつ CurrentStock = PreviousMonthQuantity）を INIT に設定
+-- ParentDataSetIdがNULLまたは空で、DailyStockが0のデータを INIT として分類
 UPDATE InventoryMaster
 SET ImportType = 'INIT'
 WHERE ImportType = 'UNKNOWN'
-  AND PreviousMonthQuantity > 0
-  AND CurrentStock = PreviousMonthQuantity
+  AND (ParentDataSetId IS NULL OR ParentDataSetId = '')
   AND DailyStock = 0;
 
-PRINT '前月末在庫データのImportTypeをINITに設定しました。';
+PRINT '初期在庫データのImportTypeをINITに設定しました。';
+GO
+
+-- ParentDataSetIdが設定されているデータを CARRYOVER として分類
+UPDATE InventoryMaster
+SET ImportType = 'CARRYOVER'
+WHERE ImportType = 'UNKNOWN'
+  AND ParentDataSetId IS NOT NULL
+  AND ParentDataSetId != '';
+
+PRINT '引継データのImportTypeをCARRYOVERに設定しました。';
 GO
 
 -- 通常のインポートデータを IMPORT に設定
 UPDATE InventoryMaster
 SET ImportType = 'IMPORT'
 WHERE ImportType = 'UNKNOWN'
+  AND DataSetId IS NOT NULL
   AND DataSetId != '';
 
 PRINT '通常インポートデータのImportTypeをIMPORTに設定しました。';
@@ -137,7 +147,7 @@ SELECT
     COLUMN_DEFAULT
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME = 'InventoryMaster'
-  AND COLUMN_NAME IN ('ImportType', 'IsActive', 'DataSetId')
+  AND COLUMN_NAME IN ('ImportType', 'IsActive', 'DataSetId', 'ParentDataSetId')
 ORDER BY ORDINAL_POSITION;
 GO
 
