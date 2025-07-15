@@ -244,12 +244,22 @@ public class SalesVoucherDaijinCsv
             return false;
         }
 
-        // 必須項目チェック
-        if (string.IsNullOrWhiteSpace(VoucherNumber) ||
-            string.IsNullOrWhiteSpace(ProductCode) ||
-            string.IsNullOrWhiteSpace(GradeCode) ||
-            string.IsNullOrWhiteSpace(ClassCode) ||
-            string.IsNullOrWhiteSpace(ShippingMarkCode))
+        // 必須項目チェック（販売大臣仕様準拠）
+        
+        // 伝票番号は空文字列のみ無効
+        if (string.IsNullOrEmpty(VoucherNumber))
+        {
+            return false;
+        }
+        
+        // 商品コードは空文字列またはオール0が無効
+        if (string.IsNullOrEmpty(ProductCode))
+        {
+            return false;
+        }
+        
+        // 等級・階級・荷印コードはnullのみ無効（空白文字は有効）
+        if (GradeCode == null || ClassCode == null || ShippingMarkCode == null)
         {
             return false;
         }
@@ -286,26 +296,32 @@ public class SalesVoucherDaijinCsv
             return $"除外商品コード: {ProductCode}";
         }
 
-        // 必須項目チェック
-        if (string.IsNullOrWhiteSpace(VoucherNumber))
+        // 必須項目チェック（販売大臣仕様準拠）
+        
+        // 伝票番号は空文字列のみ無効
+        if (string.IsNullOrEmpty(VoucherNumber))
         {
             return "伝票番号が空";
         }
-        if (string.IsNullOrWhiteSpace(ProductCode))
+        
+        // 商品コードは空文字列のみ無効（オール0は別途チェック）
+        if (string.IsNullOrEmpty(ProductCode))
         {
             return "商品コードが空";
         }
-        if (string.IsNullOrWhiteSpace(GradeCode))
+        
+        // 等級・階級・荷印コードはnullのみ無効（空白文字は有効）
+        if (GradeCode == null)
         {
-            return "等級コードが空";
+            return "等級コードがnull";
         }
-        if (string.IsNullOrWhiteSpace(ClassCode))
+        if (ClassCode == null)
         {
-            return "階級コードが空";
+            return "階級コードがnull";
         }
-        if (string.IsNullOrWhiteSpace(ShippingMarkCode))
+        if (ShippingMarkCode == null)
         {
-            return "荷印コードが空";
+            return "荷印コードがnull";
         }
 
         return "有効（エラーなし）";

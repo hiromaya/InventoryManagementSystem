@@ -245,18 +245,21 @@ public class InitialInventoryImportService
     {
         var errors = new List<string>();
 
-        // 必須項目チェック
-        if (string.IsNullOrWhiteSpace(record.ProductCode))
+        // 必須項目チェック（販売大臣仕様準拠）
+        
+        // 商品コードは空文字列のみ無効
+        if (string.IsNullOrEmpty(record.ProductCode))
             errors.Add($"行{rowNumber}: 商品コードが空です");
 
-        if (string.IsNullOrWhiteSpace(record.GradeCode))
-            errors.Add($"行{rowNumber}: 等級コードが空です");
+        // 等級・階級・荷印コードはnullのみ無効（空白文字は有効）
+        if (record.GradeCode == null)
+            errors.Add($"行{rowNumber}: 等級コードがnullです");
 
-        if (string.IsNullOrWhiteSpace(record.ClassCode))
-            errors.Add($"行{rowNumber}: 階級コードが空です");
+        if (record.ClassCode == null)
+            errors.Add($"行{rowNumber}: 階級コードがnullです");
 
-        if (string.IsNullOrWhiteSpace(record.ShippingMarkCode))
-            errors.Add($"行{rowNumber}: 荷印コードが空です");
+        if (record.ShippingMarkCode == null)
+            errors.Add($"行{rowNumber}: 荷印コードがnullです");
 
         // 荷印名の検証：nullまたは空文字列の場合のみエラーとする（空白8文字は有効）
         if (string.IsNullOrEmpty(record.ShippingMarkName))

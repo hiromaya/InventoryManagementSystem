@@ -15,6 +15,28 @@ using InventorySystem.Import.Validators;
 namespace InventorySystem.Import.Services;
 
 /// <summary>
+/// スキップされたレコードの情報
+/// </summary>
+public class SkippedRecord
+{
+    public int RowNumber { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string VoucherNumber { get; set; } = string.Empty;
+    public string ProductCode { get; set; } = string.Empty;
+    public string GradeCode { get; set; } = string.Empty;
+    public string ClassCode { get; set; } = string.Empty;
+    public string ShippingMarkCode { get; set; } = string.Empty;
+    public string CustomerCode { get; set; } = string.Empty;
+    public string VoucherDate { get; set; } = string.Empty;
+    public string JobDate { get; set; } = string.Empty;
+    public string VoucherType { get; set; } = string.Empty;
+    public string Quantity { get; set; } = string.Empty;
+    public string UnitPrice { get; set; } = string.Empty;
+    public string Amount { get; set; } = string.Empty;
+    public string RawData { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// 売上伝票CSV取込サービス
 /// </summary>
 public class SalesVoucherImportService
@@ -88,6 +110,7 @@ public class SalesVoucherImportService
         var skippedCount = 0;
         var errorMessages = new List<string>();
         var dateStatistics = new Dictionary<DateTime, int>(); // 日付別統計
+        var skippedRecords = new List<SkippedRecord>(); // スキップされたレコード
 
         _logger.LogInformation("売上伝票CSV取込開始: {FilePath}, DataSetId: {DataSetId}, Department: {DepartmentCode}, StartDate: {StartDate}, EndDate: {EndDate}, PreserveCsvDates: {PreserveCsvDates}", 
             filePath, dataSetId, departmentCode, startDate?.ToString("yyyy-MM-dd") ?? "全期間", endDate?.ToString("yyyy-MM-dd") ?? "全期間", preserveCsvDates);
@@ -126,6 +149,9 @@ public class SalesVoucherImportService
                     {
                         _logger.LogInformation("行{index}: 得意先コードがオール0のためスキップします。伝票番号: {VoucherNumber}", index, record.VoucherNumber);
                         skippedCount++;
+                        
+                        // スキップされたレコードを記録
+                        skippedRecords.Add(CreateSkippedRecord(record, index, "得意先コードがオール0"));
                         continue;
                     }
 
@@ -134,6 +160,9 @@ public class SalesVoucherImportService
                     {
                         _logger.LogInformation("行{index}: 商品コードがオール0のためスキップします。伝票番号: {VoucherNumber}", index, record.VoucherNumber);
                         skippedCount++;
+                        
+                        // スキップされたレコードを記録
+                        skippedRecords.Add(CreateSkippedRecord(record, index, "商品コードがオール0"));
                         continue;
                     }
 
@@ -144,6 +173,9 @@ public class SalesVoucherImportService
                         var error = $"行{index}: 不正な売上伝票データ - 伝票番号: {record.VoucherNumber}, 理由: {validationError}";
                         errorMessages.Add(error);
                         _logger.LogWarning("{Error}, データ詳細: {DebugInfo}", error, debugInfo);
+                        
+                        // スキップされたレコードを記録
+                        skippedRecords.Add(CreateSkippedRecord(record, index, $"検証エラー: {validationError}"));
                         continue;
                     }
 
@@ -154,6 +186,9 @@ public class SalesVoucherImportService
                     {
                         _logger.LogDebug("行{index}: JobDateが開始日以前のためスキップ - JobDate: {JobDate:yyyy-MM-dd}", index, salesVoucher.JobDate);
                         skippedCount++;
+                        
+                        // スキップされたレコードを記録
+                        skippedRecords.Add(CreateSkippedRecord(record, index, $"JobDateが開始日以前 ({salesVoucher.JobDate:yyyy-MM-dd})"));
                         continue;
                     }
 
@@ -161,6 +196,9 @@ public class SalesVoucherImportService
                     {
                         _logger.LogDebug("行{index}: JobDateが終了日以後のためスキップ - JobDate: {JobDate:yyyy-MM-dd}", index, salesVoucher.JobDate);
                         skippedCount++;
+                        
+                        // スキップされたレコードを記録
+                        skippedRecords.Add(CreateSkippedRecord(record, index, $"JobDateが終了日以後 ({salesVoucher.JobDate:yyyy-MM-dd})"));
                         continue;
                     }
 
@@ -222,6 +260,9 @@ public class SalesVoucherImportService
                     _logger.LogInformation("  {Date:yyyy-MM-dd}: {Count}件", kvp.Key, kvp.Value);
                 }
             }
+            
+            // スキップされたレコードをCSVファイルに出力
+            await WriteSkippedRecordsToFileAsync(filePath, skippedRecords, dataSetId);
             
             _logger.LogInformation("売上伝票CSV取込結果: 読込{Total}件, 成功{Success}件, スキップ{Skipped}件, エラー{Error}件", 
                 records.Count, importedCount, skippedCount, errorMessages.Count);
@@ -391,6 +432,74 @@ public class SalesVoucherImportService
             CreatedAt = dataSet.CreatedAt,
             ImportedData = importedData.Cast<object>().ToList()
         };
+    }
+
+    /// <summary>
+    /// スキップされたレコードの情報を作成
+    /// </summary>
+    private static SkippedRecord CreateSkippedRecord(SalesVoucherDaijinCsv record, int rowNumber, string reason)
+    {
+        return new SkippedRecord
+        {
+            RowNumber = rowNumber,
+            Reason = reason,
+            VoucherNumber = record.VoucherNumber ?? string.Empty,
+            ProductCode = record.ProductCode ?? string.Empty,
+            GradeCode = record.GradeCode ?? string.Empty,
+            ClassCode = record.ClassCode ?? string.Empty,
+            ShippingMarkCode = record.ShippingMarkCode ?? string.Empty,
+            CustomerCode = record.CustomerCode ?? string.Empty,
+            VoucherDate = record.VoucherDate ?? string.Empty,
+            JobDate = record.JobDate ?? string.Empty,
+            VoucherType = record.VoucherType ?? string.Empty,
+            Quantity = record.QuantityString ?? string.Empty,
+            UnitPrice = record.UnitPriceString ?? string.Empty,
+            Amount = record.AmountString ?? string.Empty,
+            RawData = record.GetDebugInfo()
+        };
+    }
+
+    /// <summary>
+    /// スキップされたレコードをCSVファイルに出力
+    /// </summary>
+    private async Task WriteSkippedRecordsToFileAsync(string originalFilePath, List<SkippedRecord> skippedRecords, string dataSetId)
+    {
+        if (!skippedRecords.Any())
+        {
+            _logger.LogInformation("スキップされたレコードはありません。");
+            return;
+        }
+
+        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        var originalFileName = Path.GetFileNameWithoutExtension(originalFilePath);
+        var skippedFileName = $"{originalFileName}_skipped_{timestamp}.csv";
+        var outputDir = Path.Combine(Path.GetDirectoryName(originalFilePath) ?? string.Empty, "Debug");
+        var outputPath = Path.Combine(outputDir, skippedFileName);
+
+        try
+        {
+            Directory.CreateDirectory(outputDir);
+
+            using var writer = new StreamWriter(outputPath, false, Encoding.UTF8);
+            using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
+
+            // ヘッダーを書き込み
+            csv.WriteHeader<SkippedRecord>();
+            await csv.NextRecordAsync();
+
+            // スキップされたレコードを書き込み
+            foreach (var record in skippedRecords)
+            {
+                csv.WriteRecord(record);
+                await csv.NextRecordAsync();
+            }
+
+            _logger.LogInformation("スキップされたレコードを出力しました: {FilePath} ({Count}件)", outputPath, skippedRecords.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "スキップされたレコードの出力に失敗しました: {FilePath}", outputPath);
+        }
     }
 
 }
