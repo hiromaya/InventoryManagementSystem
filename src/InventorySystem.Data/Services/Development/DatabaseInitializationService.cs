@@ -10,6 +10,7 @@ using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Interfaces.Development;
+using DatabaseValidationResult = InventorySystem.Core.Interfaces.Development.DatabaseValidationResult;
 
 namespace InventorySystem.Data.Services.Development;
 
@@ -25,6 +26,23 @@ public class DatabaseInitializationService : IDatabaseInitializationService
     private const string MigrationHistoryTable = "__SchemaVersions";
     private const string MigrationsFolderPath = "database/migrations";
     private const string CreateDatabaseScriptPath = "database/CreateDatabase.sql";
+    
+    // マイグレーション実行順序を明確に定義
+    private readonly List<string> _migrationOrder = new()
+    {
+        "000_CreateMigrationHistory.sql",
+        "006_AddDataSetManagement.sql",
+        "008_AddUnmatchOptimizationIndexes.sql",
+        "009_CreateInitialInventoryStagingTable.sql",
+        "010_AddPersonInChargeAndAveragePrice.sql",
+        "012_AddGrossProfitColumnToSalesVouchers.sql",
+        "014_AddMissingColumnsToInventoryMaster.sql",
+        "017_Cleanup_Duplicate_InventoryMaster.sql",
+        "020_Fix_MergeInventoryMaster_OutputClause.sql",
+        "021_VerifyInventoryMasterSchema.sql",
+        "023_UpdateDataSetManagement.sql",  // 新規追加
+        "024_CreateProductMaster.sql"
+    };
     
     // 旧テーブル定義（後方互換性のため一時的に保持）
     private readonly Dictionary<string, string> _tableDefinitions = new Dictionary<string, string>
@@ -192,7 +210,12 @@ public class DatabaseInitializationService : IDatabaseInitializationService
     
     public async Task<InitializationResult> InitializeDatabaseAsync(bool force = false)
     {
-        var result = new InitializationResult();
+        var result = new InitializationResult
+        {
+            ForceMode = force,
+            DatabaseVersion = "1.0.0",
+            TotalMigrationCount = _migrationOrder.Count
+        };
         var stopwatch = Stopwatch.StartNew();
         
         try
@@ -221,14 +244,40 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             else
             {
                 _logger.LogWarning("CreateDatabase.sql が見つかりません: {Path}", createDbScriptPath);
+                result.Warnings.Add($"CreateDatabase.sql が見つかりません: {createDbScriptPath}");
             }
             
             // マイグレーション履歴テーブルの確認・作成
             await EnsureMigrationHistoryTableExistsAsync(connection);
             
             // マイグレーションスクリプトの実行
-            var executedMigrations = await ApplyMigrationsAsync(connection);
+            var executedMigrations = await ApplyMigrationsAsync(connection, result);
             result.ExecutedMigrations = executedMigrations;
+            result.AppliedMigrationOrder = executedMigrations;
+            result.SkippedMigrationCount = result.TotalMigrationCount - executedMigrations.Count;
+            
+            // データベース構造の検証
+            try
+            {
+                _logger.LogInformation("データベース構造の検証を開始します");
+                result.ValidationResult = await ValidateDatabaseStructureAsync(connection);
+                
+                if (result.ValidationResult.Warnings.Any())
+                {
+                    result.Warnings.AddRange(result.ValidationResult.Warnings);
+                }
+                
+                if (!result.ValidationResult.IsValid)
+                {
+                    result.DetectedIssues.AddRange(result.ValidationResult.Errors);
+                    result.DetectedIssues.AddRange(result.ValidationResult.DataIntegrityIssues);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "データベース構造の検証でエラーが発生しました");
+                result.Warnings.Add($"データベース構造の検証エラー: {ex.Message}");
+            }
             
             result.Success = result.Errors.Count == 0;
             
@@ -253,6 +302,9 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         
         stopwatch.Stop();
         result.ExecutionTime = stopwatch.Elapsed;
+        
+        // 初期化サマリーをログ出力
+        LogInitializationSummary(result);
         
         return result;
     }
@@ -566,9 +618,9 @@ public class DatabaseInitializationService : IDatabaseInitializationService
     }
     
     /// <summary>
-    /// マイグレーションスクリプトの適用
+    /// マイグレーションスクリプトの適用（最適化版）
     /// </summary>
-    private async Task<List<string>> ApplyMigrationsAsync(SqlConnection connection)
+    private async Task<List<string>> ApplyMigrationsAsync(SqlConnection connection, InitializationResult result = null)
     {
         var appliedMigrations = new List<string>();
         
@@ -587,30 +639,66 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             // 適用済みのマイグレーションIDを取得
             var appliedMigrationIds = await GetAppliedMigrationIdsAsync(connection);
             
-            // すべての.sqlファイルを取得し、ファイル名でソート
-            var migrationFiles = Directory.GetFiles(migrationsPath, "*.sql")
-                .OrderBy(f => Path.GetFileName(f))
-                .ToList();
+            // 明示的な実行順序でマイグレーションを適用
+            _logger.LogInformation("定義済みマイグレーション順序で実行します: {Count}件", _migrationOrder.Count);
             
-            _logger.LogInformation("{Count} 個のマイグレーションファイルが見つかりました", migrationFiles.Count);
-            
-            foreach (var filePath in migrationFiles)
+            foreach (var migrationFileName in _migrationOrder)
             {
-                var fileName = Path.GetFileName(filePath);
-                var migrationId = fileName;
+                var migrationPath = Path.Combine(migrationsPath, migrationFileName);
+                
+                // ファイルが存在しない場合はスキップ
+                if (!File.Exists(migrationPath))
+                {
+                    _logger.LogDebug("マイグレーションファイルが見つかりません: {FileName}", migrationFileName);
+                    continue;
+                }
                 
                 // 既に適用済みの場合はスキップ
-                if (appliedMigrationIds.Contains(migrationId))
+                if (appliedMigrationIds.Contains(migrationFileName))
                 {
-                    _logger.LogDebug("マイグレーション {MigrationId} は既に適用済みです", migrationId);
+                    _logger.LogDebug("マイグレーション {MigrationId} は既に適用済みです", migrationFileName);
                     continue;
                 }
                 
                 // マイグレーションを実行
-                var success = await ApplyMigrationAsync(connection, filePath, migrationId);
+                var (success, executionTime) = await ApplyMigrationAsync(connection, migrationPath, migrationFileName);
                 if (success)
                 {
-                    appliedMigrations.Add(migrationId);
+                    appliedMigrations.Add(migrationFileName);
+                    result?.MigrationExecutionTimes.Add(migrationFileName, executionTime);
+                }
+                else
+                {
+                    _logger.LogError("マイグレーション {MigrationId} の実行に失敗しました", migrationFileName);
+                    // 重要なマイグレーションが失敗した場合は処理を中断
+                    break;
+                }
+            }
+            
+            // 順序リストにない追加のマイグレーションファイルをチェック
+            var allMigrationFiles = Directory.GetFiles(migrationsPath, "*.sql")
+                .Select(f => Path.GetFileName(f))
+                .Where(f => !_migrationOrder.Contains(f))
+                .OrderBy(f => f)
+                .ToList();
+            
+            if (allMigrationFiles.Any())
+            {
+                _logger.LogWarning("順序リストにない追加のマイグレーションファイルが見つかりました: {Files}", 
+                    string.Join(", ", allMigrationFiles));
+                
+                foreach (var fileName in allMigrationFiles)
+                {
+                    if (!appliedMigrationIds.Contains(fileName))
+                    {
+                        var filePath = Path.Combine(migrationsPath, fileName);
+                        var (success, executionTime) = await ApplyMigrationAsync(connection, filePath, fileName);
+                        if (success)
+                        {
+                            appliedMigrations.Add(fileName);
+                            result?.MigrationExecutionTimes.Add(fileName, executionTime);
+                        }
+                    }
                 }
             }
             
@@ -646,7 +734,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
     /// <summary>
     /// 個別のマイグレーションを適用
     /// </summary>
-    private async Task<bool> ApplyMigrationAsync(SqlConnection connection, string filePath, string migrationId)
+    private async Task<(bool success, long executionTimeMs)> ApplyMigrationAsync(SqlConnection connection, string filePath, string migrationId)
     {
         var stopwatch = Stopwatch.StartNew();
         SqlTransaction transaction = null;
@@ -670,7 +758,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             _logger.LogInformation("マイグレーション完了: {MigrationId} ({ElapsedMs}ms)", 
                 migrationId, stopwatch.ElapsedMilliseconds);
             
-            return true;
+            return (true, stopwatch.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
@@ -686,7 +774,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 _logger.LogError(rollbackEx, "ロールバックエラー");
             }
             
-            return false;
+            return (false, stopwatch.ElapsedMilliseconds);
         }
         finally
         {
@@ -768,5 +856,217 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         await connection.ExecuteAsync(sql, 
             new { MigrationId = migrationId, ExecutionTimeMs = executionTimeMs }, 
             transaction);
+    }
+    
+    /// <summary>
+    /// データベース構造の検証
+    /// </summary>
+    private async Task<DatabaseValidationResult> ValidateDatabaseStructureAsync(SqlConnection connection)
+    {
+        var result = new DatabaseValidationResult();
+        
+        try
+        {
+            _logger.LogInformation("データベース構造の検証を開始します");
+            
+            // 1. 必須テーブルの存在確認
+            foreach (var tableName in RequiredTables)
+            {
+                var exists = await TableExistsAsync(connection, tableName);
+                if (!exists)
+                {
+                    result.MissingTables.Add(tableName);
+                    result.Errors.Add($"必須テーブル {tableName} が存在しません");
+                }
+            }
+            
+            // 2. マイグレーション履歴テーブルの確認
+            var migrationHistoryExists = await TableExistsAsync(connection, MigrationHistoryTable);
+            if (!migrationHistoryExists)
+            {
+                result.Errors.Add($"マイグレーション履歴テーブル {MigrationHistoryTable} が存在しません");
+            }
+            
+            // 3. 重要なインデックスの確認
+            var indexValidation = await ValidateIndexesAsync(connection);
+            result.MissingIndexes.AddRange(indexValidation.missingIndexes);
+            result.Warnings.AddRange(indexValidation.warnings);
+            
+            // 4. データ整合性チェック
+            var dataValidation = await ValidateDataIntegrityAsync(connection);
+            result.DataIntegrityIssues.AddRange(dataValidation);
+            
+            result.IsValid = result.Errors.Count == 0;
+            
+            _logger.LogInformation("データベース構造検証完了 - エラー: {ErrorCount}件, 警告: {WarningCount}件", 
+                result.Errors.Count, result.Warnings.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "データベース構造検証中にエラーが発生しました");
+            result.Errors.Add($"検証エラー: {ex.Message}");
+            result.IsValid = false;
+        }
+        
+        return result;
+    }
+    
+    /// <summary>
+    /// インデックスの検証
+    /// </summary>
+    private async Task<(List<string> missingIndexes, List<string> warnings)> ValidateIndexesAsync(SqlConnection connection)
+    {
+        var missingIndexes = new List<string>();
+        var warnings = new List<string>();
+        
+        try
+        {
+            foreach (var tableIndexes in _indexDefinitions)
+            {
+                var tableName = tableIndexes.Key;
+                
+                // テーブルが存在しない場合はスキップ
+                if (!await TableExistsAsync(connection, tableName))
+                {
+                    continue;
+                }
+                
+                foreach (var indexSql in tableIndexes.Value)
+                {
+                    // CREATE INDEX IX_TableName_ColumnName から インデックス名を抽出
+                    var indexNameMatch = System.Text.RegularExpressions.Regex.Match(indexSql, @"CREATE\s+(?:UNIQUE\s+)?INDEX\s+(\w+)");
+                    if (indexNameMatch.Success)
+                    {
+                        var indexName = indexNameMatch.Groups[1].Value;
+                        var exists = await IndexExistsAsync(connection, indexName);
+                        if (!exists)
+                        {
+                            missingIndexes.Add($"{tableName}.{indexName}");
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            warnings.Add($"インデックス検証エラー: {ex.Message}");
+        }
+        
+        return (missingIndexes, warnings);
+    }
+    
+    /// <summary>
+    /// インデックスの存在確認
+    /// </summary>
+    private async Task<bool> IndexExistsAsync(SqlConnection connection, string indexName)
+    {
+        const string sql = @"
+            SELECT COUNT(*) 
+            FROM sys.indexes 
+            WHERE name = @IndexName";
+        
+        try
+        {
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { IndexName = indexName });
+            return count > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "インデックス存在確認エラー: {IndexName}", indexName);
+            return false;
+        }
+    }
+    
+    /// <summary>
+    /// データ整合性の検証
+    /// </summary>
+    private async Task<List<string>> ValidateDataIntegrityAsync(SqlConnection connection)
+    {
+        var issues = new List<string>();
+        
+        try
+        {
+            // 1. 孤立したDataSetManagementレコードの確認
+            if (await TableExistsAsync(connection, "DataSetManagement") && 
+                await TableExistsAsync(connection, "InventoryMaster"))
+            {
+                var orphanedDataSets = await connection.ExecuteScalarAsync<int>(@"
+                    SELECT COUNT(*) 
+                    FROM DataSetManagement dsm
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM InventoryMaster im 
+                        WHERE im.DataSetId = dsm.DataSetId
+                    )");
+                
+                if (orphanedDataSets > 0)
+                {
+                    issues.Add($"孤立したDataSetManagementレコードが{orphanedDataSets}件存在します");
+                }
+            }
+            
+            // 2. 重複したマイグレーション記録の確認
+            if (await TableExistsAsync(connection, MigrationHistoryTable))
+            {
+                var duplicateMigrations = await connection.ExecuteScalarAsync<int>($@"
+                    SELECT COUNT(*) - COUNT(DISTINCT MigrationId) 
+                    FROM {MigrationHistoryTable}");
+                
+                if (duplicateMigrations > 0)
+                {
+                    issues.Add($"重複したマイグレーション記録が{duplicateMigrations}件存在します");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            issues.Add($"データ整合性検証エラー: {ex.Message}");
+        }
+        
+        return issues;
+    }
+    
+    /// <summary>
+    /// 初期化結果のサマリーをログ出力
+    /// </summary>
+    private void LogInitializationSummary(InitializationResult result)
+    {
+        _logger.LogInformation("=== データベース初期化サマリー ===");
+        _logger.LogInformation("実行時間: {ExecutionTime}", result.ExecutionTime);
+        _logger.LogInformation("成功: {Success}", result.Success);
+        _logger.LogInformation("実行されたマイグレーション: {Count}件", result.ExecutedMigrations.Count);
+        
+        if (result.ExecutedMigrations.Any())
+        {
+            _logger.LogInformation("適用されたマイグレーション:");
+            foreach (var migration in result.ExecutedMigrations)
+            {
+                _logger.LogInformation("  - {Migration}", migration);
+            }
+        }
+        
+        if (result.CreatedTables.Any())
+        {
+            _logger.LogInformation("作成されたテーブル: {Tables}", string.Join(", ", result.CreatedTables));
+        }
+        
+        if (result.Errors.Any())
+        {
+            _logger.LogError("エラー: {Count}件", result.Errors.Count);
+            foreach (var error in result.Errors)
+            {
+                _logger.LogError("  - {Error}", error);
+            }
+        }
+        
+        if (result.Warnings.Any())
+        {
+            _logger.LogWarning("警告: {Count}件", result.Warnings.Count);
+            foreach (var warning in result.Warnings)
+            {
+                _logger.LogWarning("  - {Warning}", warning);
+            }
+        }
+        
+        _logger.LogInformation("==============================");
     }
 }

@@ -13,4 +13,8 @@
     </Reference>
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <Compile Remove="開発資料/**" />
+  </ItemGroup>
 </Project>
