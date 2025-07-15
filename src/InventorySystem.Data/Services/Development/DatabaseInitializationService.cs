@@ -714,9 +714,12 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             var batches = regex.Split(script);
             
             // InfoMessageイベントハンドラを一度だけ登録
-            EventHandler<SqlInfoMessageEventArgs> infoMessageHandler = (sender, e) =>
+            SqlInfoMessageEventHandler infoMessageHandler = (sender, e) =>
             {
-                _logger.LogInformation("[SQL] {Message}", e.Message);
+                foreach (SqlError error in e.Errors)
+                {
+                    _logger.LogInformation("[SQL] {Message}", error.Message);
+                }
             };
             connection.InfoMessage += infoMessageHandler;
             
