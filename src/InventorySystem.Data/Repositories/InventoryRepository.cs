@@ -1677,4 +1677,34 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             throw;
         }
     }
+
+    /// <summary>
+    /// 0在庫データを削除
+    /// </summary>
+    /// <param name="jobDate">対象日</param>
+    /// <returns>削除件数</returns>
+    public async Task<int> DeleteZeroStockAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            DELETE FROM InventoryMaster 
+            WHERE JobDate = @JobDate 
+            AND CurrentStock = 0 
+            AND DailyStock = 0
+            AND ABS(CurrentStockAmount) < 0.01
+            AND ABS(DailyStockAmount) < 0.01";
+        
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+            
+            LogInfo($"Deleted {result} zero stock records for JobDate: {jobDate:yyyy-MM-dd}");
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(DeleteZeroStockAsync), new { jobDate });
+            throw;
+        }
+    }
 }

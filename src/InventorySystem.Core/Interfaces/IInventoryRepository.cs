@@ -170,4 +170,11 @@ public interface IInventoryRepository
     /// </summary>
     /// <param name="jobDate">処理対象日</param>
     Task UpdateLastPurchaseDateAsync(DateTime jobDate);
+
+    /// <summary>
+    /// 0在庫データを削除
+    /// </summary>
+    /// <param name="jobDate">対象日</param>
+    /// <returns>削除件数</returns>
+    Task<int> DeleteZeroStockAsync(DateTime jobDate);
 }

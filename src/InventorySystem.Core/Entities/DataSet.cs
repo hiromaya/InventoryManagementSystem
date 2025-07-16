@@ -12,39 +12,14 @@ public class DataSet
     public string Id { get; set; } = string.Empty;
 
     /// <summary>
-    /// データセット名
+    /// データセット種別 ('Sales', 'Purchase', 'Adjustment')
     /// </summary>
-    public string Name { get; set; } = string.Empty;
+    public string DataSetType { get; set; } = string.Empty;
 
     /// <summary>
-    /// 説明
+    /// 取込日時
     /// </summary>
-    public string? Description { get; set; }
-
-    /// <summary>
-    /// 処理種類
-    /// </summary>
-    public string ProcessType { get; set; } = string.Empty;
-
-    /// <summary>
-    /// データセット種別 ('Sales', 'Purchase', 'Adjustment') - 互換性のため残す
-    /// </summary>
-    [Obsolete("ProcessTypeを使用してください")]
-    public string DataSetType
-    {
-        get => ProcessType;
-        set => ProcessType = value;
-    }
-
-    /// <summary>
-    /// 取込日時 - 互換性のため残す
-    /// </summary>
-    [Obsolete("CreatedDateを使用してください")]
-    public DateTime ImportedAt
-    {
-        get => CreatedDate;
-        set => CreatedDate = value;
-    }
+    public DateTime ImportedAt { get; set; }
 
     /// <summary>
     /// 取込件数
@@ -80,36 +55,6 @@ public class DataSet
     /// 更新日時
     /// </summary>
     public DateTime UpdatedAt { get; set; }
-
-    /// <summary>
-    /// 完了日時
-    /// </summary>
-    public DateTime? CompletedDate { get; set; }
-
-    /// <summary>
-    /// 作成日 - 互換性のため残す
-    /// </summary>
-    [Obsolete("CreatedAtを使用してください")]
-    public DateTime CreatedDate
-    {
-        get => CreatedAt;
-        set => CreatedAt = value;
-    }
-
-    /// <summary>
-    /// 更新日 - 互換性のため残す
-    /// </summary>
-    [Obsolete("UpdatedAtを使用してください")]
-    public DateTime UpdatedDate
-    {
-        get => UpdatedAt;
-        set => UpdatedAt = value;
-    }
-
-    /// <summary>
-    /// 部門コード
-    /// </summary>
-    public string DepartmentCode { get; set; } = "DeptA";
 }
 
 /// <summary>

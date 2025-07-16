@@ -221,6 +221,9 @@ builder.Services.AddScoped<ImportWithCarryoverCommand>();
 // 在庫マスタ最適化サービス
 builder.Services.AddScoped<IInventoryMasterOptimizationService, InventorySystem.Data.Services.InventoryMasterOptimizationService>();
 
+// 在庫最適化サービス
+builder.Services.AddScoped<IInventoryOptimizationService, InventoryOptimizationService>();
+
 // 特殊日付範囲サービス
 builder.Services.AddScoped<ISpecialDateRangeService, SpecialDateRangeService>();
 
@@ -446,6 +449,10 @@ try
             
         case "import-initial-inventory":
             await ExecuteImportInitialInventoryAsync(host.Services, commandArgs);
+            break;
+        
+        case "optimize-inventory":
+            await ExecuteOptimizeInventoryAsync(host.Services, commandArgs);
             break;
         
         default:
@@ -3539,6 +3546,67 @@ private static async Task<bool> EnsureRequiredTablesExistAsync(IServiceProvider 
             Console.WriteLine($"エラー: {ex.Message}");
         }
     }
+
+static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, string[] args)
+{
+    if (args.Length < 3)
+    {
+        Console.WriteLine("使用方法: optimize-inventory <日付>");
+        Console.WriteLine("例: optimize-inventory 2025-06-30");
+        return;
+    }
+
+    using (var scope = services.CreateScope())
+    {
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var inventoryOptimizationService = scopedServices.GetRequiredService<IInventoryOptimizationService>();
+
+        if (!DateTime.TryParse(args[2], out var jobDate))
+        {
+            Console.WriteLine("❌ 日付の形式が正しくありません");
+            return;
+        }
+
+        logger.LogInformation("=== 在庫最適化開始 ===");
+        logger.LogInformation("対象日: {JobDate}", jobDate);
+
+        try
+        {
+            var result = await inventoryOptimizationService.OptimizeInventoryAsync(jobDate);
+            
+            if (result.IsSuccess)
+            {
+                Console.WriteLine($"✅ 在庫最適化が完了しました");
+                Console.WriteLine($"   対象日: {result.JobDate:yyyy-MM-dd}");
+                Console.WriteLine($"   処理時間: {result.ProcessingTime?.TotalSeconds:F2}秒");
+                Console.WriteLine($"   前日在庫: {result.PreviousDayStockCount}件");
+                Console.WriteLine($"   売上伝票: {result.SalesTransactionCount}件");
+                Console.WriteLine($"   仕入伝票: {result.PurchaseTransactionCount}件");
+                Console.WriteLine($"   在庫調整: {result.AdjustmentTransactionCount}件");
+                Console.WriteLine($"   計算後在庫: {result.CalculatedStockCount}件");
+                Console.WriteLine($"   挿入レコード: {result.InsertedRecordCount}件");
+                Console.WriteLine($"   削除レコード: {result.DeletedRecordCount}件");
+                Console.WriteLine($"   0在庫削除: {result.CleanedUpRecordCount}件");
+                
+                logger.LogInformation("在庫最適化完了: {Result}", result);
+            }
+            else
+            {
+                Console.WriteLine($"❌ 在庫最適化に失敗しました: {result.ErrorMessage}");
+                logger.LogError("在庫最適化失敗: {ErrorMessage}", result.ErrorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "在庫最適化中にエラーが発生しました");
+            Console.WriteLine($"❌ エラーが発生しました: {ex.Message}");
+        }
+        
+        logger.LogInformation("=== 在庫最適化完了 ===");
+        Console.WriteLine("\n=== 在庫最適化完了 ===");
+    }
+}
 
 } // Program クラスの終了
 

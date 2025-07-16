@@ -26,7 +26,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
                 Id, DataSetType, ImportedAt, Status, JobDate,
                 RecordCount, ErrorMessage, FilePath, CreatedAt, UpdatedAt
             ) VALUES (
-                @Id, @ProcessType, @ImportedAt, @Status, @JobDate,
+                @Id, @DataSetType, @ImportedAt, @Status, @JobDate,
                 @RecordCount, @ErrorMessage, @FilePath, @CreatedAt, @UpdatedAt
             )";
 
@@ -37,7 +37,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
             var parameters = new
             {
                 dataSet.Id,
-                dataSet.ProcessType, // DataSetTypeとして登録
+                dataSet.DataSetType, // DataSetTypeとして登録
                 ImportedAt = dataSet.ImportedAt,
                 dataSet.Status,
                 dataSet.JobDate,
@@ -50,8 +50,8 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
 
             await connection.ExecuteAsync(sql, parameters);
             
-            _logger.LogInformation("データセット作成完了: {DataSetId}, Type: {ProcessType}", 
-                dataSet.Id, dataSet.ProcessType);
+            _logger.LogInformation("データセット作成完了: {DataSetId}, Type: {DataSetType}", 
+                dataSet.Id, dataSet.DataSetType);
             
             return dataSet.Id;
         }
@@ -68,7 +68,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     public async Task<DataSet?> GetByIdAsync(string id)
     {
         const string sql = @"
-            SELECT Id, DataSetType as ProcessType, ImportedAt, RecordCount, Status, 
+            SELECT Id, DataSetType, ImportedAt, RecordCount, Status, 
                    ErrorMessage, FilePath, JobDate, CreatedAt, UpdatedAt
             FROM DataSets 
             WHERE Id = @Id";
@@ -96,8 +96,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
             UPDATE DataSets 
             SET Status = @Status, 
                 ErrorMessage = @ErrorMessage,
-                UpdatedAt = @UpdatedAt,
-                CompletedDate = @CompletedDate
+                UpdatedAt = @UpdatedAt
             WHERE Id = @Id";
 
         try
@@ -109,8 +108,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
                 Id = id,
                 Status = status,
                 ErrorMessage = errorMessage,
-                UpdatedAt = DateTime.Now,
-                CompletedDate = (status == InventorySystem.Core.Entities.DataSetStatus.Completed || status == InventorySystem.Core.Entities.DataSetStatus.Failed) ? DateTime.Now : (DateTime?)null
+                UpdatedAt = DateTime.Now
             };
 
             var affectedRows = await connection.ExecuteAsync(sql, parameters);

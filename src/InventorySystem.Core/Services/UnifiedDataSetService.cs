@@ -48,13 +48,12 @@ namespace InventorySystem.Core.Services
                 var dataSet = new InventorySystem.Core.Entities.DataSet
                 {
                     Id = dataSetId,
-                    Name = info.Name,
-                    ProcessType = ConvertProcessTypeForDataSets(info.ProcessType),
+                    DataSetType = ConvertProcessTypeForDataSets(info.ProcessType),
                     JobDate = info.JobDate,
-                    DepartmentCode = info.Department ?? "Unknown",
                     Status = "Processing",
                     RecordCount = 0,
                     FilePath = info.FilePath,
+                    ImportedAt = createdAt,
                     CreatedAt = createdAt,
                     UpdatedAt = createdAt
                 };
@@ -136,8 +135,7 @@ namespace InventorySystem.Core.Services
                     dataSet.Status = status.ToString();
                     dataSet.ErrorMessage = errorMessage;
                     dataSet.UpdatedAt = DateTime.Now;
-                    // DataSetsには更新メソッドが不明なため、ログのみ記録
-                    _logger.LogDebug("DataSetsテーブルの更新はスキップされました（メソッド不明）");
+                    await _dataSetRepository.UpdateStatusAsync(dataSetId, status.ToString(), errorMessage);
                     _logger.LogDebug("DataSetsテーブルのステータス更新成功: ID={DataSetId}", dataSetId);
                 }
             }
@@ -176,40 +174,27 @@ namespace InventorySystem.Core.Services
         /// </summary>
         public async Task UpdateRecordCountAsync(string dataSetId, int recordCount)
         {
-            _logger.LogDebug("統一データセットレコード数更新: ID={DataSetId}, Count={RecordCount}", dataSetId, recordCount);
-
-            // DataSetsテーブルの更新
             try
             {
-                var dataSet = await _dataSetRepository.GetByIdAsync(dataSetId);
-                if (dataSet != null)
-                {
-                    dataSet.RecordCount = recordCount;
-                    dataSet.UpdatedAt = DateTime.Now;
-                    // DataSetsには更新メソッドが不明なため、ログのみ記録
-                    _logger.LogDebug("DataSetsテーブルの更新はスキップされました（メソッド不明）");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "DataSetsテーブルのレコード数更新失敗: ID={DataSetId}", dataSetId);
-            }
-
-            // DataSetManagementテーブルの更新
-            try
-            {
+                _logger.LogInformation("統一データセットレコード数更新: ID={DataSetId}, Count={RecordCount}", dataSetId, recordCount);
+                
+                // DataSetsテーブルの更新
+                await _dataSetRepository.UpdateRecordCountAsync(dataSetId, recordCount);
+                
+                // DataSetManagementテーブルの更新
                 var dataSetManagement = await _dataSetManagementRepository.GetByIdAsync(dataSetId);
                 if (dataSetManagement != null)
                 {
                     dataSetManagement.RecordCount = recordCount;
                     dataSetManagement.TotalRecordCount = Math.Max(dataSetManagement.TotalRecordCount, recordCount);
-                    // DataSetManagementの更新は将来的に実装予定
-                    _logger.LogDebug("DataSetManagementテーブルのレコード数更新成功: ID={DataSetId}", dataSetId);
+                    // 更新処理は今後実装予定
+                    _logger.LogDebug("DataSetManagementテーブルの更新成功: ID={DataSetId}", dataSetId);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "DataSetManagementテーブルのレコード数更新失敗: ID={DataSetId}", dataSetId);
+                _logger.LogError(ex, "レコード数更新失敗: ID={DataSetId}", dataSetId);
+                throw;
             }
         }
 
