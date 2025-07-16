@@ -1,25 +1,61 @@
 using CsvHelper.Configuration;
+using CsvHelper.Configuration.Attributes;
 using System.Globalization;
 
 namespace InventorySystem.Core.Models;
 
 /// <summary>
 /// 初期在庫データ（ZAIK*.csv）のレコードモデル
-/// 注意：属性ベースマッピングを削除し、ClassMapのみを使用（トリミング問題対策）
+/// 属性ベースマッピングで他のCSVインポートと統一
 /// </summary>
 public class InitialInventoryRecord
 {
+    [Name("商品ＣＤ")]
+    [Index(0)]
     public string ProductCode { get; set; } = string.Empty;
+
+    [Name("等級ＣＤ")]
+    [Index(1)]
     public string GradeCode { get; set; } = string.Empty;
+
+    [Name("階級ＣＤ")]
+    [Index(2)]
     public string ClassCode { get; set; } = string.Empty;
+
+    [Name("荷印ＣＤ")]
+    [Index(3)]
     public string ShippingMarkCode { get; set; } = string.Empty;
+
+    [Name("荷印名")]
+    [Index(4)]
     public string ShippingMarkName { get; set; } = string.Empty;
+
+    [Name("商品分類１担当者ＣＤ")]
+    [Index(5)]
     public int PersonInChargeCode { get; set; }
+
+    [Name("前日在庫数量")]
+    [Index(9)]
     public decimal PreviousStockQuantity { get; set; }
+
+    [Name("前日在庫金額")]
+    [Index(11)]
     public decimal PreviousStockAmount { get; set; }
+
+    [Name("当日在庫数量")]
+    [Index(14)]
     public decimal CurrentStockQuantity { get; set; }
+
+    [Name("当日在庫単価")]
+    [Index(15)]
     public decimal StandardPrice { get; set; }
+
+    [Name("当日在庫金額")]
+    [Index(16)]
     public decimal CurrentStockAmount { get; set; }
+
+    [Name("粗利計算用平均単価")]
+    [Index(17)]
     public decimal AveragePrice { get; set; }
 }
 
