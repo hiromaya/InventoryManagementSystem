@@ -1356,20 +1356,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 
                 LogInfo($"在庫データ {totalProcessed} 件を処理しました");
                 
-                // 3. DataSetManagementテーブルへの登録
-                const string datasetSql = @"
-                    INSERT INTO DataSetManagement (
-                        DatasetId, JobDate, ProcessType, ImportType, RecordCount, TotalRecordCount,
-                        IsActive, IsArchived, ParentDataSetId, ImportedFiles, CreatedAt, CreatedBy, 
-                        Notes, Department
-                    ) VALUES (
-                        @DatasetId, @JobDate, @ProcessType, @ImportType, @RecordCount, @TotalRecordCount,
-                        @IsActive, @IsArchived, @ParentDataSetId, @ImportedFiles, @CreatedAt, @CreatedBy, 
-                        @Notes, @Department
-                    )";
-                
-                await connection.ExecuteAsync(datasetSql, dataSetManagement, transaction);
-                LogInfo($"DataSetManagement登録完了: DataSetId={dataSetManagement.DataSetId}");
+                // DataSetManagement処理はUnifiedDataSetServiceで実行済み
+                // 責任分離の原則に従い、InventoryRepositoryは在庫データのCRUDのみを担当
                 
                 return totalProcessed;
             }
@@ -1377,7 +1365,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             {
                 LogError(ex, "トランザクション内でエラーが発生しました", new { 
                     InventoryCount = inventories.Count,
-                    DatasetId = dataSetManagement.DataSetId 
+                    DatasetId = dataSetManagement?.DataSetId ?? "UnifiedDataSetService管理"
                 });
                 throw;
             }
