@@ -48,6 +48,8 @@ namespace InventorySystem.Core.Services
                 var dataSet = new InventorySystem.Core.Entities.DataSet
                 {
                     Id = dataSetId,
+                    Name = info.Name ?? $"{info.ProcessType} {info.JobDate:yyyy-MM-dd}",
+                    Description = info.Description ?? info.Name ?? $"{info.ProcessType} データセット",
                     DataSetType = ConvertProcessTypeForDataSets(info.ProcessType),
                     JobDate = info.JobDate,
                     Status = "Processing",

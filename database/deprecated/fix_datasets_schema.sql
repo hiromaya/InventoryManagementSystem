@@ -1,21 +1,15 @@
--- DataSetsテーブルのスキーマ修正（緊急対応）
+-- DataSetsテーブルのスキーマ修正（エラー対応版）
 -- 作成日: 2025-07-16
 -- 目的: Windows環境でのSqlException解決
+-- 修正版: カラム参照エラーを回避
 
 SET NOCOUNT ON;
 
 PRINT '=== DataSetsテーブルスキーマ修正開始 ===';
 
--- 現在のテーブル構造を確認
-PRINT '現在のDataSetsテーブルの列一覧:';
-SELECT 
-    COLUMN_NAME as 'カラム名',
-    DATA_TYPE as 'データ型',
-    IS_NULLABLE as 'NULL許可',
-    COLUMN_DEFAULT as 'デフォルト値'
-FROM INFORMATION_SCHEMA.COLUMNS 
-WHERE TABLE_NAME = 'DataSets' 
-ORDER BY ORDINAL_POSITION;
+-- 現在のテーブル構造を確認（カラム名を直接参照しない）
+PRINT '現在のDataSetsテーブルの列情報を確認中...';
+SELECT COUNT(*) as '総カラム数' FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'DataSets';
 
 -- DataSetTypeカラムの追加
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'DataSetType')
@@ -83,63 +77,82 @@ BEGIN
     PRINT '- UpdatedAtカラムは既に存在します';
 END
 
--- 既存レコードのNULL値を更新（カラムが存在する場合のみ）
+-- 既存レコードのNULL値を更新（動的SQLを使用してカラム存在を確認）
 PRINT '';
 PRINT '既存レコードのデフォルト値設定...';
 
--- DataSetTypeのデフォルト値設定（カラムが存在する場合のみ）
+DECLARE @sql NVARCHAR(MAX);
+DECLARE @updateCount INT;
+
+-- DataSetTypeのデフォルト値設定（動的SQL使用）
 IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'DataSetType')
 BEGIN
-    UPDATE DataSets SET DataSetType = 'Unknown' WHERE DataSetType IS NULL;
-    PRINT '  └ DataSetTypeのデフォルト値を設定しました';
+    SET @sql = N'UPDATE DataSets SET DataSetType = ''Unknown'' WHERE DataSetType IS NULL';
+    EXEC sp_executesql @sql;
+    SET @updateCount = @@ROWCOUNT;
+    IF @updateCount > 0
+        PRINT '  └ DataSetTypeのデフォルト値を設定しました (' + CAST(@updateCount AS NVARCHAR(10)) + '件)';
 END
 
--- ImportedAtのデフォルト値設定（カラムが存在する場合のみ）
+-- ImportedAtのデフォルト値設定（動的SQL使用）
 IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'ImportedAt')
 BEGIN
-    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'CreatedAt')
-    BEGIN
-        UPDATE DataSets SET ImportedAt = ISNULL(CreatedAt, GETDATE()) WHERE ImportedAt IS NULL;
-    END
-    ELSE
-    BEGIN
-        UPDATE DataSets SET ImportedAt = GETDATE() WHERE ImportedAt IS NULL;
-    END
-    PRINT '  └ ImportedAtのデフォルト値を設定しました';
+    SET @sql = N'UPDATE DataSets SET ImportedAt = GETDATE() WHERE ImportedAt IS NULL';
+    EXEC sp_executesql @sql;
+    SET @updateCount = @@ROWCOUNT;
+    IF @updateCount > 0
+        PRINT '  └ ImportedAtのデフォルト値を設定しました (' + CAST(@updateCount AS NVARCHAR(10)) + '件)';
 END
 
--- RecordCountのデフォルト値設定（カラムが存在する場合のみ）
+-- RecordCountのデフォルト値設定（動的SQL使用）
 IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'RecordCount')
 BEGIN
-    UPDATE DataSets SET RecordCount = 0 WHERE RecordCount IS NULL;
-    PRINT '  └ RecordCountのデフォルト値を設定しました';
+    SET @sql = N'UPDATE DataSets SET RecordCount = 0 WHERE RecordCount IS NULL';
+    EXEC sp_executesql @sql;
+    SET @updateCount = @@ROWCOUNT;
+    IF @updateCount > 0
+        PRINT '  └ RecordCountのデフォルト値を設定しました (' + CAST(@updateCount AS NVARCHAR(10)) + '件)';
 END
 
--- CreatedAtのデフォルト値設定（カラムが存在する場合のみ）
+-- CreatedAtのデフォルト値設定（動的SQL使用）
 IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'CreatedAt')
 BEGIN
-    UPDATE DataSets SET CreatedAt = GETDATE() WHERE CreatedAt IS NULL;
-    PRINT '  └ CreatedAtのデフォルト値を設定しました';
+    SET @sql = N'UPDATE DataSets SET CreatedAt = GETDATE() WHERE CreatedAt IS NULL';
+    EXEC sp_executesql @sql;
+    SET @updateCount = @@ROWCOUNT;
+    IF @updateCount > 0
+        PRINT '  └ CreatedAtのデフォルト値を設定しました (' + CAST(@updateCount AS NVARCHAR(10)) + '件)';
 END
 
--- UpdatedAtのデフォルト値設定（カラムが存在する場合のみ）
+-- UpdatedAtのデフォルト値設定（動的SQL使用）
 IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'UpdatedAt')
 BEGIN
-    UPDATE DataSets SET UpdatedAt = GETDATE() WHERE UpdatedAt IS NULL;
-    PRINT '  └ UpdatedAtのデフォルト値を設定しました';
+    SET @sql = N'UPDATE DataSets SET UpdatedAt = GETDATE() WHERE UpdatedAt IS NULL';
+    EXEC sp_executesql @sql;
+    SET @updateCount = @@ROWCOUNT;
+    IF @updateCount > 0
+        PRINT '  └ UpdatedAtのデフォルト値を設定しました (' + CAST(@updateCount AS NVARCHAR(10)) + '件)';
 END
 
--- 修正後のテーブル構造を確認
+-- 修正後のテーブル構造を確認（動的SQLで実行）
 PRINT '';
 PRINT '修正後のDataSetsテーブルの列一覧:';
+PRINT '（INFORMATION_SCHEMA.COLUMNSから取得）';
+
+-- 列情報を表示（動的SQL使用）
+DECLARE @columnInfo NVARCHAR(MAX);
+SET @columnInfo = N'
 SELECT 
-    COLUMN_NAME as 'カラム名',
-    DATA_TYPE as 'データ型',
-    IS_NULLABLE as 'NULL許可',
-    COLUMN_DEFAULT as 'デフォルト値'
+    COLUMN_NAME as [カラム名],
+    DATA_TYPE as [データ型],
+    CHARACTER_MAXIMUM_LENGTH as [最大長],
+    IS_NULLABLE as [NULL許可],
+    COLUMN_DEFAULT as [デフォルト値]
 FROM INFORMATION_SCHEMA.COLUMNS 
-WHERE TABLE_NAME = 'DataSets' 
-ORDER BY ORDINAL_POSITION;
+WHERE TABLE_NAME = ''DataSets'' 
+ORDER BY ORDINAL_POSITION';
+
+EXEC sp_executesql @columnInfo;
 
 PRINT '';
 PRINT '=== DataSetsテーブルスキーマ修正完了 ===';

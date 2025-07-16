@@ -12,6 +12,16 @@ public class DataSet
     public string Id { get; set; } = string.Empty;
 
     /// <summary>
+    /// データセット名
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// データセット説明
+    /// </summary>
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>
     /// データセット種別 ('Sales', 'Purchase', 'Adjustment')
     /// </summary>
     public string DataSetType { get; set; } = string.Empty;

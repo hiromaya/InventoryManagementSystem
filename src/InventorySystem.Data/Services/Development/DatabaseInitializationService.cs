@@ -63,7 +63,8 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "025_Fix_DataSets_Columns.sql",            // DataSetsテーブルカラム修正
         "025_CreateFileProcessingHistory.sql",      // ファイル処理履歴
         "026_CreateDateProcessingHistory.sql",      // 日付処理履歴
-        "027_CreatePreviousMonthInventory.sql"      // 前月在庫管理
+        "027_CreatePreviousMonthInventory.sql",     // 前月在庫管理
+        "028_AddDataSetTypeAndImportedAt.sql"       // DataSetTypeとImportedAtカラム追加
     };
     
     // 旧テーブル定義（後方互換性のため一時的に保持）
