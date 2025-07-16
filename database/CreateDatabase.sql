@@ -275,7 +275,41 @@ BEGIN
 END
 
 -- ===================================================
--- 6. DataSets テーブル（データセット管理）
+-- 6. ShippingMarkMaster テーブル（荷印マスタ）
+-- ===================================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ShippingMarkMaster]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE ShippingMarkMaster (
+        ShippingMarkCode NVARCHAR(15) NOT NULL,         -- 荷印コード（主キー）
+        ShippingMarkName NVARCHAR(100) NOT NULL,        -- 荷印名
+        SearchKana NVARCHAR(100) NULL,                  -- 検索用カナ
+        NumericValue1 DECIMAL(18,4) NULL,               -- 数値項目1
+        NumericValue2 DECIMAL(18,4) NULL,               -- 数値項目2
+        NumericValue3 DECIMAL(18,4) NULL,               -- 数値項目3
+        NumericValue4 DECIMAL(18,4) NULL,               -- 数値項目4
+        NumericValue5 DECIMAL(18,4) NULL,               -- 数値項目5
+        DateValue1 DATE NULL,                           -- 日付項目1
+        DateValue2 DATE NULL,                           -- 日付項目2
+        DateValue3 DATE NULL,                           -- 日付項目3
+        DateValue4 DATE NULL,                           -- 日付項目4
+        DateValue5 DATE NULL,                           -- 日付項目5
+        TextValue1 NVARCHAR(100) NULL,                  -- テキスト項目1
+        TextValue2 NVARCHAR(100) NULL,                  -- テキスト項目2
+        TextValue3 NVARCHAR(100) NULL,                  -- テキスト項目3
+        TextValue4 NVARCHAR(100) NULL,                  -- テキスト項目4
+        TextValue5 NVARCHAR(100) NULL,                  -- テキスト項目5
+        
+        CONSTRAINT PK_ShippingMarkMaster PRIMARY KEY (ShippingMarkCode)
+    );
+    PRINT 'ShippingMarkMaster テーブルを作成しました';
+    
+    -- インデックス作成
+    CREATE INDEX IX_ShippingMarkMaster_ShippingMarkName ON ShippingMarkMaster(ShippingMarkName);
+    CREATE INDEX IX_ShippingMarkMaster_SearchKana ON ShippingMarkMaster(SearchKana);
+END
+
+-- ===================================================
+-- 7. DataSets テーブル（データセット管理）
 -- ===================================================
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND type in (N'U'))
 BEGIN
