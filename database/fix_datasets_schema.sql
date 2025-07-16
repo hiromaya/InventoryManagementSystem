@@ -83,29 +83,51 @@ BEGIN
     PRINT '- UpdatedAtカラムは既に存在します';
 END
 
--- 既存レコードのNULL値を更新
+-- 既存レコードのNULL値を更新（カラムが存在する場合のみ）
 PRINT '';
 PRINT '既存レコードのデフォルト値設定...';
 
--- DataSetTypeのデフォルト値設定
-UPDATE DataSets SET DataSetType = 'Unknown' WHERE DataSetType IS NULL;
-PRINT '  └ DataSetTypeのデフォルト値を設定しました';
+-- DataSetTypeのデフォルト値設定（カラムが存在する場合のみ）
+IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'DataSetType')
+BEGIN
+    UPDATE DataSets SET DataSetType = 'Unknown' WHERE DataSetType IS NULL;
+    PRINT '  └ DataSetTypeのデフォルト値を設定しました';
+END
 
--- ImportedAtのデフォルト値設定
-UPDATE DataSets SET ImportedAt = ISNULL(CreatedAt, GETDATE()) WHERE ImportedAt IS NULL;
-PRINT '  └ ImportedAtのデフォルト値を設定しました';
+-- ImportedAtのデフォルト値設定（カラムが存在する場合のみ）
+IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'ImportedAt')
+BEGIN
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'CreatedAt')
+    BEGIN
+        UPDATE DataSets SET ImportedAt = ISNULL(CreatedAt, GETDATE()) WHERE ImportedAt IS NULL;
+    END
+    ELSE
+    BEGIN
+        UPDATE DataSets SET ImportedAt = GETDATE() WHERE ImportedAt IS NULL;
+    END
+    PRINT '  └ ImportedAtのデフォルト値を設定しました';
+END
 
--- RecordCountのデフォルト値設定
-UPDATE DataSets SET RecordCount = 0 WHERE RecordCount IS NULL;
-PRINT '  └ RecordCountのデフォルト値を設定しました';
+-- RecordCountのデフォルト値設定（カラムが存在する場合のみ）
+IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'RecordCount')
+BEGIN
+    UPDATE DataSets SET RecordCount = 0 WHERE RecordCount IS NULL;
+    PRINT '  └ RecordCountのデフォルト値を設定しました';
+END
 
--- CreatedAtのデフォルト値設定
-UPDATE DataSets SET CreatedAt = GETDATE() WHERE CreatedAt IS NULL;
-PRINT '  └ CreatedAtのデフォルト値を設定しました';
+-- CreatedAtのデフォルト値設定（カラムが存在する場合のみ）
+IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'CreatedAt')
+BEGIN
+    UPDATE DataSets SET CreatedAt = GETDATE() WHERE CreatedAt IS NULL;
+    PRINT '  └ CreatedAtのデフォルト値を設定しました';
+END
 
--- UpdatedAtのデフォルト値設定
-UPDATE DataSets SET UpdatedAt = GETDATE() WHERE UpdatedAt IS NULL;
-PRINT '  └ UpdatedAtのデフォルト値を設定しました';
+-- UpdatedAtのデフォルト値設定（カラムが存在する場合のみ）
+IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DataSets]') AND name = 'UpdatedAt')
+BEGIN
+    UPDATE DataSets SET UpdatedAt = GETDATE() WHERE UpdatedAt IS NULL;
+    PRINT '  └ UpdatedAtのデフォルト値を設定しました';
+END
 
 -- 修正後のテーブル構造を確認
 PRINT '';
