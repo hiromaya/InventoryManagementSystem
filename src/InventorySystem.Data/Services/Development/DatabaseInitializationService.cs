@@ -30,7 +30,10 @@ public class DatabaseInitializationService : IDatabaseInitializationService
     // マイグレーション実行順序を明確に定義
     private readonly List<string> _migrationOrder = new()
     {
+        // === 基本マイグレーション ===
         "000_CreateMigrationHistory.sql",
+        
+        // === データベース構造追加 ===
         "005_AddDailyCloseProtectionColumns.sql",
         "006_AddDataSetManagement.sql",
         "007_AddDeactivationIndexes.sql",
@@ -42,6 +45,8 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "014_AddMissingColumnsToInventoryMaster.sql",
         "015_AddMonthlyColumnsToCpInventoryMaster.sql",
         "016_AddMonthlyFieldsToCpInventory.sql",
+        
+        // === データ整理・修正 ===
         "017_Cleanup_Duplicate_InventoryMaster.sql",
         "018_FixExistingCpInventoryProductCategories.sql",
         "019_Fix_DepartmentCode_Size.sql",
@@ -49,10 +54,16 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "021_VerifyInventoryMasterSchema.sql",
         "022_AddLastTransactionDates.sql",
         "023_UpdateDataSetManagement.sql",
+        
+        // === マスタデータ・統合処理 ===
         "024_CreateProductMaster.sql",
-        "025_CreateFileProcessingHistory.sql",
-        "026_CreateDateProcessingHistory.sql",
-        "027_CreatePreviousMonthInventory.sql"
+        "024_PrepareDataSetUnification.sql",        // 重複024番（統合準備）
+        
+        // === 緊急修正・履歴管理 ===
+        "025_Fix_DataSets_Columns.sql",            // DataSetsテーブルカラム修正
+        "025_CreateFileProcessingHistory.sql",      // ファイル処理履歴
+        "026_CreateDateProcessingHistory.sql",      // 日付処理履歴
+        "027_CreatePreviousMonthInventory.sql"      // 前月在庫管理
     };
     
     // 旧テーブル定義（後方互換性のため一時的に保持）
