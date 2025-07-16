@@ -212,8 +212,11 @@ public class InventoryOptimizationService : IInventoryOptimizationService
             }
 
             var inventory = calculatedStock[key];
-            inventory.SalesQuantity += sales.Quantity;
+            // 売上による在庫減少
             inventory.CurrentStock -= sales.Quantity;
+            inventory.CurrentStockAmount -= sales.Quantity * inventory.AveragePrice;
+            inventory.DailyStock -= sales.Quantity;
+            inventory.DailyStockAmount -= sales.Quantity * inventory.AveragePrice;
             inventory.UpdatedAt = DateTime.Now;
         }
 
@@ -238,17 +241,21 @@ public class InventoryOptimizationService : IInventoryOptimizationService
             }
 
             var inventory = calculatedStock[key];
-            inventory.PurchaseQuantity += purchase.Quantity;
-            inventory.CurrentStock += purchase.Quantity;
             
             // 平均価格の計算（移動平均）
             if (purchase.Quantity > 0 && purchase.UnitPrice > 0)
             {
-                var totalValue = (inventory.CurrentStock - purchase.Quantity) * inventory.AveragePrice + 
+                var totalValue = inventory.CurrentStock * inventory.AveragePrice + 
                                 purchase.Quantity * purchase.UnitPrice;
-                inventory.AveragePrice = inventory.CurrentStock > 0 ? totalValue / inventory.CurrentStock : 0;
+                inventory.AveragePrice = (inventory.CurrentStock + purchase.Quantity) > 0 ? 
+                    totalValue / (inventory.CurrentStock + purchase.Quantity) : 0;
             }
             
+            // 仕入による在庫増加
+            inventory.CurrentStock += purchase.Quantity;
+            inventory.CurrentStockAmount += purchase.Quantity * purchase.UnitPrice;
+            inventory.DailyStock += purchase.Quantity;
+            inventory.DailyStockAmount += purchase.Quantity * purchase.UnitPrice;
             inventory.UpdatedAt = DateTime.Now;
         }
 
@@ -273,8 +280,12 @@ public class InventoryOptimizationService : IInventoryOptimizationService
             }
 
             var inventory = calculatedStock[key];
-            inventory.AdjustmentQuantity += adjustment.Quantity;
+            // 在庫調整による変動
             inventory.CurrentStock += adjustment.Quantity;
+            inventory.CurrentStockAmount += adjustment.Quantity * inventory.AveragePrice;
+            inventory.DailyStock += adjustment.Quantity;
+            inventory.DailyStockAmount += adjustment.Quantity * inventory.AveragePrice;
+            inventory.DailyAdjustmentAmount += adjustment.Amount;
             inventory.UpdatedAt = DateTime.Now;
         }
 
@@ -292,17 +303,28 @@ public class InventoryOptimizationService : IInventoryOptimizationService
     {
         return new InventoryMaster
         {
-            ProductCode = key.ProductCode,
-            GradeCode = key.GradeCode,
-            ClassCode = key.ClassCode,
-            ShippingMarkCode = key.ShippingMarkCode,
-            ShippingMarkName = key.ShippingMarkName,
-            CurrentStock = 0,
-            PreviousStock = 0,
-            PurchaseQuantity = 0,
-            SalesQuantity = 0,
-            AdjustmentQuantity = 0,
+            Key = new InventoryKey(
+                key.ProductCode,
+                key.GradeCode,
+                key.ClassCode,
+                key.ShippingMarkCode,
+                key.ShippingMarkName),
+            ProductName = string.Empty,
+            Unit = string.Empty,
+            StandardPrice = 0,
             AveragePrice = 0,
+            ProductCategory1 = string.Empty,
+            ProductCategory2 = string.Empty,
+            CurrentStock = 0,
+            CurrentStockAmount = 0,
+            DailyStock = 0,
+            DailyStockAmount = 0,
+            PreviousMonthQuantity = 0,
+            PreviousMonthAmount = 0,
+            DailyAdjustmentAmount = 0,
+            DailyGrossProfit = 0,
+            DailyProcessingCost = 0,
+            FinalGrossProfit = 0,
             JobDate = jobDate,
             ImportType = "CUMULATIVE",
             CreatedAt = DateTime.Now,

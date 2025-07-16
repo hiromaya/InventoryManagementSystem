@@ -8,6 +8,30 @@ public class InventoryKey
     public string GradeCode { get; set; } = string.Empty;        // 等級コード (15桁)
     public string ClassCode { get; set; } = string.Empty;        // 階級コード (15桁)
     public string ShippingMarkCode { get; set; } = string.Empty; // 荷印コード (15桁)
+
+    /// <summary>
+    /// デフォルトコンストラクター
+    /// </summary>
+    public InventoryKey()
+    {
+    }
+
+    /// <summary>
+    /// 5項目複合キーを指定するコンストラクター
+    /// </summary>
+    /// <param name="productCode">商品コード</param>
+    /// <param name="gradeCode">等級コード</param>
+    /// <param name="classCode">階級コード</param>
+    /// <param name="shippingMarkCode">荷印コード</param>
+    /// <param name="shippingMarkName">荷印名</param>
+    public InventoryKey(string productCode, string gradeCode, string classCode, string shippingMarkCode, string shippingMarkName)
+    {
+        ProductCode = productCode ?? string.Empty;
+        GradeCode = gradeCode ?? string.Empty;
+        ClassCode = classCode ?? string.Empty;
+        ShippingMarkCode = shippingMarkCode ?? string.Empty;
+        ShippingMarkName = shippingMarkName ?? string.Empty;
+    }
     
     /// <summary>
     /// 荷印名（8桁固定長で正規化される）
