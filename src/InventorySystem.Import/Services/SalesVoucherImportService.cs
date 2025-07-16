@@ -11,6 +11,8 @@ using InventorySystem.Core.Configuration;
 using InventorySystem.Core.Services;
 using Microsoft.Extensions.Options;
 using InventorySystem.Import.Validators;
+using InventorySystem.Core.Models;
+using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus;
 
 namespace InventorySystem.Import.Services;
 
@@ -43,6 +45,7 @@ public class SalesVoucherImportService
 {
     private readonly SalesVoucherCsvRepository _salesVoucherRepository;
     private readonly IDataSetRepository _dataSetRepository;
+    private readonly IUnifiedDataSetService _unifiedDataSetService;
     private readonly ILogger<SalesVoucherImportService> _logger;
     private readonly DepartmentSettings _departmentSettings;
     private readonly ICsvFileProcessor _csvProcessor;
@@ -51,6 +54,7 @@ public class SalesVoucherImportService
     public SalesVoucherImportService(
         SalesVoucherCsvRepository salesVoucherRepository,
         IDataSetRepository dataSetRepository,
+        IUnifiedDataSetService unifiedDataSetService,
         ILogger<SalesVoucherImportService> logger,
         IOptions<DepartmentSettings> departmentOptions,
         ICsvFileProcessor csvProcessor,
@@ -58,6 +62,7 @@ public class SalesVoucherImportService
     {
         _salesVoucherRepository = salesVoucherRepository;
         _dataSetRepository = dataSetRepository;
+        _unifiedDataSetService = unifiedDataSetService;
         _logger = logger;
         _departmentSettings = departmentOptions.Value;
         _csvProcessor = csvProcessor;
@@ -117,23 +122,20 @@ public class SalesVoucherImportService
 
         try
         {
-            // データセット作成
-            var dataSet = new DataSet
+            // 統一データセット作成
+            var dataSetInfo = new UnifiedDataSetInfo
             {
-                Id = dataSetId,
-                ProcessType = "Sales",
+                ProcessType = "SALES",
+                ImportType = "IMPORT",
                 Name = $"売上伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
                 Description = $"売上伝票CSVファイル取込: {Path.GetFileName(filePath)}",
-                CreatedAt = DateTime.Now,
-                RecordCount = 0,
-                Status = DataSetStatus.Processing,
-                FilePath = filePath,
                 JobDate = startDate ?? DateTime.Today,
-                DepartmentCode = departmentCode,
-                UpdatedAt = DateTime.Now
+                Department = departmentCode,
+                FilePath = filePath,
+                CreatedBy = "sales-import"
             };
             
-            await _dataSetRepository.CreateAsync(dataSet);
+            dataSetId = await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
 
             // CSV読み込み処理（販売大臣フォーマット対応）
             var salesVouchers = new List<SalesVoucher>();
@@ -248,8 +250,8 @@ public class SalesVoucherImportService
                 }
             }
 
-            // データセットステータス更新
-            await _dataSetRepository.UpdateRecordCountAsync(dataSetId, importedCount);
+            // データセットレコード数更新
+            await _unifiedDataSetService.UpdateRecordCountAsync(dataSetId, importedCount);
             
             // 統計情報のログ出力
             if (dateStatistics.Any())
@@ -270,13 +272,13 @@ public class SalesVoucherImportService
             if (errorMessages.Any())
             {
                 var errorMessage = string.Join("\n", errorMessages);
-                await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.PartialSuccess, errorMessage);
+                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, errorMessage);
                 _logger.LogWarning("売上伝票CSV取込部分成功: 成功{Success}件, エラー{Error}件", 
                     importedCount, errorMessages.Count);
             }
             else
             {
-                await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Completed);
+                await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, importedCount);
                 _logger.LogInformation("売上伝票CSV取込完了: {Count}件", importedCount);
                 
                 // 最終売上日を更新
@@ -302,7 +304,7 @@ public class SalesVoucherImportService
         }
         catch (Exception ex)
         {
-            await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
+            await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
             _logger.LogError(ex, "売上伝票CSV取込エラー: {FilePath}", filePath);
             
             // エラー時、ファイルをErrorフォルダへ移動

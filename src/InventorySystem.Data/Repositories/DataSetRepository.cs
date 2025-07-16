@@ -111,7 +111,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
                 Status = status,
                 ErrorMessage = errorMessage,
                 UpdatedAt = DateTime.Now,
-                CompletedDate = (status == DataSetStatus.Completed || status == DataSetStatus.Failed) ? DateTime.Now : (DateTime?)null
+                CompletedDate = (status == InventorySystem.Core.Entities.DataSetStatus.Completed || status == InventorySystem.Core.Entities.DataSetStatus.Failed) ? DateTime.Now : (DateTime?)null
             };
 
             var affectedRows = await connection.ExecuteAsync(sql, parameters);
@@ -255,7 +255,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
         {
             using var connection = new SqlConnection(_connectionString);
             var count = await connection.QuerySingleAsync<int>(sql, 
-                new { JobDate = jobDate.Date, Status = DataSetStatus.Completed });
+                new { JobDate = jobDate.Date, Status = InventorySystem.Core.Entities.DataSetStatus.Completed });
             
             return count;
         }

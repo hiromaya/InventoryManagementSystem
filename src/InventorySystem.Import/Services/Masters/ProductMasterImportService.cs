@@ -8,6 +8,8 @@ using InventorySystem.Import.Models.Masters;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text;
+using InventorySystem.Core.Models;
+using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus;
 
 namespace InventorySystem.Import.Services.Masters;
 
@@ -18,15 +20,18 @@ public class ProductMasterImportService
 {
     private readonly IProductMasterRepository _productMasterRepository;
     private readonly IDataSetRepository _dataSetRepository;
+    private readonly IUnifiedDataSetService _unifiedDataSetService;
     private readonly ILogger<ProductMasterImportService> _logger;
 
     public ProductMasterImportService(
         IProductMasterRepository productMasterRepository,
         IDataSetRepository dataSetRepository,
+        IUnifiedDataSetService unifiedDataSetService,
         ILogger<ProductMasterImportService> logger)
     {
         _productMasterRepository = productMasterRepository;
         _dataSetRepository = dataSetRepository;
+        _unifiedDataSetService = unifiedDataSetService;
         _logger = logger;
     }
 
@@ -49,22 +54,19 @@ public class ProductMasterImportService
 
         try
         {
-            // データセット作成
-            var dataSet = new DataSet
+            // 統一データセット作成
+            var dataSetInfo = new UnifiedDataSetInfo
             {
-                Id = dataSetId,
+                ProcessType = "PRODUCT",
+                ImportType = "IMPORT",
                 Name = $"商品マスタ取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
                 Description = $"商品マスタCSV取込: {Path.GetFileName(filePath)}",
-                ProcessType = "ProductMaster",
-                Status = DataSetStatus.Processing,
-                RecordCount = 0,
-                FilePath = filePath,
                 JobDate = importDate,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                FilePath = filePath,
+                CreatedBy = "product-master-import"
             };
             
-            await _dataSetRepository.CreateAsync(dataSet);
+            dataSetId = await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
 
             // CSV読み込み処理
             var products = new List<ProductMaster>();
@@ -106,19 +108,19 @@ public class ProductMasterImportService
                 _logger.LogInformation("商品マスタ保存完了: {Count}件", products.Count);
             }
 
-            // データセットステータス更新
-            await _dataSetRepository.UpdateRecordCountAsync(dataSetId, importedCount);
+            // データセットレコード数更新
+            await _unifiedDataSetService.UpdateRecordCountAsync(dataSetId, importedCount);
             
             if (errorMessages.Any())
             {
                 var errorMessage = string.Join("\n", errorMessages);
-                await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.PartialSuccess, errorMessage);
+                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, errorMessage);
                 _logger.LogWarning("商品マスタCSV取込部分成功: 成功{Success}件, エラー{Error}件", 
                     importedCount, errorMessages.Count);
             }
             else
             {
-                await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Completed);
+                await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, importedCount);
                 _logger.LogInformation("商品マスタCSV取込完了: {Count}件", importedCount);
             }
 
@@ -134,7 +136,7 @@ public class ProductMasterImportService
         }
         catch (Exception ex)
         {
-            await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
+            await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
             _logger.LogError(ex, "商品マスタCSV取込エラー: {FilePath}", filePath);
             throw;
         }

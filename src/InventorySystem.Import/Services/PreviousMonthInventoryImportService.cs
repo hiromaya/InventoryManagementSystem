@@ -7,6 +7,7 @@ using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Import.Models;
 using InventorySystem.Data.Repositories;
+using InventorySystem.Core.Models;
 
 namespace InventorySystem.Import.Services;
 
@@ -18,16 +19,16 @@ public class PreviousMonthInventoryImportService
     private readonly IInventoryRepository _inventoryRepository;
     private readonly ILogger<PreviousMonthInventoryImportService> _logger;
     private readonly string _importPath;
-    private readonly IDataSetManagementRepository _dataSetRepository;
+    private readonly IUnifiedDataSetService _unifiedDataSetService;
 
     public PreviousMonthInventoryImportService(
         IInventoryRepository inventoryRepository,
         ILogger<PreviousMonthInventoryImportService> logger,
-        IDataSetManagementRepository dataSetRepository)
+        IUnifiedDataSetService unifiedDataSetService)
     {
         _inventoryRepository = inventoryRepository;
         _logger = logger;
-        _dataSetRepository = dataSetRepository;
+        _unifiedDataSetService = unifiedDataSetService;
         _importPath = @"D:\InventoryImport\DeptA\Import\前月末在庫.csv";
     }
 
@@ -90,7 +91,7 @@ public class PreviousMonthInventoryImportService
             }
 
             // DataSetIdを生成
-            var dataSetId = DataSetManagement.GenerateDataSetId("INIT");
+            var dataSetId = $"INIT_{DateTime.Now:yyyyMMdd_HHmmss}";
             _logger.LogInformation("DataSetId生成: {DataSetId}", dataSetId);
             
             // 前月末の日付を取得
@@ -171,31 +172,31 @@ public class PreviousMonthInventoryImportService
             {
                 _logger.LogInformation("=== ステップ4: トランザクション処理開始 ===");
                 
-                // DataSetManagementエンティティを作成
-                var dataSetManagement = new DataSetManagement
+                // 統一データセット作成
+                var dataSetInfo = new UnifiedDataSetInfo
                 {
                     DataSetId = dataSetId,
-                    JobDate = importDate,
                     ProcessType = "INIT_INVENTORY",
                     ImportType = "INIT",
-                    RecordCount = inventoryList.Count,
-                    TotalRecordCount = inventoryList.Count,
-                    IsActive = true,
-                    IsArchived = false,
-                    ParentDataSetId = null,
-                    ImportedFiles = Path.GetFileName(_importPath),
-                    CreatedAt = DateTime.Now,
-                    CreatedBy = "init-inventory",
+                    Name = $"前月末在庫インポート {importDate:yyyy/MM/dd}",
+                    Description = $"前月末在庫インポート: {inventoryList.Count}件",
+                    JobDate = importDate,
                     Department = "DeptA",
-                    Notes = $"前月末在庫インポート: {inventoryList.Count}件"
+                    FilePath = Path.GetFileName(_importPath),
+                    CreatedBy = "init-inventory"
                 };
+                
+                await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
                 
                 // トランザクション内で一括処理
                 var processedCount = await _inventoryRepository.ProcessInitialInventoryInTransactionAsync(
                     inventoryList, 
-                    dataSetManagement,
+                    null,  // DataSetManagementはUnifiedDataSetServiceが管理するため
                     deactivateExisting: true
                 );
+                
+                // 処理完了をマーク
+                await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, processedCount);
                 
                 _logger.LogInformation("=== ステップ5: トランザクション処理完了 ===");
                 _logger.LogInformation("処理済み: {Processed}件", processedCount);
@@ -281,7 +282,7 @@ public class PreviousMonthInventoryImportService
             }
 
             // DataSetIdを生成
-            var dataSetId = DataSetManagement.GenerateDataSetId("INIT");
+            var dataSetId = $"INIT_{DateTime.Now:yyyyMMdd_HHmmss}";
             _logger.LogInformation("DataSetId生成: {DataSetId}", dataSetId);
             
             // 既存のINITデータを確認（対象期間のもの）
@@ -451,28 +452,26 @@ public class PreviousMonthInventoryImportService
             _logger.LogInformation("日付フィルタでスキップ: {DateSkipped}件", skippedByDateFilter);
             _logger.LogInformation("エラー: {Error}件", errorCount);
             
-            // DataSetManagementに登録
+            // 統一データセット登録
             if (processedCount > 0)
             {
-                await _dataSetRepository.CreateAsync(new DataSetManagement
+                var dataSetInfo = new UnifiedDataSetInfo
                 {
                     DataSetId = dataSetId,
-                    JobDate = startDate,
                     ProcessType = "INIT_INVENTORY",
                     ImportType = "INIT",
-                    RecordCount = processedCount,
-                    TotalRecordCount = processedCount,
-                    IsActive = true,
-                    IsArchived = false,
-                    ParentDataSetId = null,
-                    ImportedFiles = Path.GetFileName(_importPath),
-                    CreatedAt = DateTime.Now,
-                    CreatedBy = "init-inventory",
+                    Name = $"前月末在庫インポート {startDate:yyyy/MM/dd}",
+                    Description = $"前月末在庫インポート: {processedCount}件",
+                    JobDate = startDate,
                     Department = "DeptA",
-                    Notes = $"前月末在庫インポート: {processedCount}件"
-                });
+                    FilePath = Path.GetFileName(_importPath),
+                    CreatedBy = "init-inventory"
+                };
                 
-                _logger.LogInformation("DataSetManagementに登録完了: DataSetId={DataSetId}", dataSetId);
+                await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
+                await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, processedCount);
+                
+                _logger.LogInformation("統一データセット登録完了: DataSetId={DataSetId}", dataSetId);
             }
 
             result.ProcessedRecords = processedCount;

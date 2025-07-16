@@ -6,6 +6,8 @@ using InventorySystem.Import.Models;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text;
+using InventorySystem.Core.Models;
+using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus;
 
 namespace InventorySystem.Import.Services;
 
@@ -16,15 +18,18 @@ public class InventoryAdjustmentImportService
 {
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
     private readonly IDataSetRepository _dataSetRepository;
+    private readonly IUnifiedDataSetService _unifiedDataSetService;
     private readonly ILogger<InventoryAdjustmentImportService> _logger;
     
     public InventoryAdjustmentImportService(
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
         IDataSetRepository dataSetRepository,
+        IUnifiedDataSetService unifiedDataSetService,
         ILogger<InventoryAdjustmentImportService> logger)
     {
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
         _dataSetRepository = dataSetRepository;
+        _unifiedDataSetService = unifiedDataSetService;
         _logger = logger;
     }
 
@@ -76,23 +81,20 @@ public class InventoryAdjustmentImportService
 
         try
         {
-            // データセット作成
-            var dataSet = new DataSet
+            // 統一データセット作成
+            var dataSetInfo = new UnifiedDataSetInfo
             {
-                Id = dataSetId,
-                ProcessType = "Adjustment",
+                ProcessType = "ADJUSTMENT",
+                ImportType = "IMPORT",
                 Name = $"在庫調整取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
                 Description = $"在庫調整CSVファイル取込: {Path.GetFileName(filePath)}",
-                CreatedAt = DateTime.Now,
-                RecordCount = 0,
-                Status = DataSetStatus.Processing,
-                FilePath = filePath,
                 JobDate = startDate ?? DateTime.Today,
-                DepartmentCode = departmentCode,
-                UpdatedAt = DateTime.Now
+                Department = departmentCode,
+                FilePath = filePath,
+                CreatedBy = "adjustment-import"
             };
             
-            await _dataSetRepository.CreateAsync(dataSet);
+            dataSetId = await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
 
             // CSV読み込み処理（販売大臣フォーマット対応）
             var adjustments = new List<InventoryAdjustment>();
@@ -191,8 +193,8 @@ public class InventoryAdjustmentImportService
                 }
             }
 
-            // データセットステータス更新
-            await _dataSetRepository.UpdateRecordCountAsync(dataSetId, importedCount);
+            // データセットレコード数更新
+            await _unifiedDataSetService.UpdateRecordCountAsync(dataSetId, importedCount);
             
             // 統計情報のログ出力
             if (preserveCsvDates && dateStatistics.Any())
@@ -210,13 +212,13 @@ public class InventoryAdjustmentImportService
             if (errorMessages.Any())
             {
                 var errorMessage = string.Join("\n", errorMessages);
-                await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.PartialSuccess, errorMessage);
+                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, errorMessage);
                 _logger.LogWarning("在庫調整CSV取込部分成功: 成功{Success}件, エラー{Error}件", 
                     importedCount, errorMessages.Count);
             }
             else
             {
-                await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Completed);
+                await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, importedCount);
                 _logger.LogInformation("在庫調整CSV取込完了: {Count}件", importedCount);
             }
 
@@ -224,7 +226,7 @@ public class InventoryAdjustmentImportService
         }
         catch (Exception ex)
         {
-            await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
+            await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
             _logger.LogError(ex, "在庫調整CSV取込エラー: {FilePath}", filePath);
             throw;
         }

@@ -19,7 +19,7 @@ public class InitialInventoryImportService
 {
     private readonly IInventoryRepository _inventoryRepository;
     private readonly IProductMasterRepository _productRepository;
-    private readonly IDataSetManagementRepository _dataSetRepository;
+    private readonly IUnifiedDataSetService _unifiedDataSetService;
     private readonly ILogger<InitialInventoryImportService> _logger;
     private readonly string _importPath;
     private readonly string _processedPath;
@@ -28,7 +28,7 @@ public class InitialInventoryImportService
     public InitialInventoryImportService(
         IInventoryRepository inventoryRepository,
         IProductMasterRepository productRepository,
-        IDataSetManagementRepository dataSetRepository,
+        IUnifiedDataSetService unifiedDataSetService,
         ILogger<InitialInventoryImportService> logger,
         string importPath,
         string processedPath,
@@ -36,7 +36,7 @@ public class InitialInventoryImportService
     {
         _inventoryRepository = inventoryRepository;
         _productRepository = productRepository;
-        _dataSetRepository = dataSetRepository;
+        _unifiedDataSetService = unifiedDataSetService;
         _logger = logger;
         _importPath = importPath;
         _processedPath = processedPath;
@@ -381,29 +381,31 @@ public class InitialInventoryImportService
                 jobDate, existingCount);
         }
 
-        // DataSetManagementエンティティを作成
-        var dataSetManagement = new DataSetManagement
+        // 統一データセット作成（dataSetIdは既に生成済みなので使用）
+        var dataSetInfo = new UnifiedDataSetInfo
         {
             DataSetId = dataSetId,
-            JobDate = jobDate,
             ProcessType = "INITIAL_INVENTORY",
             ImportType = "INIT",
-            RecordCount = inventories.Count,
-            TotalRecordCount = inventories.Count,
-            IsActive = true,
-            IsArchived = false,
+            Name = $"初期在庫インポート {jobDate:yyyy/MM/dd}",
+            Description = $"初期在庫インポート: {inventories.Count}件",
+            JobDate = jobDate,
             Department = department,
-            CreatedAt = DateTime.Now,
-            CreatedBy = "import-initial-inventory",
-            Notes = $"初期在庫インポート: {inventories.Count}件"
+            CreatedBy = "import-initial-inventory"
         };
+        
+        // 統一データセットサービスで作成
+        await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
 
-        // トランザクション内で処理を実行
+        // トランザクション内で処理を実行（DataSetManagementエンティティは不要になった）
         var processedCount = await _inventoryRepository.ProcessInitialInventoryInTransactionAsync(
             inventories,
-            dataSetManagement,
-            true  // 既存のINITデータを無効化
+            null,  // DataSetManagementはUnifiedDataSetServiceが管理するため
+            true   // 既存のINITデータを無効化
         );
+
+        // 処理完了をマーク
+        await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, processedCount);
 
         _logger.LogInformation("データベース登録完了: {ProcessedCount}件処理", processedCount);
     }

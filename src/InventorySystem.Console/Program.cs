@@ -191,6 +191,8 @@ builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
 builder.Services.AddScoped<ICpInventoryCreationService, CpInventoryCreationService>();
+// Unified DataSet Service (Phase 1: dual-write implementation)
+builder.Services.AddScoped<IUnifiedDataSetService, UnifiedDataSetService>();
 // Report Services
 #if WINDOWS
 // FastReportサービスの登録（Windows環境のみ）
