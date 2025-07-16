@@ -8,6 +8,8 @@ using InventorySystem.Import.Models.Masters;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text;
+using InventorySystem.Core.Models;
+using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus;
 
 namespace InventorySystem.Import.Services.Masters;
 
@@ -18,15 +20,18 @@ public class CustomerMasterImportService
 {
     private readonly ICustomerMasterRepository _customerMasterRepository;
     private readonly IDataSetRepository _dataSetRepository;
+    private readonly IUnifiedDataSetService _unifiedDataSetService;
     private readonly ILogger<CustomerMasterImportService> _logger;
 
     public CustomerMasterImportService(
         ICustomerMasterRepository customerMasterRepository,
         IDataSetRepository dataSetRepository,
+        IUnifiedDataSetService unifiedDataSetService,
         ILogger<CustomerMasterImportService> logger)
     {
         _customerMasterRepository = customerMasterRepository;
         _dataSetRepository = dataSetRepository;
+        _unifiedDataSetService = unifiedDataSetService;
         _logger = logger;
     }
 
@@ -49,22 +54,19 @@ public class CustomerMasterImportService
 
         try
         {
-            // データセット作成
-            var dataSet = new DataSet
+            // 統一データセット作成
+            var dataSetInfo = new UnifiedDataSetInfo
             {
-                Id = dataSetId,
+                ProcessType = "CUSTOMER",
+                ImportType = "IMPORT",
                 Name = $"得意先マスタ取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
                 Description = $"得意先マスタCSV取込: {Path.GetFileName(filePath)}",
-                ProcessType = "CustomerMaster",
-                Status = DataSetStatus.Processing,
-                RecordCount = 0,
-                FilePath = filePath,
                 JobDate = importDate,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                FilePath = filePath,
+                CreatedBy = "customer-master-import"
             };
             
-            await _dataSetRepository.CreateAsync(dataSet);
+            dataSetId = await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
 
             // CSV読み込み処理
             var customers = new List<CustomerMaster>();
@@ -106,26 +108,26 @@ public class CustomerMasterImportService
                 _logger.LogInformation("得意先マスタ保存完了: {Count}件", customers.Count);
             }
 
-            // データセットステータス更新
-            await _dataSetRepository.UpdateRecordCountAsync(dataSetId, importedCount);
+            // データセットレコード数更新
+            await _unifiedDataSetService.UpdateRecordCountAsync(dataSetId, importedCount);
             
             if (errorMessages.Any())
             {
                 var errorMessage = string.Join("\n", errorMessages);
-                await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.PartialSuccess, errorMessage);
+                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, errorMessage);
                 _logger.LogWarning("得意先マスタCSV取込部分成功: 成功{Success}件, エラー{Error}件", 
                     importedCount, errorMessages.Count);
             }
             else
             {
-                await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Completed);
+                await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, importedCount);
                 _logger.LogInformation("得意先マスタCSV取込完了: {Count}件", importedCount);
             }
 
             return new ImportResult
             {
                 DataSetId = dataSetId,
-                Status = errorMessages.Any() ? DataSetStatus.PartialSuccess : DataSetStatus.Completed,
+                Status = errorMessages.Any() ? "Failed" : "Completed",
                 ImportedCount = importedCount,
                 ErrorMessage = errorMessages.Any() ? string.Join("\n", errorMessages) : null,
                 FilePath = filePath,
@@ -134,7 +136,7 @@ public class CustomerMasterImportService
         }
         catch (Exception ex)
         {
-            await _dataSetRepository.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
+            await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
             _logger.LogError(ex, "得意先マスタCSV取込エラー: {FilePath}", filePath);
             throw;
         }

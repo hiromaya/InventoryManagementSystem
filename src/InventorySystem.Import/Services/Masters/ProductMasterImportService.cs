@@ -127,7 +127,7 @@ public class ProductMasterImportService
             return new ImportResult
             {
                 DataSetId = dataSetId,
-                Status = errorMessages.Any() ? DataSetStatus.PartialSuccess : DataSetStatus.Completed,
+                Status = errorMessages.Any() ? "Failed" : "Completed",
                 ImportedCount = importedCount,
                 ErrorMessage = errorMessages.Any() ? string.Join("\n", errorMessages) : null,
                 FilePath = filePath,
