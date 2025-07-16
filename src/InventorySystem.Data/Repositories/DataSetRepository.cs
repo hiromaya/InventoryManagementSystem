@@ -23,10 +23,10 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     {
         const string sql = @"
             INSERT INTO DataSets (
-                Id, Name, Description, ProcessType, Status, JobDate,
+                Id, DataSetType, ImportedAt, Status, JobDate,
                 RecordCount, ErrorMessage, FilePath, CreatedAt, UpdatedAt
             ) VALUES (
-                @Id, @Name, @Description, @ProcessType, @Status, @JobDate,
+                @Id, @ProcessType, @ImportedAt, @Status, @JobDate,
                 @RecordCount, @ErrorMessage, @FilePath, @CreatedAt, @UpdatedAt
             )";
 
@@ -37,9 +37,8 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
             var parameters = new
             {
                 dataSet.Id,
-                dataSet.Name,
-                dataSet.Description,
-                dataSet.ProcessType,
+                dataSet.ProcessType, // DataSetTypeとして登録
+                ImportedAt = dataSet.ImportedAt,
                 dataSet.Status,
                 dataSet.JobDate,
                 dataSet.RecordCount,
@@ -69,8 +68,8 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     public async Task<DataSet?> GetByIdAsync(string id)
     {
         const string sql = @"
-            SELECT Id, Name, Description, ProcessType, Status, JobDate,
-                   RecordCount, ErrorMessage, FilePath, CreatedAt, UpdatedAt, CompletedDate
+            SELECT Id, DataSetType as ProcessType, ImportedAt, RecordCount, Status, 
+                   ErrorMessage, FilePath, JobDate, CreatedAt, UpdatedAt
             FROM DataSets 
             WHERE Id = @Id";
 
