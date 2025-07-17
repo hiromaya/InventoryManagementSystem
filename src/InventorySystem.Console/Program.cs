@@ -162,6 +162,16 @@ builder.Services.AddScoped<SupplierMasterImportService>();
 builder.Services.AddScoped<IShippingMarkMasterImportService, ShippingMarkMasterImportService>();
 builder.Services.AddScoped<IRegionMasterImportService, RegionMasterImportService>();
 
+// インポートサービスの一括登録
+// この1行で以下の16種類のサービスがすべて登録されます：
+// - UnitMasterImportService
+// - ProductCategory1-3ImportService  
+// - CustomerCategory1-5ImportService
+// - SupplierCategory1-3ImportService
+// - StaffMasterImportService, StaffCategory1ImportService
+// - ReceiptVoucherImportService, PaymentVoucherImportService
+builder.Services.AddImportServices(connectionString);
+
 // FileStorage設定の登録
 builder.Services.Configure<FileStorageSettings>(
     builder.Configuration.GetSection("FileStorage"));
