@@ -55,21 +55,3 @@ public class StaffMasterImportService : IImportService
         };
     }
 }
-
-/// <summary>
-/// 担当者分類1マスタCSV取込サービス
-/// </summary>
-public class StaffCategory1ImportService : MasterImportServiceBase<StaffCategory1Master, StaffCategory1MasterCsv>
-{
-    protected override string FileNamePattern => "担当者分類１";
-    public override string ServiceName => "担当者分類1マスタ";
-    public override int ProcessOrder => 51;
-
-    public StaffCategory1ImportService(
-        ICategoryMasterRepository<StaffCategory1Master> repository,
-        IUnifiedDataSetService unifiedDataSetService,
-        ILogger<StaffCategory1ImportService> logger)
-        : base(repository, unifiedDataSetService, logger)
-    {
-    }
-}

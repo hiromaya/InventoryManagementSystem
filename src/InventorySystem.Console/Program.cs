@@ -2476,7 +2476,7 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         Console.WriteLine($"処理中: {fileName}");
                         
                         var importServices = scopedServices.GetServices<IImportService>();
-                        var service = importServices.FirstOrDefault(s => s.GetType().Name == "DepositVoucherImportService");
+                        var service = importServices.FirstOrDefault(s => s.GetType().Name == "ReceiptVoucherImportService");
                         
                         if (service != null)
                         {
@@ -2495,8 +2495,8 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         }
                         else
                         {
-                            logger.LogError("入金伝票の処理サービスが見つかりません: DepositVoucherImportService");
-                            Console.WriteLine("❌ サービスが見つかりません: DepositVoucherImportService");
+                            logger.LogError("入金伝票の処理サービスが見つかりません: ReceiptVoucherImportService");
+                            Console.WriteLine("❌ サービスが見つかりません: ReceiptVoucherImportService");
                         }
                         
                         // ファイル移動をスキップ（処理履歴で管理）

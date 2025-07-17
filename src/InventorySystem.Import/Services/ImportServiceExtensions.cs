@@ -81,6 +81,10 @@ public static class ImportServiceExtensions
         // 担当者マスタ
         services.AddScoped<IImportService, StaffMasterImportService>();
         services.AddScoped<IImportService, StaffCategory1ImportService>();
+        
+        // 入金・支払伝票
+        services.AddScoped<IImportService, ReceiptVoucherImportService>();
+        services.AddScoped<IImportService, PaymentVoucherImportService>();
 
         return services;
     }
