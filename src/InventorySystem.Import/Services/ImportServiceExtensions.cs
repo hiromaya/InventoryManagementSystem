@@ -91,7 +91,7 @@ public static class ImportServiceExtensions
     public static void LogImportServices(this IServiceProvider serviceProvider)
     {
         var services = serviceProvider.GetServices<IImportService>();
-        var logger = serviceProvider.GetRequiredService<ILogger<ImportServiceExtensions>>();
+        var logger = serviceProvider.GetRequiredService<ILogger<object>>();
         
         logger.LogInformation("=== 登録済みインポートサービス一覧 ===");
         foreach (var service in services.OrderBy(s => s.ProcessOrder))
