@@ -1724,11 +1724,45 @@ static async Task ExecuteImportPreviousInventoryAsync(IServiceProvider services,
 }
 
 /// <summary>
+/// ファイル名から分類番号を抽出
+/// </summary>
+private static int ExtractCategoryNumber(string fileName)
+{
+    // "商品分類１.csv" → 1
+    // "得意先分類２.csv" → 2
+    // "仕入先分類３.csv" → 3
+    
+    // 正規表現で数字を抽出
+    var match = System.Text.RegularExpressions.Regex.Match(fileName, @"分類(\d+)");
+    if (match.Success && int.TryParse(match.Groups[1].Value, out int number))
+    {
+        return number;
+    }
+    
+    // 全角数字の場合も考慮
+    var zenkakuMatch = System.Text.RegularExpressions.Regex.Match(fileName, @"分類([１２３４５６７８９０]+)");
+    if (zenkakuMatch.Success)
+    {
+        var zenkakuNumber = zenkakuMatch.Groups[1].Value
+            .Replace("１", "1").Replace("２", "2").Replace("３", "3")
+            .Replace("４", "4").Replace("５", "5").Replace("６", "6")
+            .Replace("７", "7").Replace("８", "8").Replace("９", "9")
+            .Replace("０", "0");
+        if (int.TryParse(zenkakuNumber, out int zNumber))
+        {
+            return zNumber;
+        }
+    }
+    
+    return 1; // デフォルト値
+}
+
+/// <summary>
 /// ファイル処理順序を取得
 /// </summary>
 private static int GetFileProcessOrder(string fileName)
 {
-    // Phase 1: マスタファイル（優先度1-8）
+    // Phase 1: マスタファイル（優先度1-15）
     if (fileName.Contains("等級汎用マスター")) return 1;
     if (fileName.Contains("階級汎用マスター")) return 2;
     if (fileName.Contains("荷印汎用マスター")) return 3;
@@ -1738,15 +1772,26 @@ private static int GetFileProcessOrder(string fileName)
     if (fileName == "仕入先.csv") return 7;
     if (fileName == "単位.csv") return 8;
     
-    // Phase 2: 初期在庫（優先度10）
-    if (fileName == "前月末在庫.csv") return 10;
+    // 分類マスタ（優先度9-15）
+    if (fileName.Contains("商品分類")) return 9;
+    if (fileName.Contains("得意先分類")) return 10;
+    if (fileName.Contains("仕入先分類")) return 11;
+    if (fileName == "担当者.csv") return 12;
+    if (fileName.Contains("担当者分類")) return 13;
     
-    // Phase 3: 伝票ファイル（優先度20-22）
-    if (fileName.StartsWith("売上伝票")) return 20;
-    if (fileName.StartsWith("仕入伝票")) return 21;
-    if (fileName.StartsWith("在庫調整") || fileName.StartsWith("受注伝票")) return 22;
+    // Phase 2: 初期在庫（優先度20）
+    if (fileName == "前月末在庫.csv") return 20;
     
-    // Phase 4: その他（優先度99）
+    // Phase 3: 伝票ファイル（優先度30-32）
+    if (fileName.StartsWith("売上伝票")) return 30;
+    if (fileName.StartsWith("仕入伝票")) return 31;
+    if (fileName.StartsWith("在庫調整") || fileName.StartsWith("受注伝票")) return 32;
+    
+    // Phase 4: 入出金ファイル（優先度40-41）
+    if (fileName.StartsWith("入金伝票")) return 40;
+    if (fileName.StartsWith("支払伝票")) return 41;
+    
+    // Phase 5: その他（優先度99）
     return 99;
 }
 
@@ -2226,6 +2271,268 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         // await fileService.MoveToProcessedAsync(file, department);
                         logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
                     }
+                    // ========== 分類マスタファイル ==========
+                    else if (fileName.Contains("商品分類") && fileName.EndsWith(".csv"))
+                    {
+                        Console.WriteLine($"処理中: {fileName}");
+                        
+                        var categoryNumber = ExtractCategoryNumber(fileName);
+                        var serviceName = $"ProductCategory{categoryNumber}ImportService";
+                        
+                        // ImportServiceExtensionsで登録されたサービスを検索
+                        var importServices = scopedServices.GetServices<IImportService>();
+                        var service = importServices.FirstOrDefault(s => s.GetType().Name == serviceName);
+                        
+                        if (service != null)
+                        {
+                            try
+                            {
+                                await service.ImportAsync(file, startDate ?? DateTime.Today);
+                                processedCounts[$"商品分類{categoryNumber}"] = 1; // 処理成功
+                                Console.WriteLine($"✅ 商品分類{categoryNumber}マスタとして処理完了");
+                                logger.LogInformation("商品分類{CategoryNumber}マスタ取込完了: {File}", categoryNumber, fileName);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "商品分類{CategoryNumber}マスタ処理エラー: {File}", categoryNumber, fileName);
+                                Console.WriteLine($"❌ エラー: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            logger.LogError("商品分類{CategoryNumber}の処理サービスが見つかりません: {ServiceName}", categoryNumber, serviceName);
+                            Console.WriteLine($"❌ サービスが見つかりません: {serviceName}");
+                        }
+                        
+                        // ファイル移動をスキップ（処理履歴で管理）
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
+                    }
+                    else if (fileName.Contains("得意先分類") && fileName.EndsWith(".csv"))
+                    {
+                        Console.WriteLine($"処理中: {fileName}");
+                        
+                        var categoryNumber = ExtractCategoryNumber(fileName);
+                        var serviceName = $"CustomerCategory{categoryNumber}ImportService";
+                        
+                        var importServices = scopedServices.GetServices<IImportService>();
+                        var service = importServices.FirstOrDefault(s => s.GetType().Name == serviceName);
+                        
+                        if (service != null)
+                        {
+                            try
+                            {
+                                await service.ImportAsync(file, startDate ?? DateTime.Today);
+                                processedCounts[$"得意先分類{categoryNumber}"] = 1; // 処理成功
+                                Console.WriteLine($"✅ 得意先分類{categoryNumber}マスタとして処理完了");
+                                logger.LogInformation("得意先分類{CategoryNumber}マスタ取込完了: {File}", categoryNumber, fileName);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "得意先分類{CategoryNumber}マスタ処理エラー: {File}", categoryNumber, fileName);
+                                Console.WriteLine($"❌ エラー: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            logger.LogError("得意先分類{CategoryNumber}の処理サービスが見つかりません: {ServiceName}", categoryNumber, serviceName);
+                            Console.WriteLine($"❌ サービスが見つかりません: {serviceName}");
+                        }
+                        
+                        // ファイル移動をスキップ（処理履歴で管理）
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
+                    }
+                    else if (fileName.Contains("仕入先分類") && fileName.EndsWith(".csv"))
+                    {
+                        Console.WriteLine($"処理中: {fileName}");
+                        
+                        var categoryNumber = ExtractCategoryNumber(fileName);
+                        var serviceName = $"SupplierCategory{categoryNumber}ImportService";
+                        
+                        var importServices = scopedServices.GetServices<IImportService>();
+                        var service = importServices.FirstOrDefault(s => s.GetType().Name == serviceName);
+                        
+                        if (service != null)
+                        {
+                            try
+                            {
+                                await service.ImportAsync(file, startDate ?? DateTime.Today);
+                                processedCounts[$"仕入先分類{categoryNumber}"] = 1; // 処理成功
+                                Console.WriteLine($"✅ 仕入先分類{categoryNumber}マスタとして処理完了");
+                                logger.LogInformation("仕入先分類{CategoryNumber}マスタ取込完了: {File}", categoryNumber, fileName);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "仕入先分類{CategoryNumber}マスタ処理エラー: {File}", categoryNumber, fileName);
+                                Console.WriteLine($"❌ エラー: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            logger.LogError("仕入先分類{CategoryNumber}の処理サービスが見つかりません: {ServiceName}", categoryNumber, serviceName);
+                            Console.WriteLine($"❌ サービスが見つかりません: {serviceName}");
+                        }
+                        
+                        // ファイル移動をスキップ（処理履歴で管理）
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
+                    }
+                    else if (fileName.Contains("担当者分類") && fileName.EndsWith(".csv"))
+                    {
+                        Console.WriteLine($"処理中: {fileName}");
+                        
+                        var categoryNumber = ExtractCategoryNumber(fileName);
+                        var serviceName = $"StaffCategory{categoryNumber}ImportService";
+                        
+                        var importServices = scopedServices.GetServices<IImportService>();
+                        var service = importServices.FirstOrDefault(s => s.GetType().Name == serviceName);
+                        
+                        if (service != null)
+                        {
+                            try
+                            {
+                                await service.ImportAsync(file, startDate ?? DateTime.Today);
+                                processedCounts[$"担当者分類{categoryNumber}"] = 1; // 処理成功
+                                Console.WriteLine($"✅ 担当者分類{categoryNumber}マスタとして処理完了");
+                                logger.LogInformation("担当者分類{CategoryNumber}マスタ取込完了: {File}", categoryNumber, fileName);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "担当者分類{CategoryNumber}マスタ処理エラー: {File}", categoryNumber, fileName);
+                                Console.WriteLine($"❌ エラー: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            logger.LogError("担当者分類{CategoryNumber}の処理サービスが見つかりません: {ServiceName}", categoryNumber, serviceName);
+                            Console.WriteLine($"❌ サービスが見つかりません: {serviceName}");
+                        }
+                        
+                        // ファイル移動をスキップ（処理履歴で管理）
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
+                    }
+                    else if (fileName == "単位.csv")
+                    {
+                        Console.WriteLine($"処理中: {fileName}");
+                        
+                        var importServices = scopedServices.GetServices<IImportService>();
+                        var service = importServices.FirstOrDefault(s => s.GetType().Name == "UnitMasterImportService");
+                        
+                        if (service != null)
+                        {
+                            try
+                            {
+                                await service.ImportAsync(file, startDate ?? DateTime.Today);
+                                processedCounts["単位マスタ"] = 1; // 処理成功
+                                Console.WriteLine("✅ 単位マスタとして処理完了");
+                                logger.LogInformation("単位マスタ取込完了: {File}", fileName);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "単位マスタ処理エラー: {File}", fileName);
+                                Console.WriteLine($"❌ エラー: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            logger.LogError("単位マスタの処理サービスが見つかりません: UnitMasterImportService");
+                            Console.WriteLine("❌ サービスが見つかりません: UnitMasterImportService");
+                        }
+                        
+                        // ファイル移動をスキップ（処理履歴で管理）
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
+                    }
+                    else if (fileName == "担当者.csv")
+                    {
+                        Console.WriteLine($"処理中: {fileName}");
+                        
+                        var importServices = scopedServices.GetServices<IImportService>();
+                        var service = importServices.FirstOrDefault(s => s.GetType().Name == "StaffMasterImportService");
+                        
+                        if (service != null)
+                        {
+                            try
+                            {
+                                await service.ImportAsync(file, startDate ?? DateTime.Today);
+                                processedCounts["担当者マスタ"] = 1; // 処理成功
+                                Console.WriteLine("✅ 担当者マスタとして処理完了");
+                                logger.LogInformation("担当者マスタ取込完了: {File}", fileName);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "担当者マスタ処理エラー: {File}", fileName);
+                                Console.WriteLine($"❌ エラー: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            logger.LogError("担当者マスタの処理サービスが見つかりません: StaffMasterImportService");
+                            Console.WriteLine("❌ サービスが見つかりません: StaffMasterImportService");
+                        }
+                        
+                        // ファイル移動をスキップ（処理履歴で管理）
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
+                    }
+                    else if (fileName.StartsWith("入金伝票") && fileName.EndsWith(".csv"))
+                    {
+                        Console.WriteLine($"処理中: {fileName}");
+                        
+                        var importServices = scopedServices.GetServices<IImportService>();
+                        var service = importServices.FirstOrDefault(s => s.GetType().Name == "DepositVoucherImportService");
+                        
+                        if (service != null)
+                        {
+                            try
+                            {
+                                await service.ImportAsync(file, startDate ?? DateTime.Today);
+                                processedCounts["入金伝票"] = 1; // 処理成功
+                                Console.WriteLine("✅ 入金伝票として処理完了");
+                                logger.LogInformation("入金伝票取込完了: {File}", fileName);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "入金伝票処理エラー: {File}", fileName);
+                                Console.WriteLine($"❌ エラー: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            logger.LogError("入金伝票の処理サービスが見つかりません: DepositVoucherImportService");
+                            Console.WriteLine("❌ サービスが見つかりません: DepositVoucherImportService");
+                        }
+                        
+                        // ファイル移動をスキップ（処理履歴で管理）
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
+                    }
+                    else if (fileName.StartsWith("支払伝票") && fileName.EndsWith(".csv"))
+                    {
+                        Console.WriteLine($"処理中: {fileName}");
+                        
+                        var importServices = scopedServices.GetServices<IImportService>();
+                        var service = importServices.FirstOrDefault(s => s.GetType().Name == "PaymentVoucherImportService");
+                        
+                        if (service != null)
+                        {
+                            try
+                            {
+                                await service.ImportAsync(file, startDate ?? DateTime.Today);
+                                processedCounts["支払伝票"] = 1; // 処理成功
+                                Console.WriteLine("✅ 支払伝票として処理完了");
+                                logger.LogInformation("支払伝票取込完了: {File}", fileName);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "支払伝票処理エラー: {File}", fileName);
+                                Console.WriteLine($"❌ エラー: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            logger.LogError("支払伝票の処理サービスが見つかりません: PaymentVoucherImportService");
+                            Console.WriteLine("❌ サービスが見つかりません: PaymentVoucherImportService");
+                        }
+                        
+                        // ファイル移動をスキップ（処理履歴で管理）
+                        logger.LogInformation("ファイル移動をスキップしました（処理履歴で管理）: {File}", file);
+                    }
                     // ========== Phase 2: 初期在庫ファイル ==========
                     else if (fileName == "前月末在庫.csv")
                     {
@@ -2310,10 +2617,10 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                     // ========== 未対応ファイル ==========
                     else if (fileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
                     {
-                        // 既知の未対応ファイル
+                        // 既知の未対応ファイル（実装済みのファイルは削除）
                         string[] knownButUnsupported = {
-                            "担当者", "単位", "商品分類", "得意先分類", 
-                            "仕入先分類", "担当者分類", "支払伝票", "入金伝票"
+                            // 実装済みのため削除: "担当者", "単位", "商品分類", "得意先分類", 
+                            // "仕入先分類", "担当者分類", "支払伝票", "入金伝票"
                         };
                         
                         if (knownButUnsupported.Any(pattern => fileName.Contains(pattern)))

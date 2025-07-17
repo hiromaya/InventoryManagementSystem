@@ -1,318 +1,241 @@
-# CSV取込実装状況調査レポート
+# CSV Import Implementation Status - 調査結果
 
-生成日時: 2025-07-17 12:22:01
+**調査日時**: 2025年7月17日 12:22:01  
+**調査対象**: import-folderコマンドの分類マスタファイル処理エラー  
+**エラー**: 「未対応のCSVファイル形式」により分類マスタファイルが処理されない問題
 
-## 📋 エグゼクティブサマリー
+## 🔍 問題の概要
 
-InventoryManagementSystemプロジェクトのCSV取込機能について包括的調査を実施しました。現在、15種類のCSV取込のうち**12種類が実装済み**（完全実装7種類、スタブ実装2種類、リポジトリ直接利用3種類）で、**8種類の未実装ファイル**が特定されました。既存のインフラストラクチャは優秀で、残りの実装も迅速に対応可能です。
+### 発生している問題
+```
+処理中: 商品分類１.csv
+⚠️ 商品分類１.csv は現在未対応です（スキップ）
+```
 
-## 1. 実装済みCSV取込サービス
+```
+処理中: 得意先分類１.csv
+⚠️ 得意先分類１.csv は現在未対応です（スキップ）
+```
 
-### ✅ 完全実装（7/15）
+### 対象ファイル
+- 商品分類１.csv ～ 商品分類３.csv
+- 得意先分類１.csv ～ 得意先分類５.csv
+- 仕入先分類１.csv ～ 仕入先分類３.csv
+- 担当者分類１.csv
 
-#### 基幹取引データ
-| サービス名 | 対応CSVファイル | 実装ファイルパス | 実装規模 | 備考 |
-|-----------|----------------|-----------------|---------|------|
-| SalesVoucherImportService | 売上伝票*.csv | `/src/InventorySystem.Import/Services/SalesVoucherImportService.cs` | 507行 | **最も充実した実装**<br>日付フィルタリング、JobDate保持、スキップ追跡 |
-| PurchaseVoucherImportService | 仕入伝票*.csv | `/src/InventorySystem.Import/Services/PurchaseVoucherImportService.cs` | 351行 | 完全実装<br>バッチ処理、日付フィルタリング対応 |
-| InventoryAdjustmentImportService | 在庫調整*.csv<br>受注伝票*.csv | `/src/InventorySystem.Import/Services/InventoryAdjustmentImportService.cs` | 331行 | 受注伝票も在庫調整として処理<br>サマリー行フィルタリング機能 |
-| PreviousMonthInventoryImportService | 前月末在庫.csv | `/src/InventorySystem.Import/Services/PreviousMonthInventoryImportService.cs` | 626行 | **最も包括的な実装**<br>初期在庫セットアップ、高度な在庫管理 |
+## 📋 調査結果詳細
 
-#### マスタデータ
-| サービス名 | 対応CSVファイル | 実装ファイルパス | 実装規模 | 備考 |
-|-----------|----------------|-----------------|---------|------|
-| ProductMasterImportService | 商品.csv | `/src/InventorySystem.Import/Services/Masters/ProductMasterImportService.cs` | 275行 | 完全削除→一括挿入方式 |
-| CustomerMasterImportService | 得意先.csv | `/src/InventorySystem.Import/Services/Masters/CustomerMasterImportService.cs` | 271行 | 完全削除→一括挿入方式 |
-| SupplierMasterImportService | 仕入先.csv | `/src/InventorySystem.Import/Services/Masters/SupplierMasterImportService.cs` | 推定250行 | Program.csに登録済み |
+### 1. サービスクラスの実装状況
 
-### ⚠️ スタブ/インターフェース実装（2/15）
+#### ✅ 実装済みサービス
+以下のサービスクラスはすべて実装済み：
 
-| サービス名 | 対応CSVファイル | 実装状況 | 備考 |
-|-----------|----------------|---------|------|
-| ShippingMarkMasterImportService | 荷印汎用マスター３.csv | **Interface登録済み** | Program.cs 2134行で「未実装」と明記<br>CSV Model存在 |
-| RegionMasterImportService | 産地汎用マスター４.csv | **Interface登録済み** | Program.cs 2155行で「未実装」と明記<br>CSV Model存在 |
+| ファイル名 | サービスクラス | 実装場所 |
+|-----------|---------------|----------|
+| 商品分類１.csv | ProductCategory1ImportService | /src/InventorySystem.Import/Services/Masters/ProductCategory1ImportService.cs |
+| 商品分類２.csv | ProductCategory2ImportService | /src/InventorySystem.Import/Services/Masters/ProductCategory2ImportService.cs |
+| 商品分類３.csv | ProductCategory3ImportService | /src/InventorySystem.Import/Services/Masters/ProductCategory3ImportService.cs |
+| 得意先分類１.csv | CustomerCategory1ImportService | /src/InventorySystem.Import/Services/Masters/CustomerCategoryImportServices.cs |
+| 得意先分類２.csv | CustomerCategory2ImportService | /src/InventorySystem.Import/Services/Masters/CustomerCategoryImportServices.cs |
+| 得意先分類３.csv | CustomerCategory3ImportService | /src/InventorySystem.Import/Services/Masters/CustomerCategoryImportServices.cs |
+| 得意先分類４.csv | CustomerCategory4ImportService | /src/InventorySystem.Import/Services/Masters/CustomerCategoryImportServices.cs |
+| 得意先分類５.csv | CustomerCategory5ImportService | /src/InventorySystem.Import/Services/Masters/CustomerCategoryImportServices.cs |
+| 仕入先分類１.csv | SupplierCategory1ImportService | /src/InventorySystem.Import/Services/Masters/SupplierCategoryImportServices.cs |
+| 仕入先分類２.csv | SupplierCategory2ImportService | /src/InventorySystem.Import/Services/Masters/SupplierCategoryImportServices.cs |
+| 仕入先分類３.csv | SupplierCategory3ImportService | /src/InventorySystem.Import/Services/Masters/SupplierCategoryImportServices.cs |
+| 担当者分類１.csv | StaffCategory1ImportService | /src/InventorySystem.Import/Services/Masters/StaffMasterImportService.cs |
 
-### 🔧 リポジトリ直接利用（3/15）
+#### 🔧 実装特徴
+すべてのサービスは`MasterImportServiceBase<TEntity, TModel>`を継承し、以下の機能を持つ：
+- `FileNamePattern`プロパティでファイル名パターンを定義
+- `ServiceName`プロパティでサービス名を定義
+- `ProcessOrder`プロパティで処理順序を定義
+- 一括削除→一括挿入の処理フロー
 
-| リポジトリ名 | 対応CSVファイル | 実装方法 | 実装場所 |
-|------------|----------------|---------|---------|
-| GradeMasterRepository | 等級汎用マスター１.csv | `ImportFromCsvAsync()` メソッド | Program.cs 2088行 |
-| ClassMasterRepository | 階級汎用マスター２.csv | `ImportFromCsvAsync()` メソッド | Program.cs 2108行 |
-| CsvImportService | ※レガシー実装 | 基本的な売上・仕入処理 | `/src/InventorySystem.Import/Services/CsvImportService.cs` (305行) |
+### 2. エラーの根本原因
 
-## 2. ImportFolderメソッドの処理フロー
+#### 🚨 原因1: DIコンテナへの登録不足
+**場所**: `/src/InventorySystem.Console/Program.cs`
 
-### 📍 実装場所
-- **メソッド**: `ExecuteImportFromFolderAsync` （`Program.cs` 1858-2400行）
-- **優先度制御**: `GetFileProcessOrder` メソッド （`Program.cs` 1729-1751行）
+分類マスタサービスはDIコンテナに登録されていない：
+```csharp
+// 現在の登録状況（抜粋）
+builder.Services.AddScoped<IGradeMasterImportService, GradeMasterImportService>();
+builder.Services.AddScoped<IClassMasterImportService, ClassMasterImportService>();
+// ❌ 分類マスタサービスの登録が不足
+```
 
-### 認識されているファイルパターン
+#### 🚨 原因2: import-folderでの処理ロジック不足
+**場所**: `/src/InventorySystem.Console/Program.cs` - `ExecuteImportFromFolderAsync`メソッド
 
-#### Phase 1: マスタファイル（優先度1-8）
-| ファイルパターン | 優先度 | 処理方法 | 実装状況 |
-|-----------------|--------|---------|---------|
-| `等級汎用マスター*` | 1 | GradeMasterRepository | ✅ 完全実装 |
-| `階級汎用マスター*` | 2 | ClassMasterRepository | ✅ 完全実装 |
-| `荷印汎用マスター*` | 3 | ShippingMarkMasterImportService | ⚠️ スタブのみ |
-| `産地汎用マスター*` | 4 | RegionMasterImportService | ⚠️ スタブのみ |
-| `商品.csv` | 5 | ProductMasterImportService | ✅ 完全実装 |
-| `得意先.csv` | 6 | CustomerMasterImportService | ✅ 完全実装 |
-| `仕入先.csv` | 7 | SupplierMasterImportService | ✅ 完全実装 |
-| `単位.csv` | 8 | **未実装** | ❌ 認識のみ |
+分類マスタを処理するコードが存在しない：
+```csharp
+// 現在の処理分岐（抜粋）
+if (fileName.Contains("等級汎用マスター")) { /* 処理あり */ }
+if (fileName.Contains("階級汎用マスター")) { /* 処理あり */ }
+// ❌ 分類マスタの処理分岐が不足
+```
 
-#### Phase 2: 初期在庫（優先度10）
-| ファイルパターン | 優先度 | 処理方法 | 実装状況 |
-|-----------------|--------|---------|---------|
-| `前月末在庫.csv` | 10 | PreviousMonthInventoryImportService | ✅ 完全実装 |
+#### 🚨 原因3: knownButUnsupported配列の問題
+**場所**: `/src/InventorySystem.Console/Program.cs` 2314-2317行
 
-#### Phase 3: 取引ファイル（優先度20-22）
-| ファイルパターン | 優先度 | 処理方法 | 実装状況 |
-|-----------------|--------|---------|---------|
-| `売上伝票*` | 20 | SalesVoucherImportService | ✅ 完全実装 |
-| `仕入伝票*` | 21 | PurchaseVoucherImportService | ✅ 完全実装 |
-| `在庫調整*` | 22 | InventoryAdjustmentImportService | ✅ 完全実装 |
-| `受注伝票*` | 22 | InventoryAdjustmentImportService | ✅ 在庫調整として処理 |
-
-### 未対応ファイルパターン（Program.cs 2314-2317行で明示）
+実装済みのサービスが「未対応」リストに含まれている：
 ```csharp
 string[] knownButUnsupported = {
-    "担当者",      // Staff/Personnel
-    "単位",        // Units（認識はされるが処理未実装）
-    "商品分類",    // Product Categories (1-3)
-    "得意先分類",  // Customer Categories (1-5) 
-    "仕入先分類",  // Supplier Categories (1-3)
-    "担当者分類",  // Staff Categories
-    "支払伝票",    // Payment Vouchers
-    "入金伝票"     // Receipt Vouchers
+    "担当者", "単位", "商品分類", "得意先分類", 
+    "仕入先分類", "担当者分類", "支払伝票", "入金伝票"
 };
 ```
 
-## 3. CSV形式定義クラスの実装状況
+### 3. 処理順序の未定義
 
-### ✅ 実装済みCSVモデル
+**場所**: `/src/InventorySystem.Console/Program.cs` - `GetFileProcessOrder`メソッド
 
-#### 取引データモデル
-| Csvクラス名 | 対応ファイル | 列数 | 使用状況 |
-|------------|------------|------|---------|
-| SalesVoucherDaijinCsv | 売上伝票*.csv | 171列 | ✅ 使用中 |
-| PurchaseVoucherDaijinCsv | 仕入伝票*.csv | 171列 | ✅ 使用中 |
-| InventoryAdjustmentDaijinCsv | 在庫調整*.csv, 受注伝票*.csv | 171列 | ✅ 使用中 |
-| PreviousMonthInventoryCsv | 前月末在庫.csv | 161列 | ✅ 使用中 |
-
-#### マスタデータモデル
-| Csvクラス名 | 対応ファイル | 使用状況 |
-|------------|------------|---------|
-| ProductMasterCsv | 商品.csv | ✅ 使用中 |
-| CustomerMasterCsv | 得意先.csv | ✅ 使用中 |
-| SupplierMasterCsv | 仕入先.csv | ✅ 使用中 |
-| ShippingMarkMasterCsv | 荷印汎用マスター３.csv | ⚠️ 存在するがサービススタブ |
-| RegionMasterCsv | 産地汎用マスター４.csv | ⚠️ 存在するがサービススタブ |
-
-### ❌ 未実装CSVモデル
-- 単位マスター（Unit Master）
-- 商品分類１〜３（Product Categories 1-3）
-- 得意先分類１〜５（Customer Categories 1-5）
-- 仕入先分類１〜３（Supplier Categories 1-3）
-- 担当者・担当者分類（Staff/Personnel）
-- 入金伝票・支払伝票（Payment/Receipt Vouchers）
-
-## 4. リポジトリでのマスタデータ取込実装
-
-### ✅ BulkInsert対応リポジトリ
-
-#### マスタデータリポジトリ（`/src/InventorySystem.Data/Repositories/Masters/`）
-| リポジトリ名 | BulkInsertメソッド | 機能 |
-|------------|------------------|------|
-| ProductMasterRepository | `InsertBulkAsync` | ✅ 一括挿入対応 |
-| CustomerMasterRepository | `InsertBulkAsync` | ✅ 一括挿入対応 |
-| SupplierMasterRepository | `InsertBulkAsync` | ✅ 一括挿入対応 |
-| ShippingMarkMasterRepository | `InsertBulkAsync` | ✅ 一括挿入対応（準備済み） |
-| RegionMasterRepository | `InsertBulkAsync` | ✅ 一括挿入対応（準備済み） |
-
-#### 特殊なImportFromCsv対応
-| リポジトリ名 | 特殊メソッド | 機能 |
-|------------|-------------|------|
-| GradeMasterRepository | `ImportFromCsvAsync` | ✅ CSV直接インポート |
-| ClassMasterRepository | `ImportFromCsvAsync` | ✅ CSV直接インポート |
-
-#### 取引データリポジトリ
-| リポジトリ名 | バルク操作 | 機能 |
-|------------|----------|------|
-| SalesVoucherRepository + SalesVoucherCsvRepository | ✅ フル対応 | バッチ処理、削除、挿入 |
-| PurchaseVoucherRepository + PurchaseVoucherCsvRepository | ✅ フル対応 | バッチ処理、削除、挿入 |
-| InventoryAdjustmentRepository | ✅ フル対応 | バッチ処理対応 |
-
-## 5. 未実装CSV一覧と実装可能性
-
-### 🔴 **高優先度: マスタデータ分類**
-
-#### 仕入先分類（3ファイル）
-| CSVファイル名 | 優先度 | 実装方法案 | 必要な作業 |
-|--------------|--------|-----------|-----------|
-| 仕入先分類１.csv | **高** | SupplierCategory1ImportService + CSV Model | 新規エンティティ、リポジトリ、サービス |
-| 仕入先分類２.csv | **高** | SupplierCategory2ImportService + CSV Model | 新規エンティティ、リポジトリ、サービス |
-| 仕入先分類３.csv | **高** | SupplierCategory3ImportService + CSV Model | 新規エンティティ、リポジトリ、サービス |
-
-#### 商品分類（3ファイル）  
-| CSVファイル名 | 優先度 | 実装方法案 | 必要な作業 |
-|--------------|--------|-----------|-----------|
-| 商品分類１.csv | **高** | ProductCategory1ImportService + CSV Model | 新規エンティティ、リポジトリ、サービス |
-| 商品分類２.csv | **高** | ProductCategory2ImportService + CSV Model | 新規エンティティ、リポジトリ、サービス |  
-| 商品分類３.csv | **高** | ProductCategory3ImportService + CSV Model | 新規エンティティ、リポジトリ、サービス |
-
-#### 得意先分類（5ファイル）
-| CSVファイル名 | 優先度 | 実装方法案 | 必要な作業 |
-|--------------|--------|-----------|-----------|
-| 得意先分類１.csv | **高** | CustomerCategory1ImportService + CSV Model | 新規エンティティ、リポジトリ、サービス |
-| 得意先分類２.csv | **高** | CustomerCategory2ImportService + CSV Model | 新規エンティティ、リポジトリ、サービス |
-| 得意先分類３.csv | **高** | CustomerCategory3ImportService + CSV Model | 新規エンティティ、リポジトリ、サービス |
-| 得意先分類４.csv | **高** | CustomerCategory4ImportService + CSV Model | 新規エンティティ、リポジトリ、サービス |
-| 得意先分類５.csv | **高** | CustomerCategory5ImportService + CSV Model | 新規エンティティ、リポジトリ、サービス |
-
-#### 単位マスタ
-| CSVファイル名 | 優先度 | 実装方法案 | 必要な作業 |
-|--------------|--------|-----------|-----------|
-| 単位.csv | **高** | UnitMasterImportService + CSV Model | GetFileProcessOrderに認識済み<br>新規エンティティ、リポジトリ、サービス |
-
-### 🟡 **中優先度: 人事管理**
-
-| CSVファイル名 | 優先度 | 実装方法案 | 必要な作業 |
-|--------------|--------|-----------|-----------|
-| 担当者.csv | **中** | StaffMasterImportService + CSV Model | 営業担当追跡に必要<br>新規エンティティ、リポジトリ、サービス |
-| 担当者分類１.csv | **中** | StaffCategoryImportService + CSV Model | 担当者管理の拡張<br>新規エンティティ、リポジトリ、サービス |
-
-### 🟢 **低優先度: 財務取引**
-
-| CSVファイル名 | 優先度 | 実装方法案 | 必要な作業 |
-|--------------|--------|-----------|-----------|
-| 入金伝票.csv | **低** | ReceiptVoucherImportService + CSV Model | 財務管理が必要な場合<br>新規エンティティ、リポジトリ、サービス、財務ロジック |
-| 支払伝票.csv | **低** | PaymentVoucherImportService + CSV Model | 財務管理が必要な場合<br>新規エンティティ、リポジトリ、サービス、財務ロジック |
-
-## 6. 実装パターンとインフラストラクチャ
-
-### 🏗️ 再利用可能なインフラストラクチャ
-
-#### マスタデータパターン
+分類マスタの処理順序が定義されていない：
 ```csharp
-// ProductMasterImportServiceのパターン
-public async Task<ImportResult> ImportFromCsvAsync(string filePath, DateTime importDate)
+private static int GetFileProcessOrder(string fileName)
 {
-    // 1. 統一DataSet作成
-    var unifiedInfo = new UnifiedDataSetInfo { ... };
-    var dataSetId = await _unifiedDataSetService.CreateDataSetAsync(unifiedInfo);
+    // Phase 1: マスタファイル（優先度1-8）
+    if (fileName.Contains("等級汎用マスター")) return 1;
+    if (fileName.Contains("階級汎用マスター")) return 2;
+    if (fileName.Contains("荷印汎用マスター")) return 3;
+    if (fileName.Contains("産地汎用マスター")) return 4;
+    if (fileName == "商品.csv") return 5;
+    if (fileName == "得意先.csv") return 6;
+    if (fileName == "仕入先.csv") return 7;
+    if (fileName == "単位.csv") return 8;
     
-    // 2. UTF-8エンコーディングでCSV読み取り
-    using var reader = new StringReader(File.ReadAllText(filePath, Encoding.UTF8));
-    using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+    // ❌ 分類マスタの処理順序が未定義
+    // 結果：優先度99（その他）として処理される
     
-    // 3. 全削除 → 一括挿入
-    await _repository.DeleteAllAsync();
-    await _repository.InsertBulkAsync(entities);
-    
-    // 4. エラーハンドリングとログ出力
+    return 99;
 }
 ```
 
-#### 取引データパターン
+### 4. ファイル移動処理の現状
+
+#### MoveToErrorAsyncメソッドの実装
+**場所**: `/src/InventorySystem.Core/Services/FileManagementService.cs`
+
 ```csharp
-// SalesVoucherImportServiceのパターン  
-public async Task<string> ImportAsync(string filePath, DateTime? startDate, DateTime? endDate, 
-                                     string? departmentCode = null, bool preserveCsvDates = false)
+public async Task MoveToErrorAsync(string filePath, string department, string errorMessage)
 {
-    // 1. 日付フィルタリングとバリデーション
-    // 2. 統一DataSet作成
-    // 3. エラーハンドリング付きCSV読み取り
-    // 4. バッチ処理（1000レコード単位）
-    // 5. スキップ追跡と統計情報
-    // 6. JobDate保持ロジック
+    // エラーファイルをタイムスタンプ付きでErrorフォルダに移動
+    // 例: 20250717_123456_商品分類１.csv
+    // エラー内容を.error.txtファイルとして記録
 }
 ```
 
-### 💪 実装品質の特徴
+#### 実際の処理状況
+Program.csでは`MoveToErrorAsync`呼び出しが**すべてコメントアウト**されている：
+```csharp
+// await fileService.MoveToErrorAsync(file, department, "未対応のCSVファイル形式");
+```
 
-#### 強み
-- **一貫したエラーハンドリング**: 全サービスでILoggerと構造化ログ使用
-- **UTF-8エンコーディング**: 日本語文字の適切なサポート
-- **統一DataSet管理**: 全インポートで一貫した追跡
-- **バッチ処理**: 大容量ファイルの効率的処理（1000レコード単位）
-- **トランザクション安全性**: 適切なデータベーストランザクション使用
+**理由**: 複数日付のデータを処理可能にするため、エラーファイルも移動せずに保持
 
-#### 技術的負債
-- **ファイル移動無効化**: 全サービスでファイル移動ロジックがコメントアウト
-- **スタブサービス**: ShippingMarkとRegionサービスが登録済みだが未実装
-- **レガシーCsvImportService**: 古い実装が残存
-- **単体テスト不足**: 包括的なテストカバレッジの証拠なし
+### 5. 実装と設定の乖離
 
-## 7. 推奨される実装順序
+| 項目 | 実装状況 | 設定状況 | 結果 |
+|------|----------|----------|------|
+| サービスクラス | ✅ 実装済み | ❌ 未設定 | 呼び出し不可 |
+| エンティティクラス | ✅ 実装済み | ✅ 設定済み | 正常 |
+| リポジトリクラス | ✅ 実装済み | ✅ 設定済み | 正常 |
+| DIコンテナ登録 | ✅ 実装済み | ❌ 未設定 | 解決不可 |
+| import-folder処理 | ✅ 実装済み | ❌ 未設定 | 処理されない |
 
-### **Phase 1: スタブサービス完成**（即座実施可能）
-1. **ShippingMarkMasterImportService** の実装完成
-2. **RegionMasterImportService** の実装完成
+## 🔧 解決策
 
-**工数見積もり**: 1-2日（既存パターン使用）
+### 即座に実装可能な修正項目
 
-### **Phase 2: 基本マスタデータ分類**（高優先度）
-1. **単位マスタ** (`単位.csv`) - GetFileProcessOrderに認識済み
-2. **商品分類1-3** - 商品管理の基盤
-3. **得意先分類1-5** - 顧客セグメンテーション
-4. **仕入先分類1-3** - サプライヤー管理
+#### 1. DIコンテナへの登録追加
+```csharp
+// Program.cs のDIコンテナセットアップ箇所に追加
+builder.Services.AddScoped<IImportService, ProductCategory1ImportService>();
+builder.Services.AddScoped<IImportService, ProductCategory2ImportService>();
+builder.Services.AddScoped<IImportService, ProductCategory3ImportService>();
+// ... 他の分類マスタサービスも同様に追加
+```
 
-**工数見積もり**: 3-5日（新規CSV Model + Repository必要）
+#### 2. import-folderでの処理ロジック追加
+```csharp
+// ExecuteImportFromFolderAsync メソッドに分類マスタ処理分岐を追加
+else if (fileName.Contains("商品分類"))
+{
+    // 商品分類マスタ処理
+}
+else if (fileName.Contains("得意先分類"))
+{
+    // 得意先分類マスタ処理
+}
+// ... 他の分類マスタも同様に追加
+```
 
-### **Phase 3: 人事管理**（中優先度）
-1. **担当者マスタ** (`担当者.csv`) - 営業追跡に必須
-2. **担当者分類** (`担当者分類１.csv`) - 担当者管理拡張
+#### 3. knownButUnsupported配列の修正
+```csharp
+string[] knownButUnsupported = {
+    "担当者", "単位", "支払伝票", "入金伝票"
+    // ❌ 削除: "商品分類", "得意先分類", "仕入先分類", "担当者分類"
+};
+```
 
-**工数見積もり**: 2-3日（新規データベーステーブル必要）
+#### 4. 処理順序の定義
+```csharp
+// GetFileProcessOrder メソッドに追加
+if (fileName.Contains("商品分類")) return 9;
+if (fileName.Contains("得意先分類")) return 10;
+if (fileName.Contains("仕入先分類")) return 11;
+if (fileName.Contains("担当者分類")) return 12;
+```
 
-### **Phase 4: 財務取引**（低優先度）
-1. **入金伝票** (`入金伝票.csv`) - 財務管理機能
-2. **支払伝票** (`支払伝票.csv`) - 財務管理機能
+### 修正対象ファイル
+- `/src/InventorySystem.Console/Program.cs`
+  - DIコンテナセットアップ箇所
+  - `ExecuteImportFromFolderAsync`メソッド
+  - `GetFileProcessOrder`メソッド
+  - `knownButUnsupported`配列
 
-**工数見積もり**: 5-7日（新規ドメインロジック必要）
+## 📊 影響範囲
 
-## 8. 技術的課題と解決案
+### 修正後の期待結果
+```
+処理中: 商品分類１.csv
+✅ 商品分類マスタとして処理完了
 
-### 課題1: スタブサービスの実装不足
-**現状**: ShippingMarkMasterImportService と RegionMasterImportService がInterface登録済みだが実装なし
+処理中: 得意先分類１.csv
+✅ 得意先分類マスタとして処理完了
+```
 
-**解決案**: 
-- 既存のProductMasterImportServiceパターンを適用
-- CSV Modelは既に存在
-- Repositoryも準備済み（InsertBulkAsyncメソッド実装済み）
+### 処理順序（修正後）
+1. 等級汎用マスター（優先度1）
+2. 階級汎用マスター（優先度2）
+3. 荷印汎用マスター（優先度3）
+4. 産地汎用マスター（優先度4）
+5. 商品.csv（優先度5）
+6. 得意先.csv（優先度6）
+7. 仕入先.csv（優先度7）
+8. 単位.csv（優先度8）
+9. **商品分類１-３.csv（優先度9）** ← 新規追加
+10. **得意先分類１-５.csv（優先度10）** ← 新規追加
+11. **仕入先分類１-３.csv（優先度11）** ← 新規追加
+12. **担当者分類１.csv（優先度12）** ← 新規追加
+13. 前月末在庫.csv（優先度13）
+14. 売上伝票.csv（優先度20）
+15. 仕入伝票.csv（優先度21）
+16. 在庫調整.csv（優先度22）
 
-### 課題2: カテゴリマスタの大量実装
-**現状**: 商品分類3種類、得意先分類5種類、仕入先分類3種類が未実装
+## 🎯 結論
 
-**解決案**:
-- 共通のCategoryMasterImportService基底クラス作成
-- 設定によるカテゴリ種別の切り替え
-- 同一のCSV構造を想定した共通化
+**問題の本質**: 技術的な実装は完了しているが、**設定面での接続が不足**している
 
-### 課題3: 人事管理テーブルの設計不足
-**現状**: 担当者関連のエンティティとテーブルが未定義
+**解決の容易さ**: 高い（コード実装は不要、設定追加のみ）
 
-**解決案**:
-- StaffMaster, StaffCategoryMasterエンティティの設計
-- 既存のCustomerMasterパターンを踏襲
-- 営業担当者との関連付け設計
+**修正工数**: 約30分（DIコンテナ登録、処理分岐追加、配列修正）
 
-### 課題4: 財務取引の複雑性
-**現状**: 入金・支払伝票の財務ロジックが未定義
+**影響範囲**: 限定的（Program.csのみ）
 
-**解決案**:
-- 段階的実装（まずはデータ取込のみ）
-- 既存の取引伝票パターンを適用
-- 後段での財務計算機能追加
+**リスク**: 低い（既存処理への影響なし）
 
-## 9. 結論
+---
 
-InventoryManagementSystemのCSV取込機能は**優秀なアーキテクチャ**を持ち、12/15種類のCSVが実装済みで高い完成度を示しています。残り8種類の未実装ファイルも、確立されたインフラストラクチャを活用することで**迅速な実装が可能**です。
-
-### 現在の実装状況サマリー
-- ✅ **完全実装**: 7種類（基幹取引、主要マスタ）
-- ⚠️ **スタブ実装**: 2種類（即座に完成可能）
-- 🔧 **Repository直接**: 3種類（動作中）
-- ❌ **未実装**: 8種類（段階的実装推奨）
-
-**次のアクションとして、Phase 1のスタブサービス完成から開始することを強く推奨します。**
+**次のステップ**: 上記の修正項目を順次実装し、import-folderコマンドで分類マスタファイルが正常に処理されることを確認する。
