@@ -23,11 +23,11 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     {
         const string sql = @"
             INSERT INTO DataSets (
-                Id, Name, Description, ProcessType, Status, JobDate,
-                RecordCount, ErrorMessage, FilePath, CreatedDate, UpdatedDate
+                Id, DataSetType, ImportedAt, RecordCount, Status, 
+                ErrorMessage, FilePath, JobDate, CreatedDate, UpdatedDate
             ) VALUES (
-                @Id, @Name, @Description, @ProcessType, @Status, @JobDate,
-                @RecordCount, @ErrorMessage, @FilePath, @CreatedDate, @UpdatedDate
+                @Id, @DataSetType, @ImportedAt, @RecordCount, @Status,
+                @ErrorMessage, @FilePath, @JobDate, @CreatedAt, @UpdatedAt
             )";
 
         try
@@ -37,16 +37,15 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
             var parameters = new
             {
                 dataSet.Id,
-                dataSet.Name,
-                dataSet.Description,
-                ProcessType = dataSet.DataSetType, // DataSetTypeをProcessTypeとして登録
-                dataSet.Status,
-                dataSet.JobDate,
+                dataSet.DataSetType,
+                ImportedAt = dataSet.ImportedAt == default(DateTime) ? DateTime.Now : dataSet.ImportedAt,
                 dataSet.RecordCount,
+                dataSet.Status,
                 dataSet.ErrorMessage,
                 dataSet.FilePath,
-                CreatedDate = DateTime.Now,
-                UpdatedDate = DateTime.Now
+                dataSet.JobDate,
+                CreatedAt = dataSet.CreatedAt == default(DateTime) ? DateTime.Now : dataSet.CreatedAt,
+                UpdatedAt = DateTime.Now
             };
 
             await connection.ExecuteAsync(sql, parameters);
@@ -69,7 +68,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     public async Task<DataSet?> GetByIdAsync(string id)
     {
         const string sql = @"
-            SELECT Id, Name, Description, ProcessType as DataSetType, ImportedAt, RecordCount, Status, 
+            SELECT Id, DataSetType, ImportedAt, RecordCount, Status, 
                    ErrorMessage, FilePath, JobDate, CreatedDate as CreatedAt, UpdatedDate as UpdatedAt
             FROM DataSets 
             WHERE Id = @Id";
@@ -167,7 +166,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     public async Task<IEnumerable<DataSet>> GetByJobDateAsync(DateTime jobDate)
     {
         const string sql = @"
-            SELECT Id, Name, Description, ProcessType as DataSetType, ImportedAt, RecordCount, Status, 
+            SELECT Id, DataSetType, ImportedAt, RecordCount, Status, 
                    ErrorMessage, FilePath, JobDate, CreatedDate as CreatedAt, UpdatedDate as UpdatedAt
             FROM DataSets 
             WHERE JobDate = @JobDate
@@ -193,7 +192,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     public async Task<IEnumerable<DataSet>> GetByStatusAsync(string status)
     {
         const string sql = @"
-            SELECT Id, Name, Description, ProcessType as DataSetType, ImportedAt, RecordCount, Status, 
+            SELECT Id, DataSetType, ImportedAt, RecordCount, Status, 
                    ErrorMessage, FilePath, JobDate, CreatedDate as CreatedAt, UpdatedDate as UpdatedAt
             FROM DataSets 
             WHERE Status = @Status
