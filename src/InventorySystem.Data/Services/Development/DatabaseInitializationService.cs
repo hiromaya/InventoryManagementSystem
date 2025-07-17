@@ -70,7 +70,11 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         // === 重要マスタエンティティ追加 ===
         "030_CreateGradeMaster.sql",                // GradeMasterテーブル作成
         "031_CreateClassMaster.sql",                // ClassMasterテーブル作成
-        "032_FixOriginMasterToRegionMaster.sql"     // 産地マスタ名統一
+        "032_FixOriginMasterToRegionMaster.sql",    // 産地マスタ名統一
+        
+        // === DataSetsスキーマ完全修正（重要度最高） ===
+        "033_FixDataSetsSchema.sql",               // DataSetsテーブル包括的修正
+        "034_FixDataSetManagementSchema.sql"       // DataSetManagementカラムサイズ統一
     };
     
     // 旧テーブル定義（後方互換性のため一時的に保持）

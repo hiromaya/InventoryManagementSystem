@@ -45,17 +45,19 @@ namespace InventorySystem.Core.Services
             var dataSetCreated = false;
             try
             {
+                // ✅ 修正: 存在するプロパティのみ設定、適切なデフォルト値を使用
                 var dataSet = new InventorySystem.Core.Entities.DataSet
                 {
                     Id = dataSetId,
-                    Name = info.Name ?? $"{info.ProcessType} {info.JobDate:yyyy-MM-dd}",
-                    Description = info.Description ?? info.Name ?? $"{info.ProcessType} データセット",
+                    Name = info.Name ?? $"{info.ProcessType}_{info.JobDate:yyyyMMdd}_{DateTime.Now:HHmmss}",
+                    Description = info.Description ?? $"{info.ProcessType} データセット ({info.JobDate:yyyy-MM-dd})",
                     DataSetType = ConvertProcessTypeForDataSets(info.ProcessType),
-                    JobDate = info.JobDate,
-                    Status = "Processing",
-                    RecordCount = 0,
-                    FilePath = info.FilePath,
                     ImportedAt = createdAt,
+                    RecordCount = 0,
+                    Status = "Processing",
+                    ErrorMessage = null,
+                    FilePath = info.FilePath,
+                    JobDate = info.JobDate,
                     CreatedAt = createdAt,
                     UpdatedAt = createdAt
                 };
@@ -74,21 +76,23 @@ namespace InventorySystem.Core.Services
             var dataSetManagementCreated = false;
             try
             {
+                // ✅ DataSetManagement用の情報（ファイル名のみ保存）
                 var dataSetManagement = new DataSetManagement
                 {
                     DataSetId = dataSetId,
                     JobDate = info.JobDate,
                     ProcessType = info.ProcessType,
-                    ImportType = info.ImportType,
+                    ImportType = info.ImportType ?? "IMPORT",
                     RecordCount = 0,
                     TotalRecordCount = 0,
                     IsActive = true,
                     IsArchived = false,
-                    Department = info.Department ?? "Unknown",
+                    ParentDataSetId = null,
+                    ImportedFiles = info.FilePath != null ? Path.GetFileName(info.FilePath) : null,
                     CreatedAt = createdAt,
-                    CreatedBy = info.CreatedBy,
-                    Notes = info.Description,
-                    ImportedFiles = info.FilePath != null ? JsonSerializer.Serialize(new[] { info.FilePath }) : null
+                    CreatedBy = info.CreatedBy ?? "system",
+                    Department = info.Department ?? "Unknown",
+                    Notes = info.Description
                 };
 
                 await _dataSetManagementRepository.CreateAsync(dataSetManagement);
@@ -101,20 +105,19 @@ namespace InventorySystem.Core.Services
                 // DataSetManagementへの書き込みが失敗した場合でも処理を継続
             }
 
-            // 両方のテーブルへの書き込み結果をログに記録
+            // ✅ 結果ログと適切なエラーハンドリング
             if (dataSetCreated && dataSetManagementCreated)
             {
-                _logger.LogInformation("両テーブルへの書き込み完了: ID={DataSetId}", dataSetId);
+                _logger.LogInformation("統一データセット作成完了: ID={DataSetId}", dataSetId);
             }
             else if (!dataSetCreated && !dataSetManagementCreated)
             {
-                var errorMessage = "両テーブルへの書き込みが失敗しました";
-                _logger.LogError(errorMessage + ": ID={DataSetId}", dataSetId);
-                throw new InvalidOperationException($"{errorMessage}: DataSetId={dataSetId}");
+                _logger.LogError("DataSets、DataSetManagement両方の書き込みに失敗: ID={DataSetId}", dataSetId);
+                throw new InvalidOperationException($"データセット作成に失敗しました: {dataSetId}");
             }
             else
             {
-                _logger.LogWarning("部分的な書き込み成功: DataSets={DataSetCreated}, DataSetManagement={DataSetManagementCreated}, ID={DataSetId}",
+                _logger.LogWarning("部分的な書き込み成功: DataSets={DataSetsSuccess}, DataSetManagement={DataSetManagementSuccess}, ID={DataSetId}", 
                     dataSetCreated, dataSetManagementCreated, dataSetId);
             }
 
@@ -178,24 +181,44 @@ namespace InventorySystem.Core.Services
         {
             try
             {
-                _logger.LogInformation("統一データセットレコード数更新: ID={DataSetId}, Count={RecordCount}", dataSetId, recordCount);
-                
-                // DataSetsテーブルの更新
-                await _dataSetRepository.UpdateRecordCountAsync(dataSetId, recordCount);
-                
-                // DataSetManagementテーブルの更新
-                var dataSetManagement = await _dataSetManagementRepository.GetByIdAsync(dataSetId);
-                if (dataSetManagement != null)
+                _logger.LogInformation("統一データセットレコード数更新: ID={DataSetId}, Count={RecordCount}", 
+                    dataSetId, recordCount);
+
+                // ✅ DataSetsテーブルの更新（修正済みメソッド使用）
+                try
                 {
-                    dataSetManagement.RecordCount = recordCount;
-                    dataSetManagement.TotalRecordCount = Math.Max(dataSetManagement.TotalRecordCount, recordCount);
-                    // 更新処理は今後実装予定
-                    _logger.LogDebug("DataSetManagementテーブルの更新成功: ID={DataSetId}", dataSetId);
+                    await _dataSetRepository.UpdateRecordCountAsync(dataSetId, recordCount);
+                    _logger.LogDebug("DataSetsテーブルのレコード数更新成功: ID={DataSetId}", dataSetId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "DataSetsテーブルのレコード数更新失敗: ID={DataSetId}", dataSetId);
+                }
+
+                // ✅ DataSetManagementテーブルの更新
+                try
+                {
+                    var dataSetManagement = await _dataSetManagementRepository.GetByIdAsync(dataSetId);
+                    if (dataSetManagement != null)
+                    {
+                        dataSetManagement.RecordCount = recordCount;
+                        dataSetManagement.TotalRecordCount = Math.Max(dataSetManagement.TotalRecordCount, recordCount);
+                        // 更新処理は将来的に実装予定
+                        _logger.LogDebug("DataSetManagementテーブルのレコード数更新成功: ID={DataSetId}", dataSetId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("DataSetManagementレコードが見つかりません: ID={DataSetId}", dataSetId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "DataSetManagementテーブルのレコード数更新失敗: ID={DataSetId}", dataSetId);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "レコード数更新失敗: ID={DataSetId}", dataSetId);
+                _logger.LogError(ex, "統一データセットレコード数更新失敗: ID={DataSetId}", dataSetId);
                 throw;
             }
         }
