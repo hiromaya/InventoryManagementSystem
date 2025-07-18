@@ -85,6 +85,9 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         // === 追加テーブル作成 ===
         "035_AddAllMissingTables.sql",             // 不足しているテーブルの追加
         
+        // === DataSetManagement統合マイグレーション ===
+        "036_MigrateDataSetsToDataSetManagement.sql", // DataSetsからDataSetManagementへの完全統合
+        
         // === CreatedAt/UpdatedAt移行フェーズ（05_create_master_tables.sqlで不要） ===
         // "050_Phase1_CheckCurrentSchema.sql",       // 現在のスキーマ確認（実行不要）
         // "051_Phase2_AddNewColumns.sql",            // 新しいカラムを追加（05_create_master_tables.sqlで完了）
