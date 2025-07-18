@@ -207,12 +207,12 @@ BEGIN
 END
 GO
 
--- 7. 産地マスタ（OriginMaster）
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[OriginMaster]') AND type in (N'U'))
+-- 7. 産地マスタ（RegionMaster）
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[RegionMaster]') AND type in (N'U'))
 BEGIN
-    CREATE TABLE OriginMaster (
-        OriginCode NVARCHAR(15) NOT NULL PRIMARY KEY,    -- 産地コード
-        OriginName NVARCHAR(50) NOT NULL,                -- 産地名
+    CREATE TABLE RegionMaster (
+        RegionCode NVARCHAR(15) NOT NULL PRIMARY KEY,    -- 産地コード
+        RegionName NVARCHAR(50) NOT NULL,                -- 産地名
         SearchKana NVARCHAR(100),                        -- 検索カナ
         NumericValue1 DECIMAL(16,4),                     -- 汎用数値1
         NumericValue2 DECIMAL(16,4),                     -- 汎用数値2
@@ -234,8 +234,8 @@ BEGIN
     );
     
     -- インデックス
-    CREATE INDEX IX_OriginMaster_OriginName ON OriginMaster(OriginName);
-    CREATE INDEX IX_OriginMaster_SearchKana ON OriginMaster(SearchKana);
+    CREATE INDEX IX_RegionMaster_RegionName ON RegionMaster(RegionName);
+    CREATE INDEX IX_RegionMaster_SearchKana ON RegionMaster(SearchKana);
 END
 GO
 
@@ -275,42 +275,6 @@ BEGIN
     CREATE INDEX IX_CategoryMaster_SearchKana ON CategoryMaster(SearchKana);
 END
 GO
-
--- 外部キー制約（必要に応じて追加）
--- 例：商品マスタの単位コード
-IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE object_id = OBJECT_ID(N'[dbo].[FK_ProductMaster_UnitCode]'))
-BEGIN
-    ALTER TABLE ProductMaster
-    ADD CONSTRAINT FK_ProductMaster_UnitCode
-    FOREIGN KEY (UnitCode) REFERENCES UnitMaster(UnitCode);
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE object_id = OBJECT_ID(N'[dbo].[FK_ProductMaster_CaseUnitCode]'))
-BEGIN
-    ALTER TABLE ProductMaster
-    ADD CONSTRAINT FK_ProductMaster_CaseUnitCode
-    FOREIGN KEY (CaseUnitCode) REFERENCES UnitMaster(UnitCode);
-END
-GO
-
--- 得意先マスタの請求先コード（自己参照制約はマスタ投入完了後に設定）
--- IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE object_id = OBJECT_ID(N'[dbo].[FK_CustomerMaster_BillingCode]'))
--- BEGIN
---     ALTER TABLE CustomerMaster
---     ADD CONSTRAINT FK_CustomerMaster_BillingCode
---     FOREIGN KEY (BillingCode) REFERENCES CustomerMaster(CustomerCode);
--- END
--- GO
-
--- 仕入先マスタの支払先コード（自己参照制約はマスタ投入完了後に設定）
--- IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE object_id = OBJECT_ID(N'[dbo].[FK_SupplierMaster_PaymentCode]'))
--- BEGIN
---     ALTER TABLE SupplierMaster
---     ADD CONSTRAINT FK_SupplierMaster_PaymentCode
---     FOREIGN KEY (PaymentCode) REFERENCES SupplierMaster(SupplierCode);
--- END
--- GO
 
 PRINT 'マスタテーブルの作成が完了しました。';
 GO
