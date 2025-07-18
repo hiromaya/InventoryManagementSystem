@@ -67,14 +67,14 @@ public class ProductMasterRepository : IProductMasterRepository
                     ProductCategory1, ProductCategory2, ProductCategory3, ProductCategory4, ProductCategory5,
                     UnitCode, CaseUnitCode, Case2UnitCode, CaseQuantity, Case2Quantity,
                     StandardPrice, CaseStandardPrice, IsStockManaged, TaxRate,
-                    CreatedDate, UpdatedDate
+                    CreatedAt, UpdatedAt
                 ) VALUES (
                     @ProductCode, @ProductName, @ProductName2, @ProductName3, @ProductName4, @ProductName5,
                     @SearchKana, @ShortName, @PrintCode,
                     @ProductCategory1, @ProductCategory2, @ProductCategory3, @ProductCategory4, @ProductCategory5,
                     @UnitCode, @CaseUnitCode, @Case2UnitCode, @CaseQuantity, @Case2Quantity,
                     @StandardPrice, @CaseStandardPrice, @IsStockManaged, @TaxRate,
-                    @CreatedDate, @UpdatedDate
+                    @CreatedAt, @UpdatedAt
                 )";
 
             var count = await connection.ExecuteAsync(sql, products, transaction);
@@ -120,7 +120,7 @@ public class ProductMasterRepository : IProductMasterRepository
                 CaseStandardPrice = @CaseStandardPrice,
                 IsStockManaged = @IsStockManaged,
                 TaxRate = @TaxRate,
-                UpdatedDate = GETDATE()
+                UpdatedAt = GETDATE()
             WHERE ProductCode = @ProductCode";
 
         return await connection.ExecuteAsync(sql, product);
@@ -246,7 +246,7 @@ public class ProductMasterRepository : IProductMasterRepository
                     CaseStandardPrice = @CaseStandardPrice,
                     IsStockManaged = @IsStockManaged,
                     TaxRate = @TaxRate,
-                    UpdatedDate = GETDATE()
+                    UpdatedAt = GETDATE()
             WHEN NOT MATCHED THEN
                 INSERT (
                     ProductCode, ProductName, ProductName2, ProductName3, ProductName4, ProductName5,
@@ -254,7 +254,7 @@ public class ProductMasterRepository : IProductMasterRepository
                     ProductCategory1, ProductCategory2, ProductCategory3, ProductCategory4, ProductCategory5,
                     UnitCode, CaseUnitCode, Case2UnitCode, CaseQuantity, Case2Quantity,
                     StandardPrice, CaseStandardPrice, IsStockManaged, TaxRate,
-                    CreatedDate, UpdatedDate
+                    CreatedAt, UpdatedAt
                 ) VALUES (
                     @ProductCode, @ProductName, @ProductName2, @ProductName3, @ProductName4, @ProductName5,
                     @SearchKana, @ShortName, @PrintCode,

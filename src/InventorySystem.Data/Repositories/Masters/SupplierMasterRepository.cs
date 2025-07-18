@@ -65,12 +65,12 @@ public class SupplierMasterRepository : ISupplierMasterRepository
                     SupplierCode, SupplierName, SupplierName2, SearchKana, ShortName,
                     PostalCode, Address1, Address2, Address3, PhoneNumber, FaxNumber,
                     SupplierCategory1, SupplierCategory2, SupplierCategory3,
-                    PaymentCode, IsActive, CreatedDate, UpdatedDate
+                    PaymentCode, IsActive, CreatedAt, UpdatedAt
                 ) VALUES (
                     @SupplierCode, @SupplierName, @SupplierName2, @SearchKana, @ShortName,
                     @PostalCode, @Address1, @Address2, @Address3, @PhoneNumber, @FaxNumber,
                     @SupplierCategory1, @SupplierCategory2, @SupplierCategory3,
-                    @PaymentCode, @IsActive, @CreatedDate, @UpdatedDate
+                    @PaymentCode, @IsActive, @CreatedAt, @UpdatedAt
                 )";
 
             var count = await connection.ExecuteAsync(sql, suppliers, transaction);
@@ -109,7 +109,7 @@ public class SupplierMasterRepository : ISupplierMasterRepository
                 SupplierCategory3 = @SupplierCategory3,
                 PaymentCode = @PaymentCode,
                 IsActive = @IsActive,
-                UpdatedDate = GETDATE()
+                UpdatedAt = GETDATE()
             WHERE SupplierCode = @SupplierCode";
 
         return await connection.ExecuteAsync(sql, supplier);
@@ -216,13 +216,13 @@ public class SupplierMasterRepository : ISupplierMasterRepository
                     SupplierCategory3 = @SupplierCategory3,
                     PaymentCode = @PaymentCode,
                     IsActive = @IsActive,
-                    UpdatedDate = GETDATE()
+                    UpdatedAt = GETDATE()
             WHEN NOT MATCHED THEN
                 INSERT (
                     SupplierCode, SupplierName, SupplierName2, SearchKana, ShortName,
                     PostalCode, Address1, Address2, Address3, PhoneNumber, FaxNumber,
                     SupplierCategory1, SupplierCategory2, SupplierCategory3,
-                    PaymentCode, IsActive, CreatedDate, UpdatedDate
+                    PaymentCode, IsActive, CreatedAt, UpdatedAt
                 ) VALUES (
                     @SupplierCode, @SupplierName, @SupplierName2, @SearchKana, @ShortName,
                     @PostalCode, @Address1, @Address2, @Address3, @PhoneNumber, @FaxNumber,

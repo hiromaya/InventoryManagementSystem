@@ -145,12 +145,12 @@ public class ProductMaster
     /// <summary>
     /// 作成日時
     /// </summary>
-    public DateTime CreatedDate { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 更新日時
     /// </summary>
-    public DateTime UpdatedDate { get; set; } = DateTime.Now;
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 表示用の商品名を取得
