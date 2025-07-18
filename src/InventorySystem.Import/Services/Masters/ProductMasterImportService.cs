@@ -236,8 +236,8 @@ public class ProductMasterImportService
             CaseStandardPrice = csv.CaseStandardPrice,
             IsStockManaged = csv.IsStockManaged,
             TaxRate = csv.GetTaxRate(),
-            CreatedDate = DateTime.Now,
-            UpdatedDate = DateTime.Now
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
         };
     }
 
