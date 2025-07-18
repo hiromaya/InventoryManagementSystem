@@ -282,6 +282,68 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     }
 
     /// <summary>
+    /// データセットを更新
+    /// </summary>
+    public async Task UpdateAsync(DataSet dataSet)
+    {
+        if (dataSet == null)
+            throw new ArgumentNullException(nameof(dataSet));
+            
+        if (string.IsNullOrEmpty(dataSet.Id))
+            throw new ArgumentException("DataSet.Id は必須です", nameof(dataSet));
+
+        const string sql = @"
+            UPDATE DataSets 
+            SET Name = @Name,
+                Description = @Description,
+                ProcessType = @ProcessType,
+                DataSetType = @DataSetType,
+                ImportedAt = @ImportedAt,
+                RecordCount = @RecordCount,
+                Status = @Status,
+                ErrorMessage = @ErrorMessage,
+                FilePath = @FilePath,
+                JobDate = @JobDate,
+                UpdatedAt = @UpdatedAt
+            WHERE Id = @Id";
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            
+            var parameters = new
+            {
+                Id = dataSet.Id,
+                Name = dataSet.Name,
+                Description = dataSet.Description,
+                ProcessType = dataSet.ProcessType,
+                DataSetType = dataSet.DataSetType,
+                ImportedAt = dataSet.ImportedAt,
+                RecordCount = dataSet.RecordCount,
+                Status = dataSet.Status,
+                ErrorMessage = dataSet.ErrorMessage,
+                FilePath = dataSet.FilePath,
+                JobDate = dataSet.JobDate,
+                UpdatedAt = DateTime.Now
+            };
+
+            var affectedRows = await connection.ExecuteAsync(sql, parameters);
+            
+            if (affectedRows == 0)
+            {
+                throw new InvalidOperationException($"データセットが見つかりません: {dataSet.Id}");
+            }
+
+            _logger.LogInformation("データセット更新完了: {DataSetId}", dataSet.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "データセット更新エラー: {DataSetId}", dataSet.Id);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// 処理完了したデータセットの件数を取得
     /// </summary>
     public async Task<int> GetCompletedCountAsync(DateTime jobDate)

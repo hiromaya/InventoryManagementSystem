@@ -21,13 +21,13 @@ public class DataSetManagementRepository : BaseRepository, IDataSetManagementRep
     {
         const string sql = @"
             INSERT INTO DataSetManagement (
-                DatasetId, JobDate, ProcessType, ImportType, RecordCount, TotalRecordCount,
-                IsActive, IsArchived, ParentDataSetId, ImportedFiles, CreatedAt, CreatedBy, 
-                Notes, Department
+                DatasetId, Name, Description, FilePath, Status, ErrorMessage, JobDate, ProcessType, ImportType, 
+                RecordCount, TotalRecordCount, IsActive, IsArchived, ParentDataSetId, ImportedFiles, 
+                CreatedAt, UpdatedAt, CreatedBy, Notes, Department
             ) VALUES (
-                @DatasetId, @JobDate, @ProcessType, @ImportType, @RecordCount, @TotalRecordCount,
-                @IsActive, @IsArchived, @ParentDataSetId, @ImportedFiles, @CreatedAt, @CreatedBy, 
-                @Notes, @Department
+                @DatasetId, @Name, @Description, @FilePath, @Status, @ErrorMessage, @JobDate, @ProcessType, @ImportType,
+                @RecordCount, @TotalRecordCount, @IsActive, @IsArchived, @ParentDataSetId, @ImportedFiles, 
+                @CreatedAt, @UpdatedAt, @CreatedBy, @Notes, @Department
             )";
         
         try
@@ -138,6 +138,49 @@ public class DataSetManagementRepository : BaseRepository, IDataSetManagementRep
         catch (Exception ex)
         {
             _logger.LogError(ex, "アクティブデータセット取得エラー: JobDate={JobDate}", jobDate);
+            throw;
+        }
+    }
+    
+    /// <inheritdoc/>
+    public async Task<int> UpdateAsync(DataSetManagement dataset)
+    {
+        const string sql = @"
+            UPDATE DataSetManagement 
+            SET Name = @Name,
+                Description = @Description,
+                FilePath = @FilePath,
+                Status = @Status,
+                ErrorMessage = @ErrorMessage,
+                JobDate = @JobDate,
+                ProcessType = @ProcessType,
+                ImportType = @ImportType,
+                RecordCount = @RecordCount,
+                TotalRecordCount = @TotalRecordCount,
+                IsActive = @IsActive,
+                IsArchived = @IsArchived,
+                ParentDataSetId = @ParentDataSetId,
+                ImportedFiles = @ImportedFiles,
+                UpdatedAt = GETDATE(),
+                DeactivatedAt = @DeactivatedAt,
+                DeactivatedBy = @DeactivatedBy,
+                ArchivedAt = @ArchivedAt,
+                ArchivedBy = @ArchivedBy,
+                Notes = @Notes,
+                Department = @Department
+            WHERE DatasetId = @DataSetId";
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var result = await connection.ExecuteAsync(sql, dataset);
+            
+            _logger.LogInformation("データセット更新完了: DatasetId={DatasetId}", dataset.DataSetId);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "データセット更新エラー: DatasetId={DatasetId}", dataset.DataSetId);
             throw;
         }
     }

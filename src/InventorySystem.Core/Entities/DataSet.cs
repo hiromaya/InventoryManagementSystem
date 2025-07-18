@@ -27,6 +27,11 @@ public class DataSet
     public string DataSetType { get; set; } = string.Empty;
 
     /// <summary>
+    /// 処理種別 ('SALES', 'PURCHASE', 'ADJUSTMENT')
+    /// </summary>
+    public string ProcessType { get; set; } = string.Empty;
+
+    /// <summary>
     /// 取込日時
     /// </summary>
     public DateTime ImportedAt { get; set; }

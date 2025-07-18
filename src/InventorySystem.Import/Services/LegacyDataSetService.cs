@@ -66,12 +66,12 @@ namespace InventorySystem.Import.Services
             // ステータス文字列を列挙型に変換
             var dataSetStatus = status switch
             {
-                "Processing" => DataSetStatus.Processing,
-                "Completed" => DataSetStatus.Completed,
-                "Imported" => DataSetStatus.Completed,
-                "Error" => DataSetStatus.Failed,
-                "Failed" => DataSetStatus.Failed,
-                _ => DataSetStatus.Processing
+                "Processing" => Core.Interfaces.DataSetStatus.Processing,
+                "Completed" => Core.Interfaces.DataSetStatus.Completed,
+                "Imported" => Core.Interfaces.DataSetStatus.Completed,
+                "Error" => Core.Interfaces.DataSetStatus.Failed,
+                "Failed" => Core.Interfaces.DataSetStatus.Failed,
+                _ => Core.Interfaces.DataSetStatus.Processing
             };
             
             await _unifiedDataSetService.UpdateStatusAsync(dataSetId, dataSetStatus);
@@ -93,7 +93,7 @@ namespace InventorySystem.Import.Services
         {
             await _unifiedDataSetService.UpdateStatusAsync(
                 dataSetId, 
-                DataSetStatus.Failed, 
+                Core.Interfaces.DataSetStatus.Failed, 
                 errorMessage);
                 
             if (_features.EnableDataSetsMigrationLog)

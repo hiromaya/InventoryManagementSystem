@@ -16,6 +16,31 @@ public class DataSetManagement
     public DateTime JobDate { get; set; }
     
     /// <summary>
+    /// データセット名
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 説明
+    /// </summary>
+    public string Description { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// ファイルパス
+    /// </summary>
+    public string? FilePath { get; set; }
+    
+    /// <summary>
+    /// ステータス
+    /// </summary>
+    public string Status { get; set; } = "Pending";
+    
+    /// <summary>
+    /// エラーメッセージ
+    /// </summary>
+    public string? ErrorMessage { get; set; }
+    
+    /// <summary>
     /// 処理種別
     /// </summary>
     public string ProcessType { get; set; } = string.Empty;
@@ -59,6 +84,11 @@ public class DataSetManagement
     /// 作成日時
     /// </summary>
     public DateTime CreatedAt { get; set; }
+    
+    /// <summary>
+    /// 更新日時
+    /// </summary>
+    public DateTime UpdatedAt { get; set; }
     
     /// <summary>
     /// 作成者

@@ -33,6 +33,11 @@ public interface IDataSetManagementRepository
     Task<DataSetManagement?> GetActiveByJobDateAsync(DateTime jobDate);
     
     /// <summary>
+    /// データセットを更新
+    /// </summary>
+    Task<int> UpdateAsync(DataSetManagement dataset);
+    
+    /// <summary>
     /// データセットを無効化
     /// </summary>
     Task<int> DeactivateDataSetAsync(string dataSetId, string? deactivatedBy = null);

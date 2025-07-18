@@ -28,6 +28,11 @@ public interface IDataSetRepository
     Task UpdateRecordCountAsync(string id, int recordCount);
 
     /// <summary>
+    /// データセットを更新
+    /// </summary>
+    Task UpdateAsync(DataSet dataSet);
+
+    /// <summary>
     /// 指定した日付のデータセット一覧を取得
     /// </summary>
     Task<IEnumerable<DataSet>> GetByJobDateAsync(DateTime jobDate);
