@@ -4008,13 +4008,12 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
                 return;
             }
             
-            // スクリプトファイルの読み込み
-            var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, 
-                $"../../../../database/migrations/{scriptFileName}");
+            // スクリプトファイルの読み込み（プロジェクトルートを検索）
+            var scriptPath = FindScriptPath(scriptFileName);
             
-            if (!File.Exists(scriptPath))
+            if (string.IsNullOrEmpty(scriptPath) || !File.Exists(scriptPath))
             {
-                logger.LogError("移行スクリプトが見つかりません: {Path}", scriptPath);
+                logger.LogError("移行スクリプトが見つかりません: {Path}", scriptPath ?? "null");
                 return;
             }
             
@@ -4072,13 +4071,12 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
                 return;
             }
             
-            // スクリプトファイルの読み込み
-            var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, 
-                "../../../../database/migrations/050_Phase1_CheckCurrentSchema.sql");
+            // スクリプトファイルの読み込み（プロジェクトルートを検索）
+            var scriptPath = FindScriptPath("050_Phase1_CheckCurrentSchema.sql");
             
-            if (!File.Exists(scriptPath))
+            if (string.IsNullOrEmpty(scriptPath) || !File.Exists(scriptPath))
             {
-                logger.LogError("スキーマ確認スクリプトが見つかりません: {Path}", scriptPath);
+                logger.LogError("スキーマ確認スクリプトが見つかりません: {Path}", scriptPath ?? "null");
                 return;
             }
             
@@ -4159,6 +4157,49 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
             Console.WriteLine($"❌ エラー: {ex.Message}");
             throw;
         }
+    }
+
+    /// <summary>
+    /// スクリプトファイルのパスを検索
+    /// </summary>
+    private static string? FindScriptPath(string fileName)
+    {
+        // 現在のディレクトリから開始して上位ディレクトリを検索
+        var currentDir = AppDomain.CurrentDomain.BaseDirectory;
+        var searchDir = new DirectoryInfo(currentDir);
+        
+        // 最大5階層まで上がって検索
+        for (int i = 0; i < 5 && searchDir != null; i++)
+        {
+            var databaseDir = Path.Combine(searchDir.FullName, "database", "migrations");
+            var scriptPath = Path.Combine(databaseDir, fileName);
+            
+            if (File.Exists(scriptPath))
+            {
+                return scriptPath;
+            }
+            
+            searchDir = searchDir.Parent;
+        }
+        
+        // 見つからない場合、いくつかの候補パスを試す
+        var candidatePaths = new[]
+        {
+            Path.Combine(Environment.CurrentDirectory, "database", "migrations", fileName),
+            Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", "database", "migrations", fileName),
+            Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "", "../../../../database/migrations", fileName)
+        };
+        
+        foreach (var candidatePath in candidatePaths)
+        {
+            var fullPath = Path.GetFullPath(candidatePath);
+            if (File.Exists(fullPath))
+            {
+                return fullPath;
+            }
+        }
+        
+        return null;
     }
 
 } // Program クラスの終了
