@@ -116,11 +116,112 @@ BEGIN TRY
     END
     
     -- =====================================================
-    -- 3. 古いカラムの削除
+    -- 3. デフォルト制約の削除（Gemini提案の動的削除方法）
     -- =====================================================
     
     PRINT '';
-    PRINT '3. 古いカラムの削除...';
+    PRINT '3. デフォルト制約の削除...';
+    
+    -- 動的にデフォルト制約を削除するプロシージャ
+    DECLARE @constraintName NVARCHAR(128);
+    DECLARE @sql NVARCHAR(MAX);
+    
+    -- ProductMaster.CreatedDate のデフォルト制約削除
+    SELECT @constraintName = dc.name
+    FROM sys.default_constraints dc
+    JOIN sys.tables t ON dc.parent_object_id = t.object_id
+    JOIN sys.columns c ON dc.parent_column_id = c.column_id AND c.object_id = t.object_id
+    WHERE t.name = 'ProductMaster' AND c.name = 'CreatedDate';
+    
+    IF @constraintName IS NOT NULL
+    BEGIN
+        SET @sql = 'ALTER TABLE dbo.ProductMaster DROP CONSTRAINT ' + QUOTENAME(@constraintName);
+        EXEC sp_executesql @sql;
+        PRINT '  ✓ ProductMaster.CreatedDate デフォルト制約を削除: ' + @constraintName;
+        SET @constraintName = NULL;
+    END
+    
+    -- ProductMaster.UpdatedDate のデフォルト制約削除
+    SELECT @constraintName = dc.name
+    FROM sys.default_constraints dc
+    JOIN sys.tables t ON dc.parent_object_id = t.object_id
+    JOIN sys.columns c ON dc.parent_column_id = c.column_id AND c.object_id = t.object_id
+    WHERE t.name = 'ProductMaster' AND c.name = 'UpdatedDate';
+    
+    IF @constraintName IS NOT NULL
+    BEGIN
+        SET @sql = 'ALTER TABLE dbo.ProductMaster DROP CONSTRAINT ' + QUOTENAME(@constraintName);
+        EXEC sp_executesql @sql;
+        PRINT '  ✓ ProductMaster.UpdatedDate デフォルト制約を削除: ' + @constraintName;
+        SET @constraintName = NULL;
+    END
+    
+    -- CustomerMaster.CreatedDate のデフォルト制約削除
+    SELECT @constraintName = dc.name
+    FROM sys.default_constraints dc
+    JOIN sys.tables t ON dc.parent_object_id = t.object_id
+    JOIN sys.columns c ON dc.parent_column_id = c.column_id AND c.object_id = t.object_id
+    WHERE t.name = 'CustomerMaster' AND c.name = 'CreatedDate';
+    
+    IF @constraintName IS NOT NULL
+    BEGIN
+        SET @sql = 'ALTER TABLE dbo.CustomerMaster DROP CONSTRAINT ' + QUOTENAME(@constraintName);
+        EXEC sp_executesql @sql;
+        PRINT '  ✓ CustomerMaster.CreatedDate デフォルト制約を削除: ' + @constraintName;
+        SET @constraintName = NULL;
+    END
+    
+    -- CustomerMaster.UpdatedDate のデフォルト制約削除
+    SELECT @constraintName = dc.name
+    FROM sys.default_constraints dc
+    JOIN sys.tables t ON dc.parent_object_id = t.object_id
+    JOIN sys.columns c ON dc.parent_column_id = c.column_id AND c.object_id = t.object_id
+    WHERE t.name = 'CustomerMaster' AND c.name = 'UpdatedDate';
+    
+    IF @constraintName IS NOT NULL
+    BEGIN
+        SET @sql = 'ALTER TABLE dbo.CustomerMaster DROP CONSTRAINT ' + QUOTENAME(@constraintName);
+        EXEC sp_executesql @sql;
+        PRINT '  ✓ CustomerMaster.UpdatedDate デフォルト制約を削除: ' + @constraintName;
+        SET @constraintName = NULL;
+    END
+    
+    -- SupplierMaster.CreatedDate のデフォルト制約削除
+    SELECT @constraintName = dc.name
+    FROM sys.default_constraints dc
+    JOIN sys.tables t ON dc.parent_object_id = t.object_id
+    JOIN sys.columns c ON dc.parent_column_id = c.column_id AND c.object_id = t.object_id
+    WHERE t.name = 'SupplierMaster' AND c.name = 'CreatedDate';
+    
+    IF @constraintName IS NOT NULL
+    BEGIN
+        SET @sql = 'ALTER TABLE dbo.SupplierMaster DROP CONSTRAINT ' + QUOTENAME(@constraintName);
+        EXEC sp_executesql @sql;
+        PRINT '  ✓ SupplierMaster.CreatedDate デフォルト制約を削除: ' + @constraintName;
+        SET @constraintName = NULL;
+    END
+    
+    -- SupplierMaster.UpdatedDate のデフォルト制約削除
+    SELECT @constraintName = dc.name
+    FROM sys.default_constraints dc
+    JOIN sys.tables t ON dc.parent_object_id = t.object_id
+    JOIN sys.columns c ON dc.parent_column_id = c.column_id AND c.object_id = t.object_id
+    WHERE t.name = 'SupplierMaster' AND c.name = 'UpdatedDate';
+    
+    IF @constraintName IS NOT NULL
+    BEGIN
+        SET @sql = 'ALTER TABLE dbo.SupplierMaster DROP CONSTRAINT ' + QUOTENAME(@constraintName);
+        EXEC sp_executesql @sql;
+        PRINT '  ✓ SupplierMaster.UpdatedDate デフォルト制約を削除: ' + @constraintName;
+        SET @constraintName = NULL;
+    END
+    
+    -- =====================================================
+    -- 4. 古いカラムの削除
+    -- =====================================================
+    
+    PRINT '';
+    PRINT '4. 古いカラムの削除...';
     
     -- ProductMaster の古いカラム削除
     IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'ProductMaster' AND COLUMN_NAME = 'CreatedDate')
@@ -162,11 +263,11 @@ BEGIN TRY
     END
     
     -- =====================================================
-    -- 4. 新しいカラムを NOT NULL に変更
+    -- 5. 新しいカラムを NOT NULL に変更
     -- =====================================================
     
     PRINT '';
-    PRINT '4. 新しいカラムのNOT NULL制約設定...';
+    PRINT '5. 新しいカラムのNOT NULL制約設定...';
     
     -- NULL値を持つレコードがないことを確認してからNOT NULL制約を設定
     DECLARE @NullCount INT;
@@ -211,11 +312,11 @@ BEGIN TRY
     END
     
     -- =====================================================
-    -- 5. インデックスの再構築
+    -- 6. インデックスの再構築
     -- =====================================================
     
     PRINT '';
-    PRINT '5. インデックスの再構築...';
+    PRINT '6. インデックスの再構築...';
     
     -- 統計情報の更新とインデックスの再構築
     UPDATE STATISTICS ProductMaster;
@@ -232,11 +333,11 @@ BEGIN TRY
     PRINT '  ✓ インデックスを再構築しました';
     
     -- =====================================================
-    -- 6. 最終確認
+    -- 7. 最終確認
     -- =====================================================
     
     PRINT '';
-    PRINT '6. 最終確認...';
+    PRINT '7. 最終確認...';
     
     -- 移行後のカラム構成を表示
     SELECT 
