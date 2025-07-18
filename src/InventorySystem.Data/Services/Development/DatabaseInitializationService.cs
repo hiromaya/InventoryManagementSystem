@@ -67,13 +67,16 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "026_CreateDateProcessingHistory.sql",      // 日付処理履歴
         "027_CreatePreviousMonthInventory.sql",     // 前月在庫管理
         "028_AddDataSetTypeAndImportedAt.sql",      // DataSetTypeとImportedAtカラム追加
+        
+        // === 完全版マスタテーブル作成（最優先） ===
+        "05_create_master_tables.sql",              // 完全版マスタテーブル作成（CreatedAt/UpdatedAt対応）
+        
         "029_CreateShippingMarkMaster.sql",         // ShippingMarkMasterテーブル作成
         
         // === 重要マスタエンティティ追加 ===
         "030_CreateGradeMaster.sql",                // GradeMasterテーブル作成
         "031_CreateClassMaster.sql",                // ClassMasterテーブル作成
         "032_FixOriginMasterToRegionMaster.sql",    // 産地マスタ名統一
-        "05_create_master_tables.sql",              // 完全版マスタテーブル作成（CreatedAt/UpdatedAt対応）
         
         // === DataSetsスキーマ完全修正（重要度最高） ===
         "033_FixDataSetsSchema.sql",               // DataSetsテーブル包括的修正
@@ -746,8 +749,9 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                     string.Join(", ", excludedFiles));
             }
             
-            // 未適用のマイグレーションファイルを実行（除外ファイルを含む）
-            foreach (var fileName in allMigrationFiles)
+            // 未適用のマイグレーションファイルを実行（除外ファイルは実行しない）
+            var nonExcludedFiles = allMigrationFiles.Where(f => !excludedFromWarning.Contains(f)).ToList();
+            foreach (var fileName in nonExcludedFiles)
             {
                 if (!appliedMigrationIds.Contains(fileName))
                 {
