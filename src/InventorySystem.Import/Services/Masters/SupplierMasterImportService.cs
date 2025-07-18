@@ -229,8 +229,8 @@ public class SupplierMasterImportService
             SupplierCategory3 = csv.SupplierCategory3?.Trim(),
             PaymentCode = csv.PaymentCode?.Trim(),
             IsActive = csv.IsActive,
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedDate = DateTime.Now,
+            UpdatedDate = DateTime.Now
         };
     }
 

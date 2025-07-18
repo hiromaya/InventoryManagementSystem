@@ -232,8 +232,8 @@ public class CustomerMasterImportService
             WalkingRate = csv.WalkingRate,
             BillingCode = csv.BillingCode?.Trim(),
             IsActive = csv.IsActive,
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedDate = DateTime.Now,
+            UpdatedDate = DateTime.Now
         };
     }
 
