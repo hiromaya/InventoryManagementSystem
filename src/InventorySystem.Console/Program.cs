@@ -4237,86 +4237,51 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
     }
 
     /// <summary>
-    /// GO文を完全に除去してSQLスクリプトを実行
+    /// GO文を基準にバッチ分割してSQLスクリプトを実行
     /// </summary>
     private static async Task ExecuteSqlScriptAsync(Microsoft.Data.SqlClient.SqlConnection connection, string scriptContent)
     {
-        // GO文を正規表現で完全に除去
-        var cleanedScript = System.Text.RegularExpressions.Regex.Replace(
+        // GOを基準にスクリプトを分割 (大文字小文字を無視)
+        var batches = System.Text.RegularExpressions.Regex.Split(
             scriptContent, 
-            @"^\s*GO\s*$",  // 行の開始から終了まででGOのみの行を検出
-            "", 
+            @"^\s*GO\s*$", 
             System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        
-        // さらに、行末のGOも除去
-        cleanedScript = System.Text.RegularExpressions.Regex.Replace(
-            cleanedScript,
-            @"\s+GO\s*$",  // 行末のGOを検出
-            "",
-            System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        
-        // 空行を除去し、実際のSQL文のみを残す
-        var sqlLines = cleanedScript.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-        var sqlBatches = new List<string>();
-        var currentBatch = new List<string>();
-        
-        foreach (var line in sqlLines)
-        {
-            var trimmedLine = line.Trim();
-            
-            // コメント行やUSE文は個別に実行
-            if (trimmedLine.StartsWith("--") || string.IsNullOrWhiteSpace(trimmedLine))
-            {
-                continue;
-            }
-            
-            if (trimmedLine.StartsWith("USE ", StringComparison.OrdinalIgnoreCase))
-            {
-                // USE文は単独で実行
-                if (currentBatch.Count > 0)
-                {
-                    sqlBatches.Add(string.Join("\n", currentBatch));
-                    currentBatch.Clear();
-                }
-                sqlBatches.Add(trimmedLine);
-            }
-            else
-            {
-                currentBatch.Add(line);
-                
-                // バッチサイズ制限（50行ごとに分割）
-                if (currentBatch.Count >= 50)
-                {
-                    sqlBatches.Add(string.Join("\n", currentBatch));
-                    currentBatch.Clear();
-                }
-            }
-        }
-        
-        // 残りのバッチを追加
-        if (currentBatch.Count > 0)
-        {
-            sqlBatches.Add(string.Join("\n", currentBatch));
-        }
-        
-        // 各バッチを実行
-        foreach (var batch in sqlBatches)
+
+        foreach (var batch in batches)
         {
             var trimmedBatch = batch.Trim();
             if (string.IsNullOrEmpty(trimmedBatch))
             {
                 continue;
             }
-            
-            try
+
+            // USEステートメントを特別扱い
+            if (trimmedBatch.StartsWith("USE ", StringComparison.OrdinalIgnoreCase))
             {
-                await connection.ExecuteAsync(trimmedBatch);
+                try
+                {
+                    // USE文はデータベースコンテキストを変更するため、即時実行
+                    await connection.ExecuteAsync(trimmedBatch);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error executing USE statement: {ex.Message}");
+                    // USEが失敗した場合、後続のクエリは実行しない
+                    throw;
+                }
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"Error executing batch: {ex.Message}");
-                Console.WriteLine($"Batch content: {trimmedBatch.Substring(0, Math.Min(200, trimmedBatch.Length))}...");
-                throw;
+                try
+                {
+                    await connection.ExecuteAsync(trimmedBatch);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error executing batch: {ex.Message}");
+                    Console.WriteLine($"Batch content (first 200 chars): {trimmedBatch.Substring(0, Math.Min(200, trimmedBatch.Length))}...");
+                    throw;
+                }
             }
         }
     }
