@@ -66,12 +66,12 @@ public class CustomerMasterRepository : ICustomerMasterRepository
                     CustomerCode, CustomerName, CustomerName2, SearchKana, ShortName,
                     PostalCode, Address1, Address2, Address3, PhoneNumber, FaxNumber,
                     CustomerCategory1, CustomerCategory2, CustomerCategory3, CustomerCategory4, CustomerCategory5,
-                    WalkingRate, BillingCode, IsActive, CreatedAt, UpdatedAt
+                    WalkingRate, BillingCode, IsActive, CreatedDate, UpdatedDate
                 ) VALUES (
                     @CustomerCode, @CustomerName, @CustomerName2, @SearchKana, @ShortName,
                     @PostalCode, @Address1, @Address2, @Address3, @PhoneNumber, @FaxNumber,
                     @CustomerCategory1, @CustomerCategory2, @CustomerCategory3, @CustomerCategory4, @CustomerCategory5,
-                    @WalkingRate, @BillingCode, @IsActive, @CreatedAt, @UpdatedAt
+                    @WalkingRate, @BillingCode, @IsActive, @CreatedDate, @UpdatedDate
                 )";
 
             var count = await connection.ExecuteAsync(sql, customers, transaction);
@@ -113,7 +113,7 @@ public class CustomerMasterRepository : ICustomerMasterRepository
                 WalkingRate = @WalkingRate,
                 BillingCode = @BillingCode,
                 IsActive = @IsActive,
-                UpdatedAt = GETDATE()
+                UpdatedDate = GETDATE()
             WHERE CustomerCode = @CustomerCode";
 
         return await connection.ExecuteAsync(sql, customer);
@@ -126,7 +126,7 @@ public class CustomerMasterRepository : ICustomerMasterRepository
         // 論理削除
         const string sql = @"
             UPDATE CustomerMaster 
-            SET IsActive = 0, UpdatedAt = GETDATE() 
+            SET IsActive = 0, UpdatedDate = GETDATE() 
             WHERE CustomerCode = @CustomerCode";
         
         return await connection.ExecuteAsync(sql, new { CustomerCode = customerCode });
@@ -232,13 +232,13 @@ public class CustomerMasterRepository : ICustomerMasterRepository
                     WalkingRate = @WalkingRate,
                     BillingCode = @BillingCode,
                     IsActive = @IsActive,
-                    UpdatedAt = GETDATE()
+                    UpdatedDate = GETDATE()
             WHEN NOT MATCHED THEN
                 INSERT (
                     CustomerCode, CustomerName, CustomerName2, SearchKana, ShortName,
                     PostalCode, Address1, Address2, Address3, PhoneNumber, FaxNumber,
                     CustomerCategory1, CustomerCategory2, CustomerCategory3, CustomerCategory4, CustomerCategory5,
-                    WalkingRate, BillingCode, IsActive, CreatedAt, UpdatedAt
+                    WalkingRate, BillingCode, IsActive, CreatedDate, UpdatedDate
                 ) VALUES (
                     @CustomerCode, @CustomerName, @CustomerName2, @SearchKana, @ShortName,
                     @PostalCode, @Address1, @Address2, @Address3, @PhoneNumber, @FaxNumber,
