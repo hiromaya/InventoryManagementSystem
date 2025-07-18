@@ -73,6 +73,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "030_CreateGradeMaster.sql",                // GradeMasterテーブル作成
         "031_CreateClassMaster.sql",                // ClassMasterテーブル作成
         "032_FixOriginMasterToRegionMaster.sql",    // 産地マスタ名統一
+        "05_create_master_tables.sql",              // 完全版マスタテーブル作成（CreatedAt/UpdatedAt対応）
         
         // === DataSetsスキーマ完全修正（重要度最高） ===
         "033_FixDataSetsSchema.sql",               // DataSetsテーブル包括的修正

@@ -28,8 +28,8 @@ BEGIN
         WalkingRate DECIMAL(5,2),                        -- 歩引き率（汎用数値1）
         BillingCode NVARCHAR(15),                        -- 請求先コード
         IsActive BIT DEFAULT 1,                          -- 取引区分（1:取引中、0:取引終了）
-        CreatedDate DATETIME2 DEFAULT GETDATE(),
-        UpdatedDate DATETIME2 DEFAULT GETDATE()
+        CreatedAt DATETIME2 DEFAULT GETDATE(),
+        UpdatedAt DATETIME2 DEFAULT GETDATE()
     );
     
     -- インデックス
@@ -67,8 +67,8 @@ BEGIN
         CaseStandardPrice DECIMAL(16,4),                 -- ケース標準価格
         IsStockManaged BIT DEFAULT 1,                    -- 在庫管理フラグ
         TaxRate INT,                                     -- 消費税率
-        CreatedDate DATETIME2 DEFAULT GETDATE(),
-        UpdatedDate DATETIME2 DEFAULT GETDATE()
+        CreatedAt DATETIME2 DEFAULT GETDATE(),
+        UpdatedAt DATETIME2 DEFAULT GETDATE()
     );
     
     -- インデックス
@@ -99,8 +99,8 @@ BEGIN
         SupplierCategory3 NVARCHAR(15),                  -- 分類3
         PaymentCode NVARCHAR(15),                        -- 支払先コード
         IsActive BIT DEFAULT 1,                          -- 取引区分
-        CreatedDate DATETIME2 DEFAULT GETDATE(),
-        UpdatedDate DATETIME2 DEFAULT GETDATE()
+        CreatedAt DATETIME2 DEFAULT GETDATE(),
+        UpdatedAt DATETIME2 DEFAULT GETDATE()
     );
     
     -- インデックス
@@ -133,8 +133,8 @@ BEGIN
         TextValue3 NVARCHAR(255),                        -- 汎用摘要3
         TextValue4 NVARCHAR(255),                        -- 汎用摘要4
         TextValue5 NVARCHAR(255),                        -- 汎用摘要5
-        CreatedDate DATETIME2 DEFAULT GETDATE(),
-        UpdatedDate DATETIME2 DEFAULT GETDATE()
+        CreatedAt DATETIME2 DEFAULT GETDATE(),
+        UpdatedAt DATETIME2 DEFAULT GETDATE()
     );
     
     -- インデックス
@@ -165,8 +165,8 @@ BEGIN
         TextValue3 NVARCHAR(255),                        -- 汎用摘要3
         TextValue4 NVARCHAR(255),                        -- 汎用摘要4
         TextValue5 NVARCHAR(255),                        -- 汎用摘要5
-        CreatedDate DATETIME2 DEFAULT GETDATE(),
-        UpdatedDate DATETIME2 DEFAULT GETDATE()
+        CreatedAt DATETIME2 DEFAULT GETDATE(),
+        UpdatedAt DATETIME2 DEFAULT GETDATE()
     );
     
     -- インデックス
@@ -197,8 +197,8 @@ BEGIN
         TextValue3 NVARCHAR(255),                          -- 汎用摘要3
         TextValue4 NVARCHAR(255),                          -- 汎用摘要4
         TextValue5 NVARCHAR(255),                          -- 汎用摘要5
-        CreatedDate DATETIME2 DEFAULT GETDATE(),
-        UpdatedDate DATETIME2 DEFAULT GETDATE()
+        CreatedAt DATETIME2 DEFAULT GETDATE(),
+        UpdatedAt DATETIME2 DEFAULT GETDATE()
     );
     
     -- インデックス
@@ -229,8 +229,8 @@ BEGIN
         TextValue3 NVARCHAR(255),                        -- 汎用摘要3
         TextValue4 NVARCHAR(255),                        -- 汎用摘要4
         TextValue5 NVARCHAR(255),                        -- 汎用摘要5
-        CreatedDate DATETIME2 DEFAULT GETDATE(),
-        UpdatedDate DATETIME2 DEFAULT GETDATE()
+        CreatedAt DATETIME2 DEFAULT GETDATE(),
+        UpdatedAt DATETIME2 DEFAULT GETDATE()
     );
     
     -- インデックス
@@ -246,8 +246,8 @@ BEGIN
         UnitCode NVARCHAR(10) NOT NULL PRIMARY KEY,      -- コード
         UnitName NVARCHAR(20) NOT NULL,                  -- 名称
         SearchKana NVARCHAR(50),                         -- 検索カナ
-        CreatedDate DATETIME2 DEFAULT GETDATE(),
-        UpdatedDate DATETIME2 DEFAULT GETDATE()
+        CreatedAt DATETIME2 DEFAULT GETDATE(),
+        UpdatedAt DATETIME2 DEFAULT GETDATE()
     );
     
     -- インデックス
@@ -264,8 +264,8 @@ BEGIN
         CategoryCode NVARCHAR(15) NOT NULL,              -- コード
         CategoryName NVARCHAR(50) NOT NULL,              -- 名称
         SearchKana NVARCHAR(100),                        -- 検索カナ
-        CreatedDate DATETIME2 DEFAULT GETDATE(),
-        UpdatedDate DATETIME2 DEFAULT GETDATE(),
+        CreatedAt DATETIME2 DEFAULT GETDATE(),
+        UpdatedAt DATETIME2 DEFAULT GETDATE(),
         CONSTRAINT PK_CategoryMaster PRIMARY KEY (CategoryType, CategoryCode)
     );
     
@@ -294,23 +294,23 @@ BEGIN
 END
 GO
 
--- 得意先マスタの請求先コード
-IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE object_id = OBJECT_ID(N'[dbo].[FK_CustomerMaster_BillingCode]'))
-BEGIN
-    ALTER TABLE CustomerMaster
-    ADD CONSTRAINT FK_CustomerMaster_BillingCode
-    FOREIGN KEY (BillingCode) REFERENCES CustomerMaster(CustomerCode);
-END
-GO
+-- 得意先マスタの請求先コード（自己参照制約はマスタ投入完了後に設定）
+-- IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE object_id = OBJECT_ID(N'[dbo].[FK_CustomerMaster_BillingCode]'))
+-- BEGIN
+--     ALTER TABLE CustomerMaster
+--     ADD CONSTRAINT FK_CustomerMaster_BillingCode
+--     FOREIGN KEY (BillingCode) REFERENCES CustomerMaster(CustomerCode);
+-- END
+-- GO
 
--- 仕入先マスタの支払先コード
-IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE object_id = OBJECT_ID(N'[dbo].[FK_SupplierMaster_PaymentCode]'))
-BEGIN
-    ALTER TABLE SupplierMaster
-    ADD CONSTRAINT FK_SupplierMaster_PaymentCode
-    FOREIGN KEY (PaymentCode) REFERENCES SupplierMaster(SupplierCode);
-END
-GO
+-- 仕入先マスタの支払先コード（自己参照制約はマスタ投入完了後に設定）
+-- IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE object_id = OBJECT_ID(N'[dbo].[FK_SupplierMaster_PaymentCode]'))
+-- BEGIN
+--     ALTER TABLE SupplierMaster
+--     ADD CONSTRAINT FK_SupplierMaster_PaymentCode
+--     FOREIGN KEY (PaymentCode) REFERENCES SupplierMaster(SupplierCode);
+-- END
+-- GO
 
 PRINT 'マスタテーブルの作成が完了しました。';
 GO
