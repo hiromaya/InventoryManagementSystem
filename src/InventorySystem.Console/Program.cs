@@ -4087,8 +4087,8 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
             
             logger.LogInformation("データベース接続成功");
             
-            // スクリプトを実行
-            var results = await connection.QueryAsync<dynamic>(scriptContent);
+            // スクリプトを実行（GOバッチ分割対応）
+            await ExecuteSqlScriptAsync(connection, scriptContent);
             
             // 基本的なテーブル存在確認
             var checkTablesSql = @"
@@ -4234,6 +4234,39 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
         
         Console.WriteLine("Script file not found in any candidate paths");
         return null;
+    }
+
+    /// <summary>
+    /// GOバッチを分割してSQLスクリプトを実行
+    /// </summary>
+    private static async Task ExecuteSqlScriptAsync(Microsoft.Data.SqlClient.SqlConnection connection, string scriptContent)
+    {
+        // GOステートメントでバッチを分割
+        var batches = scriptContent.Split(
+            new[] { "\nGO\n", "\nGO\r\n", "\rGO\r", "\ngo\n", "\nGO ", " GO\n", "\nGO\t", "\tGO\n" }, 
+            StringSplitOptions.RemoveEmptyEntries);
+        
+        foreach (var batch in batches)
+        {
+            var trimmedBatch = batch.Trim();
+            if (string.IsNullOrEmpty(trimmedBatch) || 
+                trimmedBatch.StartsWith("--") || 
+                trimmedBatch.Equals("GO", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+            
+            try
+            {
+                await connection.ExecuteAsync(trimmedBatch);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error executing batch: {ex.Message}");
+                Console.WriteLine($"Batch content: {trimmedBatch.Substring(0, Math.Min(100, trimmedBatch.Length))}...");
+                throw;
+            }
+        }
     }
 
 } // Program クラスの終了
