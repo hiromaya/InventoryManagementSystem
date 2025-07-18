@@ -85,11 +85,12 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         // === 追加テーブル作成 ===
         "035_AddAllMissingTables.sql",             // 不足しているテーブルの追加
         
-        // === CreatedAt/UpdatedAt移行フェーズ ===
-        "050_Phase1_CheckCurrentSchema.sql",       // 現在のスキーマ確認（実行不要）
-        "051_Phase2_AddNewColumns.sql",            // 新しいカラムを追加
-        "052_Phase3_MigrateDataAndSync.sql",       // データ移行と同期
-        "053_Phase5_Cleanup.sql"                   // 古いカラムの削除
+        // === CreatedAt/UpdatedAt移行フェーズ（05_create_master_tables.sqlで不要） ===
+        // "050_Phase1_CheckCurrentSchema.sql",       // 現在のスキーマ確認（実行不要）
+        // "051_Phase2_AddNewColumns.sql",            // 新しいカラムを追加（05_create_master_tables.sqlで完了）
+        // "052_Phase3_MigrateDataAndSync.sql",       // データ移行と同期（05_create_master_tables.sqlで完了）
+        // "053_Phase5_Cleanup.sql"                   // 古いカラムの削除（05_create_master_tables.sqlで完了）
+        "050_Phase1_CheckCurrentSchema.sql"        // スキーマ確認のみ実行
     };
     
     // 旧テーブル定義（後方互換性のため一時的に保持）
@@ -692,7 +693,10 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             
             foreach (var migrationFileName in _migrationOrder)
             {
-                var migrationPath = Path.Combine(migrationsPath, migrationFileName);
+                // 05_create_master_tables.sqlはdatabaseフォルダにある
+                var migrationPath = migrationFileName == "05_create_master_tables.sql"
+                    ? Path.Combine(Path.GetDirectoryName(migrationsPath), migrationFileName)
+                    : Path.Combine(migrationsPath, migrationFileName);
                 
                 // ファイルが存在しない場合はスキップ
                 if (!File.Exists(migrationPath))
@@ -724,7 +728,12 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             }
             
             // 順序リストにない追加のマイグレーションファイルをチェック（意図的除外ファイルは警告対象外）
-            var excludedFromWarning = new[] { "024_CreateProductMaster.sql" }; // 意図的除外リスト
+            var excludedFromWarning = new[] { 
+                "024_CreateProductMaster.sql",     // 意図的除外（05_create_master_tables.sqlで置換）
+                "051_Phase2_AddNewColumns.sql",    // 意図的除外（05_create_master_tables.sqlで不要）
+                "052_Phase3_MigrateDataAndSync.sql", // 意図的除外（05_create_master_tables.sqlで不要）
+                "053_Phase5_Cleanup.sql"           // 意図的除外（05_create_master_tables.sqlで不要）
+            }; // 意図的除外リスト
             
             var allMigrationFiles = Directory.GetFiles(migrationsPath, "*.sql")
                 .Select(f => Path.GetFileName(f))
