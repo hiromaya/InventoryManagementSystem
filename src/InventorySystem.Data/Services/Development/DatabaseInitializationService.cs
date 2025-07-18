@@ -719,31 +719,46 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 }
             }
             
-            // 順序リストにない追加のマイグレーションファイルをチェック
+            // 順序リストにない追加のマイグレーションファイルをチェック（意図的除外ファイルは警告対象外）
+            var excludedFromWarning = new[] { "024_CreateProductMaster.sql" }; // 意図的除外リスト
+            
             var allMigrationFiles = Directory.GetFiles(migrationsPath, "*.sql")
                 .Select(f => Path.GetFileName(f))
                 .Where(f => !_migrationOrder.Contains(f))
                 .OrderBy(f => f)
                 .ToList();
             
-            if (allMigrationFiles.Any())
+            // 警告対象ファイルのフィルタリング
+            var warningFiles = allMigrationFiles.Where(f => !excludedFromWarning.Contains(f)).ToList();
+            
+            if (warningFiles.Any())
             {
                 _logger.LogWarning("順序リストにない追加のマイグレーションファイルが見つかりました: {Files}", 
-                    string.Join(", ", allMigrationFiles));
-                
-                foreach (var fileName in allMigrationFiles)
+                    string.Join(", ", warningFiles));
+            }
+            
+            // 除外ファイルがある場合は詳細ログ（Debugレベル）
+            var excludedFiles = allMigrationFiles.Where(f => excludedFromWarning.Contains(f)).ToList();
+            if (excludedFiles.Any())
+            {
+                _logger.LogDebug("意図的に除外されたマイグレーションファイル: {Files}", 
+                    string.Join(", ", excludedFiles));
+            }
+            
+            // 未適用のマイグレーションファイルを実行（除外ファイルを含む）
+            foreach (var fileName in allMigrationFiles)
+            {
+                if (!appliedMigrationIds.Contains(fileName))
                 {
-                    if (!appliedMigrationIds.Contains(fileName))
+                    var filePath = Path.Combine(migrationsPath, fileName);
+                    var (success, executionTime) = await ApplyMigrationAsync(connection, filePath, fileName);
+                    if (success)
                     {
-                        var filePath = Path.Combine(migrationsPath, fileName);
-                        var (success, executionTime) = await ApplyMigrationAsync(connection, filePath, fileName);
-                        if (success)
-                        {
-                            appliedMigrations.Add(fileName);
-                            result?.MigrationExecutionTimes.Add(fileName, executionTime);
-                        }
+                        appliedMigrations.Add(fileName);
+                        result?.MigrationExecutionTimes.Add(fileName, executionTime);
                     }
                 }
+            }
             }
             
             _logger.LogInformation("{Count} 個のマイグレーションを適用しました", appliedMigrations.Count);
