@@ -1,55 +1,55 @@
-# 実際のデータベーススキーマ確認スクリプト
+# Database Schema Check Script
 $serverInstance = "localhost\SQLEXPRESS"
 $database = "InventoryManagementDB"
 
-Write-Host "=== 実際のデータベーススキーマ確認 ===" -ForegroundColor Green
-Write-Host "接続先: $serverInstance" -ForegroundColor Yellow
-Write-Host "データベース: $database" -ForegroundColor Yellow
+Write-Host "=== Database Schema Check ===" -ForegroundColor Green
+Write-Host "Server: $serverInstance" -ForegroundColor Yellow
+Write-Host "Database: $database" -ForegroundColor Yellow
 
-# SQL実行
+# SQL Query
 $query = @"
--- ProductMasterテーブルの構造確認
-PRINT '=== ProductMaster テーブル構造 ==='
+-- ProductMaster table structure
+PRINT '=== ProductMaster Table Structure ==='
 SELECT 
-    c.COLUMN_NAME as 'カラム名',
-    c.DATA_TYPE as 'データ型',
-    c.CHARACTER_MAXIMUM_LENGTH as '最大長',
-    c.IS_NULLABLE as 'NULL許可'
+    c.COLUMN_NAME as 'Column Name',
+    c.DATA_TYPE as 'Data Type',
+    c.CHARACTER_MAXIMUM_LENGTH as 'Max Length',
+    c.IS_NULLABLE as 'Allow NULL'
 FROM INFORMATION_SCHEMA.COLUMNS c
 WHERE c.TABLE_NAME = 'ProductMaster'
 ORDER BY c.ORDINAL_POSITION;
 
--- CustomerMasterテーブルの構造確認
+-- CustomerMaster table structure
 PRINT ''
-PRINT '=== CustomerMaster テーブル構造 ==='
+PRINT '=== CustomerMaster Table Structure ==='
 SELECT 
-    c.COLUMN_NAME as 'カラム名',
-    c.DATA_TYPE as 'データ型',
-    c.CHARACTER_MAXIMUM_LENGTH as '最大長',
-    c.IS_NULLABLE as 'NULL許可'
+    c.COLUMN_NAME as 'Column Name',
+    c.DATA_TYPE as 'Data Type',
+    c.CHARACTER_MAXIMUM_LENGTH as 'Max Length',
+    c.IS_NULLABLE as 'Allow NULL'
 FROM INFORMATION_SCHEMA.COLUMNS c
 WHERE c.TABLE_NAME = 'CustomerMaster'
 ORDER BY c.ORDINAL_POSITION;
 
--- SupplierMasterテーブルの構造確認
+-- SupplierMaster table structure
 PRINT ''
-PRINT '=== SupplierMaster テーブル構造 ==='
+PRINT '=== SupplierMaster Table Structure ==='
 SELECT 
-    c.COLUMN_NAME as 'カラム名',
-    c.DATA_TYPE as 'データ型',
-    c.CHARACTER_MAXIMUM_LENGTH as '最大長',
-    c.IS_NULLABLE as 'NULL許可'
+    c.COLUMN_NAME as 'Column Name',
+    c.DATA_TYPE as 'Data Type',
+    c.CHARACTER_MAXIMUM_LENGTH as 'Max Length',
+    c.IS_NULLABLE as 'Allow NULL'
 FROM INFORMATION_SCHEMA.COLUMNS c
 WHERE c.TABLE_NAME = 'SupplierMaster'
 ORDER BY c.ORDINAL_POSITION;
 
--- 特に日付カラムの確認
+-- Date columns check
 PRINT ''
-PRINT '=== 日付カラムの確認 ==='
+PRINT '=== Date Columns Check ==='
 SELECT 
-    TABLE_NAME as 'テーブル名',
-    COLUMN_NAME as 'カラム名',
-    DATA_TYPE as 'データ型'
+    TABLE_NAME as 'Table Name',
+    COLUMN_NAME as 'Column Name',
+    DATA_TYPE as 'Data Type'
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME IN ('ProductMaster', 'CustomerMaster', 'SupplierMaster')
 AND (COLUMN_NAME LIKE '%Date%' OR COLUMN_NAME LIKE '%At%')
@@ -57,18 +57,18 @@ ORDER BY TABLE_NAME, COLUMN_NAME;
 "@
 
 try {
-    # sqlcmdで実行
+    # Execute with sqlcmd
     $result = sqlcmd -S $serverInstance -d $database -Q $query -E -s "," -W
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "`n実行結果:" -ForegroundColor Green
+        Write-Host "`nExecution Result:" -ForegroundColor Green
         $result
     } else {
-        Write-Host "エラーが発生しました (Exit Code: $LASTEXITCODE)" -ForegroundColor Red
+        Write-Host "Error occurred (Exit Code: $LASTEXITCODE)" -ForegroundColor Red
         $result
     }
 } catch {
-    Write-Host "エラー: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
 }
 
-Write-Host "`n=== 完了 ===" -ForegroundColor Green
+Write-Host "`n=== Completed ===" -ForegroundColor Green
