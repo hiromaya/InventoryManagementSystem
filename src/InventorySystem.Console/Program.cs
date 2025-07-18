@@ -4025,18 +4025,8 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
             logger.LogInformation("データベース接続成功");
             Console.WriteLine($"=== {phaseName} 実行中 ===");
             
-            // スクリプトを実行（複数のGOステートメントに対応）
-            var batches = scriptContent.Split(new[] { "\nGO\n", "\nGO\r\n", "\rGO\r", "\ngo\n" }, 
-                StringSplitOptions.RemoveEmptyEntries);
-            
-            foreach (var batch in batches)
-            {
-                var trimmedBatch = batch.Trim();
-                if (!string.IsNullOrEmpty(trimmedBatch))
-                {
-                    await connection.ExecuteAsync(trimmedBatch);
-                }
-            }
+            // 修正済みのGO文分割処理を使用
+            await ExecuteSqlScriptAsync(connection, scriptContent);
             
             Console.WriteLine($"✅ {phaseName} 完了");
             logger.LogInformation("=== {PhaseName} 完了 ===", phaseName);
