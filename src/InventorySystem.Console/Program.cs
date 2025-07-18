@@ -447,6 +447,22 @@ try
             await ExecuteCheckDataStatusAsync(host.Services, commandArgs);
             break;
             
+        case "check-schema":
+            await ExecuteCheckSchemaAsync(host.Services, commandArgs);
+            break;
+            
+        case "migrate-phase2":
+            await ExecuteMigratePhase2Async(host.Services, commandArgs);
+            break;
+            
+        case "migrate-phase3":
+            await ExecuteMigratePhase3Async(host.Services, commandArgs);
+            break;
+            
+        case "migrate-phase5":
+            await ExecuteMigratePhase5Async(host.Services, commandArgs);
+            break;
+            
         case "simulate-daily":
             await ExecuteSimulateDailyAsync(host.Services, commandArgs);
             break;
@@ -3930,6 +3946,220 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
         Console.WriteLine("\n=== 在庫最適化完了 ===");
     }
 }
+
+    /// <summary>
+    /// フェーズ2: 新しいカラムの追加
+    /// </summary>
+    private static async Task ExecuteMigratePhase2Async(IServiceProvider services, string[] args)
+    {
+        await ExecuteMigrationPhaseAsync(services, "051_Phase2_AddNewColumns.sql", "フェーズ2: 新しいカラム追加");
+    }
+
+    /// <summary>
+    /// フェーズ3: データ移行と同期トリガー作成
+    /// </summary>
+    private static async Task ExecuteMigratePhase3Async(IServiceProvider services, string[] args)
+    {
+        await ExecuteMigrationPhaseAsync(services, "052_Phase3_MigrateDataAndSync.sql", "フェーズ3: データ移行と同期");
+    }
+
+    /// <summary>
+    /// フェーズ5: クリーンアップ
+    /// </summary>
+    private static async Task ExecuteMigratePhase5Async(IServiceProvider services, string[] args)
+    {
+        Console.WriteLine("⚠️  重要: このフェーズは古いカラムを削除します");
+        Console.WriteLine("   実行前に以下を確認してください:");
+        Console.WriteLine("   1. アプリケーションが新しいスキーマで正常動作している");
+        Console.WriteLine("   2. import-folderコマンドが成功している");
+        Console.WriteLine("   3. データベースの完全バックアップを取得済み");
+        Console.WriteLine();
+        Console.Write("続行しますか？ (y/N): ");
+        
+        var response = Console.ReadLine();
+        if (response?.ToLower() != "y" && response?.ToLower() != "yes")
+        {
+            Console.WriteLine("処理をキャンセルしました");
+            return;
+        }
+        
+        await ExecuteMigrationPhaseAsync(services, "053_Phase5_Cleanup.sql", "フェーズ5: クリーンアップ");
+    }
+
+    /// <summary>
+    /// 移行フェーズの共通実行ロジック
+    /// </summary>
+    private static async Task ExecuteMigrationPhaseAsync(IServiceProvider services, string scriptFileName, string phaseName)
+    {
+        using var scope = services.CreateScope();
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        
+        try
+        {
+            logger.LogInformation("=== {PhaseName} 開始 ===", phaseName);
+            
+            var connectionString = scopedServices.GetRequiredService<IConfiguration>()
+                .GetConnectionString("DefaultConnection");
+            
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                logger.LogError("接続文字列が見つかりません");
+                return;
+            }
+            
+            // スクリプトファイルの読み込み
+            var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, 
+                $"../../../../database/migrations/{scriptFileName}");
+            
+            if (!File.Exists(scriptPath))
+            {
+                logger.LogError("移行スクリプトが見つかりません: {Path}", scriptPath);
+                return;
+            }
+            
+            var scriptContent = await File.ReadAllTextAsync(scriptPath);
+            
+            using var connection = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
+            await connection.OpenAsync();
+            
+            logger.LogInformation("データベース接続成功");
+            Console.WriteLine($"=== {phaseName} 実行中 ===");
+            
+            // スクリプトを実行（複数のGOステートメントに対応）
+            var batches = scriptContent.Split(new[] { "\nGO\n", "\nGO\r\n", "\rGO\r", "\ngo\n" }, 
+                StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (var batch in batches)
+            {
+                var trimmedBatch = batch.Trim();
+                if (!string.IsNullOrEmpty(trimmedBatch))
+                {
+                    await connection.ExecuteAsync(trimmedBatch);
+                }
+            }
+            
+            Console.WriteLine($"✅ {phaseName} 完了");
+            logger.LogInformation("=== {PhaseName} 完了 ===", phaseName);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{PhaseName} 中にエラーが発生しました", phaseName);
+            Console.WriteLine($"❌ エラー: {ex.Message}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// マスタテーブルのスキーマ確認
+    /// </summary>
+    private static async Task ExecuteCheckSchemaAsync(IServiceProvider services, string[] args)
+    {
+        using var scope = services.CreateScope();
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        
+        try
+        {
+            logger.LogInformation("=== マスタテーブルスキーマ確認開始 ===");
+            
+            var connectionString = scopedServices.GetRequiredService<IConfiguration>()
+                .GetConnectionString("DefaultConnection");
+            
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                logger.LogError("接続文字列が見つかりません");
+                return;
+            }
+            
+            // スクリプトファイルの読み込み
+            var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, 
+                "../../../../database/migrations/050_Phase1_CheckCurrentSchema.sql");
+            
+            if (!File.Exists(scriptPath))
+            {
+                logger.LogError("スキーマ確認スクリプトが見つかりません: {Path}", scriptPath);
+                return;
+            }
+            
+            var scriptContent = await File.ReadAllTextAsync(scriptPath);
+            
+            using var connection = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
+            await connection.OpenAsync();
+            
+            logger.LogInformation("データベース接続成功");
+            
+            // スクリプトを実行
+            var results = await connection.QueryAsync<dynamic>(scriptContent);
+            
+            // 基本的なテーブル存在確認
+            var checkTablesSql = @"
+                SELECT TABLE_NAME, 
+                       CASE WHEN TABLE_NAME IS NOT NULL THEN '存在' ELSE '未作成' END AS STATUS
+                FROM INFORMATION_SCHEMA.TABLES 
+                WHERE TABLE_NAME IN ('ProductMaster', 'CustomerMaster', 'SupplierMaster')
+                ORDER BY TABLE_NAME";
+            
+            var tables = await connection.QueryAsync(checkTablesSql);
+            
+            Console.WriteLine("=== テーブル存在確認 ===");
+            foreach (var table in tables)
+            {
+                Console.WriteLine($"  {table.TABLE_NAME}: {table.STATUS}");
+            }
+            
+            // 日付カラムの確認
+            var checkDateColumnsSql = @"
+                SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, IS_NULLABLE
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_NAME IN ('ProductMaster', 'CustomerMaster', 'SupplierMaster')
+                AND (COLUMN_NAME LIKE '%Created%' OR COLUMN_NAME LIKE '%Updated%' OR COLUMN_NAME LIKE '%Date%')
+                ORDER BY TABLE_NAME, COLUMN_NAME";
+            
+            var dateColumns = await connection.QueryAsync(checkDateColumnsSql);
+            
+            Console.WriteLine("\n=== 日付関連カラム確認 ===");
+            foreach (var col in dateColumns)
+            {
+                Console.WriteLine($"  {col.TABLE_NAME}.{col.COLUMN_NAME}: {col.DATA_TYPE} ({(col.IS_NULLABLE == "YES" ? "NULL許可" : "NOT NULL")})");
+            }
+            
+            // 診断結果
+            Console.WriteLine("\n=== 診断結果 ===");
+            
+            bool hasOldSchema = dateColumns.Any(c => c.COLUMN_NAME == "CreatedDate" || c.COLUMN_NAME == "UpdatedDate");
+            bool hasNewSchema = dateColumns.Any(c => c.COLUMN_NAME == "CreatedAt" || c.COLUMN_NAME == "UpdatedAt");
+            
+            if (hasOldSchema && !hasNewSchema)
+            {
+                Console.WriteLine("🔴 問題: 古いスキーマ（CreatedDate/UpdatedDate）のみ存在");
+                Console.WriteLine("   → フェーズ2で新しいカラムの追加が必要");
+            }
+            else if (!hasOldSchema && hasNewSchema)
+            {
+                Console.WriteLine("✅ 正常: 新しいスキーマ（CreatedAt/UpdatedAt）のみ存在");
+                Console.WriteLine("   → 移行完了済み、追加の対応不要");
+            }
+            else if (hasOldSchema && hasNewSchema)
+            {
+                Console.WriteLine("🟡 移行中: 新旧両方のスキーマが存在");
+                Console.WriteLine("   → フェーズ3以降の処理が必要");
+            }
+            else
+            {
+                Console.WriteLine("🔴 問題: 日付カラムが見つかりません");
+                Console.WriteLine("   → テーブル定義に問題がある可能性");
+            }
+            
+            logger.LogInformation("=== マスタテーブルスキーマ確認完了 ===");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "スキーマ確認中にエラーが発生しました");
+            Console.WriteLine($"❌ エラー: {ex.Message}");
+            throw;
+        }
+    }
 
 } // Program クラスの終了
 
