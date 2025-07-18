@@ -108,12 +108,12 @@ public class SupplierMaster
     /// <summary>
     /// 作成日時
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedDate { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 更新日時
     /// </summary>
-    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+    public DateTime UpdatedDate { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 表示用の仕入先名を取得
