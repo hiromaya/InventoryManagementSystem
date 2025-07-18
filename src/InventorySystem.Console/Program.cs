@@ -4237,21 +4237,73 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
     }
 
     /// <summary>
-    /// GOバッチを分割してSQLスクリプトを実行
+    /// GO文を完全に除去してSQLスクリプトを実行
     /// </summary>
     private static async Task ExecuteSqlScriptAsync(Microsoft.Data.SqlClient.SqlConnection connection, string scriptContent)
     {
-        // GOステートメントでバッチを分割
-        var batches = scriptContent.Split(
-            new[] { "\nGO\n", "\nGO\r\n", "\rGO\r", "\ngo\n", "\nGO ", " GO\n", "\nGO\t", "\tGO\n" }, 
-            StringSplitOptions.RemoveEmptyEntries);
+        // GO文を正規表現で完全に除去
+        var cleanedScript = System.Text.RegularExpressions.Regex.Replace(
+            scriptContent, 
+            @"^\s*GO\s*$",  // 行の開始から終了まででGOのみの行を検出
+            "", 
+            System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         
-        foreach (var batch in batches)
+        // さらに、行末のGOも除去
+        cleanedScript = System.Text.RegularExpressions.Regex.Replace(
+            cleanedScript,
+            @"\s+GO\s*$",  // 行末のGOを検出
+            "",
+            System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        
+        // 空行を除去し、実際のSQL文のみを残す
+        var sqlLines = cleanedScript.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+        var sqlBatches = new List<string>();
+        var currentBatch = new List<string>();
+        
+        foreach (var line in sqlLines)
+        {
+            var trimmedLine = line.Trim();
+            
+            // コメント行やUSE文は個別に実行
+            if (trimmedLine.StartsWith("--") || string.IsNullOrWhiteSpace(trimmedLine))
+            {
+                continue;
+            }
+            
+            if (trimmedLine.StartsWith("USE ", StringComparison.OrdinalIgnoreCase))
+            {
+                // USE文は単独で実行
+                if (currentBatch.Count > 0)
+                {
+                    sqlBatches.Add(string.Join("\n", currentBatch));
+                    currentBatch.Clear();
+                }
+                sqlBatches.Add(trimmedLine);
+            }
+            else
+            {
+                currentBatch.Add(line);
+                
+                // バッチサイズ制限（50行ごとに分割）
+                if (currentBatch.Count >= 50)
+                {
+                    sqlBatches.Add(string.Join("\n", currentBatch));
+                    currentBatch.Clear();
+                }
+            }
+        }
+        
+        // 残りのバッチを追加
+        if (currentBatch.Count > 0)
+        {
+            sqlBatches.Add(string.Join("\n", currentBatch));
+        }
+        
+        // 各バッチを実行
+        foreach (var batch in sqlBatches)
         {
             var trimmedBatch = batch.Trim();
-            if (string.IsNullOrEmpty(trimmedBatch) || 
-                trimmedBatch.StartsWith("--") || 
-                trimmedBatch.Equals("GO", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(trimmedBatch))
             {
                 continue;
             }
@@ -4263,7 +4315,7 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
             catch (Exception ex)
             {
                 Console.WriteLine($"Error executing batch: {ex.Message}");
-                Console.WriteLine($"Batch content: {trimmedBatch.Substring(0, Math.Min(100, trimmedBatch.Length))}...");
+                Console.WriteLine($"Batch content: {trimmedBatch.Substring(0, Math.Min(200, trimmedBatch.Length))}...");
                 throw;
             }
         }
