@@ -76,7 +76,16 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         
         // === DataSetsスキーマ完全修正（重要度最高） ===
         "033_FixDataSetsSchema.sql",               // DataSetsテーブル包括的修正
-        "034_FixDataSetManagementSchema.sql"       // DataSetManagementカラムサイズ統一
+        "034_FixDataSetManagementSchema.sql",      // DataSetManagementカラムサイズ統一
+        
+        // === 追加テーブル作成 ===
+        "035_AddAllMissingTables.sql",             // 不足しているテーブルの追加
+        
+        // === CreatedAt/UpdatedAt移行フェーズ ===
+        "050_Phase1_CheckCurrentSchema.sql",       // 現在のスキーマ確認（実行不要）
+        "051_Phase2_AddNewColumns.sql",            // 新しいカラムを追加
+        "052_Phase3_MigrateDataAndSync.sql",       // データ移行と同期
+        "053_Phase5_Cleanup.sql"                   // 古いカラムの削除
     };
     
     // 旧テーブル定義（後方互換性のため一時的に保持）
