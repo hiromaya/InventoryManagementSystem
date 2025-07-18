@@ -4164,41 +4164,75 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
     /// </summary>
     private static string? FindScriptPath(string fileName)
     {
-        // 現在のディレクトリから開始して上位ディレクトリを検索
-        var currentDir = AppDomain.CurrentDomain.BaseDirectory;
-        var searchDir = new DirectoryInfo(currentDir);
+        // デバッグ情報の出力
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        var currentDir = Environment.CurrentDirectory;
+        Console.WriteLine($"BaseDirectory: {baseDir}");
+        Console.WriteLine($"CurrentDirectory: {currentDir}");
         
-        // 最大5階層まで上がって検索
-        for (int i = 0; i < 5 && searchDir != null; i++)
+        // 検索候補パスを定義
+        var searchPaths = new List<string>();
+        
+        // 1. 現在のディレクトリから
+        var currentDirInfo = new DirectoryInfo(currentDir);
+        for (int i = 0; i < 6 && currentDirInfo != null; i++)
         {
-            var databaseDir = Path.Combine(searchDir.FullName, "database", "migrations");
-            var scriptPath = Path.Combine(databaseDir, fileName);
-            
-            if (File.Exists(scriptPath))
-            {
-                return scriptPath;
-            }
-            
-            searchDir = searchDir.Parent;
+            searchPaths.Add(Path.Combine(currentDirInfo.FullName, "database", "migrations", fileName));
+            currentDirInfo = currentDirInfo.Parent;
         }
         
-        // 見つからない場合、いくつかの候補パスを試す
-        var candidatePaths = new[]
+        // 2. 実行ディレクトリから
+        var baseDirInfo = new DirectoryInfo(baseDir);
+        for (int i = 0; i < 6 && baseDirInfo != null; i++)
         {
-            Path.Combine(Environment.CurrentDirectory, "database", "migrations", fileName),
-            Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", "database", "migrations", fileName),
-            Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "", "../../../../database/migrations", fileName)
-        };
+            searchPaths.Add(Path.Combine(baseDirInfo.FullName, "database", "migrations", fileName));
+            baseDirInfo = baseDirInfo.Parent;
+        }
         
-        foreach (var candidatePath in candidatePaths)
+        // 3. 特定の候補パス
+        searchPaths.AddRange(new[]
         {
-            var fullPath = Path.GetFullPath(candidatePath);
-            if (File.Exists(fullPath))
+            Path.Combine(currentDir, "database", "migrations", fileName),
+            Path.Combine(currentDir, "..", "database", "migrations", fileName),
+            Path.Combine(currentDir, "..", "..", "database", "migrations", fileName),
+            Path.Combine(currentDir, "..", "..", "..", "database", "migrations", fileName),
+            Path.Combine(currentDir, "..", "..", "..", "..", "database", "migrations", fileName),
+            Path.Combine(currentDir, "..", "..", "..", "..", "..", "database", "migrations", fileName)
+        });
+        
+        // InventoryManagementSystemフォルダを探す
+        var currentPath = currentDir;
+        while (!string.IsNullOrEmpty(currentPath))
+        {
+            if (Path.GetFileName(currentPath).Equals("InventoryManagementSystem", StringComparison.OrdinalIgnoreCase))
             {
-                return fullPath;
+                searchPaths.Add(Path.Combine(currentPath, "database", "migrations", fileName));
+                break;
+            }
+            var parent = Directory.GetParent(currentPath);
+            currentPath = parent?.FullName;
+        }
+        
+        // 各パスを試行
+        foreach (var searchPath in searchPaths.Distinct())
+        {
+            try
+            {
+                var fullPath = Path.GetFullPath(searchPath);
+                Console.WriteLine($"Trying: {fullPath}");
+                if (File.Exists(fullPath))
+                {
+                    Console.WriteLine($"Found: {fullPath}");
+                    return fullPath;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error checking path {searchPath}: {ex.Message}");
             }
         }
         
+        Console.WriteLine("Script file not found in any candidate paths");
         return null;
     }
 
