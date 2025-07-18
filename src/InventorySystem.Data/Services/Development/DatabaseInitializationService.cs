@@ -759,7 +759,6 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                     }
                 }
             }
-            }
             
             _logger.LogInformation("{Count} 個のマイグレーションを適用しました", appliedMigrations.Count);
         }
