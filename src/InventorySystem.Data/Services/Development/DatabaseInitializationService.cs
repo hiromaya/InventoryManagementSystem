@@ -56,7 +56,9 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "023_UpdateDataSetManagement.sql",
         
         // === マスタデータ・統合処理 ===
-        "024_CreateProductMaster.sql",
+        // "024_CreateProductMaster.sql",              // 除外: migrate-phase3/5との競合回避のため
+                                                        // このスクリプトはCreatedDate/UpdatedDateスキーマを前提とするが
+                                                        // 移行後はCreatedAt/UpdatedAtスキーマになるため除外
         "024_PrepareDataSetUnification.sql",        // 重複024番（統合準備）
         
         // === 緊急修正・履歴管理 ===

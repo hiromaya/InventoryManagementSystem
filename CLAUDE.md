@@ -167,6 +167,7 @@
 - **2025-07-05: Linux環境でのビルドエラーは無視して開発を進めるルールを強化**
 - **2025-07-05: CSVマッピング仕様に商品名列を追加（売上148列目、仕入140列目、在庫調整146列目）**
 - **2025-07-07: JobDate仕様を追加（伝票データに手動でJobDateを指定する機能）**
+- **2025-07-18: init-database--force実行時の024_CreateProductMaster.sql除外設定（移行作業保護のため）**
 
 ---
 
@@ -685,6 +686,42 @@ dotnet run -- check-daily-close 2025-06-30
 - 日次終了処理の修正時は必ず`ValidateDataIntegrity`メソッドも確認
 - 新しい検証ルールを追加する場合は`DataValidationResult`クラスを使用
 - エラーメッセージは`ErrorMessages`定数クラスに定義
+
+## 🚨 init-database --force 実行時の重要な注意事項
+
+### 024_CreateProductMaster.sqlの除外設定
+
+**状況**: 2025-07-18にSQLエラー207の解決のため、フェーズド・マイグレーション（migrate-phase2/3/5）を実装しました。これにより、テーブルスキーマが`CreatedDate/UpdatedDate`から`CreatedAt/UpdatedAt`に移行されます。
+
+**問題**: `init-database --force`コマンドは`DatabaseInitializationService.cs`の`_migrationOrder`リストに基づいてマイグレーションを実行しますが、024_CreateProductMaster.sqlは古いスキーマ（`CreatedDate/UpdatedDate`）を前提としているため、移行済み環境では競合が発生します。
+
+**解決策**: 024_CreateProductMaster.sqlを`_migrationOrder`からコメントアウトして除外
+
+```csharp
+// "024_CreateProductMaster.sql",              // 除外: migrate-phase3/5との競合回避のため
+                                                // このスクリプトはCreatedDate/UpdatedDateスキーマを前提とするが
+                                                // 移行後はCreatedAt/UpdatedAtスキーマになるため除外
+```
+
+### 影響と対策
+
+#### ✅ 保護される内容
+- `migrate-phase3`で追加された`CreatedAt/UpdatedAt`カラム
+- `migrate-phase5`で削除された古い`CreatedDate/UpdatedDate`カラム
+- エンティティクラスとデータベーススキーマの整合性
+
+#### ⚠️ 注意事項
+- 024_CreateProductMaster.sqlで投入される初期商品データは、`init-database --force`では作成されません
+- 必要に応じて、移行後に別途商品マスタのインポートを実行してください
+
+#### 🔄 推奨運用手順
+1. `init-database --force` でクリーンなデータベースを作成
+2. `migrate-phase2` で新カラムを追加
+3. `migrate-phase3` で既存データを移行し同期トリガーを設定
+4. `migrate-phase5` で古いカラムをクリーンアップ
+5. 必要に応じて商品マスタの個別インポートを実行
+
+この設定により、`init-database --force`と手動移行作業の両方が安全に実行できます。
 
 ## 📌 import-folderコマンドの処理ルール
 
