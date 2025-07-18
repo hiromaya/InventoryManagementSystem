@@ -155,6 +155,12 @@ builder.Services.AddScoped<IShippingMarkMasterRepository>(provider =>
 builder.Services.AddScoped<IRegionMasterRepository>(provider => 
     new RegionMasterRepository(connectionString, provider.GetRequiredService<ILogger<RegionMasterRepository>>()));
 
+// 入金・支払伝票リポジトリ
+builder.Services.AddScoped<IReceiptVoucherRepository>(provider => 
+    new ReceiptVoucherRepository(connectionString, provider.GetRequiredService<ILogger<ReceiptVoucherRepository>>()));
+builder.Services.AddScoped<IPaymentVoucherRepository>(provider => 
+    new PaymentVoucherRepository(connectionString, provider.GetRequiredService<ILogger<PaymentVoucherRepository>>()));
+
 // Master import services
 builder.Services.AddScoped<CustomerMasterImportService>();
 builder.Services.AddScoped<ProductMasterImportService>();
