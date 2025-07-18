@@ -27,29 +27,32 @@ BEGIN TRY
     BEGIN
         PRINT '  - 移行条件を満たしたため、データ移行を実行します。';
         
-        -- バッチサイズ設定（パフォーマンス調整）
+        -- 動的SQLでデータ移行を実行（コンパイル時エラー回避）
+        DECLARE @sql NVARCHAR(MAX);
         DECLARE @BatchSize INT = 5000;
         DECLARE @RowsAffected INT = @BatchSize;
         DECLARE @TotalUpdated INT = 0;
         
-        -- ProductMaster の移行
+        -- ProductMaster の移行（動的SQL）
         WHILE @RowsAffected = @BatchSize
         BEGIN
-            UPDATE TOP (@BatchSize) dbo.ProductMaster
-            SET
-                CreatedAt = CASE 
-                    WHEN CreatedAt IS NULL AND CreatedDate IS NOT NULL THEN CreatedDate
-                    WHEN CreatedAt IS NULL THEN GETDATE()
-                    ELSE CreatedAt
-                END,
-                UpdatedAt = CASE 
-                    WHEN UpdatedAt IS NULL AND UpdatedDate IS NOT NULL THEN UpdatedDate
-                    WHEN UpdatedAt IS NULL THEN GETDATE()
-                    ELSE UpdatedAt
-                END
-            WHERE
-                (CreatedAt IS NULL OR UpdatedAt IS NULL);
+            SET @sql = N'
+                UPDATE TOP (' + CAST(@BatchSize AS NVARCHAR) + N') dbo.ProductMaster
+                SET
+                    CreatedAt = CASE 
+                        WHEN CreatedAt IS NULL AND CreatedDate IS NOT NULL THEN CreatedDate
+                        WHEN CreatedAt IS NULL THEN GETDATE()
+                        ELSE CreatedAt
+                    END,
+                    UpdatedAt = CASE 
+                        WHEN UpdatedAt IS NULL AND UpdatedDate IS NOT NULL THEN UpdatedDate
+                        WHEN UpdatedAt IS NULL THEN GETDATE()
+                        ELSE UpdatedAt
+                    END
+                WHERE
+                    (CreatedAt IS NULL OR UpdatedAt IS NULL);';
             
+            EXEC sp_executesql @sql;
             SET @RowsAffected = @@ROWCOUNT;
             SET @TotalUpdated = @TotalUpdated + @RowsAffected;
             
@@ -80,27 +83,31 @@ BEGIN TRY
     BEGIN
         PRINT '  - 移行条件を満たしたため、データ移行を実行します。';
         
+        -- 動的SQLでデータ移行を実行（コンパイル時エラー回避）
+        DECLARE @sql2 NVARCHAR(MAX);
         DECLARE @BatchSize2 INT = 5000;
         DECLARE @RowsAffected2 INT = @BatchSize2;
         DECLARE @TotalUpdated2 INT = 0;
         
         WHILE @RowsAffected2 = @BatchSize2
         BEGIN
-            UPDATE TOP (@BatchSize2) dbo.CustomerMaster
-            SET
-                CreatedAt = CASE 
-                    WHEN CreatedAt IS NULL AND CreatedDate IS NOT NULL THEN CreatedDate
-                    WHEN CreatedAt IS NULL THEN GETDATE()
-                    ELSE CreatedAt
-                END,
-                UpdatedAt = CASE 
-                    WHEN UpdatedAt IS NULL AND UpdatedDate IS NOT NULL THEN UpdatedDate
-                    WHEN UpdatedAt IS NULL THEN GETDATE()
-                    ELSE UpdatedAt
-                END
-            WHERE
-                (CreatedAt IS NULL OR UpdatedAt IS NULL);
+            SET @sql2 = N'
+                UPDATE TOP (' + CAST(@BatchSize2 AS NVARCHAR) + N') dbo.CustomerMaster
+                SET
+                    CreatedAt = CASE 
+                        WHEN CreatedAt IS NULL AND CreatedDate IS NOT NULL THEN CreatedDate
+                        WHEN CreatedAt IS NULL THEN GETDATE()
+                        ELSE CreatedAt
+                    END,
+                    UpdatedAt = CASE 
+                        WHEN UpdatedAt IS NULL AND UpdatedDate IS NOT NULL THEN UpdatedDate
+                        WHEN UpdatedAt IS NULL THEN GETDATE()
+                        ELSE UpdatedAt
+                    END
+                WHERE
+                    (CreatedAt IS NULL OR UpdatedAt IS NULL);';
             
+            EXEC sp_executesql @sql2;
             SET @RowsAffected2 = @@ROWCOUNT;
             SET @TotalUpdated2 = @TotalUpdated2 + @RowsAffected2;
             
@@ -130,27 +137,31 @@ BEGIN TRY
     BEGIN
         PRINT '  - 移行条件を満たしたため、データ移行を実行します。';
         
+        -- 動的SQLでデータ移行を実行（コンパイル時エラー回避）
+        DECLARE @sql3 NVARCHAR(MAX);
         DECLARE @BatchSize3 INT = 5000;
         DECLARE @RowsAffected3 INT = @BatchSize3;
         DECLARE @TotalUpdated3 INT = 0;
         
         WHILE @RowsAffected3 = @BatchSize3
         BEGIN
-            UPDATE TOP (@BatchSize3) dbo.SupplierMaster
-            SET
-                CreatedAt = CASE 
-                    WHEN CreatedAt IS NULL AND CreatedDate IS NOT NULL THEN CreatedDate
-                    WHEN CreatedAt IS NULL THEN GETDATE()
-                    ELSE CreatedAt
-                END,
-                UpdatedAt = CASE 
-                    WHEN UpdatedAt IS NULL AND UpdatedDate IS NOT NULL THEN UpdatedDate
-                    WHEN UpdatedAt IS NULL THEN GETDATE()
-                    ELSE UpdatedAt
-                END
-            WHERE
-                (CreatedAt IS NULL OR UpdatedAt IS NULL);
+            SET @sql3 = N'
+                UPDATE TOP (' + CAST(@BatchSize3 AS NVARCHAR) + N') dbo.SupplierMaster
+                SET
+                    CreatedAt = CASE 
+                        WHEN CreatedAt IS NULL AND CreatedDate IS NOT NULL THEN CreatedDate
+                        WHEN CreatedAt IS NULL THEN GETDATE()
+                        ELSE CreatedAt
+                    END,
+                    UpdatedAt = CASE 
+                        WHEN UpdatedAt IS NULL AND UpdatedDate IS NOT NULL THEN UpdatedDate
+                        WHEN UpdatedAt IS NULL THEN GETDATE()
+                        ELSE UpdatedAt
+                    END
+                WHERE
+                    (CreatedAt IS NULL OR UpdatedAt IS NULL);';
             
+            EXEC sp_executesql @sql3;
             SET @RowsAffected3 = @@ROWCOUNT;
             SET @TotalUpdated3 = @TotalUpdated3 + @RowsAffected3;
             
@@ -174,164 +185,208 @@ BEGIN TRY
     PRINT '';
     PRINT '4. 同期トリガー作成開始...';
     
-    -- ProductMaster 同期トリガー
+    -- ProductMaster 同期トリガー（新旧カラム同期対応）
     IF OBJECT_ID('TRG_ProductMaster_SyncDateColumns', 'TR') IS NOT NULL
         DROP TRIGGER TRG_ProductMaster_SyncDateColumns;
     
-    EXEC('
-    CREATE TRIGGER TRG_ProductMaster_SyncDateColumns
-    ON dbo.ProductMaster
-    AFTER INSERT, UPDATE
-    AS
+    -- 古いカラムと新しいカラムの両方が存在する場合のみ同期トリガーを作成
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'ProductMaster' AND COLUMN_NAME = 'CreatedDate') AND
+       EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'ProductMaster' AND COLUMN_NAME = 'CreatedAt')
     BEGIN
-        SET NOCOUNT ON;
-        
-        -- 新しいレコードが挿入された場合
-        IF EXISTS (SELECT 1 FROM inserted) AND NOT EXISTS (SELECT 1 FROM deleted)
+        EXEC('
+        CREATE TRIGGER TRG_ProductMaster_SyncDateColumns
+        ON dbo.ProductMaster
+        AFTER INSERT, UPDATE
+        AS
         BEGIN
-            UPDATE t
-            SET
-                t.CreatedDate = ISNULL(t.CreatedDate, ISNULL(t.CreatedAt, GETDATE())),
-                t.UpdatedDate = ISNULL(t.UpdatedDate, ISNULL(t.UpdatedAt, GETDATE())),
-                t.CreatedAt = ISNULL(t.CreatedAt, ISNULL(t.CreatedDate, GETDATE())),
-                t.UpdatedAt = ISNULL(t.UpdatedAt, ISNULL(t.UpdatedDate, GETDATE()))
-            FROM
-                dbo.ProductMaster t
-            INNER JOIN
-                inserted i ON t.ProductCode = i.ProductCode;
+            SET NOCOUNT ON;
+            
+            -- 新しいレコードが挿入された場合
+            IF EXISTS (SELECT 1 FROM inserted) AND NOT EXISTS (SELECT 1 FROM deleted)
+            BEGIN
+                UPDATE t
+                SET
+                    t.CreatedDate = ISNULL(t.CreatedDate, ISNULL(t.CreatedAt, GETDATE())),
+                    t.UpdatedDate = ISNULL(t.UpdatedDate, ISNULL(t.UpdatedAt, GETDATE())),
+                    t.CreatedAt = ISNULL(t.CreatedAt, ISNULL(t.CreatedDate, GETDATE())),
+                    t.UpdatedAt = ISNULL(t.UpdatedAt, ISNULL(t.UpdatedDate, GETDATE()))
+                FROM
+                    dbo.ProductMaster t
+                INNER JOIN
+                    inserted i ON t.ProductCode = i.ProductCode;
+            END
+            
+            -- 既存のレコードが更新された場合
+            IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
+            BEGIN
+                UPDATE t
+                SET
+                    t.UpdatedDate = GETDATE(),
+                    t.UpdatedAt = GETDATE()
+                FROM
+                    dbo.ProductMaster t
+                INNER JOIN
+                    inserted i ON t.ProductCode = i.ProductCode;
+            END
         END
-        
-        -- 既存のレコードが更新された場合
-        IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
-        BEGIN
-            UPDATE t
-            SET
-                t.UpdatedDate = GETDATE(),
-                t.UpdatedAt = GETDATE()
-            FROM
-                dbo.ProductMaster t
-            INNER JOIN
-                inserted i ON t.ProductCode = i.ProductCode;
-        END
+        ');
+        PRINT '  ✓ ProductMaster 同期トリガー作成完了（新旧カラム同期対応）';
     END
-    ');
+    ELSE
+    BEGIN
+        PRINT '  - ProductMaster: 古いカラムが存在しないため同期トリガーをスキップしました';
+    END
     
-    PRINT '  ✓ ProductMaster 同期トリガー作成完了';
     
-    -- CustomerMaster 同期トリガー
+    -- CustomerMaster 同期トリガー（新旧カラム同期対応）
     IF OBJECT_ID('TRG_CustomerMaster_SyncDateColumns', 'TR') IS NOT NULL
         DROP TRIGGER TRG_CustomerMaster_SyncDateColumns;
     
-    EXEC('
-    CREATE TRIGGER TRG_CustomerMaster_SyncDateColumns
-    ON dbo.CustomerMaster
-    AFTER INSERT, UPDATE
-    AS
+    -- 古いカラムと新しいカラムの両方が存在する場合のみ同期トリガーを作成
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'CustomerMaster' AND COLUMN_NAME = 'CreatedDate') AND
+       EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'CustomerMaster' AND COLUMN_NAME = 'CreatedAt')
     BEGIN
-        SET NOCOUNT ON;
-        
-        IF EXISTS (SELECT 1 FROM inserted) AND NOT EXISTS (SELECT 1 FROM deleted)
+        EXEC('
+        CREATE TRIGGER TRG_CustomerMaster_SyncDateColumns
+        ON dbo.CustomerMaster
+        AFTER INSERT, UPDATE
+        AS
         BEGIN
-            UPDATE t
-            SET
-                t.CreatedDate = ISNULL(t.CreatedDate, ISNULL(t.CreatedAt, GETDATE())),
-                t.UpdatedDate = ISNULL(t.UpdatedDate, ISNULL(t.UpdatedAt, GETDATE())),
-                t.CreatedAt = ISNULL(t.CreatedAt, ISNULL(t.CreatedDate, GETDATE())),
-                t.UpdatedAt = ISNULL(t.UpdatedAt, ISNULL(t.UpdatedDate, GETDATE()))
-            FROM
-                dbo.CustomerMaster t
-            INNER JOIN
-                inserted i ON t.CustomerCode = i.CustomerCode;
+            SET NOCOUNT ON;
+            
+            IF EXISTS (SELECT 1 FROM inserted) AND NOT EXISTS (SELECT 1 FROM deleted)
+            BEGIN
+                UPDATE t
+                SET
+                    t.CreatedDate = ISNULL(t.CreatedDate, ISNULL(t.CreatedAt, GETDATE())),
+                    t.UpdatedDate = ISNULL(t.UpdatedDate, ISNULL(t.UpdatedAt, GETDATE())),
+                    t.CreatedAt = ISNULL(t.CreatedAt, ISNULL(t.CreatedDate, GETDATE())),
+                    t.UpdatedAt = ISNULL(t.UpdatedAt, ISNULL(t.UpdatedDate, GETDATE()))
+                FROM
+                    dbo.CustomerMaster t
+                INNER JOIN
+                    inserted i ON t.CustomerCode = i.CustomerCode;
+            END
+            
+            IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
+            BEGIN
+                UPDATE t
+                SET
+                    t.UpdatedDate = GETDATE(),
+                    t.UpdatedAt = GETDATE()
+                FROM
+                    dbo.CustomerMaster t
+                INNER JOIN
+                    inserted i ON t.CustomerCode = i.CustomerCode;
+            END
         END
-        
-        IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
-        BEGIN
-            UPDATE t
-            SET
-                t.UpdatedDate = GETDATE(),
-                t.UpdatedAt = GETDATE()
-            FROM
-                dbo.CustomerMaster t
-            INNER JOIN
-                inserted i ON t.CustomerCode = i.CustomerCode;
-        END
+        ');
+        PRINT '  ✓ CustomerMaster 同期トリガー作成完了（新旧カラム同期対応）';
     END
-    ');
+    ELSE
+    BEGIN
+        PRINT '  - CustomerMaster: 古いカラムが存在しないため同期トリガーをスキップしました';
+    END
     
-    PRINT '  ✓ CustomerMaster 同期トリガー作成完了';
-    
-    -- SupplierMaster 同期トリガー
+    -- SupplierMaster 同期トリガー（新旧カラム同期対応）
     IF OBJECT_ID('TRG_SupplierMaster_SyncDateColumns', 'TR') IS NOT NULL
         DROP TRIGGER TRG_SupplierMaster_SyncDateColumns;
     
-    EXEC('
-    CREATE TRIGGER TRG_SupplierMaster_SyncDateColumns
-    ON dbo.SupplierMaster
-    AFTER INSERT, UPDATE
-    AS
+    -- 古いカラムと新しいカラムの両方が存在する場合のみ同期トリガーを作成
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SupplierMaster' AND COLUMN_NAME = 'CreatedDate') AND
+       EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SupplierMaster' AND COLUMN_NAME = 'CreatedAt')
     BEGIN
-        SET NOCOUNT ON;
-        
-        IF EXISTS (SELECT 1 FROM inserted) AND NOT EXISTS (SELECT 1 FROM deleted)
+        EXEC('
+        CREATE TRIGGER TRG_SupplierMaster_SyncDateColumns
+        ON dbo.SupplierMaster
+        AFTER INSERT, UPDATE
+        AS
         BEGIN
-            UPDATE t
-            SET
-                t.CreatedDate = ISNULL(t.CreatedDate, ISNULL(t.CreatedAt, GETDATE())),
-                t.UpdatedDate = ISNULL(t.UpdatedDate, ISNULL(t.UpdatedAt, GETDATE())),
-                t.CreatedAt = ISNULL(t.CreatedAt, ISNULL(t.CreatedDate, GETDATE())),
-                t.UpdatedAt = ISNULL(t.UpdatedAt, ISNULL(t.UpdatedDate, GETDATE()))
-            FROM
-                dbo.SupplierMaster t
-            INNER JOIN
-                inserted i ON t.SupplierCode = i.SupplierCode;
+            SET NOCOUNT ON;
+            
+            IF EXISTS (SELECT 1 FROM inserted) AND NOT EXISTS (SELECT 1 FROM deleted)
+            BEGIN
+                UPDATE t
+                SET
+                    t.CreatedDate = ISNULL(t.CreatedDate, ISNULL(t.CreatedAt, GETDATE())),
+                    t.UpdatedDate = ISNULL(t.UpdatedDate, ISNULL(t.UpdatedAt, GETDATE())),
+                    t.CreatedAt = ISNULL(t.CreatedAt, ISNULL(t.CreatedDate, GETDATE())),
+                    t.UpdatedAt = ISNULL(t.UpdatedAt, ISNULL(t.UpdatedDate, GETDATE()))
+                FROM
+                    dbo.SupplierMaster t
+                INNER JOIN
+                    inserted i ON t.SupplierCode = i.SupplierCode;
+            END
+            
+            IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
+            BEGIN
+                UPDATE t
+                SET
+                    t.UpdatedDate = GETDATE(),
+                    t.UpdatedAt = GETDATE()
+                FROM
+                    dbo.SupplierMaster t
+                INNER JOIN
+                    inserted i ON t.SupplierCode = i.SupplierCode;
+            END
         END
-        
-        IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
-        BEGIN
-            UPDATE t
-            SET
-                t.UpdatedDate = GETDATE(),
-                t.UpdatedAt = GETDATE()
-            FROM
-                dbo.SupplierMaster t
-            INNER JOIN
-                inserted i ON t.SupplierCode = i.SupplierCode;
-        END
+        ');
+        PRINT '  ✓ SupplierMaster 同期トリガー作成完了（新旧カラム同期対応）';
     END
-    ');
-    
-    PRINT '  ✓ SupplierMaster 同期トリガー作成完了';
+    ELSE
+    BEGIN
+        PRINT '  - SupplierMaster: 古いカラムが存在しないため同期トリガーをスキップしました';
+    END
     
     -- =====================================================
-    -- 5. データ検証
+    -- 5. データ検証（動的SQL使用）
     -- =====================================================
     
     PRINT '';
     PRINT '5. データ検証実行中...';
     
-    -- 新旧カラムの一致状況を確認
-    DECLARE @ProductMismatch INT, @CustomerMismatch INT, @SupplierMismatch INT;
+    -- 新旧カラムの一致状況を確認（動的SQLで古いカラム参照エラーを回避）
+    DECLARE @ProductMismatch INT = 0, @CustomerMismatch INT = 0, @SupplierMismatch INT = 0;
+    DECLARE @validationSql NVARCHAR(MAX);
     
-    SELECT @ProductMismatch = COUNT(*)
-    FROM ProductMaster 
-    WHERE (CreatedAt IS NULL AND CreatedDate IS NOT NULL)
-       OR (UpdatedAt IS NULL AND UpdatedDate IS NOT NULL)
-       OR (CreatedAt IS NOT NULL AND CreatedDate IS NOT NULL AND CreatedAt != CreatedDate)
-       OR (UpdatedAt IS NOT NULL AND UpdatedDate IS NOT NULL AND UpdatedAt != UpdatedDate);
+    -- ProductMaster検証（古いカラムが存在する場合のみ）
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'ProductMaster' AND COLUMN_NAME = 'CreatedDate')
+    BEGIN
+        SET @validationSql = N'
+            SELECT @mismatch = COUNT(*)
+            FROM ProductMaster 
+            WHERE (CreatedAt IS NULL AND CreatedDate IS NOT NULL)
+               OR (UpdatedAt IS NULL AND UpdatedDate IS NOT NULL)
+               OR (CreatedAt IS NOT NULL AND CreatedDate IS NOT NULL AND CreatedAt != CreatedDate)
+               OR (UpdatedAt IS NOT NULL AND UpdatedDate IS NOT NULL AND UpdatedAt != UpdatedDate);';
+        EXEC sp_executesql @validationSql, N'@mismatch INT OUTPUT', @mismatch = @ProductMismatch OUTPUT;
+    END
     
-    SELECT @CustomerMismatch = COUNT(*)
-    FROM CustomerMaster 
-    WHERE (CreatedAt IS NULL AND CreatedDate IS NOT NULL)
-       OR (UpdatedAt IS NULL AND UpdatedDate IS NOT NULL)
-       OR (CreatedAt IS NOT NULL AND CreatedDate IS NOT NULL AND CreatedAt != CreatedDate)
-       OR (UpdatedAt IS NOT NULL AND UpdatedDate IS NOT NULL AND UpdatedAt != UpdatedDate);
+    -- CustomerMaster検証（古いカラムが存在する場合のみ）
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'CustomerMaster' AND COLUMN_NAME = 'CreatedDate')
+    BEGIN
+        SET @validationSql = N'
+            SELECT @mismatch = COUNT(*)
+            FROM CustomerMaster 
+            WHERE (CreatedAt IS NULL AND CreatedDate IS NOT NULL)
+               OR (UpdatedAt IS NULL AND UpdatedDate IS NOT NULL)
+               OR (CreatedAt IS NOT NULL AND CreatedDate IS NOT NULL AND CreatedAt != CreatedDate)
+               OR (UpdatedAt IS NOT NULL AND UpdatedDate IS NOT NULL AND UpdatedAt != UpdatedDate);';
+        EXEC sp_executesql @validationSql, N'@mismatch INT OUTPUT', @mismatch = @CustomerMismatch OUTPUT;
+    END
     
-    SELECT @SupplierMismatch = COUNT(*)
-    FROM SupplierMaster 
-    WHERE (CreatedAt IS NULL AND CreatedDate IS NOT NULL)
-       OR (UpdatedAt IS NULL AND UpdatedDate IS NOT NULL)
-       OR (CreatedAt IS NOT NULL AND CreatedDate IS NOT NULL AND CreatedAt != CreatedDate)
-       OR (UpdatedAt IS NOT NULL AND UpdatedDate IS NOT NULL AND UpdatedAt != UpdatedDate);
+    -- SupplierMaster検証（古いカラムが存在する場合のみ）
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SupplierMaster' AND COLUMN_NAME = 'CreatedDate')
+    BEGIN
+        SET @validationSql = N'
+            SELECT @mismatch = COUNT(*)
+            FROM SupplierMaster 
+            WHERE (CreatedAt IS NULL AND CreatedDate IS NOT NULL)
+               OR (UpdatedAt IS NULL AND UpdatedDate IS NOT NULL)
+               OR (CreatedAt IS NOT NULL AND CreatedDate IS NOT NULL AND CreatedAt != CreatedDate)
+               OR (UpdatedAt IS NOT NULL AND UpdatedDate IS NOT NULL AND UpdatedAt != UpdatedDate);';
+        EXEC sp_executesql @validationSql, N'@mismatch INT OUTPUT', @mismatch = @SupplierMismatch OUTPUT;
+    END
     
     PRINT '  ProductMaster 不一致件数: ' + CAST(@ProductMismatch AS VARCHAR);
     PRINT '  CustomerMaster 不一致件数: ' + CAST(@CustomerMismatch AS VARCHAR);
