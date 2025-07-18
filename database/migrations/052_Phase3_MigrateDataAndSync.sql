@@ -21,40 +21,51 @@ BEGIN TRY
     
     PRINT '1. ProductMaster データ移行開始...';
     
-    -- バッチサイズ設定（パフォーマンス調整）
-    DECLARE @BatchSize INT = 5000;
-    DECLARE @RowsAffected INT = @BatchSize;
-    DECLARE @TotalUpdated INT = 0;
-    
-    -- ProductMaster の移行
-    WHILE @RowsAffected = @BatchSize
+    -- 前提条件のチェック：移行元と移行先のカラムが両方存在するか
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'ProductMaster' AND COLUMN_NAME = 'CreatedDate') AND
+       EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'ProductMaster' AND COLUMN_NAME = 'CreatedAt')
     BEGIN
-        UPDATE TOP (@BatchSize) dbo.ProductMaster
-        SET
-            CreatedAt = CASE 
-                WHEN CreatedAt IS NULL AND CreatedDate IS NOT NULL THEN CreatedDate
-                WHEN CreatedAt IS NULL THEN GETDATE()
-                ELSE CreatedAt
-            END,
-            UpdatedAt = CASE 
-                WHEN UpdatedAt IS NULL AND UpdatedDate IS NOT NULL THEN UpdatedDate
-                WHEN UpdatedAt IS NULL THEN GETDATE()
-                ELSE UpdatedAt
-            END
-        WHERE
-            (CreatedAt IS NULL OR UpdatedAt IS NULL);
+        PRINT '  - 移行条件を満たしたため、データ移行を実行します。';
         
-        SET @RowsAffected = @@ROWCOUNT;
-        SET @TotalUpdated = @TotalUpdated + @RowsAffected;
+        -- バッチサイズ設定（パフォーマンス調整）
+        DECLARE @BatchSize INT = 5000;
+        DECLARE @RowsAffected INT = @BatchSize;
+        DECLARE @TotalUpdated INT = 0;
         
-        -- 進行状況表示
-        IF @RowsAffected > 0
+        -- ProductMaster の移行
+        WHILE @RowsAffected = @BatchSize
         BEGIN
-            PRINT '  処理中... ' + CAST(@TotalUpdated AS VARCHAR) + ' 件完了';
-        END
-    END;
-    
-    PRINT '  ✓ ProductMaster データ移行完了: ' + CAST(@TotalUpdated AS VARCHAR) + ' 件';
+            UPDATE TOP (@BatchSize) dbo.ProductMaster
+            SET
+                CreatedAt = CASE 
+                    WHEN CreatedAt IS NULL AND CreatedDate IS NOT NULL THEN CreatedDate
+                    WHEN CreatedAt IS NULL THEN GETDATE()
+                    ELSE CreatedAt
+                END,
+                UpdatedAt = CASE 
+                    WHEN UpdatedAt IS NULL AND UpdatedDate IS NOT NULL THEN UpdatedDate
+                    WHEN UpdatedAt IS NULL THEN GETDATE()
+                    ELSE UpdatedAt
+                END
+            WHERE
+                (CreatedAt IS NULL OR UpdatedAt IS NULL);
+            
+            SET @RowsAffected = @@ROWCOUNT;
+            SET @TotalUpdated = @TotalUpdated + @RowsAffected;
+            
+            -- 進行状況表示
+            IF @RowsAffected > 0
+            BEGIN
+                PRINT '  処理中... ' + CAST(@TotalUpdated AS VARCHAR) + ' 件完了';
+            END
+        END;
+        
+        PRINT '  ✓ ProductMaster データ移行完了: ' + CAST(@TotalUpdated AS VARCHAR) + ' 件';
+    END
+    ELSE
+    BEGIN
+        PRINT '  - 移行元のCreatedDateカラムが存在しないため、ProductMasterのデータ移行をスキップしました。';
+    END
     
     -- =====================================================
     -- 2. CustomerMaster データ移行（バッチ処理）
@@ -63,36 +74,48 @@ BEGIN TRY
     PRINT '';
     PRINT '2. CustomerMaster データ移行開始...';
     
-    SET @RowsAffected = @BatchSize;
-    SET @TotalUpdated = 0;
-    
-    WHILE @RowsAffected = @BatchSize
+    -- 前提条件のチェック：移行元と移行先のカラムが両方存在するか
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'CustomerMaster' AND COLUMN_NAME = 'CreatedDate') AND
+       EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'CustomerMaster' AND COLUMN_NAME = 'CreatedAt')
     BEGIN
-        UPDATE TOP (@BatchSize) dbo.CustomerMaster
-        SET
-            CreatedAt = CASE 
-                WHEN CreatedAt IS NULL AND CreatedDate IS NOT NULL THEN CreatedDate
-                WHEN CreatedAt IS NULL THEN GETDATE()
-                ELSE CreatedAt
-            END,
-            UpdatedAt = CASE 
-                WHEN UpdatedAt IS NULL AND UpdatedDate IS NOT NULL THEN UpdatedDate
-                WHEN UpdatedAt IS NULL THEN GETDATE()
-                ELSE UpdatedAt
-            END
-        WHERE
-            (CreatedAt IS NULL OR UpdatedAt IS NULL);
+        PRINT '  - 移行条件を満たしたため、データ移行を実行します。';
         
-        SET @RowsAffected = @@ROWCOUNT;
-        SET @TotalUpdated = @TotalUpdated + @RowsAffected;
+        DECLARE @BatchSize2 INT = 5000;
+        DECLARE @RowsAffected2 INT = @BatchSize2;
+        DECLARE @TotalUpdated2 INT = 0;
         
-        IF @RowsAffected > 0
+        WHILE @RowsAffected2 = @BatchSize2
         BEGIN
-            PRINT '  処理中... ' + CAST(@TotalUpdated AS VARCHAR) + ' 件完了';
-        END
-    END;
-    
-    PRINT '  ✓ CustomerMaster データ移行完了: ' + CAST(@TotalUpdated AS VARCHAR) + ' 件';
+            UPDATE TOP (@BatchSize2) dbo.CustomerMaster
+            SET
+                CreatedAt = CASE 
+                    WHEN CreatedAt IS NULL AND CreatedDate IS NOT NULL THEN CreatedDate
+                    WHEN CreatedAt IS NULL THEN GETDATE()
+                    ELSE CreatedAt
+                END,
+                UpdatedAt = CASE 
+                    WHEN UpdatedAt IS NULL AND UpdatedDate IS NOT NULL THEN UpdatedDate
+                    WHEN UpdatedAt IS NULL THEN GETDATE()
+                    ELSE UpdatedAt
+                END
+            WHERE
+                (CreatedAt IS NULL OR UpdatedAt IS NULL);
+            
+            SET @RowsAffected2 = @@ROWCOUNT;
+            SET @TotalUpdated2 = @TotalUpdated2 + @RowsAffected2;
+            
+            IF @RowsAffected2 > 0
+            BEGIN
+                PRINT '  処理中... ' + CAST(@TotalUpdated2 AS VARCHAR) + ' 件完了';
+            END
+        END;
+        
+        PRINT '  ✓ CustomerMaster データ移行完了: ' + CAST(@TotalUpdated2 AS VARCHAR) + ' 件';
+    END
+    ELSE
+    BEGIN
+        PRINT '  - 移行元のCreatedDateカラムが存在しないため、CustomerMasterのデータ移行をスキップしました。';
+    END
     
     -- =====================================================
     -- 3. SupplierMaster データ移行（バッチ処理）
@@ -101,36 +124,48 @@ BEGIN TRY
     PRINT '';
     PRINT '3. SupplierMaster データ移行開始...';
     
-    SET @RowsAffected = @BatchSize;
-    SET @TotalUpdated = 0;
-    
-    WHILE @RowsAffected = @BatchSize
+    -- 前提条件のチェック：移行元と移行先のカラムが両方存在するか
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SupplierMaster' AND COLUMN_NAME = 'CreatedDate') AND
+       EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SupplierMaster' AND COLUMN_NAME = 'CreatedAt')
     BEGIN
-        UPDATE TOP (@BatchSize) dbo.SupplierMaster
-        SET
-            CreatedAt = CASE 
-                WHEN CreatedAt IS NULL AND CreatedDate IS NOT NULL THEN CreatedDate
-                WHEN CreatedAt IS NULL THEN GETDATE()
-                ELSE CreatedAt
-            END,
-            UpdatedAt = CASE 
-                WHEN UpdatedAt IS NULL AND UpdatedDate IS NOT NULL THEN UpdatedDate
-                WHEN UpdatedAt IS NULL THEN GETDATE()
-                ELSE UpdatedAt
-            END
-        WHERE
-            (CreatedAt IS NULL OR UpdatedAt IS NULL);
+        PRINT '  - 移行条件を満たしたため、データ移行を実行します。';
         
-        SET @RowsAffected = @@ROWCOUNT;
-        SET @TotalUpdated = @TotalUpdated + @RowsAffected;
+        DECLARE @BatchSize3 INT = 5000;
+        DECLARE @RowsAffected3 INT = @BatchSize3;
+        DECLARE @TotalUpdated3 INT = 0;
         
-        IF @RowsAffected > 0
+        WHILE @RowsAffected3 = @BatchSize3
         BEGIN
-            PRINT '  処理中... ' + CAST(@TotalUpdated AS VARCHAR) + ' 件完了';
-        END
-    END;
-    
-    PRINT '  ✓ SupplierMaster データ移行完了: ' + CAST(@TotalUpdated AS VARCHAR) + ' 件';
+            UPDATE TOP (@BatchSize3) dbo.SupplierMaster
+            SET
+                CreatedAt = CASE 
+                    WHEN CreatedAt IS NULL AND CreatedDate IS NOT NULL THEN CreatedDate
+                    WHEN CreatedAt IS NULL THEN GETDATE()
+                    ELSE CreatedAt
+                END,
+                UpdatedAt = CASE 
+                    WHEN UpdatedAt IS NULL AND UpdatedDate IS NOT NULL THEN UpdatedDate
+                    WHEN UpdatedAt IS NULL THEN GETDATE()
+                    ELSE UpdatedAt
+                END
+            WHERE
+                (CreatedAt IS NULL OR UpdatedAt IS NULL);
+            
+            SET @RowsAffected3 = @@ROWCOUNT;
+            SET @TotalUpdated3 = @TotalUpdated3 + @RowsAffected3;
+            
+            IF @RowsAffected3 > 0
+            BEGIN
+                PRINT '  処理中... ' + CAST(@TotalUpdated3 AS VARCHAR) + ' 件完了';
+            END
+        END;
+        
+        PRINT '  ✓ SupplierMaster データ移行完了: ' + CAST(@TotalUpdated3 AS VARCHAR) + ' 件';
+    END
+    ELSE
+    BEGIN
+        PRINT '  - 移行元のCreatedDateカラムが存在しないため、SupplierMasterのデータ移行をスキップしました。';
+    END
     
     -- =====================================================
     -- 4. 同期トリガーの作成
