@@ -2,11 +2,36 @@
 -- InventoryMaster 主キー変更マイグレーションスクリプト
 -- 作成日: 2025-07-20
 -- 目的: 主キーを6項目から5項目に変更（JobDateを除外）
--- 前提: 101_Create_InventoryMaster_Backup.sql 実行済み
 -- =============================================
 
 USE InventoryManagementDB;
 GO
+
+-- 既に実行済みかチェック
+IF EXISTS (
+    SELECT 1 
+    FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+    WHERE TABLE_NAME = 'InventoryMaster' 
+    AND CONSTRAINT_NAME = 'PK_InventoryMaster'
+    AND COLUMN_NAME NOT IN ('ProductCode', 'GradeCode', 'ClassCode', 'ShippingMarkCode', 'ShippingMarkName')
+)
+BEGIN
+    PRINT '102_Migrate_InventoryMaster_PK.sql は既に実行済みです。スキップします。';
+    RETURN;
+END
+
+-- 5項目の主キーが既に存在するかチェック
+DECLARE @PKColumnCount INT;
+SELECT @PKColumnCount = COUNT(*)
+FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+WHERE TABLE_NAME = 'InventoryMaster' 
+AND CONSTRAINT_NAME = 'PK_InventoryMaster';
+
+IF @PKColumnCount = 5
+BEGIN
+    PRINT '主キーは既に5項目に変更済みです。スキップします。';
+    RETURN;
+END
 
 PRINT '========== InventoryMaster 主キー変更開始 ==========';
 PRINT '';
@@ -104,7 +129,15 @@ BEGIN TRY
 
     -- 3. 既存の主キー制約を削除
     PRINT '3. 既存の主キー制約を削除します...';
-    ALTER TABLE InventoryMaster DROP CONSTRAINT PK_InventoryMaster;
+    IF EXISTS (SELECT * FROM sys.key_constraints WHERE name = 'PK_InventoryMaster' AND parent_object_id = OBJECT_ID('InventoryMaster'))
+    BEGIN
+        ALTER TABLE InventoryMaster DROP CONSTRAINT PK_InventoryMaster;
+        PRINT '   主キー制約を削除しました';
+    END
+    ELSE
+    BEGIN
+        PRINT '   主キー制約は既に削除されています';
+    END
 
     -- 4. 既存データをすべて削除
     PRINT '4. 既存データを削除します...';
@@ -123,15 +156,32 @@ BEGIN TRY
 
     -- 6. JobDateに非クラスター化インデックスを作成（検索パフォーマンス用）
     PRINT '6. JobDateに非クラスター化インデックスを作成します...';
-    CREATE NONCLUSTERED INDEX IX_InventoryMaster_JobDate 
-    ON InventoryMaster (JobDate);
+    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_InventoryMaster_JobDate' AND object_id = OBJECT_ID('InventoryMaster'))
+    BEGIN
+        CREATE NONCLUSTERED INDEX IX_InventoryMaster_JobDate 
+        ON InventoryMaster (JobDate);
+        PRINT '   IX_InventoryMaster_JobDateインデックスを作成しました';
+    END
+    ELSE
+    BEGIN
+        PRINT '   IX_InventoryMaster_JobDateインデックスは既に存在します';
+    END
 
     -- 7. DataSetIdにもインデックスを作成
-    CREATE NONCLUSTERED INDEX IX_InventoryMaster_DataSetId 
-    ON InventoryMaster (DataSetId);
+    PRINT '7. DataSetIdにインデックスを作成します...';
+    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_InventoryMaster_DataSetId' AND object_id = OBJECT_ID('InventoryMaster'))
+    BEGIN
+        CREATE NONCLUSTERED INDEX IX_InventoryMaster_DataSetId 
+        ON InventoryMaster (DataSetId);
+        PRINT '   IX_InventoryMaster_DataSetIdインデックスを作成しました';
+    END
+    ELSE
+    BEGIN
+        PRINT '   IX_InventoryMaster_DataSetIdインデックスは既に存在します';
+    END
 
     -- 8. 一時テーブルからデータを戻す
-    PRINT '7. データを新しい構造に移行します...';
+    PRINT '8. データを新しい構造に移行します...';
     INSERT INTO InventoryMaster
     SELECT * FROM #TempInventoryMaster;
 
@@ -164,7 +214,7 @@ BEGIN TRY
     PRINT '【次のステップ】';
     PRINT '1. アプリケーションコードの修正';
     PRINT '   - InventoryMasterOptimizationService.csの修正';
-    PRINT '   - sp_MergeInventoryMasterCumulative.sqlの修正';
+    PRINT '   - sp_MergeInventoryMasterSnapshotの作成';
     PRINT '2. アプリケーションの動作確認';
     PRINT '3. 必要に応じて履歴管理機能の実装';
 
