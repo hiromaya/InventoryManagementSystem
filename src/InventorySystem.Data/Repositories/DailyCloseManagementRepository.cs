@@ -21,11 +21,13 @@ public class DailyCloseManagementRepository : BaseRepository, IDailyCloseManagem
     {
         const string sql = @"
             INSERT INTO DailyCloseManagement (
-                JobDate, DatasetId, DailyReportDatasetId, BackupPath, ProcessedAt, ProcessedBy
+                JobDate, DataSetId, DailyReportDataSetId, BackupPath, 
+                ProcessedAt, ProcessedBy, DataHash, ValidationStatus, Remarks
             ) 
             OUTPUT INSERTED.*
             VALUES (
-                @JobDate, @DatasetId, @DailyReportDatasetId, @BackupPath, @ProcessedAt, @ProcessedBy
+                @JobDate, @DataSetId, @DailyReportDataSetId, @BackupPath, 
+                @ProcessedAt, @ProcessedBy, @DataHash, @ValidationStatus, @Remarks
             )";
         
         try

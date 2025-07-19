@@ -87,6 +87,8 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         
         // === DataSetManagement統合マイグレーション ===
         "036_MigrateDataSetsToDataSetManagement.sql", // DataSetsからDataSetManagementへの完全統合
+        "037_FixDataSetManagementDefaultConstraints.sql", // UpdatedAtデフォルト制約追加（プレースホルダー）
+        "038_RecreateDailyCloseManagementIdealStructure.sql", // DailyCloseManagement理想的構造移行
         
         // === CreatedAt/UpdatedAt移行フェーズ（05_create_master_tables.sqlで不要） ===
         // "050_Phase1_CheckCurrentSchema.sql",       // 現在のスキーマ確認（実行不要）
