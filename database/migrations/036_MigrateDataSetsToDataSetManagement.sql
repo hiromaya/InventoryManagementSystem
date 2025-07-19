@@ -8,9 +8,48 @@ PRINT '================================';
 PRINT '';
 
 -- ========================================
--- Phase 1: データ型の拡張
+-- Phase 1: データ型の拡張と制約の調整
 -- ========================================
-PRINT 'Phase 1: データ型の拡張開始...';
+PRINT 'Phase 1: データ型の拡張と制約の調整開始...';
+
+-- ProcessTypeをNOT NULLに変更（デフォルト値を設定）
+IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_NAME = 'DataSetManagement' 
+           AND COLUMN_NAME = 'ProcessType' 
+           AND IS_NULLABLE = 'YES')
+BEGIN
+    -- まずデフォルト値を設定
+    UPDATE DataSetManagement SET ProcessType = 'UNKNOWN' WHERE ProcessType IS NULL;
+    -- NOT NULL制約を追加
+    ALTER TABLE DataSetManagement ALTER COLUMN ProcessType NVARCHAR(50) NOT NULL;
+    PRINT '✓ ProcessTypeをNOT NULLに変更しました';
+END
+
+-- DepartmentをNOT NULLに変更（デフォルト値を設定）
+IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_NAME = 'DataSetManagement' 
+           AND COLUMN_NAME = 'Department' 
+           AND IS_NULLABLE = 'YES')
+BEGIN
+    -- まずデフォルト値を設定
+    UPDATE DataSetManagement SET Department = 'DeptA' WHERE Department IS NULL;
+    -- NOT NULL制約を追加
+    ALTER TABLE DataSetManagement ALTER COLUMN Department NVARCHAR(50) NOT NULL;
+    PRINT '✓ DepartmentをNOT NULLに変更しました';
+END
+
+-- CreatedByをNOT NULLに変更（デフォルト値を設定）
+IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_NAME = 'DataSetManagement' 
+           AND COLUMN_NAME = 'CreatedBy' 
+           AND IS_NULLABLE = 'YES')
+BEGIN
+    -- まずデフォルト値を設定
+    UPDATE DataSetManagement SET CreatedBy = 'system' WHERE CreatedBy IS NULL;
+    -- NOT NULL制約を追加
+    ALTER TABLE DataSetManagement ALTER COLUMN CreatedBy NVARCHAR(100) NOT NULL;
+    PRINT '✓ CreatedByをNOT NULLに変更しました';
+END
 
 -- SalesVouchersのDataSetId拡張
 IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
@@ -67,79 +106,10 @@ BEGIN
 END
 
 -- ========================================
--- Phase 2: DataSetManagementへの追加カラム
+-- Phase 2: データ移行
 -- ========================================
 PRINT '';
-PRINT 'Phase 2: DataSetManagementへの追加カラム作成...';
-
--- DataSetTypeカラムの追加（DataSetsから移行）
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-               WHERE TABLE_NAME = 'DataSetManagement' 
-               AND COLUMN_NAME = 'DataSetType')
-BEGIN
-    ALTER TABLE DataSetManagement ADD DataSetType NVARCHAR(20) NULL;
-    PRINT '✓ DataSetManagement.DataSetTypeカラムを追加しました';
-END
-
--- Nameカラムの追加（DataSetsから移行）
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-               WHERE TABLE_NAME = 'DataSetManagement' 
-               AND COLUMN_NAME = 'Name')
-BEGIN
-    ALTER TABLE DataSetManagement ADD Name NVARCHAR(255) NULL;
-    PRINT '✓ DataSetManagement.Nameカラムを追加しました';
-END
-
--- Descriptionカラムの追加（DataSetsから移行）
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-               WHERE TABLE_NAME = 'DataSetManagement' 
-               AND COLUMN_NAME = 'Description')
-BEGIN
-    ALTER TABLE DataSetManagement ADD Description NVARCHAR(MAX) NULL;
-    PRINT '✓ DataSetManagement.Descriptionカラムを追加しました';
-END
-
--- ErrorMessageカラムの追加（DataSetsから移行）
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-               WHERE TABLE_NAME = 'DataSetManagement' 
-               AND COLUMN_NAME = 'ErrorMessage')
-BEGIN
-    ALTER TABLE DataSetManagement ADD ErrorMessage NVARCHAR(MAX) NULL;
-    PRINT '✓ DataSetManagement.ErrorMessageカラムを追加しました';
-END
-
--- FilePathカラムの追加（DataSetsから移行）
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-               WHERE TABLE_NAME = 'DataSetManagement' 
-               AND COLUMN_NAME = 'FilePath')
-BEGIN
-    ALTER TABLE DataSetManagement ADD FilePath NVARCHAR(500) NULL;
-    PRINT '✓ DataSetManagement.FilePathカラムを追加しました';
-END
-
--- Statusカラムの追加（互換性のため）
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-               WHERE TABLE_NAME = 'DataSetManagement' 
-               AND COLUMN_NAME = 'Status')
-BEGIN
-    ALTER TABLE DataSetManagement ADD Status NVARCHAR(20) NULL;
-    PRINT '✓ DataSetManagement.Statusカラムを追加しました';
-END
-
--- UpdatedAtカラムの追加（DataSetsから移行）
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-               WHERE TABLE_NAME = 'DataSetManagement' 
-               AND COLUMN_NAME = 'UpdatedAt')
-BEGIN
-    ALTER TABLE DataSetManagement ADD UpdatedAt DATETIME2 NULL;
-    PRINT '✓ DataSetManagement.UpdatedAtカラムを追加しました';
-END
-
--- ========================================
--- Phase 3: データ移行
--- ========================================
-PRINT '';
-PRINT 'Phase 3: DataSetsからDataSetManagementへのデータ移行...';
+PRINT 'Phase 2: DataSetsからDataSetManagementへのデータ移行...';
 
 -- 移行前のレコード数を記録
 DECLARE @DataSetsCount INT;
@@ -152,7 +122,7 @@ SELECT @ExistingCount = COUNT(*) FROM DataSetManagement WHERE DataSetId IN (SELE
 PRINT CONCAT('DataSetsレコード数: ', @DataSetsCount);
 PRINT CONCAT('既存のDataSetManagementレコード数: ', @ExistingCount);
 
--- データ移行（重複を避ける）
+-- データ移行（DataSetsのカラム名に合わせて修正）
 INSERT INTO DataSetManagement (
     DataSetId, 
     JobDate, 
@@ -164,7 +134,7 @@ INSERT INTO DataSetManagement (
     IsArchived, 
     CreatedAt, 
     CreatedBy, 
-    Department, 
+    Department,
     Notes,
     ErrorMessage,
     FilePath,
@@ -193,7 +163,7 @@ SELECT
         WHEN ds.Status = 'Error' THEN 1 
         ELSE 0 
     END AS IsArchived,
-    ds.CreatedAt,
+    ISNULL(ds.CreatedDate, ds.CreatedAt) AS CreatedAt,  -- CreatedDateを優先
     'migration' AS CreatedBy,
     'DeptA' AS Department,
     CASE 
@@ -208,7 +178,7 @@ SELECT
     ds.ErrorMessage,
     ds.FilePath,
     ds.Status,
-    ds.UpdatedAt,
+    ISNULL(ds.UpdatedDate, ds.UpdatedAt) AS UpdatedAt,  -- UpdatedDateを優先
     ds.DataSetType,
     ds.Name,
     ds.Description
@@ -224,19 +194,35 @@ PRINT CONCAT('✓ ', @MigratedCount, '件のレコードを移行しました');
 UPDATE DataSetManagement
 SET ArchivedAt = CreatedAt,
     ArchivedBy = 'migration'
-WHERE Status = 'Error' AND ArchivedAt IS NULL;
+WHERE IsArchived = 1 AND ArchivedAt IS NULL;
 
-PRINT '✓ エラーステータスのレコードにArchivedAt情報を設定しました';
+PRINT '✓ アーカイブ情報を設定しました';
 
 -- ========================================
--- Phase 4: 外部キー制約の再作成
+-- Phase 3: 外部キー制約の再作成
 -- ========================================
 PRINT '';
-PRINT 'Phase 4: 外部キー制約の再作成...';
+PRINT 'Phase 3: 外部キー制約の再作成...';
 
 -- SalesVouchersの外部キー制約
 IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_SalesVouchers_DataSetManagement')
 BEGIN
+    -- 孤立レコードの確認
+    DECLARE @OrphanSalesCheck INT;
+    SELECT @OrphanSalesCheck = COUNT(*) 
+    FROM SalesVouchers sv
+    WHERE NOT EXISTS (SELECT 1 FROM DataSetManagement dsm WHERE dsm.DataSetId = sv.DataSetId);
+    
+    IF @OrphanSalesCheck > 0
+    BEGIN
+        PRINT CONCAT('⚠️ 警告: ', @OrphanSalesCheck, '件の孤立した売上伝票があります');
+        -- 孤立レコード用のダミーDataSetを作成
+        INSERT INTO DataSetManagement (DataSetId, JobDate, ProcessType, ImportType, RecordCount, TotalRecordCount, IsActive, IsArchived, CreatedAt, CreatedBy, Department)
+        SELECT DISTINCT sv.DataSetId, GETDATE(), 'ORPHAN', 'LEGACY', 0, 0, 0, 1, GETDATE(), 'migration', 'DeptA'
+        FROM SalesVouchers sv
+        WHERE NOT EXISTS (SELECT 1 FROM DataSetManagement dsm WHERE dsm.DataSetId = sv.DataSetId);
+    END
+    
     ALTER TABLE SalesVouchers WITH NOCHECK 
     ADD CONSTRAINT FK_SalesVouchers_DataSetManagement 
     FOREIGN KEY (DataSetId) REFERENCES DataSetManagement(DataSetId);
@@ -246,9 +232,25 @@ BEGIN
     PRINT '✓ FK_SalesVouchers_DataSetManagement制約を作成しました';
 END
 
--- PurchaseVouchersの外部キー制約
+-- PurchaseVouchersの外部キー制約（同様の処理）
 IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_PurchaseVouchers_DataSetManagement')
 BEGIN
+    -- 孤立レコードの確認
+    DECLARE @OrphanPurchaseCheck INT;
+    SELECT @OrphanPurchaseCheck = COUNT(*) 
+    FROM PurchaseVouchers pv
+    WHERE NOT EXISTS (SELECT 1 FROM DataSetManagement dsm WHERE dsm.DataSetId = pv.DataSetId);
+    
+    IF @OrphanPurchaseCheck > 0
+    BEGIN
+        PRINT CONCAT('⚠️ 警告: ', @OrphanPurchaseCheck, '件の孤立した仕入伝票があります');
+        -- 孤立レコード用のダミーDataSetを作成
+        INSERT INTO DataSetManagement (DataSetId, JobDate, ProcessType, ImportType, RecordCount, TotalRecordCount, IsActive, IsArchived, CreatedAt, CreatedBy, Department)
+        SELECT DISTINCT pv.DataSetId, GETDATE(), 'ORPHAN', 'LEGACY', 0, 0, 0, 1, GETDATE(), 'migration', 'DeptA'
+        FROM PurchaseVouchers pv
+        WHERE NOT EXISTS (SELECT 1 FROM DataSetManagement dsm WHERE dsm.DataSetId = pv.DataSetId);
+    END
+    
     ALTER TABLE PurchaseVouchers WITH NOCHECK 
     ADD CONSTRAINT FK_PurchaseVouchers_DataSetManagement 
     FOREIGN KEY (DataSetId) REFERENCES DataSetManagement(DataSetId);
@@ -258,9 +260,25 @@ BEGIN
     PRINT '✓ FK_PurchaseVouchers_DataSetManagement制約を作成しました';
 END
 
--- InventoryAdjustmentsの外部キー制約
+-- InventoryAdjustmentsの外部キー制約（同様の処理）
 IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_InventoryAdjustments_DataSetManagement')
 BEGIN
+    -- 孤立レコードの確認
+    DECLARE @OrphanAdjustmentCheck INT;
+    SELECT @OrphanAdjustmentCheck = COUNT(*) 
+    FROM InventoryAdjustments ia
+    WHERE NOT EXISTS (SELECT 1 FROM DataSetManagement dsm WHERE dsm.DataSetId = ia.DataSetId);
+    
+    IF @OrphanAdjustmentCheck > 0
+    BEGIN
+        PRINT CONCAT('⚠️ 警告: ', @OrphanAdjustmentCheck, '件の孤立した在庫調整があります');
+        -- 孤立レコード用のダミーDataSetを作成
+        INSERT INTO DataSetManagement (DataSetId, JobDate, ProcessType, ImportType, RecordCount, TotalRecordCount, IsActive, IsArchived, CreatedAt, CreatedBy, Department)
+        SELECT DISTINCT ia.DataSetId, GETDATE(), 'ORPHAN', 'LEGACY', 0, 0, 0, 1, GETDATE(), 'migration', 'DeptA'
+        FROM InventoryAdjustments ia
+        WHERE NOT EXISTS (SELECT 1 FROM DataSetManagement dsm WHERE dsm.DataSetId = ia.DataSetId);
+    END
+    
     ALTER TABLE InventoryAdjustments WITH NOCHECK 
     ADD CONSTRAINT FK_InventoryAdjustments_DataSetManagement 
     FOREIGN KEY (DataSetId) REFERENCES DataSetManagement(DataSetId);
@@ -271,30 +289,23 @@ BEGIN
 END
 
 -- ========================================
--- Phase 5: インデックスの作成
+-- Phase 4: インデックスの作成
 -- ========================================
 PRINT '';
-PRINT 'Phase 5: パフォーマンス最適化インデックスの作成...';
+PRINT 'Phase 4: パフォーマンス最適化インデックスの作成...';
 
--- Statusインデックス（互換性のため）
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DataSetManagement_Status')
+-- Statusインデックス
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DataSetManagement_Status' AND object_id = OBJECT_ID('DataSetManagement'))
 BEGIN
     CREATE INDEX IX_DataSetManagement_Status ON DataSetManagement(Status);
     PRINT '✓ IX_DataSetManagement_Statusインデックスを作成しました';
 END
 
 -- ProcessType + JobDateの複合インデックス
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DataSetManagement_ProcessType_JobDate')
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DataSetManagement_ProcessType_JobDate' AND object_id = OBJECT_ID('DataSetManagement'))
 BEGIN
     CREATE INDEX IX_DataSetManagement_ProcessType_JobDate ON DataSetManagement(ProcessType, JobDate);
     PRINT '✓ IX_DataSetManagement_ProcessType_JobDateインデックスを作成しました';
-END
-
--- DataSetType + JobDateの複合インデックス
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DataSetManagement_DataSetType_JobDate')
-BEGIN
-    CREATE INDEX IX_DataSetManagement_DataSetType_JobDate ON DataSetManagement(DataSetType, JobDate);
-    PRINT '✓ IX_DataSetManagement_DataSetType_JobDateインデックスを作成しました';
 END
 
 -- ========================================
@@ -305,10 +316,15 @@ PRINT '================================';
 PRINT '移行結果の検証';
 PRINT '================================';
 
--- 外部キー整合性チェック
+-- 最終統計
+DECLARE @FinalDataSetsCount INT;
+DECLARE @FinalDataSetManagementCount INT;
 DECLARE @OrphanSales INT;
 DECLARE @OrphanPurchase INT;
 DECLARE @OrphanAdjustment INT;
+
+SELECT @FinalDataSetsCount = COUNT(*) FROM DataSets;
+SELECT @FinalDataSetManagementCount = COUNT(*) FROM DataSetManagement;
 
 SELECT @OrphanSales = COUNT(*) 
 FROM SalesVouchers sv
@@ -322,6 +338,9 @@ SELECT @OrphanAdjustment = COUNT(*)
 FROM InventoryAdjustments ia
 WHERE NOT EXISTS (SELECT 1 FROM DataSetManagement dsm WHERE dsm.DataSetId = ia.DataSetId);
 
+PRINT CONCAT('DataSetsテーブル: ', @FinalDataSetsCount, '件');
+PRINT CONCAT('DataSetManagementテーブル: ', @FinalDataSetManagementCount, '件');
+PRINT '';
 PRINT CONCAT('孤立した売上伝票: ', @OrphanSales, '件');
 PRINT CONCAT('孤立した仕入伝票: ', @OrphanPurchase, '件');
 PRINT CONCAT('孤立した在庫調整: ', @OrphanAdjustment, '件');
@@ -331,33 +350,6 @@ BEGIN
     PRINT '';
     PRINT '✓ すべての外部キー参照が正常です';
 END
-ELSE
-BEGIN
-    PRINT '';
-    PRINT '⚠️ 警告: 孤立したレコードが存在します。確認が必要です。';
-END
-
--- 最終的な統計情報
-PRINT '';
-PRINT '================================';
-PRINT '最終統計情報';
-PRINT '================================';
-
-SELECT 
-    'DataSets' as TableName,
-    COUNT(*) as TotalRecords,
-    COUNT(DISTINCT ProcessType) as ProcessTypes,
-    COUNT(DISTINCT Status) as StatusTypes
-FROM DataSets
-
-UNION ALL
-
-SELECT 
-    'DataSetManagement' as TableName,
-    COUNT(*) as TotalRecords,
-    COUNT(DISTINCT ProcessType) as ProcessTypes,
-    COUNT(DISTINCT Status) as StatusTypes
-FROM DataSetManagement;
 
 PRINT '';
 PRINT '================================';
@@ -366,9 +358,4 @@ PRINT '================================';
 PRINT '';
 PRINT '注意: DataSetsテーブルはまだ削除されていません。';
 PRINT 'アプリケーションの動作確認後、別途削除してください。';
-PRINT '';
-PRINT '次のステップ:';
-PRINT '1. アプリケーションのフィーチャーフラグを有効化';
-PRINT '2. 十分なテスト期間（1-2週間）を設ける';
-PRINT '3. 問題がなければDataSetsテーブルを削除';
 GO
