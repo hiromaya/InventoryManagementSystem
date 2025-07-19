@@ -469,7 +469,8 @@ namespace InventorySystem.Data.Services
                 )
                 SELECT 
                     prev.ProductCode, prev.GradeCode, prev.ClassCode, 
-                    prev.ShippingMarkCode, prev.ShippingMarkName,
+                    prev.ShippingMarkCode, 
+                    LEFT(RTRIM(COALESCE(prev.ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName,
                     prev.ProductName, prev.Unit, prev.StandardPrice, 
                     prev.ProductCategory1, prev.ProductCategory2,
                     @JobDate, GETDATE(), GETDATE(),
@@ -486,7 +487,8 @@ namespace InventorySystem.Data.Services
                             AND curr.GradeCode = prev.GradeCode
                             AND curr.ClassCode = prev.ClassCode
                             AND curr.ShippingMarkCode = prev.ShippingMarkCode
-                            AND curr.ShippingMarkName = prev.ShippingMarkName
+                            AND LEFT(RTRIM(COALESCE(curr.ShippingMarkName, '')) + REPLICATE(' ', 8), 8) = 
+                                LEFT(RTRIM(COALESCE(prev.ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
                             AND CAST(curr.JobDate AS DATE) = CAST(@JobDate AS DATE)
                     );";
             
