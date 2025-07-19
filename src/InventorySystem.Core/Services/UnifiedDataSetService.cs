@@ -46,7 +46,7 @@ namespace InventorySystem.Core.Services
             _logger.LogInformation("統一データセット作成開始: ID={DataSetId}, ProcessType={ProcessType}", 
                 dataSetId, info.ProcessType);
 
-            var createdAt = _timeProvider.UtcNow;  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
+            var createdAt = _timeProvider.Now;  // ⭐ Phase 2-B: JST統一（日本ビジネスシステム）
             
             // 1. DataSetsテーブルへの書き込み（既存処理との互換性維持）
             var dataSetCreated = false;
@@ -59,14 +59,14 @@ namespace InventorySystem.Core.Services
                     Name = info.Name ?? $"{info.ProcessType}_{info.JobDate:yyyyMMdd}_{DateTime.Now:HHmmss}",
                     Description = info.Description ?? $"{info.ProcessType} データセット ({info.JobDate:yyyy-MM-dd})",
                     DataSetType = ConvertProcessTypeForDataSets(info.ProcessType),
-                    ImportedAt = createdAt,
+                    ImportedAt = createdAt.DateTime,
                     RecordCount = 0,
                     Status = "Processing",
                     ErrorMessage = null,
                     FilePath = info.FilePath,
                     JobDate = info.JobDate,
-                    CreatedAt = createdAt,
-                    UpdatedAt = createdAt
+                    CreatedAt = createdAt.DateTime,
+                    UpdatedAt = createdAt.DateTime
                 };
 
                 await _dataSetRepository.CreateAsync(dataSet);
@@ -142,7 +142,7 @@ namespace InventorySystem.Core.Services
                 {
                     dataSet.Status = status.ToString();
                     dataSet.ErrorMessage = errorMessage;
-                    dataSet.UpdatedAt = _timeProvider.UtcNow;  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
+                    dataSet.UpdatedAt = _timeProvider.Now.DateTime;  // ⭐ Phase 2-B: JST統一（日本ビジネスシステム）
                     await _dataSetRepository.UpdateStatusAsync(dataSetId, status.ToString(), errorMessage);
                     _logger.LogDebug("DataSetsテーブルのステータス更新成功: ID={DataSetId}", dataSetId);
                 }

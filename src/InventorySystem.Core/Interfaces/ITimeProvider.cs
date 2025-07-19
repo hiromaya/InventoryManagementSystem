@@ -3,26 +3,26 @@ using System;
 namespace InventorySystem.Core.Interfaces
 {
     /// <summary>
-    /// 時刻提供サービスのインターフェース
-    /// テスト容易性とタイムゾーン一貫性を確保するための抽象化層
+    /// アプリケーション全体の時刻を提供します。
+    /// JST（日本標準時）での現在時刻を DateTimeOffset として提供することを基本とします。
     /// </summary>
     public interface ITimeProvider
     {
         /// <summary>
-        /// 現在のUTC時刻を取得します
-        /// データベース保存やビジネスロジックで使用することを推奨
+        /// 現在時刻をJST（UTC+9）のタイムゾーン情報を持つ DateTimeOffset として取得します。
+        /// これが時刻に関する唯一の信頼できる情報源となります。
+        /// </summary>
+        DateTimeOffset Now { get; }
+
+        /// <summary>
+        /// 現在時刻をUTC（協定世界時）の DateTime として取得します。
+        /// このプロパティは Now.UtcDateTime から派生します。
         /// </summary>
         DateTime UtcNow { get; }
-        
+
         /// <summary>
-        /// 現在のローカル時刻を取得します
-        /// ログ出力やUI表示で使用（推奨：UtcNowからの変換を使用）
-        /// </summary>
-        DateTime Now { get; }
-        
-        /// <summary>
-        /// 現在の日付を取得します（時刻部分なし）
-        /// JobDate等の日付のみのフィールドで使用
+        /// JST（日本標準時）における現在の日付を取得します。
+        /// このプロパティは Now.Date から派生します。
         /// </summary>
         DateOnly Today { get; }
     }

@@ -56,7 +56,7 @@ public class ImportWithCarryoverCommand
             _logger.LogInformation("処理対象日: {Date:yyyy-MM-dd}", targetDate);
             
             // 3. DataSetIdを生成
-            // ⭐ Phase 2-B: ITimeProvider使用（Gemini推奨）
+            // ⭐ Phase 2-B: ITimeProvider使用（JST統一）
             var dataSetId = $"CARRYOVER_{targetDate:yyyyMMdd}_{_timeProvider.Now:HHmmss}_{GenerateRandomString(6)}";
             _logger.LogInformation("DataSetId: {DataSetId}", dataSetId);
             
@@ -199,7 +199,7 @@ public class ImportWithCarryoverCommand
                 JobDate = targetDate,
                 DataSetId = dataSetId,
                 IsActive = true,
-                UpdatedDate = _timeProvider.UtcNow,  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
+                UpdatedDate = _timeProvider.Now.DateTime,  // ⭐ Phase 2-B: JST統一（日本ビジネスシステム）
                 PreviousMonthQuantity = i.PreviousMonthQuantity,
                 PreviousMonthAmount = i.PreviousMonthAmount
             }
@@ -289,7 +289,7 @@ public class ImportWithCarryoverCommand
             JobDate = targetDate,
             DataSetId = dataSetId,
             IsActive = true,
-            CreatedDate = _timeProvider.UtcNow,  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
+            CreatedDate = _timeProvider.Now.DateTime,  // ⭐ Phase 2-B: JST統一（日本ビジネスシステム）
             UpdatedDate = DateTime.Now,
             PreviousMonthQuantity = 0,
             PreviousMonthAmount = 0
@@ -323,7 +323,7 @@ public class ImportWithCarryoverCommand
             JobDate = targetDate,
             DataSetId = dataSetId,
             IsActive = true,
-            CreatedDate = _timeProvider.UtcNow,  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
+            CreatedDate = _timeProvider.Now.DateTime,  // ⭐ Phase 2-B: JST統一（日本ビジネスシステム）
             UpdatedDate = DateTime.Now,
             PreviousMonthQuantity = 0,
             PreviousMonthAmount = 0
@@ -357,7 +357,7 @@ public class ImportWithCarryoverCommand
             JobDate = targetDate,
             DataSetId = dataSetId,
             IsActive = true,
-            CreatedDate = _timeProvider.UtcNow,  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
+            CreatedDate = _timeProvider.Now.DateTime,  // ⭐ Phase 2-B: JST統一（日本ビジネスシステム）
             UpdatedDate = DateTime.Now,
             PreviousMonthQuantity = 0,
             PreviousMonthAmount = 0

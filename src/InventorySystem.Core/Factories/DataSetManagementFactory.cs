@@ -26,7 +26,7 @@ namespace InventorySystem.Core.Factories
 
         /// <summary>
         /// 新しいDataSetManagementエンティティを作成します
-        /// UTC時刻でCreatedAt/UpdatedAtを統一設定
+        /// JST時刻でCreatedAt/UpdatedAtを統一設定
         /// </summary>
         public DataSetManagement CreateNew(
             string dataSetId,
@@ -38,7 +38,7 @@ namespace InventorySystem.Core.Factories
             List<string>? importedFiles = null,
             string? notes = null)
         {
-            var currentTime = _timeProvider.UtcNow;  // Gemini推奨：UTC統一
+            var currentTime = _timeProvider.Now;  // Gemini推奨：JST統一（日本ビジネスシステム）
             
             // インポート種別の自動判定
             var resolvedImportType = importType ?? processType switch
@@ -62,8 +62,8 @@ namespace InventorySystem.Core.Factories
                 IsArchived = false,
                 ParentDataSetId = null,  // 必要に応じて後で設定
                 ImportedFiles = importedFiles != null ? JsonSerializer.Serialize(importedFiles) : null,
-                CreatedAt = currentTime,  // ⭐ UTC時刻で統一
-                UpdatedAt = currentTime,  // ⭐ UTC時刻で統一
+                CreatedAt = currentTime.DateTime,  // ⭐ JST時刻で統一（日本ビジネスシステム）
+                UpdatedAt = currentTime.DateTime,  // ⭐ JST時刻で統一（日本ビジネスシステム）
                 CreatedBy = createdBy,
                 Department = department,
                 Notes = notes,
@@ -75,7 +75,7 @@ namespace InventorySystem.Core.Factories
                 ErrorMessage = null
             };
 
-            _logger.LogDebug("DataSetManagement作成: Id={DataSetId}, ProcessType={ProcessType}, UTC={UtcTime}",
+            _logger.LogDebug("DataSetManagement作成: Id={DataSetId}, ProcessType={ProcessType}, JST={JstTime}",
                 dataSetId, processType, currentTime);
 
             return dataSetManagement;
@@ -92,7 +92,7 @@ namespace InventorySystem.Core.Factories
             string? parentDataSetId = null,
             string? notes = null)
         {
-            var currentTime = _timeProvider.UtcNow;
+            var currentTime = _timeProvider.Now;
 
             var dataSetManagement = new DataSetManagement
             {
@@ -106,8 +106,8 @@ namespace InventorySystem.Core.Factories
                 IsArchived = false,
                 ParentDataSetId = parentDataSetId,
                 ImportedFiles = null,  // 繰越処理にはファイルがない
-                CreatedAt = currentTime,
-                UpdatedAt = currentTime,
+                CreatedAt = currentTime.DateTime,
+                UpdatedAt = currentTime.DateTime,
                 CreatedBy = "System",
                 Department = department,
                 Notes = notes ?? $"前日在庫繰越処理: {recordCount}件",
@@ -133,9 +133,9 @@ namespace InventorySystem.Core.Factories
             if (dataSetManagement == null)
                 throw new ArgumentNullException(nameof(dataSetManagement));
 
-            dataSetManagement.UpdatedAt = _timeProvider.UtcNow;
+            dataSetManagement.UpdatedAt = _timeProvider.Now.DateTime;
 
-            _logger.LogTrace("DataSetManagement UpdatedAt更新: Id={DataSetId}, UTC={UtcTime}",
+            _logger.LogTrace("DataSetManagement UpdatedAt更新: Id={DataSetId}, JST={JstTime}",
                 dataSetManagement.DataSetId, dataSetManagement.UpdatedAt);
         }
     }

@@ -210,7 +210,8 @@ builder.Services.AddScoped<IInventoryListService, InventoryListService>();
 builder.Services.AddScoped<ICpInventoryCreationService, CpInventoryCreationService>();
 
 // ⭐ Phase 2-B: ITimeProviderとDataSetManagementFactoryの登録（Gemini推奨）
-builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
+// JST統一: 日本のビジネスシステムのため、JstTimeProviderを使用
+builder.Services.AddSingleton<ITimeProvider, JstTimeProvider>();
 builder.Services.AddScoped<IDataSetManagementFactory, DataSetManagementFactory>();
 
 // フィーチャーフラグの設定を読み込み

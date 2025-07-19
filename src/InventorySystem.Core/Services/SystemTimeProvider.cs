@@ -4,27 +4,26 @@ using InventorySystem.Core.Interfaces;
 namespace InventorySystem.Core.Services
 {
     /// <summary>
-    /// システム時刻を提供する実装クラス
-    /// 本番環境での標準的な時刻取得を行う
+    /// 日本標準時（JST）の現在時刻を提供する ITimeProvider の実装です。
     /// </summary>
-    public class SystemTimeProvider : ITimeProvider
+    public class JstTimeProvider : ITimeProvider
     {
+        // JSTのタイムゾーン情報をキャッシュしておく
+        private static readonly TimeZoneInfo JstZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+
         /// <summary>
-        /// 現在のUTC時刻を取得します
-        /// データベース保存時の標準として使用
+        /// 現在のUTC時刻をJSTに変換して返します。
         /// </summary>
-        public DateTime UtcNow => DateTime.UtcNow;
-        
+        public DateTimeOffset Now => TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, JstZoneInfo);
+
         /// <summary>
-        /// 現在のローカル時刻を取得します
-        /// 表示用途で使用（内部的にはUtcNowからの変換を推奨）
+        /// JSTの現在時刻からUTC時刻を返します。
         /// </summary>
-        public DateTime Now => DateTime.Now;
-        
+        public DateTime UtcNow => Now.UtcDateTime;
+
         /// <summary>
-        /// 現在の日付を取得します
-        /// JobDate等の日付フィールドで使用
+        /// JSTの現在日付を返します。
         /// </summary>
-        public DateOnly Today => DateOnly.FromDateTime(DateTime.Now);
+        public DateOnly Today => DateOnly.FromDateTime(Now.Date);
     }
 }
