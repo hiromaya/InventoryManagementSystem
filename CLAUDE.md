@@ -168,6 +168,7 @@
 - **2025-07-05: CSVマッピング仕様に商品名列を追加（売上148列目、仕入140列目、在庫調整146列目）**
 - **2025-07-07: JobDate仕様を追加（伝票データに手動でJobDateを指定する機能）**
 - **2025-07-18: init-database--force実行時の024_CreateProductMaster.sql除外設定（移行作業保護のため）**
+- **2025-07-19: DailyCloseManagement完全実装（Gemini CLI連携によるベストプラクティス適用）**
 
 ---
 
@@ -251,9 +252,10 @@
 1. ✅ CSV取込機能（売上・仕入・在庫調整・各種マスタ）
 2. ✅ アンマッチリスト処理
 3. ✅ データセット管理
-4. ⏳ 商品勘定計算処理（未実装）
-5. ⏳ 商品日報出力（未実装）
-6. ⏳ 在庫表出力（未実装）
+4. ✅ 日次終了管理（DailyCloseManagement）
+5. ⏳ 商品勘定計算処理（未実装）
+6. ⏳ 商品日報出力（未実装）
+7. ⏳ 在庫表出力（未実装）
 
 ### テスト・デバッグ時の確認事項
 - `import-folder`コマンド実行時は必ずログを確認
@@ -686,6 +688,158 @@ dotnet run -- check-daily-close 2025-06-30
 - 日次終了処理の修正時は必ず`ValidateDataIntegrity`メソッドも確認
 - 新しい検証ルールを追加する場合は`DataValidationResult`クラスを使用
 - エラーメッセージは`ErrorMessages`定数クラスに定義
+
+## 📋 DailyCloseManagement完全実装仕様（2025-07-19）
+
+### 概要
+DailyCloseManagementは日次終了処理の状態管理とデータ整合性を保証する重要な機能です。Gemini CLI連携により、業界のベストプラクティスを取り入れた設計になっています。
+
+### 実装された主要機能
+
+#### 1. ValidationStatus状態遷移管理
+```
+PENDING → PROCESSING → VALIDATING → PASSED/FAILED
+```
+- **PENDING**: 初期状態（データセット作成時）
+- **PROCESSING**: 処理開始時
+- **VALIDATING**: 検証実行中
+- **PASSED**: 検証成功・処理完了
+- **FAILED**: 検証失敗・エラー発生
+
+#### 2. 冪等性保証
+- 同一JobDateでの重複実行を防止
+- SqlException 2627（ユニーク制約違反）をDuplicateDailyCloseExceptionに変換
+- エラー状態での適切なロールバック処理
+
+#### 3. エンティティ拡張機能
+```csharp
+// タイムスタンプ付きログ機能
+dailyClose.AppendRemark("データ検証完了");
+
+// パフォーマンス追跡機能
+dailyClose.AppendPerformanceInfo(startTime, "追加情報");
+```
+
+#### 4. Repository実装
+- **CreateAsync**: 新規作成（デフォルト値設定）
+- **GetByJobDateAsync**: JobDate検索
+- **GetLatestAsync**: 最新レコード取得
+- **UpdateStatusAsync**: 状態更新（SQL Server側でタイムスタンプ管理）
+
+#### 5. カスタム例外処理
+```csharp
+public class DuplicateDailyCloseException : Exception
+{
+    public DateTime JobDate { get; }
+    public string? ExistingStatus { get; }
+}
+```
+
+### テーブル構造（038_RecreateDailyCloseManagementIdealStructure.sql）
+
+| カラム名 | 型 | 制約 | 説明 |
+|---------|-----|------|------|
+| Id | INT IDENTITY | PK | 主キー |
+| JobDate | DATE | NOT NULL, UNIQUE | 処理対象日（一意） |
+| DataSetId | NVARCHAR(100) | NOT NULL | データセットID |
+| DailyReportDataSetId | NVARCHAR(100) | NULL | 商品日報DataSetId |
+| BackupPath | NVARCHAR(500) | NULL | バックアップパス |
+| ProcessedAt | DATETIME2(7) | DEFAULT GETDATE() | 処理日時 |
+| ProcessedBy | NVARCHAR(100) | DEFAULT SYSTEM_USER | 処理実行者 |
+| DataHash | NVARCHAR(100) | NULL | データハッシュ値 |
+| ValidationStatus | NVARCHAR(20) | DEFAULT 'PENDING' | 検証ステータス |
+| Remarks | NVARCHAR(MAX) | NULL | 備考（ログ情報） |
+
+### 実装ファイル一覧
+
+#### 核心実装
+- `/database/migrations/038_RecreateDailyCloseManagementIdealStructure.sql`
+- `/src/InventorySystem.Core/Entities/DailyCloseManagement.cs`
+- `/src/InventorySystem.Data/Repositories/DailyCloseManagementRepository.cs`
+- `/src/InventorySystem.Core/Interfaces/IDailyCloseManagementRepository.cs`
+
+#### エラーハンドリング
+- `/src/InventorySystem.Core/Exceptions/DuplicateDailyCloseException.cs`
+
+#### サービス層
+- `/src/InventorySystem.Core/Services/DailyCloseService.cs`（状態遷移ロジック）
+
+### Gemini CLI連携で適用されたベストプラクティス
+
+#### 1. テーブル設計原則
+- 単一責任の原則（SRP）
+- データ整合性の保証（UNIQUE制約）
+- 監査証跡の実装（ProcessedAt, ProcessedBy）
+
+#### 2. エラーハンドリング戦略
+- SQL例外の業務例外への変換
+- 詳細なログ記録
+- 適切なエラーメッセージ
+
+#### 3. パフォーマンス最適化
+- インデックス戦略（JobDate UNIQUE）
+- デフォルト値のDB側設定
+- 効率的なクエリ設計
+
+#### 4. セキュリティ考慮
+- SQLインジェクション対策（Dapper使用）
+- 入力値検証
+- 権限管理（ProcessedBy記録）
+
+### 運用上の重要なルール
+
+#### 1. 状態遷移の厳格管理
+```csharp
+// ❌ 禁止：直接的な状態変更
+dailyClose.ValidationStatus = "PASSED";
+
+// ✅ 推奨：Repository経由の状態更新
+await _repository.UpdateStatusAsync(id, "PASSED", "検証完了");
+```
+
+#### 2. エラー時の適切な処理
+- FAILED状態での詳細情報記録
+- ロールバック時の状態復旧
+- 運用チームへの通知
+
+#### 3. データ整合性の保証
+- JobDate単位での一意性保証
+- 関連データとの整合性チェック
+- 定期的な整合性検証
+
+### 今後の拡張予定
+
+#### 1. 通知機能
+- 処理完了/エラー時のメール通知
+- Slack連携
+- ダッシュボード表示
+
+#### 2. レポート機能
+- 処理履歴レポート
+- パフォーマンス分析
+- エラー傾向分析
+
+#### 3. 自動化機能
+- スケジュール実行
+- 自動リトライ
+- 自動バックアップ
+
+### 注意事項とトラブルシューティング
+
+#### よくある問題
+1. **重複実行エラー**: 同一JobDateで複数回実行
+   - 解決：既存レコードの状態確認後、適切な処理判断
+   
+2. **状態不整合**: 処理中断による不正な状態
+   - 解決：手動での状態リセット、ログ確認
+
+3. **パフォーマンス問題**: 大量データ処理時の応答遅延
+   - 解決：バッチサイズ調整、インデックス最適化
+
+#### デバッグ支援
+- Remarks列での詳細ログ確認
+- ProcessedAt, ProcessedByでの操作履歴追跡
+- ValidationStatusでの処理状況把握
 
 ## 🚨 init-database --force 実行時の重要な注意事項
 

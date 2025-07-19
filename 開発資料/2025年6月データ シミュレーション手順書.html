@@ -293,7 +293,7 @@
         <div class="header">
             <h1>📋 在庫管理システム</h1>
             <p>新しい運用手順ガイド（初期在庫読込から日次処理まで）</p>
-            <p><strong>最終更新:</strong> 2025年7月14日 - import-initial-inventory機能追加対応 | <strong>対象:</strong> 開発・運用</p>
+            <p><strong>最終更新:</strong> 2025年7月19日 - DailyCloseManagement完全実装対応 | <strong>対象:</strong> 開発・運用</p>
         </div>
 
         <div class="phase" style="background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); color: white;">
@@ -327,7 +327,7 @@
 <span class="command-line">dotnet run import-initial-inventory DeptA</span>
 
 <span class="comment"># 登録確認</span>
-<span class="command-line">dotnet run check-inventory-status</span>
+<span class="command-line">dotnet run check-data-status</span>
                 </div>
                 <div class="success" style="margin-top: 15px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
                     <strong style="color: white;">✅ 重要ポイント:</strong>
@@ -579,7 +579,7 @@
 <span class="command-line">dotnet run import-initial-inventory DeptA</span>
 
 <span class="comment"># 読込結果確認</span>
-<span class="command-line">dotnet run check-inventory-status</span>
+<span class="command-line">dotnet run check-data-status</span>
                     </div>
                     <div class="success" style="margin-top: 15px;">
                         <strong>✅ 読込完了後の確認事項：</strong>
@@ -868,7 +868,7 @@
 <span class="command-line">dotnet run import-initial-inventory DeptA</span>
 
 <span class="comment"># 3. 読込結果確認</span>
-<span class="command-line">dotnet run check-inventory-status</span>
+<span class="command-line">dotnet run check-data-status</span>
                     </div>
                     <div class="success" style="margin-top: 10px;">
                         <strong>実際のログ出力例：</strong>
@@ -971,6 +971,250 @@ DataSetId: INITIAL_20250531_090000
                     <li>伝票の有無は意識せず、import-folderの自動判定に任せる</li>
                     <li>移行用在庫マスタは重複実行しても安全（必要に応じて再実行可能）</li>
                 </ul>
+            </div>
+        </div>
+
+        <!-- 全コマンド一覧セクション -->
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-number">📋</div>
+                <div class="phase-title">在庫管理システム全コマンド一覧</div>
+            </div>
+            
+            <div class="info">
+                <h4>📝 利用可能なコマンド（Program.cs より抽出）</h4>
+                <p>以下は実際にシステムで利用可能な全コマンドです。</p>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>分類</th>
+                        <th>コマンド</th>
+                        <th>説明</th>
+                        <th>パラメータ例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background: #e8f5e8;">
+                        <td rowspan="4"><strong>テスト・接続確認</strong></td>
+                        <td>test-connection</td>
+                        <td>データベース接続テスト</td>
+                        <td>-</td>
+                    </tr>
+                    <tr style="background: #e8f5e8;">
+                        <td>test-fastreport</td>
+                        <td>FastReportテスト（DB不要）</td>
+                        <td>-</td>
+                    </tr>
+                    <tr style="background: #e8f5e8;">
+                        <td>test-pdf</td>
+                        <td>PDF生成テスト（廃止済み）</td>
+                        <td>test-fastreportを使用</td>
+                    </tr>
+                    <tr style="background: #e8f5e8;">
+                        <td>debug-csv-structure</td>
+                        <td>CSV構造デバッグ</td>
+                        <td>[CSVファイルパス]</td>
+                    </tr>
+                    <tr style="background: #e8f4f8;">
+                        <td rowspan="6"><strong>データベース管理</strong></td>
+                        <td>init-database</td>
+                        <td>データベース初期化</td>
+                        <td>[--force]</td>
+                    </tr>
+                    <tr style="background: #e8f4f8;">
+                        <td>check-data-status</td>
+                        <td>データ状態確認</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #e8f4f8;">
+                        <td>check-schema</td>
+                        <td>スキーマ確認</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #e8f4f8;">
+                        <td>migrate-phase2</td>
+                        <td>フェーズ2マイグレーション</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #e8f4f8;">
+                        <td>migrate-phase3</td>
+                        <td>フェーズ3マイグレーション</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #e8f4f8;">
+                        <td>migrate-phase5</td>
+                        <td>フェーズ5マイグレーション</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #fff3e0;">
+                        <td rowspan="9"><strong>データインポート</strong></td>
+                        <td>import-folder</td>
+                        <td>フォルダからCSV一括インポート（推奨）</td>
+                        <td>DeptA [YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #fff3e0;">
+                        <td>import-initial-inventory</td>
+                        <td>移行用在庫マスタ読込（ZAIK*.csv）</td>
+                        <td>DeptA</td>
+                    </tr>
+                    <tr style="background: #fff3e0;">
+                        <td>import-sales</td>
+                        <td>売上伝票インポート（単体）</td>
+                        <td>[ファイルパス] [YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #fff3e0;">
+                        <td>import-purchase</td>
+                        <td>仕入伝票インポート（単体）</td>
+                        <td>[ファイルパス] [YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #fff3e0;">
+                        <td>import-adjustment</td>
+                        <td>在庫調整インポート（単体）</td>
+                        <td>[ファイルパス] [YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #fff3e0;">
+                        <td>import-customers</td>
+                        <td>得意先マスタインポート</td>
+                        <td>[ファイルパス]</td>
+                    </tr>
+                    <tr style="background: #fff3e0;">
+                        <td>import-products</td>
+                        <td>商品マスタインポート</td>
+                        <td>[ファイルパス]</td>
+                    </tr>
+                    <tr style="background: #fff3e0;">
+                        <td>import-suppliers</td>
+                        <td>仕入先マスタインポート</td>
+                        <td>[ファイルパス]</td>
+                    </tr>
+                    <tr style="background: #fff3e0;">
+                        <td>import-masters</td>
+                        <td>マスタデータ一括インポート</td>
+                        <td>-</td>
+                    </tr>
+                    <tr style="background: #e3f2fd;">
+                        <td rowspan="3"><strong>帳票出力</strong></td>
+                        <td>unmatch-list</td>
+                        <td>アンマッチリスト作成</td>
+                        <td>-（全期間対象）</td>
+                    </tr>
+                    <tr style="background: #e3f2fd;">
+                        <td>daily-report</td>
+                        <td>商品日報作成</td>
+                        <td>[YYYY-MM-DD] [--dataset-id ID]</td>
+                    </tr>
+                    <tr style="background: #e3f2fd;">
+                        <td>inventory-list</td>
+                        <td>在庫表作成</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #f3e5f5;">
+                        <td rowspan="4"><strong>日次終了処理</strong></td>
+                        <td>check-daily-close</td>
+                        <td>日次終了処理の事前確認</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #f3e5f5;">
+                        <td>dev-check-daily-close</td>
+                        <td>日次終了処理の事前確認（開発用）</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #f3e5f5;">
+                        <td>dev-daily-close</td>
+                        <td>日次終了処理実行（開発用）</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #f3e5f5;">
+                        <td>reset-daily-close</td>
+                        <td>日次終了処理リセット</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #fce4ec;">
+                        <td rowspan="8"><strong>在庫管理</strong></td>
+                        <td>init-inventory</td>
+                        <td>在庫初期化</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #fce4ec;">
+                        <td>optimize-inventory</td>
+                        <td>在庫最適化</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #fce4ec;">
+                        <td>import-previous-inventory</td>
+                        <td>前月末在庫インポート</td>
+                        <td>[ファイルパス] [YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #fce4ec;">
+                        <td>import-with-carryover</td>
+                        <td>前日在庫引継でインポート</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #fce4ec;">
+                        <td>create-cp-inventory</td>
+                        <td>コピー在庫作成</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #fce4ec;">
+                        <td>cleanup-inventory-duplicates</td>
+                        <td>在庫重複データクリーンアップ</td>
+                        <td>-</td>
+                    </tr>
+                    <tr style="background: #fce4ec;">
+                        <td>init-monthly-inventory</td>
+                        <td>月次在庫初期化</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #fce4ec;">
+                        <td>simulate-daily</td>
+                        <td>日次処理シミュレーション</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #f1f8e9;">
+                        <td rowspan="3"><strong>開発・メンテナンス</strong></td>
+                        <td>dev-daily-report</td>
+                        <td>商品日報作成（開発用）</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #f1f8e9;">
+                        <td>check-masters</td>
+                        <td>マスタデータ確認</td>
+                        <td>-</td>
+                    </tr>
+                    <tr style="background: #f1f8e9;">
+                        <td>init-folders</td>
+                        <td>フォルダ初期化</td>
+                        <td>-</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="warning">
+                <h4>⚠️ 重要なコマンド使用上の注意</h4>
+                <ul>
+                    <li><strong>dev-*コマンド</strong>：開発用コマンドで時間制約がありません</li>
+                    <li><strong>import-folder</strong>：推奨のインポートコマンド（自動引継機能あり）</li>
+                    <li><strong>unmatch-list</strong>：日付パラメータ不要（全期間対象）</li>
+                    <li><strong>test-pdf</strong>：廃止済み、test-fastreportを使用してください</li>
+                    <li><strong>check-inventory-status</strong>：存在しません、check-data-statusを使用してください</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h4>💡 推奨コマンド組み合わせ（日次処理）</h4>
+                <div class="command-block">
+<span class="comment"># 基本的な日次処理フロー</span>
+<span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
+<span class="command-line">dotnet run unmatch-list</span>
+<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-01</span>
+<span class="command-line">.\dev.ps1 dev-daily-close 2025-06-01</span>
+
+<span class="comment"># 初期設定（システム開始時のみ）</span>
+<span class="command-line">dotnet run import-initial-inventory DeptA</span>
+<span class="command-line">dotnet run check-data-status</span>
+                </div>
             </div>
         </div>
 

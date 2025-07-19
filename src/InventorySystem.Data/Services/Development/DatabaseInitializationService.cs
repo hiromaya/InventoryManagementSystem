@@ -90,6 +90,13 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "037_FixDataSetManagementDefaultConstraints.sql", // UpdatedAtデフォルト制約追加（プレースホルダー）
         "038_RecreateDailyCloseManagementIdealStructure.sql", // DailyCloseManagement理想的構造移行
         
+        // === ストアドプロシージャ作成（Gemini推奨順序） ===
+        "procedures/sp_MergeInitialInventory.sql",                              // 初期在庫マージ（最優先）
+        "procedures/sp_UpdateOrCreateInventoryMasterCumulative.sql",            // 在庫マスタ累積更新
+        "procedures/sp_MergeInventoryMasterCumulative.sql",                     // 累積在庫マージ
+        "procedures/sp_CreateCpInventoryFromInventoryMasterWithProductInfo.sql", // 商品情報付きCP在庫作成
+        "procedures/sp_CreateCpInventoryFromInventoryMasterCumulative.sql",     // CP在庫作成
+        
         // === CreatedAt/UpdatedAt移行フェーズ（05_create_master_tables.sqlで不要） ===
         // "050_Phase1_CheckCurrentSchema.sql",       // 現在のスキーマ確認（実行不要）
         // "051_Phase2_AddNewColumns.sql",            // 新しいカラムを追加（05_create_master_tables.sqlで完了）
@@ -720,10 +727,25 @@ public class DatabaseInitializationService : IDatabaseInitializationService
             
             foreach (var migrationFileName in _migrationOrder)
             {
-                // 05_create_master_tables.sqlはdatabaseフォルダにある
-                var migrationPath = migrationFileName == "05_create_master_tables.sql"
-                    ? Path.Combine(Path.GetDirectoryName(migrationsPath), migrationFileName)
-                    : Path.Combine(migrationsPath, migrationFileName);
+                string migrationPath;
+                
+                // パス解決ロジック（Gemini推奨の堅牢性対応）
+                if (migrationFileName == "05_create_master_tables.sql")
+                {
+                    // 05_create_master_tables.sqlはdatabaseフォルダにある
+                    migrationPath = Path.Combine(Path.GetDirectoryName(migrationsPath), migrationFileName);
+                }
+                else if (migrationFileName.StartsWith("procedures/"))
+                {
+                    // procedures/フォルダ内のスクリプト
+                    var procedureFileName = migrationFileName.Substring("procedures/".Length);
+                    migrationPath = Path.Combine(Path.GetDirectoryName(migrationsPath), "procedures", procedureFileName);
+                }
+                else
+                {
+                    // 通常のマイグレーションスクリプト
+                    migrationPath = Path.Combine(migrationsPath, migrationFileName);
+                }
                 
                 // ファイルが存在しない場合はスキップ
                 if (!File.Exists(migrationPath))
@@ -739,12 +761,26 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                     continue;
                 }
                 
-                // マイグレーションを実行
+                // マイグレーションを実行（ストアドプロシージャの場合は特別なログを出力）
+                var isStoredProcedure = migrationFileName.StartsWith("procedures/");
+                if (isStoredProcedure)
+                {
+                    _logger.LogInformation("🔧 ストアドプロシージャを作成中: {ProcedureName}", 
+                        migrationFileName.Substring("procedures/".Length).Replace(".sql", ""));
+                }
+                
                 var (success, executionTime) = await ApplyMigrationAsync(connection, migrationPath, migrationFileName);
                 if (success)
                 {
                     appliedMigrations.Add(migrationFileName);
                     result?.MigrationExecutionTimes.Add(migrationFileName, executionTime);
+                    
+                    if (isStoredProcedure)
+                    {
+                        _logger.LogInformation("✅ ストアドプロシージャ作成完了: {ProcedureName} ({ExecutionTime}ms)", 
+                            migrationFileName.Substring("procedures/".Length).Replace(".sql", ""), 
+                            executionTime);
+                    }
                 }
                 else
                 {
