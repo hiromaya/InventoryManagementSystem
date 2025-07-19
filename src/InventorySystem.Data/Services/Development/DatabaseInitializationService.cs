@@ -611,19 +611,41 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         {
             _logger.LogInformation("すべてのテーブルを削除します");
             
-            // 外部キー制約を一時的に無効化
-            await connection.ExecuteAsync("EXEC sp_msforeachtable 'ALTER TABLE ? NOCHECK CONSTRAINT all'");
+            // 段階1: すべての外部キー制約を先に削除
+            _logger.LogInformation("外部キー制約を削除中...");
+            var dropConstraintsSql = @"
+                DECLARE @sql NVARCHAR(MAX) = '';
+                SELECT @sql = @sql + 
+                    'ALTER TABLE [' + SCHEMA_NAME(fk.schema_id) + '].[' + OBJECT_NAME(fk.parent_object_id) + 
+                    '] DROP CONSTRAINT [' + fk.name + ']; '
+                FROM sys.foreign_keys fk
+                ORDER BY fk.name;
+                
+                IF LEN(@sql) > 0
+                BEGIN
+                    PRINT 'Dropping foreign key constraints: ' + @sql;
+                    EXEC sp_executesql @sql;
+                END";
             
-            // すべてのユーザーテーブルを削除
-            var sql = @"
+            await connection.ExecuteAsync(dropConstraintsSql);
+            _logger.LogInformation("外部キー制約の削除が完了しました");
+            
+            // 段階2: すべてのユーザーテーブルを削除
+            _logger.LogInformation("テーブルを削除中...");
+            var dropTablesSql = @"
                 DECLARE @sql NVARCHAR(MAX) = '';
                 SELECT @sql = @sql + 'DROP TABLE [' + SCHEMA_NAME(schema_id) + '].[' + name + ']; '
                 FROM sys.tables
                 WHERE type = 'U'
                 ORDER BY name;
-                EXEC sp_executesql @sql;";
+                
+                IF LEN(@sql) > 0
+                BEGIN
+                    PRINT 'Dropping tables: ' + @sql;
+                    EXEC sp_executesql @sql;
+                END";
             
-            await connection.ExecuteAsync(sql);
+            await connection.ExecuteAsync(dropTablesSql);
             _logger.LogInformation("すべてのテーブルを削除しました");
         }
         catch (Exception ex)
