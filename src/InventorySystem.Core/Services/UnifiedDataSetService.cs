@@ -76,11 +76,14 @@ namespace InventorySystem.Core.Services
             var dataSetManagementCreated = false;
             try
             {
+                // ✅ DateTime.MinValue対策: JobDateが未設定の場合の安全措置
+                var safeJobDate = info.JobDate == DateTime.MinValue ? DateTime.Today : info.JobDate;
+                
                 // ✅ DataSetManagement用の情報（ファイル名のみ保存）
                 var dataSetManagement = new DataSetManagement
                 {
                     DataSetId = dataSetId,
-                    JobDate = info.JobDate,
+                    JobDate = safeJobDate,
                     ProcessType = info.ProcessType,
                     ImportType = info.ImportType ?? "IMPORT",
                     RecordCount = 0,
@@ -90,6 +93,7 @@ namespace InventorySystem.Core.Services
                     ParentDataSetId = null,
                     ImportedFiles = info.FilePath != null ? Path.GetFileName(info.FilePath) : null,
                     CreatedAt = createdAt,
+                    UpdatedAt = createdAt,  // ⭐ Gemini推奨: UpdatedAtを明示的に設定してSqlDateTime overflowを防止
                     CreatedBy = info.CreatedBy ?? "system",
                     Department = info.Department ?? "Unknown",
                     Notes = info.Description
