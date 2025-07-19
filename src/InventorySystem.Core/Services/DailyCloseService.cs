@@ -9,6 +9,7 @@ using InventorySystem.Core.Models;
 using InventorySystem.Core.Services.DataSet;
 using InventorySystem.Core.Services.History;
 using InventorySystem.Core.Services.Validation;
+using InventorySystem.Core.Exceptions;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -58,6 +59,20 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     {
         _logger.LogInformation("日次終了処理開始: JobDate={JobDate}, ExecutedBy={ExecutedBy}", 
             jobDate, executedBy);
+        
+        // 0. 冪等性チェック（Gemini推奨）
+        var existingClose = await _dailyCloseRepository.GetByJobDateAsync(jobDate);
+        if (existingClose != null)
+        {
+            // 既に成功している場合は何もしない
+            if (existingClose.ValidationStatus == "PASSED")
+            {
+                _logger.LogInformation("{JobDate}の日次終了処理は既に正常に完了しています。", jobDate.ToShortDateString());
+                return;
+            }
+            // 失敗している場合はエラーとする
+            throw new DuplicateDailyCloseException(jobDate, existingClose.ValidationStatus);
+        }
         
         // 1. 商品日報との紐付けチェック
         var dailyReportDataSetId = await _dataSetManager.GetLatestDataSetId("DAILY_REPORT", jobDate);
@@ -359,7 +374,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     }
     
     /// <summary>
-    /// 日次終了管理テーブルに記録
+    /// 日次終了管理テーブルに状態遷移で記録（Gemini推奨設計）
     /// </summary>
     private async Task RecordDailyClose(
         DateTime jobDate, 
@@ -368,26 +383,73 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         string executedBy,
         string? dataHash)
     {
+        var startTime = DateTime.Now;
+        
+        // Step 1: PENDING状態で初期レコード作成
         var dailyClose = new DailyCloseManagement
         {
             JobDate = jobDate,
             DataSetId = datasetId,
-            DailyReportDataSetId = datasetId, // 商品日報と同じID
+            DailyReportDataSetId = datasetId,
             BackupPath = backupPath,
             ProcessedAt = DateTime.Now,
             ProcessedBy = executedBy,
             DataHash = dataHash,
-            ValidationStatus = "PASSED"
+            ValidationStatus = "PENDING"
         };
+        dailyClose.AppendRemark("日次終了処理を開始しました。");
         
         try
         {
-            await _dailyCloseRepository.CreateAsync(dailyClose);
-            _logger.LogInformation("日次終了管理記録完了: JobDate={JobDate}", jobDate);
+            // 初期レコード作成
+            var created = await _dailyCloseRepository.CreateAsync(dailyClose);
+            _logger.LogInformation("日次終了管理初期記録完了: Id={Id}, JobDate={JobDate}", created.Id, jobDate);
+            
+            // Step 2: PROCESSINGへ更新
+            await _dailyCloseRepository.UpdateStatusAsync(created.Id, "PROCESSING", "メイン処理を実行中です。");
+            
+            // Step 3: VALIDATINGへ更新
+            await _dailyCloseRepository.UpdateStatusAsync(created.Id, "VALIDATING", "データ整合性チェックを実行中です。");
+            
+            // Step 4: PASSEDで完了（パフォーマンス情報付き）
+            var duration = DateTime.Now - startTime;
+            var finalRemark = $"正常に完了しました。処理時間: {duration.TotalSeconds:F2}秒, 環境: {Environment.MachineName}";
+            await _dailyCloseRepository.UpdateStatusAsync(created.Id, "PASSED", finalRemark);
+            
+            _logger.LogInformation("日次終了管理記録完了: JobDate={JobDate}, Duration={Duration}s", 
+                jobDate, duration.TotalSeconds);
+        }
+        catch (DuplicateDailyCloseException ex)
+        {
+            _logger.LogWarning(ex, "日次終了処理の重複実行試行: JobDate={JobDate}", jobDate);
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "日次終了管理記録エラー");
+            
+            // エラー時のFAILED状態で記録を試みる
+            try
+            {
+                var errorRecord = new DailyCloseManagement
+                {
+                    JobDate = jobDate,
+                    DataSetId = datasetId,
+                    DailyReportDataSetId = datasetId,
+                    BackupPath = backupPath,
+                    ProcessedAt = DateTime.Now,
+                    ProcessedBy = executedBy,
+                    DataHash = dataHash,
+                    ValidationStatus = "FAILED",
+                    Remarks = $"[エラー] {ex.Message}"
+                };
+                await _dailyCloseRepository.CreateAsync(errorRecord);
+            }
+            catch (DuplicateDailyCloseException)
+            {
+                // 既にレコードが存在する場合は無視
+            }
+            
             throw;
         }
     }

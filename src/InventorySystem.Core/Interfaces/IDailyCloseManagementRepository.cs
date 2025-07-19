@@ -21,4 +21,12 @@ public interface IDailyCloseManagementRepository
     /// 最新の日次終了情報を取得
     /// </summary>
     Task<DailyCloseManagement?> GetLatestAsync();
+    
+    /// <summary>
+    /// ValidationStatusと備考を更新
+    /// </summary>
+    /// <param name="id">DailyCloseManagementのID</param>
+    /// <param name="status">新しいValidationStatus</param>
+    /// <param name="remark">追加備考</param>
+    Task UpdateStatusAsync(int id, string status, string? remark = null);
 }
