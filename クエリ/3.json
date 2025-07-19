@@ -1,8 +1,27 @@
 [
   {
-    "JobDate": "2025-07-09T00:00:00",
-    "件数": 166,
-    "現在在庫数量合計": 0.0,
-    "現在在庫金額合計": 0.0
+    "制約名": "DF__DataSetMa__Creat__409C15DE",
+    "カラム名": "CreatedAt",
+    "デフォルト値": "(getdate())"
+  },
+  {
+    "制約名": "DF__DataSetMa__IsAct__3EB3CD6C",
+    "カラム名": "IsActive",
+    "デフォルト値": "((1))"
+  },
+  {
+    "制約名": "DF__DataSetMa__IsArc__3FA7F1A5",
+    "カラム名": "IsArchived",
+    "デフォルト値": "((0))"
+  },
+  {
+    "制約名": "DF__DataSetMa__Recor__3DBFA933",
+    "カラム名": "RecordCount",
+    "デフォルト値": "((0))"
+  },
+  {
+    "制約名": "DF__DataSetMa__Total__53AEEA52",
+    "カラム名": "TotalRecordCount",
+    "デフォルト値": "((0))"
   }
 ]

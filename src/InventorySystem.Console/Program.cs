@@ -3837,6 +3837,7 @@ private static async Task<bool> EnsureRequiredTablesExistAsync(IServiceProvider 
                 IsActive = true,
                 IsArchived = false,
                 CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,  // ⭐ Phase 2-A: UpdatedAt設定追加（SqlDateTime overflow防止）
                 CreatedBy = "System",
                 Department = department,
                 ImportedFiles = null,  // 引継ぎの場合はファイルがないため

@@ -1,65 +1,202 @@
 [
   {
-    "TABLE_NAME": "AuditLogs"
+    "カラム名": "DataSetId",
+    "データ型": "nvarchar",
+    "NULL許可": "NO",
+    "デフォルト値": null,
+    "最大長": 100,
+    "SQL型名": "nvarchar"
   },
   {
-    "TABLE_NAME": "CategoryMaster"
+    "カラム名": "JobDate",
+    "データ型": "date",
+    "NULL許可": "NO",
+    "デフォルト値": null,
+    "最大長": null,
+    "SQL型名": "date"
   },
   {
-    "TABLE_NAME": "ClassMaster"
+    "カラム名": "ImportType",
+    "データ型": "nvarchar",
+    "NULL許可": "NO",
+    "デフォルト値": null,
+    "最大長": 20,
+    "SQL型名": "nvarchar"
   },
   {
-    "TABLE_NAME": "CpInventoryMaster"
+    "カラム名": "RecordCount",
+    "データ型": "int",
+    "NULL許可": "NO",
+    "デフォルト値": "((0))",
+    "最大長": null,
+    "SQL型名": "int"
   },
   {
-    "TABLE_NAME": "CustomerMaster"
+    "カラム名": "IsActive",
+    "データ型": "bit",
+    "NULL許可": "NO",
+    "デフォルト値": "((1))",
+    "最大長": null,
+    "SQL型名": "bit"
   },
   {
-    "TABLE_NAME": "DailyCloseManagement"
+    "カラム名": "IsArchived",
+    "データ型": "bit",
+    "NULL許可": "NO",
+    "デフォルト値": "((0))",
+    "最大長": null,
+    "SQL型名": "bit"
   },
   {
-    "TABLE_NAME": "DatasetManagement"
+    "カラム名": "ParentDataSetId",
+    "データ型": "nvarchar",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": 100,
+    "SQL型名": "nvarchar"
   },
   {
-    "TABLE_NAME": "DataSets"
+    "カラム名": "CreatedAt",
+    "データ型": "datetime2",
+    "NULL許可": "NO",
+    "デフォルト値": "(getdate())",
+    "最大長": null,
+    "SQL型名": "datetime2"
   },
   {
-    "TABLE_NAME": "DateProcessingHistory"
+    "カラム名": "CreatedBy",
+    "データ型": "nvarchar",
+    "NULL許可": "NO",
+    "デフォルト値": null,
+    "最大長": 100,
+    "SQL型名": "nvarchar"
   },
   {
-    "TABLE_NAME": "FileProcessingHistory"
+    "カラム名": "DeactivatedAt",
+    "データ型": "datetime2",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": null,
+    "SQL型名": "datetime2"
   },
   {
-    "TABLE_NAME": "GradeMaster"
+    "カラム名": "DeactivatedBy",
+    "データ型": "nvarchar",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": 50,
+    "SQL型名": "nvarchar"
   },
   {
-    "TABLE_NAME": "InventoryAdjustments"
+    "カラム名": "ArchivedAt",
+    "データ型": "datetime2",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": null,
+    "SQL型名": "datetime2"
   },
   {
-    "TABLE_NAME": "InventoryMaster"
+    "カラム名": "ArchivedBy",
+    "データ型": "nvarchar",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": 50,
+    "SQL型名": "nvarchar"
   },
   {
-    "TABLE_NAME": "ProcessHistory"
+    "カラム名": "Notes",
+    "データ型": "nvarchar",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": -1,
+    "SQL型名": "nvarchar"
   },
   {
-    "TABLE_NAME": "ProductMaster"
+    "カラム名": "ProcessType",
+    "データ型": "nvarchar",
+    "NULL許可": "NO",
+    "デフォルト値": null,
+    "最大長": 50,
+    "SQL型名": "nvarchar"
   },
   {
-    "TABLE_NAME": "PurchaseVouchers"
+    "カラム名": "TotalRecordCount",
+    "データ型": "int",
+    "NULL許可": "NO",
+    "デフォルト値": "((0))",
+    "最大長": null,
+    "SQL型名": "int"
   },
   {
-    "TABLE_NAME": "RegionMaster"
+    "カラム名": "ImportedFiles",
+    "データ型": "nvarchar",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": -1,
+    "SQL型名": "nvarchar"
   },
   {
-    "TABLE_NAME": "SalesVouchers"
+    "カラム名": "Department",
+    "データ型": "nvarchar",
+    "NULL許可": "NO",
+    "デフォルト値": null,
+    "最大長": 50,
+    "SQL型名": "nvarchar"
   },
   {
-    "TABLE_NAME": "ShippingMarkMaster"
+    "カラム名": "UpdatedAt",
+    "データ型": "datetime2",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": null,
+    "SQL型名": "datetime2"
   },
   {
-    "TABLE_NAME": "SupplierMaster"
+    "カラム名": "DataSetType",
+    "データ型": "nvarchar",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": 20,
+    "SQL型名": "nvarchar"
   },
   {
-    "TABLE_NAME": "UnitMaster"
+    "カラム名": "Name",
+    "データ型": "nvarchar",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": 255,
+    "SQL型名": "nvarchar"
+  },
+  {
+    "カラム名": "Description",
+    "データ型": "nvarchar",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": -1,
+    "SQL型名": "nvarchar"
+  },
+  {
+    "カラム名": "ErrorMessage",
+    "データ型": "nvarchar",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": -1,
+    "SQL型名": "nvarchar"
+  },
+  {
+    "カラム名": "FilePath",
+    "データ型": "nvarchar",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": 500,
+    "SQL型名": "nvarchar"
+  },
+  {
+    "カラム名": "Status",
+    "データ型": "nvarchar",
+    "NULL許可": "YES",
+    "デフォルト値": null,
+    "最大長": 20,
+    "SQL型名": "nvarchar"
   }
 ]

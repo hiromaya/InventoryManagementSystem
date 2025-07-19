@@ -93,6 +93,7 @@ public class DataSetManager : IDataSetManager
             ParentDataSetId = null,
             ImportedFiles = importedFiles != null ? JsonSerializer.Serialize(importedFiles) : null,
             CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now,  // ⭐ Phase 2-A: UpdatedAt設定追加（SqlDateTime overflow防止）
             CreatedBy = createdBy,
             Department = "DeptA",  // 呼び出し元で適切に設定
             Notes = null
