@@ -1,6 +1,7 @@
 using InventorySystem.Core.Configuration;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Factories;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -14,15 +15,21 @@ namespace InventorySystem.Import.Services
         private readonly IDataSetManagementRepository _repository;
         private readonly ILogger<DataSetManagementService> _logger;
         private readonly FeatureFlags _features;
+        private readonly ITimeProvider _timeProvider;
+        private readonly IDataSetManagementFactory _dataSetFactory;
         
         public DataSetManagementService(
             IDataSetManagementRepository repository,
             ILogger<DataSetManagementService> logger,
-            IOptions<FeatureFlags> features)
+            IOptions<FeatureFlags> features,
+            ITimeProvider timeProvider,
+            IDataSetManagementFactory dataSetFactory)
         {
             _repository = repository;
             _logger = logger;
             _features = features.Value;
+            _timeProvider = timeProvider;
+            _dataSetFactory = dataSetFactory;
         }
         
         public async Task<string> CreateDataSetAsync(
@@ -34,27 +41,23 @@ namespace InventorySystem.Import.Services
         {
             var dataSetId = Guid.NewGuid().ToString();
             
-            var dataSetManagement = new DataSetManagement
-            {
-                DataSetId = dataSetId,
-                JobDate = jobDate,
-                ProcessType = processType,
-                ImportType = "IMPORT",
-                RecordCount = 0,
-                TotalRecordCount = 0,
-                IsActive = true,
-                IsArchived = false,
-                CreatedAt = DateTime.Now,
-                CreatedBy = "system",
-                Department = "DeptA",
-                Notes = BuildNotes(name, description),
-                // 拡張フィールド（マイグレーションで追加）
-                Name = name,
-                Description = description,
-                FilePath = filePath,
-                Status = "Processing",
-                UpdatedAt = DateTime.Now
-            };
+            // ⭐ ファクトリパターンでJST統一時刻で作成（Gemini推奨）
+            var dataSetManagement = _dataSetFactory.CreateNew(
+                dataSetId,
+                jobDate,
+                processType,
+                "system",
+                "DeptA",
+                "IMPORT",
+                null, // importedFiles
+                BuildNotes(name, description)
+            );
+            
+            // ユースケース固有のプロパティ追加設定
+            dataSetManagement.Name = name;
+            dataSetManagement.Description = description;
+            dataSetManagement.FilePath = filePath;
+            dataSetManagement.Status = "Processing";
             
             await _repository.CreateAsync(dataSetManagement);
             
@@ -77,9 +80,9 @@ namespace InventorySystem.Import.Services
                 return;
             }
             
-            // ステータスの更新
+            // ステータスの更新（JST統一）
             dataSet.Status = status;
-            dataSet.UpdatedAt = DateTime.Now;
+            dataSet.UpdatedAt = _timeProvider.Now.DateTime;
             
             // ステータスに応じてフラグも更新
             switch (status)
@@ -93,7 +96,7 @@ namespace InventorySystem.Import.Services
                 case "Failed":
                     dataSet.IsActive = false;
                     dataSet.IsArchived = true;
-                    dataSet.ArchivedAt = DateTime.Now;
+                    dataSet.ArchivedAt = _timeProvider.Now.DateTime;
                     dataSet.ArchivedBy = "system";
                     break;
             }
@@ -115,7 +118,7 @@ namespace InventorySystem.Import.Services
             
             dataSet.RecordCount = recordCount;
             dataSet.TotalRecordCount = recordCount;
-            dataSet.UpdatedAt = DateTime.Now;
+            dataSet.UpdatedAt = _timeProvider.Now.DateTime;
             await _repository.UpdateAsync(dataSet);
         }
         
@@ -128,9 +131,9 @@ namespace InventorySystem.Import.Services
             dataSet.Status = "Error";
             dataSet.IsActive = false;
             dataSet.IsArchived = true;
-            dataSet.ArchivedAt = DateTime.Now;
+            dataSet.ArchivedAt = _timeProvider.Now.DateTime;
             dataSet.ArchivedBy = "system";
-            dataSet.UpdatedAt = DateTime.Now;
+            dataSet.UpdatedAt = _timeProvider.Now.DateTime;
             
             await _repository.UpdateAsync(dataSet);
             
@@ -174,7 +177,7 @@ namespace InventorySystem.Import.Services
             var dataSet = await _repository.GetByIdAsync(dataSetId);
             if (dataSet == null) return;
             
-            dataSet.UpdatedAt = DateTime.Now;
+            dataSet.UpdatedAt = _timeProvider.Now.DateTime;
             await _repository.UpdateAsync(dataSet);
         }
         
