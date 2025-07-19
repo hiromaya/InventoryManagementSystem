@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Factories;
 using InventorySystem.Data.Repositories;
 
 namespace InventorySystem.Console.Commands;
@@ -15,6 +16,8 @@ public class ImportWithCarryoverCommand
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _adjustmentRepository;
     private readonly IDataSetManagementRepository _dataSetRepository;
+    private readonly IDataSetManagementFactory _dataSetFactory;
+    private readonly ITimeProvider _timeProvider;
     private readonly ILogger<ImportWithCarryoverCommand> _logger;
 
     public ImportWithCarryoverCommand(
@@ -23,6 +26,8 @@ public class ImportWithCarryoverCommand
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository adjustmentRepository,
         IDataSetManagementRepository dataSetRepository,
+        IDataSetManagementFactory dataSetFactory,
+        ITimeProvider timeProvider,
         ILogger<ImportWithCarryoverCommand> logger)
     {
         _inventoryRepository = inventoryRepository;
@@ -30,6 +35,8 @@ public class ImportWithCarryoverCommand
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _adjustmentRepository = adjustmentRepository;
         _dataSetRepository = dataSetRepository;
+        _dataSetFactory = dataSetFactory;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -49,7 +56,8 @@ public class ImportWithCarryoverCommand
             _logger.LogInformation("処理対象日: {Date:yyyy-MM-dd}", targetDate);
             
             // 3. DataSetIdを生成
-            var dataSetId = $"CARRYOVER_{targetDate:yyyyMMdd}_{DateTime.Now:HHmmss}_{GenerateRandomString(6)}";
+            // ⭐ Phase 2-B: ITimeProvider使用（Gemini推奨）
+            var dataSetId = $"CARRYOVER_{targetDate:yyyyMMdd}_{_timeProvider.Now:HHmmss}_{GenerateRandomString(6)}";
             _logger.LogInformation("DataSetId: {DataSetId}", dataSetId);
             
             // 4. 現在の在庫マスタ全データを取得（最新の有効データ）
@@ -99,24 +107,14 @@ public class ImportWithCarryoverCommand
             _logger.LogInformation("計算後の在庫: {Count}件", mergedInventory.Count);
             
             // 7. DataSetManagementエンティティを作成
-            var dataSetManagement = new DataSetManagement
-            {
-                DataSetId = dataSetId,
-                JobDate = targetDate,
-                ProcessType = "CARRYOVER",
-                ImportType = "CARRYOVER",
-                RecordCount = mergedInventory.Count,
-                TotalRecordCount = mergedInventory.Count,
-                ParentDataSetId = currentInventory.FirstOrDefault()?.DataSetId,
-                IsActive = true,
-                IsArchived = false,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,  // ⭐ Phase 2-A: UpdatedAt設定追加（SqlDateTime overflow防止）
-                CreatedBy = "System",
-                Department = department,
-                ImportedFiles = null,  // 引継ぎの場合はファイルがないため
-                Notes = $"前日在庫引継: {currentInventory.Count}件"
-            };
+            // ⭐ Phase 2-B: ファクトリパターン使用（Gemini推奨）
+            var dataSetManagement = _dataSetFactory.CreateForCarryover(
+                dataSetId,
+                targetDate,
+                department,
+                mergedInventory.Count,
+                parentDataSetId: currentInventory.FirstOrDefault()?.DataSetId,
+                notes: $"前日在庫引継: {currentInventory.Count}件");
             
             // 8. トランザクション内でMERGE処理とDataSetManagement登録を実行
             var affectedRows = await _inventoryRepository.ProcessCarryoverInTransactionAsync(
@@ -201,7 +199,7 @@ public class ImportWithCarryoverCommand
                 JobDate = targetDate,
                 DataSetId = dataSetId,
                 IsActive = true,
-                UpdatedDate = DateTime.Now,
+                UpdatedDate = _timeProvider.UtcNow,  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
                 PreviousMonthQuantity = i.PreviousMonthQuantity,
                 PreviousMonthAmount = i.PreviousMonthAmount
             }
@@ -291,7 +289,7 @@ public class ImportWithCarryoverCommand
             JobDate = targetDate,
             DataSetId = dataSetId,
             IsActive = true,
-            CreatedDate = DateTime.Now,
+            CreatedDate = _timeProvider.UtcNow,  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
             UpdatedDate = DateTime.Now,
             PreviousMonthQuantity = 0,
             PreviousMonthAmount = 0
@@ -325,7 +323,7 @@ public class ImportWithCarryoverCommand
             JobDate = targetDate,
             DataSetId = dataSetId,
             IsActive = true,
-            CreatedDate = DateTime.Now,
+            CreatedDate = _timeProvider.UtcNow,  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
             UpdatedDate = DateTime.Now,
             PreviousMonthQuantity = 0,
             PreviousMonthAmount = 0
@@ -359,7 +357,7 @@ public class ImportWithCarryoverCommand
             JobDate = targetDate,
             DataSetId = dataSetId,
             IsActive = true,
-            CreatedDate = DateTime.Now,
+            CreatedDate = _timeProvider.UtcNow,  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
             UpdatedDate = DateTime.Now,
             PreviousMonthQuantity = 0,
             PreviousMonthAmount = 0

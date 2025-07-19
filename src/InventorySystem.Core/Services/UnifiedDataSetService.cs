@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Factories;
 using InventorySystem.Core.Models;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -16,15 +17,21 @@ namespace InventorySystem.Core.Services
     {
         private readonly IDataSetRepository _dataSetRepository;
         private readonly IDataSetManagementRepository _dataSetManagementRepository;
+        private readonly IDataSetManagementFactory _dataSetFactory;
+        private readonly ITimeProvider _timeProvider;
         private readonly ILogger<UnifiedDataSetService> _logger;
 
         public UnifiedDataSetService(
             IDataSetRepository dataSetRepository,
             IDataSetManagementRepository dataSetManagementRepository,
+            IDataSetManagementFactory dataSetFactory,
+            ITimeProvider timeProvider,
             ILogger<UnifiedDataSetService> logger)
         {
             _dataSetRepository = dataSetRepository;
             _dataSetManagementRepository = dataSetManagementRepository;
+            _dataSetFactory = dataSetFactory;
+            _timeProvider = timeProvider;
             _logger = logger;
         }
 
@@ -39,7 +46,7 @@ namespace InventorySystem.Core.Services
             _logger.LogInformation("統一データセット作成開始: ID={DataSetId}, ProcessType={ProcessType}", 
                 dataSetId, info.ProcessType);
 
-            var createdAt = DateTime.Now;
+            var createdAt = _timeProvider.UtcNow;  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
             
             // 1. DataSetsテーブルへの書き込み（既存処理との互換性維持）
             var dataSetCreated = false;
@@ -79,25 +86,17 @@ namespace InventorySystem.Core.Services
                 // ✅ DateTime.MinValue対策: JobDateが未設定の場合の安全措置
                 var safeJobDate = info.JobDate == DateTime.MinValue ? DateTime.Today : info.JobDate;
                 
-                // ✅ DataSetManagement用の情報（ファイル名のみ保存）
-                var dataSetManagement = new DataSetManagement
-                {
-                    DataSetId = dataSetId,
-                    JobDate = safeJobDate,
-                    ProcessType = info.ProcessType,
-                    ImportType = info.ImportType ?? "IMPORT",
-                    RecordCount = 0,
-                    TotalRecordCount = 0,
-                    IsActive = true,
-                    IsArchived = false,
-                    ParentDataSetId = null,
-                    ImportedFiles = info.FilePath != null ? Path.GetFileName(info.FilePath) : null,
-                    CreatedAt = createdAt,
-                    UpdatedAt = createdAt,  // ⭐ Gemini推奨: UpdatedAtを明示的に設定してSqlDateTime overflowを防止
-                    CreatedBy = info.CreatedBy ?? "system",
-                    Department = info.Department ?? "Unknown",
-                    Notes = info.Description
-                };
+                // ✅ ファクトリパターンでDataSetManagement作成（Phase 2-B: Gemini推奨）
+                var importedFiles = info.FilePath != null ? new List<string> { Path.GetFileName(info.FilePath) } : null;
+                var dataSetManagement = _dataSetFactory.CreateNew(
+                    dataSetId,
+                    safeJobDate,
+                    info.ProcessType,
+                    info.CreatedBy ?? "system",
+                    info.Department ?? "Unknown",
+                    info.ImportType ?? "IMPORT",
+                    importedFiles,
+                    info.Description);
 
                 await _dataSetManagementRepository.CreateAsync(dataSetManagement);
                 dataSetManagementCreated = true;
@@ -143,7 +142,7 @@ namespace InventorySystem.Core.Services
                 {
                     dataSet.Status = status.ToString();
                     dataSet.ErrorMessage = errorMessage;
-                    dataSet.UpdatedAt = DateTime.Now;
+                    dataSet.UpdatedAt = _timeProvider.UtcNow;  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
                     await _dataSetRepository.UpdateStatusAsync(dataSetId, status.ToString(), errorMessage);
                     _logger.LogDebug("DataSetsテーブルのステータス更新成功: ID={DataSetId}", dataSetId);
                 }

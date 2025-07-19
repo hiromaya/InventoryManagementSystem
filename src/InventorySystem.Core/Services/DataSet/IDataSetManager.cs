@@ -36,4 +36,22 @@ public interface IDataSetManager
     /// <param name="dataSetId">データセットID</param>
     /// <returns>データセット（存在しない場合はnull）</returns>
     Task<DataSetManagement?> GetDataSet(string dataSetId);
+    
+    /// <summary>
+    /// データセットエンティティを作成（ファクトリパターン移行版）
+    /// </summary>
+    /// <param name="dataSetId">データセットID</param>
+    /// <param name="jobDate">ジョブ日付</param>
+    /// <param name="processType">処理種別</param>
+    /// <param name="importedFiles">インポートファイル一覧</param>
+    /// <param name="createdBy">作成者</param>
+    /// <param name="department">部門</param>
+    /// <returns>作成されたDataSetManagementエンティティ</returns>
+    DataSetManagement CreateDataSet(
+        string dataSetId,
+        DateTime jobDate,
+        string processType,
+        List<string>? importedFiles = null,
+        string createdBy = "System",
+        string department = "DeptA");
 }

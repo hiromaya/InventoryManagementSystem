@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Services;
+using InventorySystem.Core.Factories;
 using InventorySystem.Data.Repositories;
 using InventorySystem.Import.Services;
 using InventorySystem.Import.Services.Masters;
@@ -207,6 +208,10 @@ builder.Services.AddScoped<IUnmatchListService, UnmatchListService>();
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, DailyReportService>();
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
 builder.Services.AddScoped<ICpInventoryCreationService, CpInventoryCreationService>();
+
+// ⭐ Phase 2-B: ITimeProviderとDataSetManagementFactoryの登録（Gemini推奨）
+builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
+builder.Services.AddScoped<IDataSetManagementFactory, DataSetManagementFactory>();
 
 // フィーチャーフラグの設定を読み込み
 builder.Services.Configure<FeatureFlags>(
@@ -2742,11 +2747,14 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                             Console.WriteLine($"\n[{currentDate:yyyy-MM-dd}] 在庫影響伝票が0件のため、前日在庫引継モードで処理します。");
                             Console.WriteLine($"  売上: {salesCount}件, 仕入: {purchaseCount}件, 在庫調整: {adjustmentCount}件");
                             
-                            dataSetId = $"CARRYOVER_{currentDate:yyyyMMdd}_{DateTime.Now:HHmmss}_{GenerateRandomString(6)}";
+                            // ⭐ Phase 2-B: ファクトリとタイムプロバイダーを先に取得
+                            var dataSetFactory = scopedServices.GetRequiredService<IDataSetManagementFactory>();
+                            var timeProvider = scopedServices.GetRequiredService<ITimeProvider>();
+                            dataSetId = $"CARRYOVER_{currentDate:yyyyMMdd}_{timeProvider.Now:HHmmss}_{GenerateRandomString(6)}";
                             importType = "CARRYOVER";
                             
                             // 前日在庫引継処理を実行
-                            await ExecuteCarryoverModeAsync(inventoryRepo, datasetRepo, currentDate, dataSetId, department, logger);
+                            await ExecuteCarryoverModeAsync(inventoryRepo, datasetRepo, currentDate, dataSetId, department, logger, dataSetFactory, timeProvider);
                         }
                         else if (optimizationService != null)
                         {
@@ -3771,7 +3779,9 @@ private static async Task<bool> EnsureRequiredTablesExistAsync(IServiceProvider 
         DateTime targetDate, 
         string dataSetId,
         string department,
-        ILogger logger)
+        ILogger logger,
+        IDataSetManagementFactory dataSetFactory,  // ⭐ Phase 2-B: ファクトリ追加（Gemini推奨）
+        ITimeProvider timeProvider)  // ⭐ Phase 2-B: タイムプロバイダー追加（Gemini推奨）
     {
         try
         {
@@ -3817,7 +3827,7 @@ private static async Task<bool> EnsureRequiredTablesExistAsync(IServiceProvider 
                 DataSetId = dataSetId,
                 ImportType = "CARRYOVER",
                 IsActive = true,
-                UpdatedDate = DateTime.Now,
+                UpdatedDate = timeProvider.UtcNow,  // ⭐ Phase 2-B: UTC統一（Gemini推奨）
                 
                 // 前月繰越
                 PreviousMonthQuantity = inv.PreviousMonthQuantity,
@@ -3825,24 +3835,14 @@ private static async Task<bool> EnsureRequiredTablesExistAsync(IServiceProvider 
             }).ToList();
 
             // 4. DatasetManagementエンティティを作成
-            var datasetManagement = new DataSetManagement
-            {
-                DataSetId = dataSetId,
-                JobDate = targetDate,
-                ProcessType = "CARRYOVER",
-                ImportType = "CARRYOVER",
-                RecordCount = carryoverInventory.Count(),
-                TotalRecordCount = carryoverInventory.Count(),
-                ParentDataSetId = previousInventory.FirstOrDefault()?.DataSetId,
-                IsActive = true,
-                IsArchived = false,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,  // ⭐ Phase 2-A: UpdatedAt設定追加（SqlDateTime overflow防止）
-                CreatedBy = "System",
-                Department = department,
-                ImportedFiles = null,  // 引継ぎの場合はファイルがないため
-                Notes = $"前日在庫引継: {previousInventory.Count}件（伝票データ0件）"
-            };
+            // ⭐ Phase 2-B: ファクトリパターン使用（Gemini推奨）
+            var datasetManagement = dataSetFactory.CreateForCarryover(
+                dataSetId,
+                targetDate,
+                department,
+                carryoverInventory.Count(),
+                parentDataSetId: previousInventory.FirstOrDefault()?.DataSetId,
+                notes: $"前日在庫引継: {previousInventory.Count}件（伝票データ0件）");
             
             // 5. データセット管理レコードは ProcessCarryoverInTransactionAsync 内で作成されるためここでは不要
 

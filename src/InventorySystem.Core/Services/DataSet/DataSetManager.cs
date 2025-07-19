@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Factories;
 using System.Text.Json;
 
 namespace InventorySystem.Core.Services.DataSet;
@@ -11,13 +12,19 @@ namespace InventorySystem.Core.Services.DataSet;
 public class DataSetManager : IDataSetManager
 {
     private readonly IDataSetManagementRepository _repository;
+    private readonly IDataSetManagementFactory _factory;
+    private readonly ITimeProvider _timeProvider;
     private readonly ILogger<DataSetManager> _logger;
     
     public DataSetManager(
         IDataSetManagementRepository repository,
+        IDataSetManagementFactory factory,
+        ITimeProvider timeProvider,
         ILogger<DataSetManager> logger)
     {
         _repository = repository;
+        _factory = factory;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
     
@@ -25,7 +32,8 @@ public class DataSetManager : IDataSetManager
     public string GenerateDataSetId(DateTime jobDate, string processType)
     {
         // フォーマット: DS_{yyyyMMdd}_{HHmmss}_{ProcessType}
-        var dataSetId = $"DS_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}_{processType}";
+        // ⭐ Phase 2-B: ITimeProvider使用（Gemini推奨）
+        var dataSetId = $"DS_{jobDate:yyyyMMdd}_{_timeProvider.Now:HHmmss}_{processType}";
         
         _logger.LogInformation("データセットID生成: {DataSetId}", dataSetId);
         return dataSetId;
@@ -64,39 +72,26 @@ public class DataSetManager : IDataSetManager
     }
     
     /// <summary>
-    /// インポートファイル情報を作成
+    /// インポートファイル情報を作成（ファクトリパターン移行）
+    /// ⭐ Phase 2-B: 静的メソッドからインスタンスメソッドに変更（Gemini推奨）
     /// </summary>
-    public static DataSetManagement CreateDataSet(
+    public DataSetManagement CreateDataSet(
         string dataSetId,
         DateTime jobDate,
         string processType,
         List<string>? importedFiles = null,
-        string createdBy = "System")
+        string createdBy = "System",
+        string department = "DeptA")
     {
-        return new DataSetManagement
-        {
-            DataSetId = dataSetId,
-            JobDate = jobDate,
-            ProcessType = processType,
-            ImportType = processType switch 
-            {
-                "IMPORT" => "IMPORT",
-                "CARRYOVER" => "CARRYOVER",
-                "INIT" => "INIT",
-                "MANUAL" => "MANUAL",
-                _ => "UNKNOWN"
-            },
-            RecordCount = 0,  // 呼び出し元で設定
-            TotalRecordCount = 0,  // 呼び出し元で設定
-            IsActive = true,
-            IsArchived = false,
-            ParentDataSetId = null,
-            ImportedFiles = importedFiles != null ? JsonSerializer.Serialize(importedFiles) : null,
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now,  // ⭐ Phase 2-A: UpdatedAt設定追加（SqlDateTime overflow防止）
-            CreatedBy = createdBy,
-            Department = "DeptA",  // 呼び出し元で適切に設定
-            Notes = null
-        };
+        // ⭐ Phase 2-B: ファクトリ経由でエンティティ作成（Gemini推奨）
+        return _factory.CreateNew(
+            dataSetId,
+            jobDate,
+            processType,
+            createdBy,
+            department,
+            importType: null,  // processTypeから自動判定
+            importedFiles,
+            notes: null);
     }
 }

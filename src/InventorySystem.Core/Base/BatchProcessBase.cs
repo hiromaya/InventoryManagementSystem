@@ -65,7 +65,7 @@ public abstract class BatchProcessBase
         
         // 3. データセットID生成と登録
         var datasetId = _dataSetManager.GenerateDataSetId(jobDate, processType);
-        var dataset = DataSetManager.CreateDataSet(
+        var dataset = _dataSetManager.CreateDataSet(
             datasetId, 
             jobDate, 
             processType, 
