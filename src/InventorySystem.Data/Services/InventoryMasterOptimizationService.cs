@@ -465,7 +465,7 @@ namespace InventorySystem.Data.Services
                     ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                     JobDate, CreatedDate, UpdatedDate,
                     CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount, DailyFlag,
-                    PreviousMonthQuantity, PreviousMonthAmount, UnitPrice
+                    PreviousMonthQuantity, PreviousMonthAmount
                 )
                 SELECT 
                     prev.ProductCode, prev.GradeCode, prev.ClassCode, 
@@ -476,8 +476,7 @@ namespace InventorySystem.Data.Services
                     prev.CurrentStock, prev.CurrentStockAmount,  -- 前日在庫を引き継ぎ
                     prev.CurrentStock, prev.CurrentStockAmount,  -- 日次在庫も初期値として設定
                     '9',  -- 未処理フラグ
-                    prev.PreviousMonthQuantity, prev.PreviousMonthAmount,
-                    prev.UnitPrice
+                    prev.PreviousMonthQuantity, prev.PreviousMonthAmount
                 FROM InventoryMaster prev
                 WHERE CAST(prev.JobDate AS DATE) = CAST(@PreviousDate AS DATE)
                     AND NOT EXISTS (
