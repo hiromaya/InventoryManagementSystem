@@ -331,9 +331,9 @@ namespace InventorySystem.Data.Services
                     return result;
                 }
                 
-                // 4.5. 前日在庫の引き継ぎ処理（累積管理のため）
-                var inheritResult = await InheritPreviousDayInventoryAsync(connection, transaction, jobDate);
-                _logger.LogInformation("前日在庫引き継ぎ完了: {Count}件", inheritResult);
+                // 4.5. 前日在庫の引き継ぎ処理は削除（スナップショット管理のため不要）
+                // 主キーが5項目になったため、日付別の履歴管理は行わない
+                _logger.LogInformation("スナップショット管理モデルのため、前日引き継ぎ処理はスキップします");
                 
                 // 5. MERGE文で一括処理
                 var mergeResults = await MergeInventoryMasterAsync(connection, transaction, jobDate, dataSetId);
@@ -442,12 +442,13 @@ namespace InventorySystem.Data.Services
         }
 
         /// <summary>
-        /// 前日在庫を当日に引き継ぐ処理（累積管理のため）
+        /// 前日在庫を当日に引き継ぐ処理（スナップショット管理モデルのため削除）
         /// </summary>
         /// <param name="connection">データベース接続</param>
         /// <param name="transaction">トランザクション</param>
         /// <param name="jobDate">当日日付</param>
         /// <returns>引き継いだ在庫件数</returns>
+        [Obsolete("スナップショット管理モデルに移行したため、このメソッドは使用されません")]
         private async Task<int> InheritPreviousDayInventoryAsync(
             SqlConnection connection, 
             SqlTransaction transaction, 
@@ -510,9 +511,9 @@ namespace InventorySystem.Data.Services
         {
             try
             {
-                // 新しい累積管理用ストアドプロシージャを呼び出す
+                // スナップショット管理用ストアドプロシージャを呼び出す
                 var result = await connection.QuerySingleAsync<dynamic>(
-                    "sp_MergeInventoryMasterCumulative",
+                    "sp_MergeInventoryMasterSnapshot",
                     new { JobDate = jobDate, DataSetId = dataSetId },
                     transaction,
                     commandType: CommandType.StoredProcedure);

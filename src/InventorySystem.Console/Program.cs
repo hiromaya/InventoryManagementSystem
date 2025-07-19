@@ -455,6 +455,10 @@ try
             await ExecuteCheckDailyCloseAsync(host.Services, commandArgs);
             break;
             
+        case "analyze-pk-change":
+            await ExecuteAnalyzePrimaryKeyChangeAsync(host.Services, commandArgs);
+            break;
+            
         // 開発環境用コマンド
         case "init-database":
             await ExecuteInitDatabaseAsync(host.Services, commandArgs);
@@ -4294,6 +4298,34 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
                     throw;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// 主キー変更前のデータ分析を実行
+    /// </summary>
+    private static async Task ExecuteAnalyzePrimaryKeyChangeAsync(IServiceProvider services, string[] args)
+    {
+        using var scope = services.CreateScope();
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<AnalyzePrimaryKeyChangeCommand>>();
+        var configuration = scopedServices.GetRequiredService<IConfiguration>();
+        
+        try
+        {
+            var command = new AnalyzePrimaryKeyChangeCommand(configuration, logger);
+            await command.ExecuteAsync();
+            
+            Console.WriteLine("\n分析が完了しました。");
+            Console.WriteLine("次のステップ：");
+            Console.WriteLine("1. 分析結果を確認し、履歴データの保存が必要か判断");
+            Console.WriteLine("2. 必要に応じてバックアップテーブルを作成");
+            Console.WriteLine("3. マイグレーションスクリプトを実行");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "主キー変更分析でエラーが発生しました");
+            Console.WriteLine($"❌ エラー: {ex.Message}");
         }
     }
 

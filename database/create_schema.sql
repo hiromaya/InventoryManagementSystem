@@ -17,7 +17,7 @@ GO
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='InventoryMaster' AND xtype='U')
 BEGIN
     CREATE TABLE InventoryMaster (
-        -- 5項目複合キー
+        -- 5項目複合キー（スナップショット管理モデル）
         ProductCode NVARCHAR(15) NOT NULL,          -- 商品コード
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
@@ -54,8 +54,8 @@ BEGIN
         -- データセットID管理
         DataSetId NVARCHAR(50) NOT NULL DEFAULT '',
         
-        -- 制約
-        CONSTRAINT PK_InventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, JobDate)
+        -- 制約（5項目主キー - JobDateは含まない）
+        CONSTRAINT PK_InventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName)
     );
     
     -- インデックス
