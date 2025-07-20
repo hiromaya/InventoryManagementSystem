@@ -1,6 +1,0 @@
-[
-  {
-    "制約名": "CK_DataSetManagement_ImportType",
-    "制約定義": "([ImportType]='UNKNOWN' OR [ImportType]='MANUAL' OR [ImportType]='CARRYOVER' OR [ImportType]='IMPORT' OR [ImportType]='INIT')"
-  }
-]
