@@ -301,10 +301,9 @@ catch (Exception ex)
     logger.LogError(ex, "部門フォルダの初期化中にエラーが発生しました");
 }
 
-// Parse command line arguments
-var commandArgs = Environment.GetCommandLineArgs();
-
-if (commandArgs.Length < 2)
+// Parse command line arguments - Mainメソッドの引数を使用
+// Environment.GetCommandLineArgs()は"dotnet""run"などを含むため使用しない
+if (args.Length < 1)
 {
     Console.WriteLine("使用方法:");
     Console.WriteLine("  dotnet run test-connection                   - データベース接続テスト");
@@ -354,7 +353,7 @@ if (commandArgs.Length < 2)
     return 1;
 }
 
-var command = commandArgs[1].ToLower();
+var command = args[0].ToLower();
 
 // 自動スキーマチェック（init-database以外のコマンドで実行）
 if (command != "init-database" && !await CheckAndFixDatabaseSchemaAsync(host.Services))
@@ -368,35 +367,35 @@ try
     switch (command)
     {
         case "unmatch-list":
-            await ExecuteUnmatchListAsync(host.Services, commandArgs);
+            await ExecuteUnmatchListAsync(host.Services, args);
             break;
             
         case "daily-report":
-            await ExecuteDailyReportAsync(host.Services, commandArgs);
+            await ExecuteDailyReportAsync(host.Services, args);
             break;
             
         case "dev-daily-report":
-            await ExecuteDevDailyReportAsync(host.Services, commandArgs);
+            await ExecuteDevDailyReportAsync(host.Services, args);
             break;
             
         case "dev-check-daily-close":
-            await ExecuteDevCheckDailyCloseAsync(host.Services, commandArgs);
+            await ExecuteDevCheckDailyCloseAsync(host.Services, args);
             break;
             
         case "inventory-list":
-            await ExecuteInventoryListAsync(host.Services, commandArgs);
+            await ExecuteInventoryListAsync(host.Services, args);
             break;
             
         case "import-sales":
-            await ExecuteImportSalesAsync(host.Services, commandArgs);
+            await ExecuteImportSalesAsync(host.Services, args);
             break;
             
         case "import-purchase":
-            await ExecuteImportPurchaseAsync(host.Services, commandArgs);
+            await ExecuteImportPurchaseAsync(host.Services, args);
             break;
             
         case "import-adjustment":
-            await ExecuteImportAdjustmentAsync(host.Services, commandArgs);
+            await ExecuteImportAdjustmentAsync(host.Services, args);
             break;
             
         case "test-pdf":
@@ -408,19 +407,19 @@ try
             break;
             
         case "debug-csv-structure":
-            await DebugCsvStructureAsync(commandArgs);
+            await DebugCsvStructureAsync(args);
             break;
             
         case "import-customers":
-            await ExecuteImportCustomersAsync(host.Services, commandArgs);
+            await ExecuteImportCustomersAsync(host.Services, args);
             break;
             
         case "import-products":
-            await ExecuteImportProductsAsync(host.Services, commandArgs);
+            await ExecuteImportProductsAsync(host.Services, args);
             break;
             
         case "import-suppliers":
-            await ExecuteImportSuppliersAsync(host.Services, commandArgs);
+            await ExecuteImportSuppliersAsync(host.Services, args);
             break;
             
         case "init-folders":
@@ -428,7 +427,7 @@ try
             break;
             
         case "import-folder":
-            await ExecuteImportFromFolderAsync(host.Services, commandArgs);
+            await ExecuteImportFromFolderAsync(host.Services, args);
             break;
         
         case "import-masters":
@@ -440,64 +439,64 @@ try
             break;
         
         case "import-previous-inventory":
-            await ExecuteImportPreviousInventoryAsync(host.Services, commandArgs);
+            await ExecuteImportPreviousInventoryAsync(host.Services, args);
             break;
         
         case "init-inventory":
-            await ExecuteInitInventoryAsync(host.Services, commandArgs);
+            await ExecuteInitInventoryAsync(host.Services, args);
             break;
             
         case "import-with-carryover":
-            await ExecuteImportWithCarryoverAsync(host.Services, commandArgs);
+            await ExecuteImportWithCarryoverAsync(host.Services, args);
             break;
         
         case "check-daily-close":
-            await ExecuteCheckDailyCloseAsync(host.Services, commandArgs);
+            await ExecuteCheckDailyCloseAsync(host.Services, args);
             break;
             
         case "analyze-pk-change":
-            await ExecuteAnalyzePrimaryKeyChangeAsync(host.Services, commandArgs);
+            await ExecuteAnalyzePrimaryKeyChangeAsync(host.Services, args);
             break;
             
         // 開発環境用コマンド
         case "init-database":
-            await ExecuteInitDatabaseAsync(host.Services, commandArgs);
+            await ExecuteInitDatabaseAsync(host.Services, args);
             break;
             
         case "reset-daily-close":
-            await ExecuteResetDailyCloseAsync(host.Services, commandArgs);
+            await ExecuteResetDailyCloseAsync(host.Services, args);
             break;
             
         case "dev-daily-close":
-            await ExecuteDevDailyCloseAsync(host.Services, commandArgs);
+            await ExecuteDevDailyCloseAsync(host.Services, args);
             break;
             
         case "check-data-status":
-            await ExecuteCheckDataStatusAsync(host.Services, commandArgs);
+            await ExecuteCheckDataStatusAsync(host.Services, args);
             break;
             
         case "check-schema":
-            await ExecuteCheckSchemaAsync(host.Services, commandArgs);
+            await ExecuteCheckSchemaAsync(host.Services, args);
             break;
             
         case "migrate-phase2":
-            await ExecuteMigratePhase2Async(host.Services, commandArgs);
+            await ExecuteMigratePhase2Async(host.Services, args);
             break;
             
         case "migrate-phase3":
-            await ExecuteMigratePhase3Async(host.Services, commandArgs);
+            await ExecuteMigratePhase3Async(host.Services, args);
             break;
             
         case "migrate-phase5":
-            await ExecuteMigratePhase5Async(host.Services, commandArgs);
+            await ExecuteMigratePhase5Async(host.Services, args);
             break;
             
         case "simulate-daily":
-            await ExecuteSimulateDailyAsync(host.Services, commandArgs);
+            await ExecuteSimulateDailyAsync(host.Services, args);
             break;
             
         case "create-cp-inventory":
-            await ExecuteCreateCpInventoryAsync(host.Services, commandArgs);
+            await ExecuteCreateCpInventoryAsync(host.Services, args);
             break;
             
         case "cleanup-inventory-duplicates":
@@ -505,15 +504,15 @@ try
             break;
             
         case "init-monthly-inventory":
-            await ExecuteInitMonthlyInventoryAsync(host.Services, commandArgs);
+            await ExecuteInitMonthlyInventoryAsync(host.Services, args);
             break;
             
         case "import-initial-inventory":
-            await ExecuteImportInitialInventoryAsync(host.Services, commandArgs);
+            await ExecuteImportInitialInventoryAsync(host.Services, args);
             break;
         
         case "optimize-inventory":
-            await ExecuteOptimizeInventoryAsync(host.Services, commandArgs);
+            await ExecuteOptimizeInventoryAsync(host.Services, args);
             break;
         
         default:
