@@ -401,6 +401,26 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
     /// <summary>
     /// すべての在庫調整データを取得
     /// </summary>
+    public async Task<string?> GetDataSetIdByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            SELECT TOP 1 DataSetId 
+            FROM InventoryAdjustments 
+            WHERE JobDate = @jobDate 
+            AND DataSetId IS NOT NULL";
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<string?>(sql, new { jobDate });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ジョブ日付でDataSetId取得エラー: {JobDate}", jobDate);
+            throw;
+        }
+    }
+
     public async Task<IEnumerable<InventoryAdjustment>> GetAllAsync()
     {
         const string sql = @"

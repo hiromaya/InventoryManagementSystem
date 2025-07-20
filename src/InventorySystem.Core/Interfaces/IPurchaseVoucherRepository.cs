@@ -5,6 +5,8 @@ namespace InventorySystem.Core.Interfaces;
 public interface IPurchaseVoucherRepository
 {
     Task<IEnumerable<PurchaseVoucher>> GetByJobDateAsync(DateTime jobDate);
+    Task<IEnumerable<PurchaseVoucher>> GetByDataSetIdAsync(string dataSetId);
+    Task<string?> GetDataSetIdByJobDateAsync(DateTime jobDate);
     Task<int> CreateAsync(PurchaseVoucher voucher);
     Task<int> BulkInsertAsync(IEnumerable<PurchaseVoucher> vouchers);
     Task<int> DeleteByJobDateAsync(DateTime jobDate);

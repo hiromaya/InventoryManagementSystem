@@ -264,6 +264,26 @@ public class PurchaseVoucherCsvRepository : BaseRepository, IPurchaseVoucherRepo
         using var connection = CreateConnection();
         return await connection.ExecuteScalarAsync<int>(sql, new { jobDate, modifiedAfter });
     }
+
+    public async Task<string?> GetDataSetIdByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            SELECT TOP 1 DataSetId 
+            FROM PurchaseVouchers 
+            WHERE JobDate = @jobDate 
+            AND DataSetId IS NOT NULL";
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<string?>(sql, new { jobDate });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ジョブ日付でDataSetId取得エラー: {JobDate}", jobDate);
+            throw;
+        }
+    }
     
     /// <summary>
     /// すべての仕入伝票データを取得

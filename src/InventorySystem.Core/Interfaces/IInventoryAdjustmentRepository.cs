@@ -23,6 +23,11 @@ public interface IInventoryAdjustmentRepository
     Task<IEnumerable<InventoryAdjustment>> GetByJobDateAsync(DateTime jobDate);
 
     /// <summary>
+    /// ジョブ日付でDataSetIdを取得
+    /// </summary>
+    Task<string?> GetDataSetIdByJobDateAsync(DateTime jobDate);
+
+    /// <summary>
     /// 在庫キーで在庫調整データを取得
     /// </summary>
     Task<IEnumerable<InventoryAdjustment>> GetByInventoryKeyAsync(InventoryKey inventoryKey, DateTime jobDate);

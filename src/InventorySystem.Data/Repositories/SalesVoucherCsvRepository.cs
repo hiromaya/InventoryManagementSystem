@@ -301,6 +301,26 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
         using var connection = CreateConnection();
         return await connection.ExecuteScalarAsync<int>(sql, new { jobDate, modifiedAfter });
     }
+
+    public async Task<string?> GetDataSetIdByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            SELECT TOP 1 DataSetId 
+            FROM SalesVouchers 
+            WHERE JobDate = @jobDate 
+            AND DataSetId IS NOT NULL";
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<string?>(sql, new { jobDate });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ジョブ日付でDataSetId取得エラー: {JobDate}", jobDate);
+            throw;
+        }
+    }
     
     /// <summary>
     /// すべての売上伝票データを取得

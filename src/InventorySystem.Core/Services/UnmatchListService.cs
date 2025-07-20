@@ -60,13 +60,42 @@ public class UnmatchListService : IUnmatchListService
     private async Task<UnmatchListResult> ProcessUnmatchListInternalAsync(DateTime? targetDate)
     {
         var stopwatch = Stopwatch.StartNew();
-        var dataSetId = Guid.NewGuid().ToString();
         var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
+        
+        // DataSetIdをメソッドスコープで定義（初期値設定）
+        string dataSetId = Guid.NewGuid().ToString();
         
         try
         {
             // 在庫マスタから最新JobDateを取得（表示用）
             var latestJobDate = await _inventoryRepository.GetMaxJobDateAsync();
+            
+            // 既存の伝票データからDataSetIdを取得（優先順位: 売上→仕入→在庫調整）
+            string? existingDataSetId = null;
+            if (targetDate.HasValue)
+            {
+                existingDataSetId = await _salesVoucherRepository.GetDataSetIdByJobDateAsync(targetDate.Value);
+                if (string.IsNullOrEmpty(existingDataSetId))
+                {
+                    existingDataSetId = await _purchaseVoucherRepository.GetDataSetIdByJobDateAsync(targetDate.Value);
+                }
+                if (string.IsNullOrEmpty(existingDataSetId))
+                {
+                    existingDataSetId = await _inventoryAdjustmentRepository.GetDataSetIdByJobDateAsync(targetDate.Value);
+                }
+            }
+            
+            // 既存DataSetIdが見つかった場合は置き換える
+            if (!string.IsNullOrEmpty(existingDataSetId))
+            {
+                dataSetId = existingDataSetId;
+                _logger.LogInformation("既存のDataSetIdを使用します: {DataSetId}", dataSetId);
+            }
+            else
+            {
+                _logger.LogWarning("指定日の既存DataSetIdが見つからないため新規生成したDataSetIdを使用: {DataSetId}", dataSetId);
+            }
+            
             _logger.LogInformation("アンマッチリスト処理開始 - {ProcessType}, 最新JobDate: {JobDate}, データセットID: {DataSetId}", 
                 processType, latestJobDate, dataSetId);
 
@@ -88,9 +117,9 @@ public class UnmatchListService : IUnmatchListService
             */
 
             // 処理1-1: CP在庫M作成（指定日以前のアクティブな在庫マスタから）
-            _logger.LogInformation("CP在庫マスタ作成開始（{ProcessType}）", processType);
+            _logger.LogInformation("CP在庫マスタ作成開始（{ProcessType}） - DataSetId: {DataSetId}", processType, dataSetId);
             var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, targetDate);
-            _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
+            _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}, DataSetId: {DataSetId}", createResult, dataSetId);
 
             // 前日在庫の引き継ぎ処理は不要（期間対象のため）
             if (targetDate.HasValue)
@@ -135,12 +164,12 @@ public class UnmatchListService : IUnmatchListService
             }
 
             // 処理1-6: アンマッチリスト生成
-            _logger.LogInformation("アンマッチリスト生成開始（{ProcessType}）", processType);
+            _logger.LogInformation("アンマッチリスト生成開始（{ProcessType}） - DataSetId: {DataSetId}", processType, dataSetId);
             var unmatchItems = targetDate.HasValue 
                 ? await GenerateUnmatchListAsync(dataSetId, targetDate.Value)
                 : await GenerateUnmatchListAsync(dataSetId);
             var unmatchList = unmatchItems.ToList();
-            _logger.LogInformation("アンマッチリスト生成完了 - アンマッチ件数: {Count}", unmatchList.Count);
+            _logger.LogInformation("アンマッチリスト生成完了 - アンマッチ件数: {Count}, DataSetId: {DataSetId}", unmatchList.Count, dataSetId);
 
             stopwatch.Stop();
 
@@ -251,9 +280,21 @@ public class UnmatchListService : IUnmatchListService
         var unmatchItems = new List<UnmatchItem>();
         var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
 
-        // 売上伝票取得
-        var salesVouchers = await _salesVoucherRepository.GetAllAsync();
-        _logger.LogDebug("売上伝票取得: 総件数={TotalCount}", salesVouchers.Count());
+        // 売上伝票取得（DataSetIdフィルタリング対応）
+        IEnumerable<SalesVoucher> salesVouchers;
+        if (!string.IsNullOrEmpty(dataSetId) && targetDate.HasValue)
+        {
+            // 指定日処理：DataSetIdでフィルタリング
+            salesVouchers = await _salesVoucherRepository.GetByDataSetIdAsync(dataSetId);
+            _logger.LogInformation("売上伝票取得（DataSetIdフィルタ）: DataSetId={DataSetId}, 件数={Count}", 
+                dataSetId, salesVouchers.Count());
+        }
+        else
+        {
+            // 全期間処理：従来通り全件取得
+            salesVouchers = await _salesVoucherRepository.GetAllAsync();
+            _logger.LogDebug("売上伝票取得（全件）: 総件数={TotalCount}", salesVouchers.Count());
+        }
         
         var salesList = salesVouchers
             .Where(s => s.VoucherType == "51" || s.VoucherType == "52") // 売上伝票
@@ -315,9 +356,22 @@ public class UnmatchListService : IUnmatchListService
     {
         var unmatchItems = new List<UnmatchItem>();
 
-        // 仕入伝票取得
+        // 仕入伝票取得（DataSetIdフィルタリング対応）
         var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
-        var purchaseVouchers = await _purchaseVoucherRepository.GetAllAsync();
+        IEnumerable<PurchaseVoucher> purchaseVouchers;
+        if (!string.IsNullOrEmpty(dataSetId) && targetDate.HasValue)
+        {
+            // 指定日処理：DataSetIdでフィルタリング
+            purchaseVouchers = await _purchaseVoucherRepository.GetByDataSetIdAsync(dataSetId);
+            _logger.LogInformation("仕入伝票取得（DataSetIdフィルタ）: DataSetId={DataSetId}, 件数={Count}", 
+                dataSetId, purchaseVouchers.Count());
+        }
+        else
+        {
+            // 全期間処理：従来通り全件取得
+            purchaseVouchers = await _purchaseVoucherRepository.GetAllAsync();
+            _logger.LogDebug("仕入伝票取得（全件）: 総件数={TotalCount}", purchaseVouchers.Count());
+        }
         var purchaseList = purchaseVouchers
             .Where(p => p.VoucherType == "11" || p.VoucherType == "12") // 仕入伝票
             .Where(p => p.DetailType == "1" || p.DetailType == "2")     // 明細種
@@ -421,9 +475,22 @@ public class UnmatchListService : IUnmatchListService
     {
         var unmatchItems = new List<UnmatchItem>();
 
-        // 在庫調整伝票取得
+        // 在庫調整伝票取得（DataSetIdフィルタリング対応）
         var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
-        var adjustments = await _inventoryAdjustmentRepository.GetAllAsync();
+        IEnumerable<InventoryAdjustment> adjustments;
+        if (!string.IsNullOrEmpty(dataSetId) && targetDate.HasValue)
+        {
+            // 指定日処理：DataSetIdでフィルタリング
+            adjustments = await _inventoryAdjustmentRepository.GetByDataSetIdAsync(dataSetId);
+            _logger.LogInformation("在庫調整取得（DataSetIdフィルタ）: DataSetId={DataSetId}, 件数={Count}", 
+                dataSetId, adjustments.Count());
+        }
+        else
+        {
+            // 全期間処理：従来通り全件取得
+            adjustments = await _inventoryAdjustmentRepository.GetAllAsync();
+            _logger.LogDebug("在庫調整取得（全件）: 総件数={TotalCount}", adjustments.Count());
+        }
         var adjustmentList = adjustments
             .Where(a => a.VoucherType == "71" || a.VoucherType == "72")  // 在庫調整伝票
             .Where(a => a.DetailType == "1")                             // 明細種
@@ -571,10 +638,13 @@ public class UnmatchListService : IUnmatchListService
             // 最新のJobDateを取得（表示用）
             var latestJobDate = await _inventoryRepository.GetMaxJobDateAsync();
             
-            // 全期間の売上・仕入・在庫調整伝票の商品数を確認
+            // 全期間の売上・仕入・在庫調整伝票の商品数を確認（分析用のため全件取得を維持）
             var salesProducts = await _salesVoucherRepository.GetAllAsync();
             var purchaseProducts = await _purchaseVoucherRepository.GetAllAsync();
             var adjustmentProducts = await _inventoryAdjustmentRepository.GetAllAsync();
+            
+            _logger.LogInformation("分析対象データ件数 - 売上: {SalesCount}, 仕入: {PurchaseCount}, 在庫調整: {AdjustmentCount}",
+                salesProducts.Count(), purchaseProducts.Count(), adjustmentProducts.Count());
             
             // 5項目での商品種類を正確にカウント
             var salesUniqueProducts = salesProducts

@@ -49,7 +49,8 @@
       "Bash(export:*)",
       "Bash(__NEW_LINE__ /home/hiroki/.claude/gemini-search.sh \"SQL Server ProductMaster table missing inventory import error\")",
       "Bash(git checkout:*)",
-      "Bash(dotnet --info)"
+      "Bash(dotnet --info)",
+      "Bash(pip install:*)"
     ],
     "deny": []
   }

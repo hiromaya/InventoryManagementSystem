@@ -215,6 +215,66 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
         return await connection.ExecuteScalarAsync<int>(sql, new { jobDate, modifiedAfter });
     }
     
+    public async Task<IEnumerable<PurchaseVoucher>> GetByDataSetIdAsync(string dataSetId)
+    {
+        const string sql = @"
+            SELECT 
+                VoucherId,
+                LineNumber,
+                VoucherNumber,
+                VoucherDate,
+                VoucherType,
+                SupplierCode,
+                SupplierName,
+                ProductCode,
+                GradeCode,
+                ClassCode,
+                ShippingMarkCode,
+                ShippingMarkName,
+                Quantity,
+                UnitPrice as PurchaseUnitPrice,
+                Amount as PurchaseAmount,
+                JobDate,
+                DetailType,
+                DataSetId
+            FROM PurchaseVouchers 
+            WHERE DataSetId = @dataSetId
+            ORDER BY VoucherNumber, LineNumber";
+
+        try
+        {
+            using var connection = CreateConnection();
+            var vouchers = await connection.QueryAsync<dynamic>(sql, new { dataSetId });
+            
+            return vouchers.Select(MapToPurchaseVoucher);
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetByDataSetIdAsync), new { dataSetId });
+            throw;
+        }
+    }
+
+    public async Task<string?> GetDataSetIdByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            SELECT TOP 1 DataSetId 
+            FROM PurchaseVouchers 
+            WHERE JobDate = @jobDate 
+            AND DataSetId IS NOT NULL";
+
+        try
+        {
+            using var connection = CreateConnection();
+            return await connection.QueryFirstOrDefaultAsync<string?>(sql, new { jobDate });
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetDataSetIdByJobDateAsync), new { jobDate });
+            throw;
+        }
+    }
+
     public async Task<IEnumerable<PurchaseVoucher>> GetAllAsync()
     {
         const string sql = @"
