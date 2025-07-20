@@ -54,11 +54,21 @@ public class UnmatchListService : IUnmatchListService
 
     public async Task<UnmatchListResult> ProcessUnmatchListAsync(DateTime targetDate)
     {
-        return await ProcessUnmatchListInternalAsync(targetDate);
+        _logger.LogCritical("===== ProcessUnmatchListAsync（外部呼び出し）開始 =====");
+        _logger.LogCritical("引数 targetDate: {TargetDate}", targetDate.ToString("yyyy-MM-dd HH:mm:ss"));
+        
+        var result = await ProcessUnmatchListInternalAsync(targetDate);
+        
+        _logger.LogCritical("===== ProcessUnmatchListAsync（外部呼び出し）完了 =====");
+        
+        return result;
     }
 
     private async Task<UnmatchListResult> ProcessUnmatchListInternalAsync(DateTime? targetDate)
     {
+        _logger.LogCritical("===== ProcessUnmatchListInternalAsync 開始 =====");
+        _logger.LogCritical("引数 targetDate: {TargetDate}", targetDate?.ToString("yyyy-MM-dd HH:mm:ss") ?? "NULL");
+        
         var stopwatch = Stopwatch.StartNew();
         var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
         
@@ -74,21 +84,46 @@ public class UnmatchListService : IUnmatchListService
             string? existingDataSetId = null;
             if (targetDate.HasValue)
             {
+                _logger.LogCritical("既存DataSetId検索開始...");
+                
+                // 売上伝票から検索
                 existingDataSetId = await _salesVoucherRepository.GetDataSetIdByJobDateAsync(targetDate.Value);
+                _logger.LogCritical("売上伝票からのDataSetId: {DataSetId}", existingDataSetId ?? "NULL");
+                
+                // 仕入伝票から検索
                 if (string.IsNullOrEmpty(existingDataSetId))
                 {
                     existingDataSetId = await _purchaseVoucherRepository.GetDataSetIdByJobDateAsync(targetDate.Value);
+                    _logger.LogCritical("仕入伝票からのDataSetId: {DataSetId}", existingDataSetId ?? "NULL");
                 }
+                
+                // 在庫調整から検索
                 if (string.IsNullOrEmpty(existingDataSetId))
                 {
                     existingDataSetId = await _inventoryAdjustmentRepository.GetDataSetIdByJobDateAsync(targetDate.Value);
+                    _logger.LogCritical("在庫調整からのDataSetId: {DataSetId}", existingDataSetId ?? "NULL");
                 }
             }
+            else
+            {
+                _logger.LogCritical("targetDateがNULLのため、既存DataSetId検索をスキップ");
+            }
+            
+            // DataSetId決定部分
+            var originalDataSetId = dataSetId;
+            dataSetId = !string.IsNullOrEmpty(existingDataSetId) 
+                ? existingDataSetId 
+                : Guid.NewGuid().ToString();
+            
+            _logger.LogCritical("===== DataSetId決定結果 =====");
+            _logger.LogCritical("既存DataSetId: {ExistingDataSetId}", existingDataSetId ?? "NULL");
+            _logger.LogCritical("最終DataSetId: {DataSetId}", dataSetId);
+            _logger.LogCritical("新規生成: {IsNew}", string.IsNullOrEmpty(existingDataSetId));
+            _logger.LogCritical("===============================");
             
             // 既存DataSetIdが見つかった場合は置き換える
             if (!string.IsNullOrEmpty(existingDataSetId))
             {
-                dataSetId = existingDataSetId;
                 _logger.LogInformation("既存のDataSetIdを使用します: {DataSetId}", dataSetId);
             }
             else
@@ -242,19 +277,29 @@ public class UnmatchListService : IUnmatchListService
 
     private async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListInternalAsync(string dataSetId, DateTime? targetDate)
     {
+        _logger.LogCritical("===== GenerateUnmatchListInternalAsync 開始 =====");
+        _logger.LogCritical("DataSetId: {DataSetId}", dataSetId);
+        _logger.LogCritical("TargetDate: {TargetDate}", targetDate?.ToString("yyyy-MM-dd") ?? "NULL");
+        
         var unmatchItems = new List<UnmatchItem>();
         var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
 
         // 売上伝票のアンマッチチェック
+        _logger.LogCritical("売上伝票アンマッチチェック開始...");
         var salesUnmatches = await CheckSalesUnmatchAsync(dataSetId, targetDate);
+        _logger.LogCritical("売上伝票アンマッチ件数: {Count}", salesUnmatches.Count());
         unmatchItems.AddRange(salesUnmatches);
 
         // 仕入伝票のアンマッチチェック
+        _logger.LogCritical("仕入伝票アンマッチチェック開始...");
         var purchaseUnmatches = await CheckPurchaseUnmatchAsync(dataSetId, targetDate);
+        _logger.LogCritical("仕入伝票アンマッチ件数: {Count}", purchaseUnmatches.Count());
         unmatchItems.AddRange(purchaseUnmatches);
 
         // 在庫調整のアンマッチチェック
+        _logger.LogCritical("在庫調整アンマッチチェック開始...");
         var adjustmentUnmatches = await CheckInventoryAdjustmentUnmatchAsync(dataSetId, targetDate);
+        _logger.LogCritical("在庫調整アンマッチ件数: {Count}", adjustmentUnmatches.Count());
         unmatchItems.AddRange(adjustmentUnmatches);
 
         // マスタデータで名前を補完
@@ -265,6 +310,9 @@ public class UnmatchListService : IUnmatchListService
             enrichedItems.Add(enrichedItem);
         }
 
+        _logger.LogCritical("===== GenerateUnmatchListInternalAsync 完了 =====");
+        _logger.LogCritical("総アンマッチ件数: {TotalCount}", unmatchItems.Count);
+        
         // ソート：商品分類1、商品コード、荷印コード、荷印名、等級コード、階級コード
         return enrichedItems
             .OrderBy(x => x.ProductCategory1)
@@ -277,33 +325,50 @@ public class UnmatchListService : IUnmatchListService
 
     private async Task<IEnumerable<UnmatchItem>> CheckSalesUnmatchAsync(string dataSetId, DateTime? targetDate)
     {
+        _logger.LogCritical("===== CheckSalesUnmatchAsync 詳細デバッグ開始 =====");
+        _logger.LogCritical("引数 - DataSetId: {DataSetId}", dataSetId);
+        _logger.LogCritical("引数 - TargetDate: {TargetDate}", targetDate?.ToString("yyyy-MM-dd") ?? "NULL");
+        
         var unmatchItems = new List<UnmatchItem>();
         var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
 
         // 売上伝票取得（DataSetIdフィルタリング対応）
         IEnumerable<SalesVoucher> salesVouchers;
+        
+        _logger.LogCritical("条件判定: DataSetId={HasDataSetId}, TargetDate={HasTargetDate}", 
+            !string.IsNullOrEmpty(dataSetId), targetDate.HasValue);
+
         if (!string.IsNullOrEmpty(dataSetId) && targetDate.HasValue)
         {
-            // 指定日処理：DataSetIdでフィルタリング
+            _logger.LogCritical("★★★ GetByDataSetIdAsync を実行 ★★★");
             salesVouchers = await _salesVoucherRepository.GetByDataSetIdAsync(dataSetId);
-            _logger.LogInformation("売上伝票取得（DataSetIdフィルタ）: DataSetId={DataSetId}, 件数={Count}", 
-                dataSetId, salesVouchers.Count());
+            _logger.LogCritical("GetByDataSetIdAsync 結果: {Count}件", salesVouchers.Count());
+            
+            // 最初の5件のDataSetIdを表示
+            var first5 = salesVouchers.Take(5);
+            foreach (var sv in first5)
+            {
+                _logger.LogCritical("  - VoucherNumber: {VoucherNumber}, DataSetId: {DataSetId}", 
+                    sv.VoucherNumber, sv.DataSetId);
+            }
         }
         else
         {
-            // 全期間処理：従来通り全件取得
+            _logger.LogCritical("！！！ GetAllAsync を実行（警告：全件取得） ！！！");
             salesVouchers = await _salesVoucherRepository.GetAllAsync();
-            _logger.LogDebug("売上伝票取得（全件）: 総件数={TotalCount}", salesVouchers.Count());
+            _logger.LogCritical("GetAllAsync 結果: {Count}件", salesVouchers.Count());
         }
         
+        // フィルタリング前後の件数
         var salesList = salesVouchers
             .Where(s => s.VoucherType == "51" || s.VoucherType == "52") // 売上伝票
             .Where(s => s.DetailType == "1" || s.DetailType == "2")     // 明細種
             .Where(s => s.Quantity != 0)                                // 数量0以外
             .Where(s => !targetDate.HasValue || s.JobDate <= targetDate.Value) // 指定日以前フィルタ
             .ToList();
-            
-        _logger.LogDebug("売上伝票フィルタ後: 件数={FilteredCount}", salesList.Count);
+        
+        _logger.LogCritical("フィルタリング前: {BeforeCount}件", salesVouchers.Count());
+        _logger.LogCritical("フィルタリング後: {AfterCount}件", salesList.Count);
         
         // 最初の5件の文字列状態を確認
         foreach (var (sales, index) in salesList.Take(5).Select((s, i) => (s, i)))
@@ -312,8 +377,20 @@ public class UnmatchListService : IUnmatchListService
                 index + 1, sales.CustomerName, sales.ProductName, sales.ShippingMarkName);
         }
 
+        // CP在庫マスタとの照合
+        _logger.LogCritical("CP在庫マスタとの照合開始...");
+        int checkedCount = 0;
+        int notFoundCount = 0;
+        int stockZeroCount = 0;
+
         foreach (var sales in salesList)
         {
+            checkedCount++;
+            if (checkedCount % 100 == 0)
+            {
+                _logger.LogInformation("処理進捗: {Checked}/{Total}", checkedCount, salesList.Count);
+            }
+
             var inventoryKey = new InventoryKey
             {
                 ProductCode = sales.ProductCode,
@@ -323,11 +400,18 @@ public class UnmatchListService : IUnmatchListService
                 ShippingMarkName = sales.ShippingMarkName
             };
 
-            // CP在庫マスタから該当データを取得
             var cpInventory = await _cpInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
 
             if (cpInventory == null)
             {
+                notFoundCount++;
+                if (notFoundCount <= 5)  // 最初の5件のみログ出力
+                {
+                    _logger.LogCritical("該当無サンプル: Product={Product}, Grade={Grade}, Class={Class}, Mark={Mark}, Name={Name}",
+                        sales.ProductCode, sales.GradeCode, sales.ClassCode, 
+                        sales.ShippingMarkCode, sales.ShippingMarkName);
+                }
+                
                 // 該当無エラー - 商品分類1を取得
                 var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
                     sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode);
@@ -342,12 +426,20 @@ public class UnmatchListService : IUnmatchListService
             }
             else if (cpInventory.PreviousDayStock >= 0 && cpInventory.DailyStock <= 0)
             {
+                stockZeroCount++;
                 // 在庫0以下エラー（マイナス在庫含む）
                 var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "在庫0",
                     cpInventory.GetAdjustedProductCategory1());
                 unmatchItems.Add(unmatchItem);
             }
         }
+
+        _logger.LogCritical("===== CheckSalesUnmatchAsync 処理結果 =====");
+        _logger.LogCritical("処理対象件数: {Total}", salesList.Count);
+        _logger.LogCritical("該当無件数: {NotFound}", notFoundCount);
+        _logger.LogCritical("在庫0件数: {StockZero}", stockZeroCount);
+        _logger.LogCritical("アンマッチ合計: {Unmatch}", unmatchItems.Count);
+        _logger.LogCritical("=========================================");
 
         return unmatchItems;
     }
