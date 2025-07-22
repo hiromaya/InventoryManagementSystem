@@ -15,6 +15,7 @@ using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Reports.Models;
 using InventorySystem.Reports.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using FR = global::FastReport;
 
 namespace InventorySystem.Reports.FastReport.Services
@@ -25,6 +26,7 @@ namespace InventorySystem.Reports.FastReport.Services
     public class ProductAccountFastReportService : IProductAccountReportService
     {
         private readonly ILogger<ProductAccountFastReportService> _logger;
+        private readonly IConfiguration _configuration;
         private readonly ISalesVoucherRepository _salesVoucherRepository;
         private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
         private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
@@ -34,6 +36,7 @@ namespace InventorySystem.Reports.FastReport.Services
         
         public ProductAccountFastReportService(
             ILogger<ProductAccountFastReportService> logger,
+            IConfiguration configuration,
             ISalesVoucherRepository salesVoucherRepository,
             IPurchaseVoucherRepository purchaseVoucherRepository,
             IInventoryAdjustmentRepository inventoryAdjustmentRepository,
@@ -41,6 +44,7 @@ namespace InventorySystem.Reports.FastReport.Services
             ICustomerMasterRepository customerMasterRepository)
         {
             _logger = logger;
+            _configuration = configuration;
             _salesVoucherRepository = salesVoucherRepository;
             _purchaseVoucherRepository = purchaseVoucherRepository;
             _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
@@ -174,10 +178,8 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private string GetConnectionString()
         {
-            // 環境変数または設定ファイルから接続文字列を取得
-            // 実際の実装では、IConfiguration等を使用
-            return Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") 
-                ?? "Server=(localdb)\\mssqllocaldb;Database=InventoryManagementDB;Trusted_Connection=true;";
+            return _configuration.GetConnectionString("DefaultConnection") 
+                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         }
 
         /// <summary>
