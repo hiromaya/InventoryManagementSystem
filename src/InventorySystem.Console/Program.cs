@@ -13,6 +13,7 @@ using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Core.Configuration;
 using Microsoft.Extensions.Options;
 using InventorySystem.Reports.Interfaces;
+using InventorySystem.Reports.Services;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Models;
 using System.Data;
@@ -240,10 +241,12 @@ else
 // Linux環境ではFastReportフォルダのコンパイルが除外されるため、型の直接参照はできない
 var unmatchListFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.UnmatchListFastReportService, InventorySystem.Reports");
 var dailyReportFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.DailyReportFastReportService, InventorySystem.Reports");
-if (unmatchListFastReportType != null && dailyReportFastReportType != null)
+var productAccountFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.ProductAccountFastReportService, InventorySystem.Reports");
+if (unmatchListFastReportType != null && dailyReportFastReportType != null && productAccountFastReportType != null)
 {
     builder.Services.AddScoped(typeof(IUnmatchListReportService), unmatchListFastReportType);
     builder.Services.AddScoped(typeof(InventorySystem.Reports.Interfaces.IDailyReportService), dailyReportFastReportType);
+    builder.Services.AddScoped(typeof(InventorySystem.Reports.Interfaces.IProductAccountReportService), productAccountFastReportType);
 }
 else
 {
@@ -252,6 +255,7 @@ else
 #else
 builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
 builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, PlaceholderDailyReportService>();
+builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IProductAccountReportService, PlaceholderProductAccountReportService>();
 #endif
 builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();

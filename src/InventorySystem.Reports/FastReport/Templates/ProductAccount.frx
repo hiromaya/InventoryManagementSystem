@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="None" TextQuality="Regular" ReportInfo.Description="商品勘定帳票 - 商品別の収支詳細を表示" ReportInfo.Created="2025-07-21" ReportInfo.Modified="07/21/2025 09:50:00" ReportInfo.CreatorVersion="2024.1.3.0">
+  <Dictionary>
+    <TableDataSource Name="ProductAccount" ReferenceName="ProductAccount" DataType="System.Int32" Enabled="true">
+      <Column Name="ProductCode" DataType="System.String"/>
+      <Column Name="ProductName" DataType="System.String"/>
+      <Column Name="ShippingMarkCode" DataType="System.String"/>
+      <Column Name="ShippingMarkName" DataType="System.String"/>
+      <Column Name="ManualShippingMark" DataType="System.String"/>
+      <Column Name="GradeCode" DataType="System.String"/>
+      <Column Name="GradeName" DataType="System.String"/>
+      <Column Name="ClassCode" DataType="System.String"/>
+      <Column Name="ClassName" DataType="System.String"/>
+      <Column Name="VoucherNumber" DataType="System.String"/>
+      <Column Name="DisplayCategory" DataType="System.String"/>
+      <Column Name="MonthDay" DataType="System.String"/>
+      <Column Name="PurchaseQuantity" DataType="System.Decimal"/>
+      <Column Name="SalesQuantity" DataType="System.Decimal"/>
+      <Column Name="RemainingQuantity" DataType="System.Decimal"/>
+      <Column Name="UnitPrice" DataType="System.Decimal"/>
+      <Column Name="Amount" DataType="System.Decimal"/>
+      <Column Name="GrossProfit" DataType="System.Decimal"/>
+      <Column Name="CustomerSupplierName" DataType="System.String"/>
+      <Column Name="GroupKey" DataType="System.String"/>
+      <Column Name="PreviousBalance" DataType="System.Decimal"/>
+      <Column Name="TotalPurchaseQuantity" DataType="System.Decimal"/>
+      <Column Name="TotalSalesQuantity" DataType="System.Decimal"/>
+      <Column Name="CurrentBalance" DataType="System.Decimal"/>
+      <Column Name="InventoryUnitPrice" DataType="System.Decimal"/>
+      <Column Name="InventoryAmount" DataType="System.Decimal"/>
+      <Column Name="TotalGrossProfit" DataType="System.Decimal"/>
+      <Column Name="GrossProfitRate" DataType="System.Decimal"/>
+    </TableDataSource>
+    <Parameter Name="JobDate" DataType="System.String" AsString=""/>
+    <Parameter Name="GeneratedAt" DataType="System.String" AsString=""/>
+  </Dictionary>
+  <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitle1" Width="1512" Height="60">
+      <TextObject Name="CreateDate" Width="300" Height="20" Text="作成日：[GeneratedAt]" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="ReportTitle" Left="500" Width="500" Height="25" Text="※ [JobDate] 商 品 勘 定 ※" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 14pt"/>
+      <TextObject Name="PageNumber" Left="1212" Width="300" Height="20" Text="[Page#] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="63.2" Width="1512" Height="40">
+      <TextObject Name="Header1" Width="150" Height="40" Text="商　品　名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header2" Left="150" Width="100" Height="40" Text="荷　　印　　名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header3" Left="250" Width="80" Height="40" Text="手入力" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header4" Left="330" Width="60" Height="40" Text="等　級" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header5" Left="390" Width="60" Height="40" Text="階　級" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header6" Left="450" Width="80" Height="40" Text="伝票NO" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header7" Left="530" Width="50" Height="40" Text="区分" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header8" Left="580" Width="50" Height="40" Text="月日" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header9" Left="630" Width="70" Height="40" Text="仕入数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header10" Left="700" Width="70" Height="40" Text="売上数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header11" Left="770" Width="70" Height="40" Text="残数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header12" Left="840" Width="80" Height="40" Text="単　価" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header13" Left="920" Width="90" Height="40" Text="金　　額" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header14" Left="1010" Width="80" Height="40" Text="粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header15" Left="1090" Width="200" Height="40" Text="取　引　先　名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+    </PageHeaderBand>
+    <!-- 担当者別グループ（ページブレイク機能付き） -->
+    <GroupHeaderBand Name="GroupHeader1" Top="106.4" Width="1512" Height="30" Condition="[ProductAccount.ProductCategory1]" StartNewPage="true">
+      <TextObject Name="DepartmentInfo" Width="1512" Height="30" Text="担当者：[ProductAccount.ProductCategory1]" VertAlign="Center" Font="ＭＳ ゴシック, 12pt, style=Bold"/>
+    </GroupHeaderBand>
+    
+    <!-- 商品別グループ -->
+    <GroupHeaderBand Name="GroupHeader2" Top="139.6" Width="1512" Height="25" Condition="[ProductAccount.GroupKey]">
+      <TextObject Name="ProductInfo" Width="1512" Height="25" Text="[ProductAccount.ProductCode] [ProductAccount.ProductName]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt, style=Bold"/>
+    </GroupHeaderBand>
+    <DataBand Name="Data1" Top="167.8" Width="1512" Height="18" DataSource="ProductAccount">
+      <TextObject Name="Data1" Width="150" Height="18" Text="[ProductAccount.ProductName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" WordWrap="false" Trimming="EllipsisCharacter"/>
+      <TextObject Name="Data2" Left="150" Width="100" Height="18" Text="[ProductAccount.ShippingMarkName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" WordWrap="false" Trimming="EllipsisCharacter"/>
+      <TextObject Name="Data3" Left="250" Width="80" Height="18" Text="[ProductAccount.ManualShippingMark]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data4" Left="330" Width="60" Height="18" Text="[ProductAccount.GradeName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data5" Left="390" Width="60" Height="18" Text="[ProductAccount.ClassName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data6" Left="450" Width="80" Height="18" Text="[ProductAccount.VoucherNumber]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data7" Left="530" Width="50" Height="18" Text="[ProductAccount.DisplayCategory]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data8" Left="580" Width="50" Height="18" Text="[ProductAccount.MonthDay]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data9" Left="630" Width="70" Height="18" Text="[ProductAccount.PurchaseQuantity]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data10" Left="700" Width="70" Height="18" Text="[ProductAccount.SalesQuantity]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data11" Left="770" Width="70" Height="18" Text="[ProductAccount.RemainingQuantity]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data12" Left="840" Width="80" Height="18" Text="[ProductAccount.UnitPrice]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="0" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data13" Left="920" Width="90" Height="18" Text="[ProductAccount.Amount]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data14" Left="1010" Width="80" Height="18" Text="[ProductAccount.GrossProfit]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data15" Left="1090" Width="200" Height="18" Text="[ProductAccount.CustomerSupplierName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" WordWrap="false" Trimming="EllipsisCharacter"/>
+    </DataBand>
+    <!-- 商品別集計（GroupFooter2） -->
+    <GroupFooterBand Name="GroupFooter2" Top="188.8" Width="1512" Height="50">
+      <TextObject Name="SummaryLabels" Left="200" Top="5" Width="1000" Height="15" Text="【前日残】　　　【仕入計】　　　【売上計】　　　【当日残】　　　【在庫単価】　　【在庫金額】　　【粗利益】　　　【粗利率】" HorzAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="PreviousBalance" Left="200" Top="20" Width="90" Height="15" Text="[First(ProductAccount.PreviousBalance,ProductAccount.GroupKey)]" HorzAlign="Right" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="TotalPurchase" Left="310" Top="20" Width="90" Height="15" Text="[First(ProductAccount.TotalPurchaseQuantity,ProductAccount.GroupKey)]" HorzAlign="Right" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="TotalSales" Left="420" Top="20" Width="90" Height="15" Text="[First(ProductAccount.TotalSalesQuantity,ProductAccount.GroupKey)]" HorzAlign="Right" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="CurrentBalance" Left="530" Top="20" Width="90" Height="15" Text="[First(ProductAccount.CurrentBalance,ProductAccount.GroupKey)]" HorzAlign="Right" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="InventoryUnitPrice" Left="640" Top="20" Width="90" Height="15" Text="[First(ProductAccount.InventoryUnitPrice,ProductAccount.GroupKey)]" HorzAlign="Right" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="0" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="InventoryAmount" Left="750" Top="20" Width="100" Height="15" Text="[First(ProductAccount.InventoryAmount,ProductAccount.GroupKey)]" HorzAlign="Right" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="TotalGrossProfit" Left="870" Top="20" Width="100" Height="15" Text="[First(ProductAccount.TotalGrossProfit,ProductAccount.GroupKey)]" HorzAlign="Right" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="GrossProfitRate" Left="990" Top="20" Width="100" Height="15" Text="[First(ProductAccount.GrossProfitRate,ProductAccount.GroupKey)] %" HorzAlign="Right" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" Font="ＭＳ ゴシック, 8pt"/>
+    </GroupFooterBand>
+    <PageFooterBand Name="PageFooter1" Top="241.8" Width="1512" Height="20">
+      <TextObject Name="Footer" Width="1512" Height="20" Text="在庫管理システム - 商品勘定" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
+    </PageFooterBand>
+  </ReportPage>
+</Report>

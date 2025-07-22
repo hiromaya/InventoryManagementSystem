@@ -135,9 +135,24 @@ public class SalesVoucher
     public string? ProductCategory3 { get; set; }
 
     /// <summary>
-    /// 粗利益（後で計算して更新）
+    /// 商品分類4
+    /// </summary>
+    public string? ProductCategory4 { get; set; }
+
+    /// <summary>
+    /// 商品分類5
+    /// </summary>
+    public string? ProductCategory5 { get; set; }
+
+    /// <summary>
+    /// 粗利益（汎用数値1、126列目）
     /// </summary>
     public decimal? GrossProfit { get; set; }
+
+    /// <summary>
+    /// 歩引き金（汎用数値2、127列目）
+    /// </summary>
+    public decimal? WalkingDiscount { get; set; }
 
     /// <summary>
     /// 除外フラグ（アンマッチ処理時）

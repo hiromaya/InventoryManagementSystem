@@ -100,6 +100,27 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // データソースの準備
                 var unmatchList = unmatchItems.ToList();
+                _logger.LogCritical("===== FastReport データソース診断 =====");
+                _logger.LogCritical("入力されたアンマッチ項目数: {Count}", unmatchList.Count);
+                
+                // 入力データの詳細分析
+                if (unmatchList.Count > 0)
+                {
+                    var categoryBreakdown = unmatchList.GroupBy(x => x.Category).ToList();
+                    _logger.LogCritical("カテゴリ別内訳:");
+                    foreach (var group in categoryBreakdown)
+                    {
+                        _logger.LogCritical("  {Category}: {Count}件", group.Key, group.Count());
+                    }
+                    
+                    var alertTypeBreakdown = unmatchList.GroupBy(x => x.AlertType).ToList();
+                    _logger.LogCritical("アラート種別内訳:");
+                    foreach (var group in alertTypeBreakdown)
+                    {
+                        _logger.LogCritical("  {AlertType}: {Count}件", group.Key, group.Count());
+                    }
+                }
+                
                 _logger.LogDebug("PDF生成: アンマッチ項目数={Count}", unmatchList.Count);
                 
                 // 最初の5件の文字列状態を確認
@@ -136,9 +157,18 @@ namespace InventorySystem.Reports.FastReport.Services
                 dataTable.Columns.Add("AlertType2", typeof(string));
                 
                 // データを追加
+                _logger.LogCritical("===== DataTable作成開始 =====");
+                int addedRowCount = 0;
                 foreach (var (item, index) in unmatchList.Select((i, idx) => (i, idx)))
                 {
                     var categoryName = GetCategoryName(item.Category);
+                    
+                    // カテゴリ変換のログ（最初の5件のみ）
+                    if (index < 5)
+                    {
+                        _logger.LogCritical("カテゴリ変換 {Index}: '{Original}' → '{Converted}'", 
+                            index + 1, item.Category, categoryName);
+                    }
                     var customerCode = item.CustomerCode ?? "";
                     var customerName = item.CustomerName ?? "";
                     var productCode = item.Key.ProductCode ?? "";
@@ -200,12 +230,38 @@ namespace InventorySystem.Reports.FastReport.Services
                         item.AlertType ?? "",
                         item.AlertType2 ?? ""
                     );
+                    
+                    addedRowCount++;
                 }
+                
+                _logger.LogCritical("===== DataTable作成完了 =====");
+                _logger.LogCritical("追加した行数: {AddedCount} / 入力データ数: {InputCount}", 
+                    addedRowCount, unmatchList.Count);
+                _logger.LogCritical("DataTable実際の行数: {ActualRows}", dataTable.Rows.Count);
                 
                 _logger.LogInformation("データソースを登録しています。件数: {Count}", dataTable.Rows.Count);
                 
                 // DataTableとして登録
+                _logger.LogCritical("===== FastReport データソース登録 =====");
                 report.RegisterData(dataTable, "UnmatchItems");
+                _logger.LogCritical("report.RegisterData() 完了");
+                
+                // データソース検証
+                var registeredDataSource = report.GetDataSource("UnmatchItems");
+                if (registeredDataSource != null)
+                {
+                    _logger.LogCritical("データソース登録確認 OK: {Name}", registeredDataSource.Name);
+                    _logger.LogCritical("データソース行数確認: {Count}", registeredDataSource.RowCount);
+                    _logger.LogCritical("データソース有効状態: {Enabled}", registeredDataSource.Enabled);
+                    
+                    // データソース詳細検証
+                    ValidateDataSource(registeredDataSource, unmatchList.Count);
+                }
+                else
+                {
+                    _logger.LogError("データソース登録失敗: 'UnmatchItems' が見つかりません");
+                    throw new InvalidOperationException("データソースの登録に失敗しました");
+                }
                 
                 // 0件時のヘッダー制御
                 if (unmatchList.Count == 0)
@@ -276,8 +332,26 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 
                 // レポートを準備（スクリプトは使用しない）
+                _logger.LogCritical("===== FastReport Prepare() 開始 =====");
                 _logger.LogInformation("レポートを生成しています...");
+                
+                // Prepare前のデータソース状態確認
+                var preDataSource = report.GetDataSource("UnmatchItems");
+                if (preDataSource != null)
+                {
+                    _logger.LogCritical("Prepare前データソース行数: {Count}", preDataSource.RowCount);
+                }
+                
                 report.Prepare();
+                
+                // Prepare後のデータソース状態確認
+                var postDataSource = report.GetDataSource("UnmatchItems");
+                if (postDataSource != null)
+                {
+                    _logger.LogCritical("Prepare後データソース行数: {Count}", postDataSource.RowCount);
+                }
+                
+                _logger.LogCritical("FastReport Prepare() 完了");
                 
                 // PDF出力設定
                 using var pdfExport = new PDFExport
@@ -305,11 +379,19 @@ namespace InventorySystem.Reports.FastReport.Services
                     pdfExport.EmbeddingFonts, pdfExport.TextInCurves);
                 
                 // PDFをメモリストリームに出力
+                _logger.LogCritical("===== PDF Export 開始 =====");
                 using var stream = new MemoryStream();
                 report.Export(pdfExport, stream);
                 
                 var pdfBytes = stream.ToArray();
+                _logger.LogCritical("===== PDF Export 完了 =====");
                 _logger.LogInformation("PDF生成完了。サイズ: {Size} bytes", pdfBytes.Length);
+                
+                // 最終結果サマリー
+                _logger.LogCritical("===== 最終結果サマリー =====");
+                _logger.LogCritical("入力データ数: {Input}", unmatchList.Count);
+                _logger.LogCritical("DataTable行数: {DataTable}", dataTable.Rows.Count);
+                _logger.LogCritical("PDF出力サイズ: {Size} bytes", pdfBytes.Length);
                 
                 return pdfBytes;
             }
@@ -351,19 +433,71 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
+        /// データソースの詳細検証
+        /// </summary>
+        private void ValidateDataSource(object dataSource, int expectedCount)
+        {
+            try
+            {
+                _logger.LogCritical("===== データソース詳細検証 =====");
+                
+                // リフレクションでRowCountプロパティを取得
+                var rowCountProperty = dataSource.GetType().GetProperty("RowCount");
+                if (rowCountProperty != null)
+                {
+                    var actualRowCount = (int)rowCountProperty.GetValue(dataSource);
+                    _logger.LogCritical("期待行数: {Expected} / 実際行数: {Actual}", expectedCount, actualRowCount);
+                    
+                    if (actualRowCount != expectedCount)
+                    {
+                        _logger.LogError("❌ 行数不一致を検出しました！");
+                        _logger.LogError("この差異が411→16の原因の可能性があります");
+                    }
+                    else
+                    {
+                        _logger.LogCritical("✅ 行数一致確認 OK");
+                    }
+                }
+                
+                // カラム数の検証
+                var columnsProperty = dataSource.GetType().GetProperty("Columns");
+                if (columnsProperty != null)
+                {
+                    var columns = columnsProperty.GetValue(dataSource);
+                    if (columns != null)
+                    {
+                        var countProperty = columns.GetType().GetProperty("Count");
+                        if (countProperty != null)
+                        {
+                            var columnCount = (int)countProperty.GetValue(columns);
+                            _logger.LogCritical("カラム数: {ColumnCount}", columnCount);
+                        }
+                    }
+                }
+                
+                _logger.LogCritical("データソース検証完了");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "データソース検証中にエラーが発生しましたが、処理を継続します");
+            }
+        }
+        
+        /// <summary>
         /// カテゴリコードを日本語名に変換
         /// </summary>
         private string GetCategoryName(string category)
         {
             return category switch
             {
-                "11" => "掛売上",
-                "12" => "現金売上",
-                "21" => "掛仕入",
-                "22" => "現金仕入",
+                "51" => "掛売上",     // 修正: 11 → 51
+                "52" => "現金売上",   // 修正: 12 → 52
+                "11" => "掛仕入",     // 修正: 21 → 11
+                "12" => "現金仕入",   // 修正: 22 → 12
                 "71" => "在庫調整",
-                "04" => "振替",
-                "05" => "加工費",
+                "振替" => "振替",     // 修正: "04" → "振替"
+                "加工費" => "加工費", // 修正: "05" → "加工費"
+                "在庫調整" => "在庫調整", // 追加: 既存の文字列マッピング
                 _ => category
             };
         }

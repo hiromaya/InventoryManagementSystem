@@ -104,9 +104,31 @@ public class SalesVoucherDaijinCsv
     /// </summary>
     public decimal Amount => CsvParsingHelper.ParseDecimal(AmountString);
     
+    /// <summary>
+    /// 粗利益（ロケールに依存しない解析）
+    /// </summary>
+    public decimal GrossProfit => CsvParsingHelper.ParseDecimal(GrossProfitString);
+    
+    /// <summary>
+    /// 歩引き金（ロケールに依存しない解析）
+    /// </summary>
+    public decimal WalkingDiscount => CsvParsingHelper.ParseDecimal(WalkingDiscountString);
+    
     [Name("手入力項目(半角8文字)")]
     [Index(154)]  // 155列目
     public string HandInputItem { get; set; } = string.Empty;
+    
+    [Name("汎用数値１（明細）")]
+    [Index(125)]  // 126列目（粗利益）
+    public string GrossProfitString { get; set; } = string.Empty;
+    
+    [Name("汎用数値２（明細）")]
+    [Index(126)]  // 127列目（歩引き金）
+    public string WalkingDiscountString { get; set; } = string.Empty;
+    
+    [Name("汎用マスター５コード（明細）")]
+    [Index(88)]  // 89列目（商品分類5）
+    public string ProductCategory5 { get; set; } = string.Empty;
     
     [Name("１階層目行番号")]
     [Index(78)]  // 79列目
@@ -163,7 +185,9 @@ public class SalesVoucherDaijinCsv
             ProductCategory1 = ProductCategory1?.Trim(),
             ProductCategory2 = ProductCategory2?.Trim(),
             ProductCategory3 = ProductCategory3?.Trim(),
-            GrossProfit = null,  // 初期値はnull（商品日報処理で計算して更新）
+            ProductCategory5 = ProductCategory5?.Trim(),
+            GrossProfit = GrossProfit,
+            WalkingDiscount = WalkingDiscount,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };

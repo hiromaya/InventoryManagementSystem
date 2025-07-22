@@ -226,6 +226,36 @@ public class UnmatchListService : IUnmatchListService
             }
             */
 
+            // 最終確認ログ
+            _logger.LogCritical("===== UnmatchListService 最終結果確認 =====");
+            _logger.LogCritical("処理完了 - データセットID: {DataSetId}", dataSetId);
+            _logger.LogCritical("検出されたアンマッチ項目数: {Count}", unmatchList.Count);
+            _logger.LogCritical("処理時間: {ProcessingTime}", stopwatch.Elapsed);
+            
+            // アンマッチ項目の内訳確認
+            if (unmatchList.Count > 0)
+            {
+                var categoryBreakdown = unmatchList.GroupBy(x => x.Category).ToList();
+                _logger.LogCritical("カテゴリ別内訳 (最終確認):");
+                foreach (var group in categoryBreakdown)
+                {
+                    _logger.LogCritical("  {Category}: {Count}件", group.Key, group.Count());
+                }
+                
+                var alertTypeBreakdown = unmatchList.GroupBy(x => x.AlertType).ToList();
+                _logger.LogCritical("アラート種別内訳 (最終確認):");
+                foreach (var group in alertTypeBreakdown)
+                {
+                    _logger.LogCritical("  {AlertType}: {Count}件", group.Key, group.Count());
+                }
+                
+                _logger.LogCritical("これらの {Count} 件がFastReportに渡されます", unmatchList.Count);
+            }
+            else
+            {
+                _logger.LogCritical("アンマッチ項目は検出されませんでした (0件)");
+            }
+
             return new UnmatchListResult
             {
                 Success = true,
