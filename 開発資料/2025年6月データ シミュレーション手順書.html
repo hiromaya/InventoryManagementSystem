@@ -420,7 +420,13 @@
 <span class="comment"># 3. 商品日報作成</span>
 <span class="command-line">.\dev.ps1 dev-daily-report 2025-06-02</span>
 
-<span class="comment"># 4. 日次終了処理（重要：必ず実行）</span>
+<span class="comment"># 4. 商品勘定帳票作成（商品別収支詳細）</span>
+<span class="command-line">dotnet run create-product-account 2025-06-02</span>
+
+<span class="comment"># 5. 在庫表作成（必要に応じて）</span>
+<span class="command-line">dotnet run inventory-list 2025-06-02</span>
+
+<span class="comment"># 6. 日次終了処理（重要：必ず実行）</span>
 <span class="command-line">.\dev.ps1 dev-daily-close 2025-06-02</span>
                 </div>
                 <div class="success" style="margin-top: 15px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
@@ -632,12 +638,14 @@
 <span class="command-line">dotnet run import-folder DeptA 2025-06-02</span>
 <span class="command-line">dotnet run unmatch-list</span>
 <span class="command-line">.\dev.ps1 dev-daily-report 2025-06-02</span>
+<span class="command-line">dotnet run create-product-account 2025-06-02</span>
 <span class="command-line">.\dev.ps1 dev-daily-close 2025-06-02</span>
 
 <span class="comment"># 6月3日の処理</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-03</span>
 <span class="command-line">dotnet run unmatch-list</span>
 <span class="command-line">.\dev.ps1 dev-daily-report 2025-06-03</span>
+<span class="command-line">dotnet run create-product-account 2025-06-03</span>
 <span class="command-line">.\dev.ps1 dev-daily-close 2025-06-03</span>
                     </div>
                 </div>
@@ -913,6 +921,7 @@ DataSetId: INITIAL_20250531_090000
 <span class="command-line">    dotnet run import-folder DeptA $date</span>
 <span class="command-line">    dotnet run unmatch-list</span>
 <span class="command-line">    .\dev.ps1 dev-daily-report $date</span>
+<span class="command-line">    dotnet run create-product-account $date</span>
 <span class="command-line">    .\dev.ps1 dev-daily-close $date</span>
 <span class="command-line">    Write-Host "=== $date の処理完了 ===" -ForegroundColor Green</span>
 <span class="command-line">}</span>
@@ -1095,7 +1104,7 @@ DataSetId: INITIAL_20250531_090000
                         <td>-</td>
                     </tr>
                     <tr style="background: #e3f2fd;">
-                        <td rowspan="3"><strong>帳票出力</strong></td>
+                        <td rowspan="4"><strong>帳票出力</strong></td>
                         <td>unmatch-list</td>
                         <td>アンマッチリスト作成</td>
                         <td>-（全期間対象）</td>
@@ -1104,6 +1113,11 @@ DataSetId: INITIAL_20250531_090000
                         <td>daily-report</td>
                         <td>商品日報作成</td>
                         <td>[YYYY-MM-DD] [--dataset-id ID]</td>
+                    </tr>
+                    <tr style="background: #e3f2fd;">
+                        <td>create-product-account</td>
+                        <td>商品勘定帳票作成</td>
+                        <td>[YYYY-MM-DD]</td>
                     </tr>
                     <tr style="background: #e3f2fd;">
                         <td>inventory-list</td>
@@ -1209,6 +1223,7 @@ DataSetId: INITIAL_20250531_090000
 <span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
 <span class="command-line">dotnet run unmatch-list</span>
 <span class="command-line">.\dev.ps1 dev-daily-report 2025-06-01</span>
+<span class="command-line">dotnet run create-product-account 2025-06-01</span>
 <span class="command-line">.\dev.ps1 dev-daily-close 2025-06-01</span>
 
 <span class="comment"># 初期設定（システム開始時のみ）</span>
