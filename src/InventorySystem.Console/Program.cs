@@ -390,6 +390,10 @@ try
             await ExecuteInventoryListAsync(host.Services, args);
             break;
             
+        case "product-account":
+            await ExecuteProductAccountAsync(host.Services, args);
+            break;
+            
         case "import-sales":
             await ExecuteImportSalesAsync(host.Services, args);
             break;
@@ -1247,6 +1251,64 @@ static async Task ExecuteDevCheckDailyCloseAsync(IServiceProvider services, stri
         // TODO: Implement FastReport version for inventory list
         Console.WriteLine("在庫表のFastReport対応は未実装です。QuestPDFからの移行が必要です。");
         await Task.CompletedTask; // 警告を回避
+    }
+}
+
+static async Task ExecuteProductAccountAsync(IServiceProvider services, string[] args)
+{
+    if (args.Length < 2)
+    {
+        Console.WriteLine("使用方法: product-account <JobDate>");
+        Console.WriteLine("例: product-account 2025-06-30");
+        return;
+    }
+
+    if (!DateTime.TryParse(args[1], out DateTime jobDate))
+    {
+        Console.WriteLine($"❌ 不正な日付形式です: {args[1]}");
+        Console.WriteLine("例: product-account 2025-06-30");
+        return;
+    }
+
+    using (var scope = services.CreateScope())
+    {
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var productAccountService = scopedServices.GetRequiredService<InventorySystem.Reports.Interfaces.IProductAccountReportService>();
+
+        try
+        {
+            logger.LogInformation("=== 商品勘定帳票作成開始 ===");
+            Console.WriteLine("=== 商品勘定帳票作成開始 ===");
+            Console.WriteLine($"対象日: {jobDate:yyyy-MM-dd}");
+
+            // 商品勘定帳票を作成
+            var pdfBytes = productAccountService.GenerateProductAccountReport(jobDate);
+            
+            if (pdfBytes != null && pdfBytes.Length > 0)
+            {
+                // ファイル保存処理（必要に応じて実装）
+                var outputPath = Path.Combine("帳票出力", $"ProductAccount_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
+                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+                await File.WriteAllBytesAsync(outputPath, pdfBytes);
+                
+                Console.WriteLine($"✅ 商品勘定帳票を作成しました");
+                Console.WriteLine($"出力ファイル: {outputPath}");
+                Console.WriteLine($"ファイルサイズ: {pdfBytes.Length:N0} bytes");
+            }
+            else
+            {
+                Console.WriteLine($"❌ 商品勘定帳票の作成に失敗しました");
+            }
+
+            logger.LogInformation("=== 商品勘定帳票作成完了 ===");
+            Console.WriteLine("=== 商品勘定帳票作成完了 ===");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "商品勘定帳票作成中にエラーが発生しました");
+            Console.WriteLine($"❌ エラーが発生しました: {ex.Message}");
+        }
     }
 }
 
