@@ -11,6 +11,7 @@ using FastReport.Export.Pdf;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Entities.Masters;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Reports.Models;
 using InventorySystem.Reports.Interfaces;
 using Microsoft.Extensions.Logging;
