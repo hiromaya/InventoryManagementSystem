@@ -45,7 +45,7 @@ public class SalesVoucherImportService
 {
     private readonly SalesVoucherCsvRepository _salesVoucherRepository;
     private readonly IDataSetRepository _dataSetRepository;
-    private readonly IUnifiedDataSetService _unifiedDataSetService;
+    private readonly IDataSetService _unifiedDataSetService;
     private readonly ILogger<SalesVoucherImportService> _logger;
     private readonly DepartmentSettings _departmentSettings;
     private readonly ICsvFileProcessor _csvProcessor;
@@ -54,7 +54,7 @@ public class SalesVoucherImportService
     public SalesVoucherImportService(
         SalesVoucherCsvRepository salesVoucherRepository,
         IDataSetRepository dataSetRepository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<SalesVoucherImportService> logger,
         IOptions<DepartmentSettings> departmentOptions,
         ICsvFileProcessor csvProcessor,

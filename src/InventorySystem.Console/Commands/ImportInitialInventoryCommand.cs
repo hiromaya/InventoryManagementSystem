@@ -64,7 +64,7 @@ public class ImportInitialInventoryCommand
             using var scope = _serviceProvider.CreateScope();
             var inventoryRepository = scope.ServiceProvider.GetRequiredService<IInventoryRepository>();
             var productRepository = scope.ServiceProvider.GetRequiredService<IProductMasterRepository>();
-            var unifiedDataSetService = scope.ServiceProvider.GetRequiredService<IUnifiedDataSetService>();
+            var unifiedDataSetService = scope.ServiceProvider.GetRequiredService<IDataSetService>();
             var serviceLogger = scope.ServiceProvider.GetRequiredService<ILogger<InitialInventoryImportService>>();
 
             var service = new InitialInventoryImportService(

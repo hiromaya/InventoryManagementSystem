@@ -19,7 +19,7 @@ public class InitialInventoryImportService
 {
     private readonly IInventoryRepository _inventoryRepository;
     private readonly IProductMasterRepository _productRepository;
-    private readonly IUnifiedDataSetService _unifiedDataSetService;
+    private readonly IDataSetService _unifiedDataSetService;
     private readonly ILogger<InitialInventoryImportService> _logger;
     private readonly string _importPath;
     private readonly string _processedPath;
@@ -28,7 +28,7 @@ public class InitialInventoryImportService
     public InitialInventoryImportService(
         IInventoryRepository inventoryRepository,
         IProductMasterRepository productRepository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<InitialInventoryImportService> logger,
         string importPath,
         string processedPath,

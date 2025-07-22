@@ -19,14 +19,14 @@ public class PurchaseVoucherImportService
 {
     private readonly PurchaseVoucherCsvRepository _purchaseVoucherRepository;
     private readonly IDataSetRepository _dataSetRepository;
-    private readonly IUnifiedDataSetService _unifiedDataSetService;
+    private readonly IDataSetService _unifiedDataSetService;
     private readonly ILogger<PurchaseVoucherImportService> _logger;
     private readonly IInventoryRepository _inventoryRepository;
     
     public PurchaseVoucherImportService(
         PurchaseVoucherCsvRepository purchaseVoucherRepository,
         IDataSetRepository dataSetRepository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<PurchaseVoucherImportService> logger,
         IInventoryRepository inventoryRepository)
     {

@@ -16,7 +16,7 @@ namespace InventorySystem.Import.Services;
 public class ReceiptVoucherImportService : IImportService
 {
     private readonly IReceiptVoucherRepository _repository;
-    private readonly IUnifiedDataSetService _dataSetService;
+    private readonly IDataSetService _dataSetService;
     private readonly ILogger<ReceiptVoucherImportService> _logger;
 
     public string ServiceName => "入金伝票インポート";
@@ -24,7 +24,7 @@ public class ReceiptVoucherImportService : IImportService
 
     public ReceiptVoucherImportService(
         IReceiptVoucherRepository repository,
-        IUnifiedDataSetService dataSetService,
+        IDataSetService dataSetService,
         ILogger<ReceiptVoucherImportService> logger)
     {
         _repository = repository;

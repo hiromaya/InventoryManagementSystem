@@ -20,13 +20,13 @@ public class ProductMasterImportService
 {
     private readonly IProductMasterRepository _productMasterRepository;
     private readonly IDataSetRepository _dataSetRepository;
-    private readonly IUnifiedDataSetService _unifiedDataSetService;
+    private readonly IDataSetService _unifiedDataSetService;
     private readonly ILogger<ProductMasterImportService> _logger;
 
     public ProductMasterImportService(
         IProductMasterRepository productMasterRepository,
         IDataSetRepository dataSetRepository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<ProductMasterImportService> logger)
     {
         _productMasterRepository = productMasterRepository;

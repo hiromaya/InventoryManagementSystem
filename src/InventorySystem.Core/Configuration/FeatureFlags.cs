@@ -5,14 +5,11 @@ namespace InventorySystem.Core.Configuration
     /// </summary>
     public class FeatureFlags
     {
-        /// <summary>
-        /// DataSetManagementテーブルのみを使用するかどうか
-        /// </summary>
-        public bool UseDataSetManagementOnly { get; set; }
+        // DataSetManagementに完全移行済みのため、関連設定は削除
         
         /// <summary>
-        /// DataSets移行ログを有効にするかどうか
+        /// 将来の機能フラグ用（現在は未使用）
         /// </summary>
-        public bool EnableDataSetsMigrationLog { get; set; }
+        public bool Reserved { get; set; } = false;
     }
 }

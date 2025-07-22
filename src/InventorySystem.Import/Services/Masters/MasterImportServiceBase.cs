@@ -22,7 +22,7 @@ public abstract class MasterImportServiceBase<TEntity, TModel> : IImportService
     where TModel : CategoryMasterCsv
 {
     protected readonly ICategoryMasterRepository<TEntity> _repository;
-    protected readonly IUnifiedDataSetService _unifiedDataSetService;
+    protected readonly IDataSetService _unifiedDataSetService;
     protected readonly ILogger<MasterImportServiceBase<TEntity, TModel>> _logger;
     
     /// <summary>
@@ -42,7 +42,7 @@ public abstract class MasterImportServiceBase<TEntity, TModel> : IImportService
 
     protected MasterImportServiceBase(
         ICategoryMasterRepository<TEntity> repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<MasterImportServiceBase<TEntity, TModel>> logger)
     {
         _repository = repository;

@@ -17,7 +17,7 @@ public class CustomerCategory1ImportService : MasterImportServiceBase<CustomerCa
 
     public CustomerCategory1ImportService(
         ICategoryMasterRepository<CustomerCategory1Master> repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<CustomerCategory1ImportService> logger)
         : base(repository, unifiedDataSetService, logger)
     {
@@ -35,7 +35,7 @@ public class CustomerCategory2ImportService : MasterImportServiceBase<CustomerCa
 
     public CustomerCategory2ImportService(
         ICategoryMasterRepository<CustomerCategory2Master> repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<CustomerCategory2ImportService> logger)
         : base(repository, unifiedDataSetService, logger)
     {
@@ -53,7 +53,7 @@ public class CustomerCategory3ImportService : MasterImportServiceBase<CustomerCa
 
     public CustomerCategory3ImportService(
         ICategoryMasterRepository<CustomerCategory3Master> repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<CustomerCategory3ImportService> logger)
         : base(repository, unifiedDataSetService, logger)
     {
@@ -71,7 +71,7 @@ public class CustomerCategory4ImportService : MasterImportServiceBase<CustomerCa
 
     public CustomerCategory4ImportService(
         ICategoryMasterRepository<CustomerCategory4Master> repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<CustomerCategory4ImportService> logger)
         : base(repository, unifiedDataSetService, logger)
     {
@@ -89,7 +89,7 @@ public class CustomerCategory5ImportService : MasterImportServiceBase<CustomerCa
 
     public CustomerCategory5ImportService(
         ICategoryMasterRepository<CustomerCategory5Master> repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<CustomerCategory5ImportService> logger)
         : base(repository, unifiedDataSetService, logger)
     {

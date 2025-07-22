@@ -98,6 +98,9 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "procedures/sp_CreateCpInventoryFromInventoryMasterCumulative.sql",     // CP在庫作成
         "procedures/sp_CreateProductLedgerData.sql",                            // 商品勘定帳票データ生成
         
+        // === DataSets完全削除（DataSetManagement完全移行のため） ===
+        "999_DropDataSetsTable.sql",                                           // DataSetsテーブル削除
+        
         // === CreatedAt/UpdatedAt移行フェーズ（05_create_master_tables.sqlで不要） ===
         // "050_Phase1_CheckCurrentSchema.sql",       // 現在のスキーマ確認（実行不要）
         // "051_Phase2_AddNewColumns.sql",            // 新しいカラムを追加（05_create_master_tables.sqlで完了）

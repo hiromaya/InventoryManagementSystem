@@ -12,7 +12,7 @@ namespace InventorySystem.Import.Services.Masters;
 public class UnitMasterImportService : IImportService
 {
     private readonly IUnitMasterRepository _repository;
-    private readonly IUnifiedDataSetService _unifiedDataSetService;
+    private readonly IDataSetService _unifiedDataSetService;
     private readonly ILogger<UnitMasterImportService> _logger;
 
     public string ServiceName => "単位マスタ";
@@ -22,7 +22,7 @@ public class UnitMasterImportService : IImportService
 
     public UnitMasterImportService(
         IUnitMasterRepository repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<UnitMasterImportService> logger)
     {
         _repository = repository;

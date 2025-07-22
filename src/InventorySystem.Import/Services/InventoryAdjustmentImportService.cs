@@ -18,13 +18,13 @@ public class InventoryAdjustmentImportService
 {
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
     private readonly IDataSetRepository _dataSetRepository;
-    private readonly IUnifiedDataSetService _unifiedDataSetService;
+    private readonly IDataSetService _unifiedDataSetService;
     private readonly ILogger<InventoryAdjustmentImportService> _logger;
     
     public InventoryAdjustmentImportService(
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
         IDataSetRepository dataSetRepository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<InventoryAdjustmentImportService> logger)
     {
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;

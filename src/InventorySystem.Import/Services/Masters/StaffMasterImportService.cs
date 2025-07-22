@@ -12,7 +12,7 @@ namespace InventorySystem.Import.Services.Masters;
 public class StaffMasterImportService : IImportService
 {
     private readonly IStaffMasterRepository _repository;
-    private readonly IUnifiedDataSetService _unifiedDataSetService;
+    private readonly IDataSetService _unifiedDataSetService;
     private readonly ILogger<StaffMasterImportService> _logger;
 
     public string ServiceName => "担当者マスタ";
@@ -22,7 +22,7 @@ public class StaffMasterImportService : IImportService
 
     public StaffMasterImportService(
         IStaffMasterRepository repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<StaffMasterImportService> logger)
     {
         _repository = repository;

@@ -17,7 +17,7 @@ public class StaffCategory1ImportService : MasterImportServiceBase<StaffCategory
 
     public StaffCategory1ImportService(
         ICategoryMasterRepository<StaffCategory1Master> repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<StaffCategory1ImportService> logger)
         : base(repository, unifiedDataSetService, logger)
     {

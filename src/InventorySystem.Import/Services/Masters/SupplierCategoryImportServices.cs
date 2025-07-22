@@ -17,7 +17,7 @@ public class SupplierCategory1ImportService : MasterImportServiceBase<SupplierCa
 
     public SupplierCategory1ImportService(
         ICategoryMasterRepository<SupplierCategory1Master> repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<SupplierCategory1ImportService> logger)
         : base(repository, unifiedDataSetService, logger)
     {
@@ -35,7 +35,7 @@ public class SupplierCategory2ImportService : MasterImportServiceBase<SupplierCa
 
     public SupplierCategory2ImportService(
         ICategoryMasterRepository<SupplierCategory2Master> repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<SupplierCategory2ImportService> logger)
         : base(repository, unifiedDataSetService, logger)
     {
@@ -53,7 +53,7 @@ public class SupplierCategory3ImportService : MasterImportServiceBase<SupplierCa
 
     public SupplierCategory3ImportService(
         ICategoryMasterRepository<SupplierCategory3Master> repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<SupplierCategory3ImportService> logger)
         : base(repository, unifiedDataSetService, logger)
     {

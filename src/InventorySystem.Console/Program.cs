@@ -219,22 +219,9 @@ builder.Services.AddScoped<IDataSetManagementFactory, DataSetManagementFactory>(
 builder.Services.Configure<FeatureFlags>(
     builder.Configuration.GetSection("Features"));
 
-// DataSetService関連の登録（フィーチャーフラグに基づく条件付き登録）
-var features = builder.Configuration.GetSection("Features").Get<FeatureFlags>() ?? new FeatureFlags();
-
-if (features.UseDataSetManagementOnly)
-{
-    // DataSetManagementのみを使用
-    builder.Services.AddScoped<IDataSetService, DataSetManagementService>();
-    Console.WriteLine("🔄 DataSetManagement専用モードで起動");
-}
-else
-{
-    // 従来の二重管理モード
-    builder.Services.AddScoped<IUnifiedDataSetService, UnifiedDataSetService>();
-    builder.Services.AddScoped<IDataSetService, LegacyDataSetService>();
-    Console.WriteLine("🔄 DataSets/DataSetManagement二重管理モードで起動");
-}
+// DataSetService関連の登録（DataSetManagement専用）
+builder.Services.AddScoped<IDataSetService, DataSetManagementService>();
+Console.WriteLine("🔄 DataSetManagement専用モードで起動");
 // Report Services
 #if WINDOWS
 // FastReportサービスの登録（Windows環境のみ）

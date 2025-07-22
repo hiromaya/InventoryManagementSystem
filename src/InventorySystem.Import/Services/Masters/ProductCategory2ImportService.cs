@@ -17,7 +17,7 @@ public class ProductCategory2ImportService : MasterImportServiceBase<ProductCate
 
     public ProductCategory2ImportService(
         ICategoryMasterRepository<ProductCategory2Master> repository,
-        IUnifiedDataSetService unifiedDataSetService,
+        IDataSetService unifiedDataSetService,
         ILogger<ProductCategory2ImportService> logger)
         : base(repository, unifiedDataSetService, logger)
     {

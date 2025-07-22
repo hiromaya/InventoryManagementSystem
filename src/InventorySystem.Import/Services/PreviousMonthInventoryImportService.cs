@@ -19,12 +19,12 @@ public class PreviousMonthInventoryImportService
     private readonly IInventoryRepository _inventoryRepository;
     private readonly ILogger<PreviousMonthInventoryImportService> _logger;
     private readonly string _importPath;
-    private readonly IUnifiedDataSetService _unifiedDataSetService;
+    private readonly IDataSetService _unifiedDataSetService;
 
     public PreviousMonthInventoryImportService(
         IInventoryRepository inventoryRepository,
         ILogger<PreviousMonthInventoryImportService> logger,
-        IUnifiedDataSetService unifiedDataSetService)
+        IDataSetService unifiedDataSetService)
     {
         _inventoryRepository = inventoryRepository;
         _logger = logger;
