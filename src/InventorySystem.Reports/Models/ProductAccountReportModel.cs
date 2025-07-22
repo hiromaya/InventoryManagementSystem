@@ -220,7 +220,7 @@ public class ProductAccountReportModel
     /// <summary>
     /// 月日表示用（MM/dd形式）
     /// </summary>
-    public string MonthDayDisplay => TransactionDate.ToString("MM/dd");
+    public string MonthDayDisplay { get; set; } = string.Empty;
 
     /// <summary>
     /// 負の値を▲付きで表示（単価以外）

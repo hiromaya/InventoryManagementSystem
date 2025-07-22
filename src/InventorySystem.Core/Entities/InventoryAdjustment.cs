@@ -55,6 +55,15 @@ public class InventoryAdjustment
     /// 区分コード (0:消費税,1:ロス,2:不明,3:不明,4:振替,5:不明,6:調整) ※受注伝票用
     /// </summary>
     public int? CategoryCode { get; set; }
+
+    /// <summary>
+    /// 調整区分（CategoryCodeの文字列版）
+    /// </summary>
+    public string AdjustmentCategory 
+    { 
+        get => CategoryCode?.ToString() ?? "1"; 
+        set => CategoryCode = int.TryParse(value, out var parsed) ? parsed : null; 
+    }
     
     /// <summary>
     /// 得意先コード（受注伝票用）
