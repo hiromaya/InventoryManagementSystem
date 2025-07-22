@@ -173,20 +173,12 @@ public class PreviousMonthInventoryImportService
                 _logger.LogInformation("=== ステップ4: トランザクション処理開始 ===");
                 
                 // 統一データセット作成
-                var dataSetInfo = new UnifiedDataSetInfo
-                {
-                    DataSetId = dataSetId,
-                    ProcessType = "INIT_INVENTORY",
-                    ImportType = "INIT",
-                    Name = $"前月末在庫インポート {importDate:yyyy/MM/dd}",
-                    Description = $"前月末在庫インポート: {inventoryList.Count}件",
-                    JobDate = importDate,
-                    Department = "DeptA",
-                    FilePath = Path.GetFileName(_importPath),
-                    CreatedBy = "init-inventory"
-                };
-                
-                await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
+                dataSetId = await _unifiedDataSetService.CreateDataSetAsync(
+                    $"前月末在庫インポート {importDate:yyyy/MM/dd}",
+                    "INIT_INVENTORY",
+                    importDate,
+                    $"前月末在庫インポート: {inventoryList.Count}件",
+                    _importPath);
                 
                 // トランザクション内で一括処理
                 var processedCount = await _inventoryRepository.ProcessInitialInventoryInTransactionAsync(
@@ -196,7 +188,8 @@ public class PreviousMonthInventoryImportService
                 );
                 
                 // 処理完了をマーク
-                await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, processedCount);
+                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, "Completed");
+                await _unifiedDataSetService.UpdateRecordCountAsync(dataSetId, processedCount);
                 
                 _logger.LogInformation("=== ステップ5: トランザクション処理完了 ===");
                 _logger.LogInformation("処理済み: {Processed}件", processedCount);
@@ -455,21 +448,15 @@ public class PreviousMonthInventoryImportService
             // 統一データセット登録
             if (processedCount > 0)
             {
-                var dataSetInfo = new UnifiedDataSetInfo
-                {
-                    DataSetId = dataSetId,
-                    ProcessType = "INIT_INVENTORY",
-                    ImportType = "INIT",
-                    Name = $"前月末在庫インポート {startDate:yyyy/MM/dd}",
-                    Description = $"前月末在庫インポート: {processedCount}件",
-                    JobDate = startDate,
-                    Department = "DeptA",
-                    FilePath = Path.GetFileName(_importPath),
-                    CreatedBy = "init-inventory"
-                };
+                dataSetId = await _unifiedDataSetService.CreateDataSetAsync(
+                    $"前月末在庫インポート {startDate:yyyy/MM/dd}",
+                    "INIT_INVENTORY",
+                    startDate,
+                    $"前月末在庫インポート: {processedCount}件",
+                    _importPath);
                 
-                await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
-                await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, processedCount);
+                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, "Completed");
+                await _unifiedDataSetService.UpdateRecordCountAsync(dataSetId, processedCount);
                 
                 _logger.LogInformation("統一データセット登録完了: DataSetId={DataSetId}", dataSetId);
             }

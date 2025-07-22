@@ -82,19 +82,12 @@ public class InventoryAdjustmentImportService
         try
         {
             // 統一データセット作成
-            var dataSetInfo = new UnifiedDataSetInfo
-            {
-                ProcessType = "ADJUSTMENT",
-                ImportType = "IMPORT",
-                Name = $"在庫調整取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
-                Description = $"在庫調整CSVファイル取込: {Path.GetFileName(filePath)}",
-                JobDate = startDate ?? DateTime.Today,
-                Department = departmentCode,
-                FilePath = filePath,
-                CreatedBy = "adjustment-import"
-            };
-            
-            dataSetId = await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
+            dataSetId = await _unifiedDataSetService.CreateDataSetAsync(
+                $"在庫調整取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
+                "ADJUSTMENT",
+                startDate ?? DateTime.Today,
+                $"在庫調整CSVファイル取込: {Path.GetFileName(filePath)}",
+                filePath);
 
             // CSV読み込み処理（販売大臣フォーマット対応）
             var adjustments = new List<InventoryAdjustment>();
@@ -212,13 +205,13 @@ public class InventoryAdjustmentImportService
             if (errorMessages.Any())
             {
                 var errorMessage = string.Join("\n", errorMessages);
-                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, errorMessage);
+                await _unifiedDataSetService.SetErrorAsync(dataSetId, errorMessage);
                 _logger.LogWarning("在庫調整CSV取込部分成功: 成功{Success}件, エラー{Error}件", 
                     importedCount, errorMessages.Count);
             }
             else
             {
-                await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, importedCount);
+                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, "Completed");
                 _logger.LogInformation("在庫調整CSV取込完了: {Count}件", importedCount);
             }
 
@@ -226,7 +219,7 @@ public class InventoryAdjustmentImportService
         }
         catch (Exception ex)
         {
-            await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
+            await _unifiedDataSetService.SetErrorAsync(dataSetId, ex.Message);
             _logger.LogError(ex, "在庫調整CSV取込エラー: {FilePath}", filePath);
             throw;
         }

@@ -123,19 +123,12 @@ public class SalesVoucherImportService
         try
         {
             // 統一データセット作成
-            var dataSetInfo = new UnifiedDataSetInfo
-            {
-                ProcessType = "SALES",
-                ImportType = "IMPORT",
-                Name = $"売上伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
-                Description = $"売上伝票CSVファイル取込: {Path.GetFileName(filePath)}",
-                JobDate = startDate ?? DateTime.Today,
-                Department = departmentCode,
-                FilePath = filePath,
-                CreatedBy = "sales-import"
-            };
-            
-            dataSetId = await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
+            dataSetId = await _unifiedDataSetService.CreateDataSetAsync(
+                $"売上伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
+                "SALES",
+                startDate ?? DateTime.Today,
+                $"売上伝票CSVファイル取込: {Path.GetFileName(filePath)}",
+                filePath);
 
             // CSV読み込み処理（販売大臣フォーマット対応）
             var salesVouchers = new List<SalesVoucher>();
@@ -272,13 +265,13 @@ public class SalesVoucherImportService
             if (errorMessages.Any())
             {
                 var errorMessage = string.Join("\n", errorMessages);
-                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, errorMessage);
+                await _unifiedDataSetService.SetErrorAsync(dataSetId, errorMessage);
                 _logger.LogWarning("売上伝票CSV取込部分成功: 成功{Success}件, エラー{Error}件", 
                     importedCount, errorMessages.Count);
             }
             else
             {
-                await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, importedCount);
+                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, "Completed");
                 _logger.LogInformation("売上伝票CSV取込完了: {Count}件", importedCount);
                 
                 // 最終売上日を更新
@@ -304,7 +297,7 @@ public class SalesVoucherImportService
         }
         catch (Exception ex)
         {
-            await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
+            await _unifiedDataSetService.SetErrorAsync(dataSetId, ex.Message);
             _logger.LogError(ex, "売上伝票CSV取込エラー: {FilePath}", filePath);
             
             // エラー時、ファイルをErrorフォルダへ移動

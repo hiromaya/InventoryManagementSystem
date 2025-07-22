@@ -53,18 +53,12 @@ public class ReceiptVoucherImportService : IImportService
         try
         {
             // データセット作成
-            var dataSetInfo = new UnifiedDataSetInfo
-            {
-                ProcessType = "RECEIPT",
-                ImportType = "IMPORT", 
-                Name = $"入金伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
-                Description = $"入金伝票CSVファイル取込: {Path.GetFileName(filePath)}",
-                JobDate = importDate,
-                FilePath = filePath,
-                CreatedBy = "receipt-import"
-            };
-
-            var dataSetId = await _dataSetService.CreateDataSetAsync(dataSetInfo);
+            var dataSetId = await _dataSetService.CreateDataSetAsync(
+                $"入金伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
+                "RECEIPT",
+                importDate,
+                $"入金伝票CSVファイル取込: {Path.GetFileName(filePath)}",
+                filePath);
 
             // CSV読み込み処理
             var receiptVouchers = new List<ReceiptVoucher>();

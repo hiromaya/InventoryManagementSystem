@@ -55,18 +55,12 @@ public class ProductMasterImportService
         try
         {
             // 統一データセット作成
-            var dataSetInfo = new UnifiedDataSetInfo
-            {
-                ProcessType = "PRODUCT",
-                ImportType = "IMPORT",
-                Name = $"商品マスタ取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
-                Description = $"商品マスタCSV取込: {Path.GetFileName(filePath)}",
-                JobDate = importDate,
-                FilePath = filePath,
-                CreatedBy = "product-master-import"
-            };
-            
-            dataSetId = await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
+            dataSetId = await _unifiedDataSetService.CreateDataSetAsync(
+                $"商品マスタ取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
+                "PRODUCT",
+                importDate,
+                $"商品マスタCSV取込: {Path.GetFileName(filePath)}",
+                filePath);
 
             // CSV読み込み処理
             var products = new List<ProductMaster>();
@@ -114,13 +108,13 @@ public class ProductMasterImportService
             if (errorMessages.Any())
             {
                 var errorMessage = string.Join("\n", errorMessages);
-                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, errorMessage);
+                await _unifiedDataSetService.SetErrorAsync(dataSetId, errorMessage);
                 _logger.LogWarning("商品マスタCSV取込部分成功: 成功{Success}件, エラー{Error}件", 
                     importedCount, errorMessages.Count);
             }
             else
             {
-                await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, importedCount);
+                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, "Completed");
                 _logger.LogInformation("商品マスタCSV取込完了: {Count}件", importedCount);
             }
 
@@ -136,7 +130,7 @@ public class ProductMasterImportService
         }
         catch (Exception ex)
         {
-            await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
+            await _unifiedDataSetService.SetErrorAsync(dataSetId, ex.Message);
             _logger.LogError(ex, "商品マスタCSV取込エラー: {FilePath}", filePath);
             throw;
         }

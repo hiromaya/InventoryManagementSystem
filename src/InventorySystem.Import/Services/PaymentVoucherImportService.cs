@@ -53,18 +53,12 @@ public class PaymentVoucherImportService : IImportService
         try
         {
             // データセット作成
-            var dataSetInfo = new UnifiedDataSetInfo
-            {
-                ProcessType = "PAYMENT",
-                ImportType = "IMPORT", 
-                Name = $"支払伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
-                Description = $"支払伝票CSVファイル取込: {Path.GetFileName(filePath)}",
-                JobDate = importDate,
-                FilePath = filePath,
-                CreatedBy = "payment-import"
-            };
-
-            var dataSetId = await _dataSetService.CreateDataSetAsync(dataSetInfo);
+            var dataSetId = await _dataSetService.CreateDataSetAsync(
+                $"支払伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
+                "PAYMENT",
+                importDate,
+                $"支払伝票CSVファイル取込: {Path.GetFileName(filePath)}",
+                filePath);
 
             // CSV読み込み処理
             var paymentVouchers = new List<PaymentVoucher>();
