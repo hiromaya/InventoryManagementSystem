@@ -96,6 +96,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "procedures/sp_MergeInventoryMasterCumulative.sql",                     // 累積在庫マージ
         "procedures/sp_CreateCpInventoryFromInventoryMasterWithProductInfo.sql", // 商品情報付きCP在庫作成
         "procedures/sp_CreateCpInventoryFromInventoryMasterCumulative.sql",     // CP在庫作成
+        "procedures/sp_CreateProductLedgerData.sql",                            // 商品勘定帳票データ生成
         
         // === CreatedAt/UpdatedAt移行フェーズ（05_create_master_tables.sqlで不要） ===
         // "050_Phase1_CheckCurrentSchema.sql",       // 現在のスキーマ確認（実行不要）
