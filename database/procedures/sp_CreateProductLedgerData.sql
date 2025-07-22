@@ -44,8 +44,8 @@ BEGIN
             CurrentUnitPrice DECIMAL(18,4) NOT NULL DEFAULT 0,
             
             -- グループキー（FastReport用）
-            GroupKey NVARCHAR(100) NOT NULL,
-            SortKey NVARCHAR(150) NOT NULL,
+            GroupKey NVARCHAR(50) NOT NULL,  -- 100から50に縮小
+            SortKey NVARCHAR(40) NOT NULL,   -- 150から40に縮小
             
             PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName)
         );
@@ -72,10 +72,10 @@ BEGIN
             cp.DailyStock as CurrentStock,
             cp.DailyStockAmount as CurrentStockAmount,
             cp.DailyUnitPrice as CurrentUnitPrice,
-            -- グループキー生成
-            cp.ProductCode + '_' + cp.ShippingMarkCode + '_' + cp.GradeCode + '_' + cp.ClassCode as GroupKey,
-            -- ソートキー生成
-            ISNULL(cp.ProductCategory1, '000') + '_' + cp.ProductCode + '_' + cp.ShippingMarkCode + '_' + cp.GradeCode + '_' + cp.ClassCode as SortKey
+            -- グループキー生成（簡略化）
+            cp.ProductCode + '_' + cp.ShippingMarkCode as GroupKey,
+            -- ソートキー生成（簡略化）
+            cp.ProductCode + '_' + cp.ShippingMarkCode + '_' + cp.GradeCode as SortKey
         FROM CpInventoryMaster cp
         WHERE cp.JobDate = @JobDate
           AND (@DepartmentCode IS NULL OR cp.ProductCategory1 = @DepartmentCode);
@@ -113,7 +113,7 @@ BEGIN
                 cp.ProductCategory1,
                 '' as ProductCategory5,
                 cp.GroupKey,
-                cp.SortKey + '_0000_前残' as SortKey,
+                cp.SortKey + '_0000' as SortKey,
                 1 as SortOrder
             FROM #CPInventoryMaster cp
             WHERE cp.PreviousDayStock <> 0 OR cp.PreviousDayStockAmount <> 0
@@ -152,7 +152,7 @@ BEGIN
                 cp.ProductCategory1,
                 '' as ProductCategory5,
                 cp.GroupKey,
-                cp.SortKey + '_' + FORMAT(s.VoucherDate, 'yyyyMMdd') + '_' + s.VoucherNumber as SortKey,
+                cp.SortKey + '_' + s.VoucherNumber as SortKey,
                 2 as SortOrder
             FROM SalesVouchers s
             INNER JOIN #CPInventoryMaster cp ON 
@@ -197,7 +197,7 @@ BEGIN
                 cp.ProductCategory1,
                 '' as ProductCategory5,
                 cp.GroupKey,
-                cp.SortKey + '_' + FORMAT(p.VoucherDate, 'yyyyMMdd') + '_' + p.VoucherNumber as SortKey,
+                cp.SortKey + '_' + p.VoucherNumber as SortKey,
                 2 as SortOrder
             FROM PurchaseVouchers p
             INNER JOIN #CPInventoryMaster cp ON 
@@ -248,7 +248,7 @@ BEGIN
                 cp.ProductCategory1,
                 '' as ProductCategory5,
                 cp.GroupKey,
-                cp.SortKey + '_' + FORMAT(a.VoucherDate, 'yyyyMMdd') + '_' + a.VoucherNumber as SortKey,
+                cp.SortKey + '_' + a.VoucherNumber as SortKey,
                 2 as SortOrder
             FROM InventoryAdjustments a
             INNER JOIN #CPInventoryMaster cp ON 
