@@ -381,21 +381,14 @@ public class InitialInventoryImportService
                 jobDate, existingCount);
         }
 
-        // 統一データセット作成（dataSetIdは既に生成済みなので使用）
-        var dataSetInfo = new UnifiedDataSetInfo
-        {
-            DataSetId = dataSetId,
-            ProcessType = "INITIAL_INVENTORY",
-            ImportType = "INIT",
-            Name = $"初期在庫インポート {jobDate:yyyy/MM/dd}",
-            Description = $"初期在庫インポート: {inventories.Count}件",
-            JobDate = jobDate,
-            Department = department,
-            CreatedBy = "import-initial-inventory"
-        };
-        
-        // 統一データセットサービスで作成
-        await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
+        // DataSetManagementService でデータセット作成
+        await _unifiedDataSetService.CreateDataSetAsync(
+            $"初期在庫インポート {jobDate:yyyy/MM/dd}",
+            "INITIAL_INVENTORY",
+            jobDate,
+            $"初期在庫インポート: {inventories.Count}件",
+            null // filePath
+        );
 
         // トランザクション内で処理を実行（DataSetManagementエンティティは不要になった）
         var processedCount = await _inventoryRepository.ProcessInitialInventoryInTransactionAsync(
@@ -405,7 +398,8 @@ public class InitialInventoryImportService
         );
 
         // 処理完了をマーク
-        await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, processedCount);
+        await _unifiedDataSetService.UpdateStatusAsync(dataSetId, "Completed");
+        await _unifiedDataSetService.UpdateRecordCountAsync(dataSetId, processedCount);
 
         _logger.LogInformation("データベース登録完了: {ProcessedCount}件処理", processedCount);
     }
