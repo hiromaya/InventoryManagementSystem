@@ -169,6 +169,9 @@
 - **2025-07-07: JobDate仕様を追加（伝票データに手動でJobDateを指定する機能）**
 - **2025-07-18: init-database--force実行時の024_CreateProductMaster.sql除外設定（移行作業保護のため）**
 - **2025-07-19: DailyCloseManagement完全実装（Gemini CLI連携によるベストプラクティス適用）**
+- **2025-07-22: DataSets/DataSetManagement二重管理問題の完全解決**
+- **2025-07-22: 商品勘定帳票機能とストアドプロシージャsp_CreateProductLedgerData実装**
+- **2025-07-22: FastReport商品勘定テンプレート詳細設計適用（A3横1512px幅対応）**
 
 ---
 
@@ -251,10 +254,10 @@
 ### 実装済み機能一覧
 1. ✅ CSV取込機能（売上・仕入・在庫調整・各種マスタ）
 2. ✅ アンマッチリスト処理
-3. ✅ データセット管理
+3. ✅ データセット管理（DataSetManagement完全移行完了）
 4. ✅ 日次終了管理（DailyCloseManagement）
-5. ⏳ 商品勘定計算処理（未実装）
-6. ⏳ 商品日報出力（未実装）
+5. ✅ 商品勘定計算処理（ストアドプロシージャsp_CreateProductLedgerData実装）
+6. ✅ 商品日報出力（実装済み）
 7. ⏳ 在庫表出力（未実装）
 
 ### テスト・デバッグ時の確認事項
@@ -877,6 +880,100 @@ await _repository.UpdateStatusAsync(id, "PASSED", "検証完了");
 
 この設定により、`init-database --force`と手動移行作業の両方が安全に実行できます。
 
+## 📊 DataSets/DataSetManagement二重管理問題の完全解決（2025-07-22）
+
+### 背景
+システム起動時に「🔄 DataSets/DataSetManagement二重管理モード」で動作し、これがストアドプロシージャ未作成問題の根本原因となっていました。
+
+### 解決内容
+
+#### 1. appsettings.json設定整理
+```json
+// 変更前
+"Features": {
+    "UseDataSetManagementOnly": false,
+    "EnableDataSetsMigrationLog": true
+}
+
+// 変更後（設定自体を簡素化）
+"Features": {
+    "Reserved": false
+}
+```
+
+#### 2. Program.cs二重管理モード削除
+```csharp
+// 変更前：条件分岐による二重管理
+if (features.UseDataSetManagementOnly) {
+    builder.Services.AddScoped<IDataSetService, DataSetManagementService>();
+} else {
+    builder.Services.AddScoped<IUnifiedDataSetService, UnifiedDataSetService>();
+    builder.Services.AddScoped<IDataSetService, LegacyDataSetService>();
+}
+
+// 変更後：DataSetManagement専用
+builder.Services.AddScoped<IDataSetService, DataSetManagementService>();
+Console.WriteLine("🔄 DataSetManagement専用モードで起動");
+```
+
+#### 3. 不要サービス完全削除
+- `LegacyDataSetService.cs` 削除
+- `UnifiedDataSetService.cs` 削除
+- `IUnifiedDataSetService.cs` 削除
+- 全ファイル（20+）でIUnifiedDataSetService → IDataSetServiceに統一
+
+#### 4. DataSetsテーブル削除対応
+- `999_DropDataSetsTable.sql` スクリプト作成
+- DatabaseInitializationServiceに自動実行登録
+- 主要コマンド（import-folder、unmatch-list、daily-report）のDataSets依存確認完了
+
+### 効果
+- ✅ システム起動：「DataSetManagement専用モード」で起動
+- ✅ ストアドプロシージャsp_CreateProductLedgerDataの正常作成・実行
+- ✅ 商品勘定帳票の正常動作
+- ✅ データ整合性の向上
+
+## 📈 商品勘定帳票機能実装（2025-07-22）
+
+### 実装内容
+- **コマンド**: `product-account <日付>`
+- **ストアドプロシージャ**: `sp_CreateProductLedgerData`
+- **FastReportテンプレート**: `ProductAccount.frx`
+- **レイアウト**: A3横向き（420mm × 297mm）、1512px幅
+
+### 主要機能
+#### 1. CPInventoryMaster一時テーブル作成
+- 前日残高と当日残高データの管理
+- 5項目複合キー（商品・等級・階級・荷印コード・荷印名）での集計
+
+#### 2. 取引明細データ統合
+- 前残高レコード
+- 売上伝票（掛売・現売）
+- 仕入伝票（掛仕入・現金仕入）
+- 在庫調整（ロス・振替・調整）
+
+#### 3. 移動平均法計算
+- 0除算対策付きの在庫単価計算
+- ウィンドウ関数による累積残高計算
+- 粗利益・粗利率の自動計算
+
+#### 4. FastReportテンプレート詳細設計
+```
+列幅設定（総幅1512px）:
+商品名:150px, 荷印名:144px, 手入力:86px, 等級:75px, 階級:75px,
+伝票NO:91px, 区分:59px, 月日:64px, 仕入数量:96px, 売上数量:96px,
+残数量:96px, 単価:96px, 金額:118px, 粗利益:102px, 取引先名:164px
+```
+
+### 使用方法
+```bash
+# 商品勘定帳票生成
+dotnet run -- product-account 2025-06-30
+
+# 部門指定での生成
+dotnet run -- product-account 2025-06-30 DeptA
+```
+
 ## 📌 import-folderコマンドの処理ルール
 
 ### 1. 基本仕様
@@ -1072,6 +1169,26 @@ builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListRepo
 - `/src/InventorySystem.Reports/FastReport/Templates/*.frx`
 
 **理由**: FastReportはこのシステムの中核機能であり、PDF帳票生成の唯一の本番実装です。
+
+## 🔧 重要な開発ルール更新（2025-07-22）
+
+### DataSetManagement専用システム
+- **DataSetsテーブル**: 完全廃止済み（使用禁止）
+- **DataSetManagementテーブル**: 全データセット管理の単一テーブル
+- **サービス**: DataSetManagementServiceのみ使用
+- **二重管理モード**: 完全削除済み（過去の仕様）
+
+### 商品勘定帳票開発時の注意
+- **ストアドプロシージャ**: sp_CreateProductLedgerDataが必須
+- **データ準備**: CPInventoryMasterの一時テーブル作成が前提
+- **計算ロジック**: 移動平均法による在庫単価計算をストアドプロシージャ内で実行
+- **FastReport**: ScriptLanguage="None"厳守、すべての計算はC#側で完結
+
+### エラー対応時の調査手順
+1. **起動モード確認**: "DataSetManagement専用モード"で起動しているか
+2. **ストアドプロシージャ確認**: sp_CreateProductLedgerDataが存在するか
+3. **データベース接続**: 同一データベース・同一接続文字列を使用しているか
+4. **Gemini CLI活用**: 複雑な問題はGemini CLIと相談しながら解決
 
 ## 🤝 Gemini CLI 連携ガイド
 
