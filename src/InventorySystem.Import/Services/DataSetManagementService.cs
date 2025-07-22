@@ -61,12 +61,10 @@ namespace InventorySystem.Import.Services
             
             await _repository.CreateAsync(dataSetManagement);
             
-            if (_features.EnableDataSetsMigrationLog)
-            {
-                _logger.LogInformation(
-                    "DataSetManagement作成: Id={DataSetId}, ProcessType={ProcessType}, JobDate={JobDate}",
-                    dataSetId, processType, jobDate);
-            }
+            // ログ出力（FeatureFlag削除後は常に有効）
+            _logger.LogInformation(
+                "DataSetManagement作成: Id={DataSetId}, ProcessType={ProcessType}, JobDate={JobDate}",
+                dataSetId, processType, jobDate);
             
             return dataSetId;
         }
@@ -103,12 +101,10 @@ namespace InventorySystem.Import.Services
             
             await _repository.UpdateAsync(dataSet);
             
-            if (_features.EnableDataSetsMigrationLog)
-            {
-                _logger.LogInformation(
-                    "DataSetManagementステータス更新: Id={DataSetId}, Status={Status}",
-                    dataSetId, status);
-            }
+            // ログ出力（FeatureFlag削除後は常に有効）
+            _logger.LogInformation(
+                "DataSetManagementステータス更新: Id={DataSetId}, Status={Status}",
+                dataSetId, status);
         }
         
         public async Task UpdateRecordCountAsync(string dataSetId, int recordCount)
@@ -137,12 +133,10 @@ namespace InventorySystem.Import.Services
             
             await _repository.UpdateAsync(dataSet);
             
-            if (_features.EnableDataSetsMigrationLog)
-            {
-                _logger.LogInformation(
-                    "DataSetManagementエラー設定: Id={DataSetId}, Error={Error}",
-                    dataSetId, errorMessage);
-            }
+            // ログ出力（FeatureFlag削除後は常に有効）
+            _logger.LogInformation(
+                "DataSetManagementエラー設定: Id={DataSetId}, Error={Error}",
+                dataSetId, errorMessage);
         }
         
         public async Task<bool> ExistsAsync(string dataSetId)

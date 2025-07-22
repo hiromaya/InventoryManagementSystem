@@ -71,19 +71,14 @@ public abstract class MasterImportServiceBase<TEntity, TModel> : IImportService
 
         try
         {
-            // 統一データセット作成
-            var dataSetInfo = new UnifiedDataSetInfo
-            {
-                ProcessType = GetProcessType(),
-                ImportType = "IMPORT",
-                Name = $"{ServiceName}取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
-                Description = $"{ServiceName}CSV取込: {Path.GetFileName(filePath)}",
-                JobDate = importDate,
-                FilePath = filePath,
-                CreatedBy = $"{GetProcessType().ToLower()}-import"
-            };
-            
-            dataSetId = await _unifiedDataSetService.CreateDataSetAsync(dataSetInfo);
+            // DataSetManagementService でデータセット作成
+            dataSetId = await _unifiedDataSetService.CreateDataSetAsync(
+                $"{ServiceName}取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
+                GetProcessType(),
+                importDate,
+                $"{ServiceName}CSV取込: {Path.GetFileName(filePath)}",
+                filePath
+            );
 
             // CSV読み込み処理
             var entities = new List<TEntity>();
@@ -139,13 +134,14 @@ public abstract class MasterImportServiceBase<TEntity, TModel> : IImportService
             if (errorMessages.Any())
             {
                 var errorMessage = string.Join("\n", errorMessages);
-                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, errorMessage);
+                await _unifiedDataSetService.SetErrorAsync(dataSetId, errorMessage);
                 _logger.LogWarning("{ServiceName}CSV取込部分成功: 成功{Success}件, エラー{Error}件", 
                     ServiceName, importedCount, errorMessages.Count);
             }
             else
             {
-                await _unifiedDataSetService.CompleteDataSetAsync(dataSetId, importedCount);
+                await _unifiedDataSetService.UpdateStatusAsync(dataSetId, "Completed");
+                await _unifiedDataSetService.UpdateRecordCountAsync(dataSetId, importedCount);
                 _logger.LogInformation("{ServiceName}CSV取込完了: {Count}件", ServiceName, importedCount);
             }
 
@@ -161,7 +157,7 @@ public abstract class MasterImportServiceBase<TEntity, TModel> : IImportService
         }
         catch (Exception ex)
         {
-            await _unifiedDataSetService.UpdateStatusAsync(dataSetId, DataSetStatus.Failed, ex.Message);
+            await _unifiedDataSetService.SetErrorAsync(dataSetId, ex.Message);
             _logger.LogError(ex, "{ServiceName}CSV取込エラー: {FilePath}", ServiceName, filePath);
             throw;
         }
