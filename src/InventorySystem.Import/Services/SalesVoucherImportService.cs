@@ -12,7 +12,7 @@ using InventorySystem.Core.Services;
 using Microsoft.Extensions.Options;
 using InventorySystem.Import.Validators;
 using InventorySystem.Core.Models;
-using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus;
+// using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus; // 削除済み
 
 namespace InventorySystem.Import.Services;
 

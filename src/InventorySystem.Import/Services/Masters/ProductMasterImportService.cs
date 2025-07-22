@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text;
 using InventorySystem.Core.Models;
-using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus;
+// using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus; // 削除済み
 
 namespace InventorySystem.Import.Services.Masters;
 

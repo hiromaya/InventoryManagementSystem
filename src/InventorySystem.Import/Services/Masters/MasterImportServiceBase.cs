@@ -8,7 +8,7 @@ using InventorySystem.Import.Models.Csv.Masters;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text;
-using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus;
+// using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus; // 削除済み
 
 namespace InventorySystem.Import.Services.Masters;
 
