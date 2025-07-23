@@ -2023,7 +2023,7 @@ static async Task ExecuteImportWithCarryoverAsync(IServiceProvider services, str
 
 static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string[] args)
 {
-    if (args.Length < 3)
+    if (args.Length < 2)
     {
         Console.WriteLine("エラー: 部門コードが指定されていません");
         Console.WriteLine("使用方法:");
@@ -2087,13 +2087,13 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         // 在庫マスタ最適化サービス
         var optimizationService = scopedServices.GetService<IInventoryMasterOptimizationService>();
         
-        var department = args[2];
+        var department = args[1];
         DateTime? startDate = null;
         DateTime? endDate = null;
         bool preserveCsvDates = false;
         
         // オプション引数の解析
-        int argIndex = 3;
+        int argIndex = 2;
         while (argIndex < args.Length)
         {
             if (args[argIndex] == "--preserve-csv-dates")
