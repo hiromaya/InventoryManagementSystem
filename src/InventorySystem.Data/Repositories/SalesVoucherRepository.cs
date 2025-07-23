@@ -34,7 +34,9 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
                 InventoryUnitPrice,
                 JobDate,
                 DetailType,
-                DataSetId
+                DataSetId,
+                GrossProfit,
+                WalkingDiscount
             FROM SalesVouchers
             WHERE JobDate = @jobDate
             ORDER BY VoucherNumber, LineNumber";
@@ -239,7 +241,9 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
                 InventoryUnitPrice,
                 JobDate,
                 DetailType,
-                DataSetId
+                DataSetId,
+                GrossProfit,
+                WalkingDiscount
             FROM SalesVouchers
             WHERE DataSetId = @dataSetId
             ORDER BY VoucherNumber, LineNumber";
@@ -300,7 +304,9 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
                 InventoryUnitPrice,
                 JobDate,
                 DetailType,
-                DataSetId
+                DataSetId,
+                GrossProfit,
+                WalkingDiscount
             FROM SalesVouchers
             ORDER BY JobDate DESC, VoucherDate DESC, VoucherId DESC";
 
