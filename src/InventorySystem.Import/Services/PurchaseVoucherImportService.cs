@@ -131,6 +131,13 @@ public class PurchaseVoucherImportService
 
                     var purchaseVoucher = record.ToEntity(dataSetId);
                     
+                    // 明細種別3（単品値引）の特別ログ
+                    if (record.DetailType == "3" && record.Quantity == 0)
+                    {
+                        _logger.LogInformation("行{index}: 単品値引データ - 伝票番号: {VoucherNumber}, 金額: {Amount}", 
+                            index, record.VoucherNumber, record.Amount);
+                    }
+                    
                     // 日付フィルタリング処理（JobDateの改変は行わない）
                     if (startDate.HasValue && purchaseVoucher.JobDate.Date < startDate.Value.Date)
                     {

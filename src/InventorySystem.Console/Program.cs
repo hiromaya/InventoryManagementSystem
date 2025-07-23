@@ -912,7 +912,7 @@ try
         
         // ジョブ日付を取得（引数から、またはデフォルト値）
         DateTime jobDate;
-        if (args.Length >= 3 && DateTime.TryParse(args[2], out jobDate))
+        if (args.Length >= 2 && DateTime.TryParse(args[1], out jobDate))
         {
             logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
         }
@@ -924,7 +924,7 @@ try
         
         // --dataset-id オプションをチェック
         string? existingDataSetId = null;
-        for (int i = 3; i < args.Length - 1; i++)
+        for (int i = 2; i < args.Length - 1; i++)
         {
             if (args[i] == "--dataset-id" && i + 1 < args.Length)
             {

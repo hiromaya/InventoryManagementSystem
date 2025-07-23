@@ -222,17 +222,21 @@ public class PurchaseVoucherDaijinCsv
             return false;
         }
 
-        // 明細種別チェック（1:仕入, 2:返品, 3:単品値引, 4:値引を取込）
-        // 注意：要件定義書では明細種別4（値引）は「処理しない」とあるが、
-        // これは後の処理段階（商品勘定など）での話であり、
-        // CSVインポート時には取り込む必要がある
-        if (DetailType != "1" && DetailType != "2" && DetailType != "3" && DetailType != "4")
+        // 明細種別チェック（1:仕入, 2:返品, 3:単品値引のみ、4:値引は除外）
+        // 要件定義書に基づき明細種別4（値引）は取り込まない
+        if (DetailType != "1" && DetailType != "2" && DetailType != "3")
         {
             return false;
         }
 
-        // 数量0は除外
-        if (Quantity == 0)
+        // 数量0チェック（明細種別3は例外）
+        if (Quantity == 0 && DetailType != "3")
+        {
+            return false;
+        }
+
+        // 明細種別3（単品値引）で金額も0の場合は無効
+        if (DetailType == "3" && Amount == 0)
         {
             return false;
         }
@@ -284,16 +288,22 @@ public class PurchaseVoucherDaijinCsv
             return $"無効な伝票種別: {VoucherType} (許可: 11, 12)";
         }
 
-        // 明細種別チェック（1:仕入, 2:返品, 3:単品値引, 4:値引を取込）
-        if (DetailType != "1" && DetailType != "2" && DetailType != "3" && DetailType != "4")
+        // 明細種別チェック（1:仕入, 2:返品, 3:単品値引のみ、4:値引は除外）
+        if (DetailType != "1" && DetailType != "2" && DetailType != "3")
         {
-            return $"無効な明細種別: {DetailType} (許可: 1, 2, 3, 4)";
+            return $"無効な明細種別: {DetailType} (許可: 1, 2, 3)";
         }
 
-        // 数量0は除外
-        if (Quantity == 0)
+        // 数量チェック（明細種別3は除外）
+        if (Quantity == 0 && DetailType != "3")
         {
-            return "数量が0";
+            return "数量が0（単品値引以外）";
+        }
+
+        // 明細種別3の金額チェック
+        if (DetailType == "3" && Amount == 0)
+        {
+            return "単品値引の金額が0";
         }
 
         // 商品コード00000は除外

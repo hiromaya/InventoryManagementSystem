@@ -392,8 +392,8 @@ public class UnmatchListService : IUnmatchListService
         // フィルタリング前後の件数
         var salesList = salesVouchers
             .Where(s => s.VoucherType == "51" || s.VoucherType == "52") // 売上伝票
-            .Where(s => s.DetailType == "1" || s.DetailType == "2")     // 明細種
-            .Where(s => s.Quantity != 0)                                // 数量0以外
+            .Where(s => s.DetailType == "1" || s.DetailType == "2" || s.DetailType == "3")  // 明細種（単品値引追加）
+            .Where(s => s.Quantity != 0)                                // 数量0以外（共通仕様）
             .Where(s => !targetDate.HasValue || s.JobDate <= targetDate.Value) // 指定日以前フィルタ
             .ToList();
         
@@ -496,8 +496,8 @@ public class UnmatchListService : IUnmatchListService
         }
         var purchaseList = purchaseVouchers
             .Where(p => p.VoucherType == "11" || p.VoucherType == "12") // 仕入伝票
-            .Where(p => p.DetailType == "1" || p.DetailType == "2")     // 明細種
-            .Where(p => p.Quantity != 0)                                // 数量0以外
+            .Where(p => p.DetailType == "1" || p.DetailType == "2" || p.DetailType == "3")  // 明細種（単品値引追加）
+            .Where(p => p.Quantity != 0)                                // 数量0以外（共通仕様）
             .Where(p => !targetDate.HasValue || p.JobDate <= targetDate.Value) // 指定日以前フィルタ
             .ToList();
 
