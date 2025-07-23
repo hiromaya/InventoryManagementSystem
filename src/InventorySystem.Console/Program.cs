@@ -1046,7 +1046,7 @@ static async Task ExecuteDevDailyReportAsync(IServiceProvider services, string[]
         return;
     }
     
-    if (args.Length < 3)
+    if (args.Length < 2)
     {
         Console.WriteLine("使用方法: dotnet run dev-daily-report <YYYY-MM-DD>");
         return;
@@ -1061,7 +1061,7 @@ static async Task ExecuteDevDailyReportAsync(IServiceProvider services, string[]
     
     try
     {
-        if (!DateTime.TryParse(args[2], out var jobDate))
+        if (!DateTime.TryParse(args[1], out var jobDate))
         {
             Console.WriteLine("日付形式が正しくありません。YYYY-MM-DD形式で指定してください。");
             return;
