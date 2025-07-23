@@ -27,7 +27,7 @@ public class DateValidationService : IDateValidationService
     }
     
     /// <inheritdoc/>
-    public async Task<ValidationResult> ValidateJobDate(DateTime jobDate, string processType)
+    public async Task<ValidationResult> ValidateJobDate(DateTime jobDate, string processType, bool allowDuplicateProcessing = false)
     {
         _logger.LogInformation("日付検証開始: JobDate={JobDate}, ProcessType={ProcessType}", 
             jobDate, processType);
@@ -60,7 +60,7 @@ public class DateValidationService : IDateValidationService
         }
         
         // 3. 重複処理チェック（日次終了処理以外）
-        if (processType != "DAILY_CLOSE")
+        if (processType != "DAILY_CLOSE" && !allowDuplicateProcessing)
         {
             var isProcessed = await IsDateAlreadyProcessed(jobDate, processType);
             if (isProcessed)
@@ -69,6 +69,11 @@ public class DateValidationService : IDateValidationService
                     jobDate, processType);
                 return ValidationResult.Failure(ErrorMessages.AlreadyProcessedError);
             }
+        }
+        else if (allowDuplicateProcessing)
+        {
+            _logger.LogWarning("重複処理チェックをスキップしました（開発用）: JobDate={JobDate}, ProcessType={ProcessType}", 
+                jobDate, processType);
         }
         
         // 4. 特殊日付範囲の警告ログ

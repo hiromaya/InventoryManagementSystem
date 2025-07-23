@@ -37,7 +37,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
     }
 
-    public async Task<DailyReportResult> ProcessDailyReportAsync(DateTime reportDate, string? existingDataSetId = null)
+    public async Task<DailyReportResult> ProcessDailyReportAsync(DateTime reportDate, string? existingDataSetId = null, bool allowDuplicateProcessing = false)
     {
         var stopwatch = Stopwatch.StartNew();
         var isNewDataSet = existingDataSetId == null;
@@ -52,7 +52,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
             if (isNewDataSet)
             {
                 // 新規作成時は InitializeProcess を使用してDataSetManagementに登録
-                context = await InitializeProcess(reportDate, "DAILY_REPORT", null, executedBy);
+                context = await InitializeProcess(reportDate, "DAILY_REPORT", null, executedBy, allowDuplicateProcessing);
                 
                 _logger.LogInformation("新規データセット作成 - DataSetId: {DataSetId}", context.DataSetId);
                 // 1. CP在庫M作成

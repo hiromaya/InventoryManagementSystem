@@ -1081,8 +1081,8 @@ static async Task ExecuteDevDailyReportAsync(IServiceProvider services, string[]
         
         var stopwatch = Stopwatch.StartNew();
         
-        // 商品日報処理実行（新規DataSetIdで実行）
-        var processResult = await dailyReportService.ProcessDailyReportAsync(jobDate, null);
+        // 商品日報処理実行（新規DataSetIdで実行、開発用に重複処理許可）
+        var processResult = await dailyReportService.ProcessDailyReportAsync(jobDate, null, allowDuplicateProcessing: true);
         
         if (!processResult.Success)
         {

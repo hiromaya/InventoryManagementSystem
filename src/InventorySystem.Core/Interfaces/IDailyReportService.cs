@@ -20,8 +20,9 @@ public interface IDailyReportService
     /// </summary>
     /// <param name="reportDate">レポート日付</param>
     /// <param name="existingDataSetId">既存のデータセットID（指定されない場合は新規作成）</param>
+    /// <param name="allowDuplicateProcessing">重複処理を許可するか（開発用）</param>
     /// <returns>処理結果</returns>
-    Task<DailyReportResult> ProcessDailyReportAsync(DateTime reportDate, string? existingDataSetId = null);
+    Task<DailyReportResult> ProcessDailyReportAsync(DateTime reportDate, string? existingDataSetId = null, bool allowDuplicateProcessing = false);
 }
 
 /// <summary>

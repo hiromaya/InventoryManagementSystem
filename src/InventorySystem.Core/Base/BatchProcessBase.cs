@@ -40,13 +40,14 @@ public abstract class BatchProcessBase
         DateTime jobDate,
         string processType,
         List<string>? importedFiles = null,
-        string executedBy = "System")
+        string executedBy = "System",
+        bool allowDuplicateProcessing = false)
     {
         _logger.LogInformation("処理初期化開始: ProcessType={ProcessType}, JobDate={JobDate}", 
             processType, jobDate);
         
         // 1. 日付検証
-        var validation = await _dateValidator.ValidateJobDate(jobDate, processType);
+        var validation = await _dateValidator.ValidateJobDate(jobDate, processType, allowDuplicateProcessing);
         if (!validation.IsValid)
         {
             throw new InvalidOperationException(validation.Message);
