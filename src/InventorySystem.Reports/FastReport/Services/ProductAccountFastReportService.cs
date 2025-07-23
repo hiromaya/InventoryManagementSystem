@@ -133,14 +133,14 @@ namespace InventorySystem.Reports.FastReport.Services
                         ClassName = reader.IsDBNull("ClassName") ? "" : reader.GetString("ClassName"),
                         VoucherNumber = reader.GetString("VoucherNumber"),
                         DisplayCategory = reader.GetString("DisplayCategory"),
-                        TransactionDate = reader.GetDateTime("TransactionDate"),
+                        // TransactionDate = reader.GetDateTime("TransactionDate"), // FastReportテンプレートに未定義のため削除
                         PurchaseQuantity = reader.GetDecimal("PurchaseQuantity"),
                         SalesQuantity = reader.GetDecimal("SalesQuantity"),
                         RemainingQuantity = reader.GetDecimal("RemainingQuantity"),
                         UnitPrice = reader.GetDecimal("UnitPrice"),
                         Amount = reader.GetDecimal("Amount"),
                         GrossProfit = reader.GetDecimal("GrossProfit"),
-                        WalkingDiscount = reader.GetDecimal("WalkingDiscount"),
+                        // WalkingDiscount = reader.GetDecimal("WalkingDiscount"), // FastReportテンプレートに未定義のため削除
                         CustomerSupplierName = reader.GetString("CustomerSupplierName"),
                         GroupKey = reader.GetString("GroupKey"),
                         ProductCategory1 = reader.IsDBNull("ProductCategory1") ? null : reader.GetString("ProductCategory1"),
@@ -309,6 +309,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
 
                 report.Load(_templatePath);
+                
+                // ScriptLanguageをNoneに設定（他帳票との統一）
+                SetScriptLanguageToNone(report);
 
                 // データテーブル作成
                 var dataTable = CreateDataTable(reportData);
@@ -466,6 +469,40 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             // グループ別の累積残高計算（実装詳細は省略）
             // 各グループで前残高から開始して取引ごとに残高を更新
+        }
+
+        /// <summary>
+        /// ScriptLanguageをNoneに設定（他帳票との統一パターン）
+        /// </summary>
+        private void SetScriptLanguageToNone(FR.Report report)
+        {
+            try
+            {
+                // リフレクションを使用してScriptLanguageプロパティを取得
+                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                if (scriptLanguageProperty != null)
+                {
+                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                    if (scriptLanguageType.IsEnum)
+                    {
+                        // FastReport.ScriptLanguage.None を設定
+                        var noneValue = Enum.GetValues(scriptLanguageType)
+                            .Cast<object>()
+                            .FirstOrDefault(v => v.ToString() == "None");
+                        
+                        if (noneValue != null)
+                        {
+                            scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+                // エラーが発生しても処理を継続
+            }
         }
     }
 }
