@@ -5,158 +5,283 @@
 -- 目的: DailyDiscountAmountを歩引額専用とし、仕入値引専用カラムを追加
 -- ===================================================================
 
-PRINT '=== 仕入値引専用カラム追加処理開始 ===';
+SET NOCOUNT ON;
+GO
 
--- 1. カラム存在チェックと追加
-IF NOT EXISTS (
+-- マイグレーション履歴テーブルの確認と作成
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'MigrationHistory')
+BEGIN
+    CREATE TABLE MigrationHistory (
+        MigrationId NVARCHAR(255) PRIMARY KEY,
+        AppliedAt DATETIME NOT NULL,
+        [Description] NVARCHAR(MAX) NULL
+    );
+    PRINT 'MigrationHistory テーブルを作成しました';
+END
+ELSE
+BEGIN
+    -- Description列が存在しない場合は追加
+    IF NOT EXISTS (
+        SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = 'MigrationHistory' 
+        AND COLUMN_NAME = 'Description'
+    )
+    BEGIN
+        ALTER TABLE MigrationHistory ADD [Description] NVARCHAR(MAX) NULL;
+        PRINT 'MigrationHistory テーブルに Description 列を追加しました';
+    END
+END
+GO
+
+PRINT '=== 仕入値引専用カラム追加処理開始 ===';
+PRINT '';
+
+-- 処理実行用の動的SQL変数
+DECLARE @SQL NVARCHAR(MAX);
+DECLARE @ColumnExists BIT = 0;
+
+-- カラムの存在確認
+IF EXISTS (
     SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
     WHERE TABLE_NAME = 'CpInventoryMaster' 
     AND COLUMN_NAME = 'DailyPurchaseDiscountAmount'
 )
+BEGIN
+    SET @ColumnExists = 1;
+END
+
+-- 1. カラム追加処理
+IF @ColumnExists = 0
 BEGIN
     PRINT '1. DailyPurchaseDiscountAmount カラムを追加しています...';
     
     ALTER TABLE CpInventoryMaster 
     ADD DailyPurchaseDiscountAmount DECIMAL(12,4) NOT NULL DEFAULT 0;
     
-    PRINT '✅ DailyPurchaseDiscountAmount カラムが追加されました';
+    PRINT '✅ カラムが追加されました';
+    PRINT '';
 END
 ELSE
 BEGIN
-    PRINT '⚠️ DailyPurchaseDiscountAmount カラムは既に存在します（処理をスキップ）';
+    PRINT '1. DailyPurchaseDiscountAmount カラムは既に存在します';
+    PRINT '';
 END
 GO
 
--- 2. 既存データの移行処理（冪等性確保）
-PRINT '2. 既存データの移行処理を開始しています...';
+-- ここで必ずGOを入れてバッチを区切る
 
--- 移行対象データの確認
-DECLARE @TargetCount INT;
-SELECT @TargetCount = COUNT(*)
-FROM CpInventoryMaster
-WHERE JobDate >= '2025-06-01' 
-  AND DailyDiscountAmount < 0  -- 仕入値引は通常マイナス値
-  AND DailyPurchaseDiscountAmount = 0;  -- まだ移行されていない
+-- 2. データ移行処理（完全動的SQL）
+PRINT '2. データ移行処理を確認しています...';
 
-IF @TargetCount > 0
-BEGIN
-    PRINT CONCAT('移行対象データ: ', @TargetCount, '件');
-    
-    -- 実際の移行処理（バッチ処理で実行）
-    DECLARE @BatchSize INT = 1000;
-    DECLARE @ProcessedCount INT = 0;
-    
-    WHILE @ProcessedCount < @TargetCount
-    BEGIN
-        -- バッチ単位で更新
-        UPDATE TOP (@BatchSize) CpInventoryMaster
-        SET 
-            DailyPurchaseDiscountAmount = ABS(DailyDiscountAmount), -- マイナス値をプラスに変換
-            DailyDiscountAmount = 0  -- 歩引額用フィールドは0にリセット
-        FROM CpInventoryMaster
-        WHERE JobDate >= '2025-06-01' 
-          AND DailyDiscountAmount < 0
-          AND DailyPurchaseDiscountAmount = 0;
-        
-        SET @ProcessedCount = @ProcessedCount + @@ROWCOUNT;
-        
-        -- 進捗表示
-        IF @ProcessedCount % 5000 = 0 OR @ProcessedCount >= @TargetCount
-        BEGIN
-            PRINT CONCAT('移行済み: ', @ProcessedCount, '/', @TargetCount, '件');
-        END
-        
-        -- 無限ループ防止
-        IF @@ROWCOUNT = 0 BREAK;
-    END
-    
-    PRINT '✅ データ移行が完了しました';
-END
-ELSE
-BEGIN
-    PRINT '⚠️ 移行対象データがありません（処理をスキップ）';
-END
-GO
+DECLARE @SQL NVARCHAR(MAX);
 
--- 3. データ整合性チェック
-PRINT '3. データ整合性チェックを実行しています...';
+-- カラムが存在する場合のみ処理を実行
+SET @SQL = N'
+DECLARE @TargetCount INT = 0;
+DECLARE @ProcessedCount INT = 0;
+DECLARE @BatchSize INT = 1000;
+DECLARE @RowsAffected INT;
 
--- 移行後の統計情報
-DECLARE @PurchaseDiscountCount INT, @WalkingDiscountCount INT;
-
-SELECT @PurchaseDiscountCount = COUNT(*)
-FROM CpInventoryMaster
-WHERE DailyPurchaseDiscountAmount > 0;
-
-SELECT @WalkingDiscountCount = COUNT(*)
-FROM CpInventoryMaster
-WHERE DailyDiscountAmount > 0;
-
-PRINT CONCAT('仕入値引データ件数: ', @PurchaseDiscountCount);
-PRINT CONCAT('歩引額データ件数: ', @WalkingDiscountCount);
-
--- データ整合性の警告チェック
-DECLARE @AnomalyCount INT;
-SELECT @AnomalyCount = COUNT(*)
-FROM CpInventoryMaster
-WHERE DailyDiscountAmount < 0  -- 歩引額がマイナスになっている異常データ
-   OR (DailyPurchaseDiscountAmount > 0 AND DailyDiscountAmount > 0);  -- 両方に値がある異常データ
-
-IF @AnomalyCount > 0
-BEGIN
-    PRINT CONCAT('⚠️ 警告: 異常データが ', @AnomalyCount, '件見つかりました');
-    PRINT '詳細確認のため以下のクエリを実行してください:';
-    PRINT 'SELECT TOP 10 * FROM CpInventoryMaster WHERE DailyDiscountAmount < 0 OR (DailyPurchaseDiscountAmount > 0 AND DailyDiscountAmount > 0);';
-END
-ELSE
-BEGIN
-    PRINT '✅ データ整合性チェック完了（異常なし）';
-END
-GO
-
--- 4. インデックスの追加（検索パフォーマンス向上）
-PRINT '4. インデックスの追加を確認しています...';
-
-IF NOT EXISTS (
-    SELECT * FROM sys.indexes 
-    WHERE object_id = OBJECT_ID('CpInventoryMaster') 
-    AND name = 'IX_CpInventoryMaster_DailyPurchaseDiscountAmount'
+-- カラムの存在を再確認
+IF EXISTS (
+    SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = ''CpInventoryMaster'' 
+    AND COLUMN_NAME = ''DailyPurchaseDiscountAmount''
 )
 BEGIN
-    PRINT 'DailyPurchaseDiscountAmount用のインデックスを作成しています...';
+    -- 移行対象データの確認
+    SELECT @TargetCount = COUNT(*)
+    FROM CpInventoryMaster
+    WHERE JobDate >= ''2025-06-01'' 
+      AND DailyDiscountAmount < 0
+      AND DailyPurchaseDiscountAmount = 0;
     
+    IF @TargetCount > 0
+    BEGIN
+        PRINT CONCAT(''移行対象データ: '', @TargetCount, ''件'');
+        PRINT ''移行処理を開始します...'';
+        
+        -- バッチ処理での移行
+        WHILE @ProcessedCount < @TargetCount
+        BEGIN
+            UPDATE TOP (@BatchSize) CpInventoryMaster
+            SET 
+                DailyPurchaseDiscountAmount = ABS(DailyDiscountAmount),
+                DailyDiscountAmount = 0
+            WHERE JobDate >= ''2025-06-01'' 
+              AND DailyDiscountAmount < 0
+              AND DailyPurchaseDiscountAmount = 0;
+            
+            SET @RowsAffected = @@ROWCOUNT;
+            SET @ProcessedCount = @ProcessedCount + @RowsAffected;
+            
+            -- 進捗表示
+            IF @ProcessedCount % 5000 = 0 OR @ProcessedCount >= @TargetCount
+            BEGIN
+                PRINT CONCAT(''移行済み: '', @ProcessedCount, ''/'', @TargetCount, ''件'');
+            END
+            
+            -- 無限ループ防止
+            IF @RowsAffected = 0 BREAK;
+        END
+        
+        PRINT ''✅ データ移行が完了しました'';
+    END
+    ELSE
+    BEGIN
+        PRINT ''移行対象データがありません'';
+    END
+END
+ELSE
+BEGIN
+    PRINT ''❌ DailyPurchaseDiscountAmount カラムが見つかりません'';
+    PRINT ''スクリプトを再実行してください'';
+END
+';
+
+EXEC sp_executesql @SQL;
+GO
+
+-- 3. データ整合性チェック（動的SQL）
+PRINT '';
+PRINT '3. データ整合性チェックを実行しています...';
+
+DECLARE @CheckSQL NVARCHAR(MAX);
+
+SET @CheckSQL = N'
+-- カラムの存在を確認
+IF EXISTS (
+    SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = ''CpInventoryMaster'' 
+    AND COLUMN_NAME = ''DailyPurchaseDiscountAmount''
+)
+BEGIN
+    DECLARE @PurchaseDiscountCount INT;
+    DECLARE @WalkingDiscountCount INT;
+    DECLARE @AnomalyCount INT;
+    
+    -- 統計情報の取得
+    SELECT @PurchaseDiscountCount = COUNT(*)
+    FROM CpInventoryMaster
+    WHERE DailyPurchaseDiscountAmount > 0;
+    
+    SELECT @WalkingDiscountCount = COUNT(*)
+    FROM CpInventoryMaster
+    WHERE DailyDiscountAmount > 0;
+    
+    SELECT @AnomalyCount = COUNT(*)
+    FROM CpInventoryMaster
+    WHERE DailyDiscountAmount < 0
+       OR (DailyPurchaseDiscountAmount > 0 AND DailyDiscountAmount > 0);
+    
+    PRINT CONCAT(''仕入値引データ件数: '', @PurchaseDiscountCount);
+    PRINT CONCAT(''歩引額データ件数: '', @WalkingDiscountCount);
+    
+    IF @AnomalyCount > 0
+    BEGIN
+        PRINT '''';
+        PRINT CONCAT(''⚠️ 警告: 異常データが '', @AnomalyCount, ''件見つかりました'');
+    END
+    ELSE
+    BEGIN
+        PRINT ''✅ データ整合性チェック完了（異常なし）'';
+    END
+    
+    -- サンプルデータの表示
+    IF @PurchaseDiscountCount > 0
+    BEGIN
+        PRINT '''';
+        PRINT ''=== サンプルデータ（上位5件） ==='';
+        
+        SELECT TOP 5
+            ProductCode as 商品コード,
+            JobDate as 処理日,
+            DailyPurchaseDiscountAmount as 仕入値引,
+            DailyDiscountAmount as 歩引額
+        FROM CpInventoryMaster
+        WHERE DailyPurchaseDiscountAmount > 0
+        ORDER BY JobDate DESC, ProductCode;
+    END
+END
+';
+
+EXEC sp_executesql @CheckSQL;
+GO
+
+-- 4. インデックスの作成（動的SQL）
+PRINT '';
+PRINT '4. インデックスの作成を確認しています...';
+
+DECLARE @IndexSQL NVARCHAR(MAX);
+
+SET @IndexSQL = N'
+IF EXISTS (
+    SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = ''CpInventoryMaster'' 
+    AND COLUMN_NAME = ''DailyPurchaseDiscountAmount''
+)
+AND NOT EXISTS (
+    SELECT * FROM sys.indexes 
+    WHERE object_id = OBJECT_ID(''CpInventoryMaster'') 
+    AND name = ''IX_CpInventoryMaster_DailyPurchaseDiscountAmount''
+)
+BEGIN
     CREATE NONCLUSTERED INDEX IX_CpInventoryMaster_DailyPurchaseDiscountAmount
     ON CpInventoryMaster (JobDate, DailyPurchaseDiscountAmount)
     WHERE DailyPurchaseDiscountAmount != 0;
     
-    PRINT '✅ インデックスが作成されました';
+    PRINT ''✅ インデックスが作成されました'';
 END
 ELSE
 BEGIN
-    PRINT '⚠️ インデックスは既に存在します（処理をスキップ）';
+    IF EXISTS (SELECT * FROM sys.indexes WHERE name = ''IX_CpInventoryMaster_DailyPurchaseDiscountAmount'')
+        PRINT ''インデックスは既に存在します'';
+    ELSE
+        PRINT ''カラムが存在しないため、インデックスは作成されませんでした'';
 END
+';
+
+EXEC sp_executesql @IndexSQL;
 GO
 
--- 5. 検証用サンプルデータの表示
-PRINT '5. 検証用サンプルデータ:';
+-- 5. マイグレーション履歴への記録（動的SQL使用）
+PRINT '';
+PRINT '5. マイグレーション履歴を記録しています...';
 
-SELECT TOP 5
-    ProductCode,
-    JobDate,
-    DailyPurchaseDiscountAmount as 仕入値引,
-    DailyDiscountAmount as 歩引額
-FROM CpInventoryMaster
-WHERE DailyPurchaseDiscountAmount > 0
-ORDER BY JobDate DESC, ProductCode;
+DECLARE @HistorySQL NVARCHAR(MAX);
 
-PRINT '=== 仕入値引専用カラム追加処理完了 ===';
-
--- 6. マイグレーション履歴への記録
-IF NOT EXISTS (SELECT * FROM MigrationHistory WHERE MigrationId = '040_AddPurchaseDiscountColumn')
+-- Descriptionカラムの存在を確認してから記録
+SET @HistorySQL = N'
+IF NOT EXISTS (SELECT * FROM MigrationHistory WHERE MigrationId = ''040_AddPurchaseDiscountColumn'')
 BEGIN
-    INSERT INTO MigrationHistory (MigrationId, AppliedAt, Description)
-    VALUES ('040_AddPurchaseDiscountColumn', GETDATE(), '仕入値引専用カラム(DailyPurchaseDiscountAmount)の追加とデータ移行');
-    
-    PRINT '✅ マイグレーション履歴に記録されました';
+    IF EXISTS (
+        SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = ''MigrationHistory'' 
+        AND COLUMN_NAME = ''Description''
+    )
+    BEGIN
+        INSERT INTO MigrationHistory (MigrationId, AppliedAt, [Description])
+        VALUES (''040_AddPurchaseDiscountColumn'', GETDATE(), ''仕入値引専用カラム(DailyPurchaseDiscountAmount)の追加とデータ移行'');
+        
+        PRINT ''✅ マイグレーション履歴に記録されました'';
+    END
+    ELSE
+    BEGIN
+        -- Descriptionカラムがない場合
+        INSERT INTO MigrationHistory (MigrationId, AppliedAt)
+        VALUES (''040_AddPurchaseDiscountColumn'', GETDATE());
+        
+        PRINT ''✅ マイグレーション履歴に記録されました（Description列なし）'';
+    END
 END
+ELSE
+BEGIN
+    PRINT ''マイグレーション履歴は既に記録されています'';
+END
+';
+
+EXEC sp_executesql @HistorySQL;
+
+PRINT '';
+PRINT '=== 仕入値引専用カラム追加処理完了 ===';
 GO
