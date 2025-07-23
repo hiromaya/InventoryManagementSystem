@@ -315,6 +315,7 @@ BEGIN
             ClassName,
             VoucherNumber,
             DisplayCategory,
+            TransactionDate,
             FORMAT(TransactionDate, 'MM/dd') as MonthDay,
             PurchaseQuantity,
             SalesQuantity,
