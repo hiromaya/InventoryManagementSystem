@@ -348,4 +348,22 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
             throw;
         }
     }
+    
+    /// <summary>
+    /// Process 2-5: JobDateとDataSetIdで売上伝票を取得（CSV用リポジトリでは使用しない）
+    /// </summary>
+    public async Task<IEnumerable<SalesVoucher>> GetByJobDateAndDataSetIdAsync(DateTime jobDate, string dataSetId)
+    {
+        // CSV用リポジトリでは実装しない（メインのSalesVoucherRepositoryを使用）
+        throw new NotImplementedException("CSV用リポジトリではProcess 2-5は使用しません。SalesVoucherRepositoryを使用してください");
+    }
+    
+    /// <summary>
+    /// Process 2-5: 売上伝票の在庫単価と粗利益をバッチ更新（CSV用リポジトリでは使用しない）
+    /// </summary>
+    public async Task<int> UpdateInventoryUnitPriceAndGrossProfitBatchAsync(IEnumerable<SalesVoucher> vouchers)
+    {
+        // CSV用リポジトリでは実装しない（メインのSalesVoucherRepositoryを使用）
+        throw new NotImplementedException("CSV用リポジトリではProcess 2-5は使用しません。SalesVoucherRepositoryを使用してください");
+    }
 }

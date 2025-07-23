@@ -278,6 +278,9 @@ builder.Services.AddScoped<InventorySystem.Core.Interfaces.Development.IProcessi
         provider.GetRequiredService<ILogger<InventorySystem.Data.Services.Development.ProcessingHistoryService>>()));
 builder.Services.AddScoped<InventorySystem.Core.Interfaces.Development.IDailySimulationService, InventorySystem.Data.Services.Development.DailySimulationService>();
 
+// Process 2-5: 売上伝票への在庫単価書き込みと粗利計算サービス
+builder.Services.AddScoped<GrossProfitCalculationService>();
+
 var host = builder.Build();
 
 // Initialize department folders at startup
@@ -508,6 +511,11 @@ try
         
         case "optimize-inventory":
             await ExecuteOptimizeInventoryAsync(host.Services, args);
+            break;
+            
+        case "process-2-5":
+        case "gross-profit":
+            await ExecuteProcess25Async(host.Services, args);
             break;
         
         default:
@@ -4061,6 +4069,82 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
         }
         
         await ExecuteMigrationPhaseAsync(services, "053_Phase5_Cleanup.sql", "フェーズ5: クリーンアップ");
+    }
+
+    /// <summary>
+    /// Process 2-5: 売上伝票への在庫単価書き込みと粗利計算
+    /// </summary>
+    static async Task ExecuteProcess25Async(IServiceProvider services, string[] args)
+    {
+        if (args.Length < 2)
+        {
+            Console.WriteLine("使用方法: process-2-5 <日付> [データセットID]");
+            Console.WriteLine("         gross-profit <日付> [データセットID]");
+            Console.WriteLine("例: process-2-5 2025-06-30");
+            Console.WriteLine("例: gross-profit 2025-06-30 ABC123");
+            return;
+        }
+
+        if (!DateTime.TryParse(args[1], out var jobDate))
+        {
+            Console.WriteLine("❌ 日付の形式が正しくありません");
+            return;
+        }
+
+        using var scope = services.CreateScope();
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var grossProfitService = scopedServices.GetRequiredService<GrossProfitCalculationService>();
+        var dataSetRepository = scopedServices.GetRequiredService<IDataSetManagementRepository>();
+
+        try
+        {
+            // データセットID取得（引数指定または自動取得）
+            string dataSetId;
+            if (args.Length >= 3)
+            {
+                dataSetId = args[2];
+                Console.WriteLine($"指定されたDataSetId: {dataSetId}");
+            }
+            else
+            {
+                // JobDateから最新のDataSetIdを取得
+                var dataSets = await dataSetRepository.GetByJobDateAsync(jobDate);
+                var latestDataSet = dataSets.OrderByDescending(d => d.CreatedAt).FirstOrDefault();
+                
+                if (latestDataSet == null)
+                {
+                    Console.WriteLine($"❌ 指定日({jobDate:yyyy-MM-dd})のデータセットが見つかりません");
+                    return;
+                }
+                
+                dataSetId = latestDataSet.DataSetId;
+                Console.WriteLine($"自動取得したDataSetId: {dataSetId}");
+            }
+
+            Console.WriteLine("=== Process 2-5: 売上伝票への在庫単価書き込みと粗利計算 開始 ===");
+            Console.WriteLine($"対象日: {jobDate:yyyy-MM-dd}");
+            Console.WriteLine($"データセットID: {dataSetId}");
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            // Process 2-5実行
+            await grossProfitService.ExecuteProcess25Async(jobDate, dataSetId);
+
+            stopwatch.Stop();
+
+            Console.WriteLine($"✅ Process 2-5 が正常に完了しました");
+            Console.WriteLine($"   処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
+            Console.WriteLine("=== Process 2-5 完了 ===");
+
+            logger.LogInformation("Process 2-5完了: JobDate={JobDate}, DataSetId={DataSetId}, 処理時間={ElapsedMs}ms", 
+                jobDate, dataSetId, stopwatch.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Process 2-5 でエラーが発生しました: {ex.Message}");
+            logger.LogError(ex, "Process 2-5エラー: JobDate={JobDate}", jobDate);
+        }
     }
 
     /// <summary>

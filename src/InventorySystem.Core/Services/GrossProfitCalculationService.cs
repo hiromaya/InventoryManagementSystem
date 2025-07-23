@@ -1,0 +1,202 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using InventorySystem.Core.Entities;
+using InventorySystem.Core.Entities.Masters;
+using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Interfaces.Masters;
+using Microsoft.Extensions.Logging;
+
+namespace InventorySystem.Core.Services
+{
+    /// <summary>
+    /// Process 2-5: 売上伝票への在庫単価書き込みと粗利計算サービス
+    /// </summary>
+    public class GrossProfitCalculationService
+    {
+        private readonly ILogger<GrossProfitCalculationService> _logger;
+        private readonly ISalesVoucherRepository _salesVoucherRepository;
+        private readonly ICpInventoryRepository _cpInventoryRepository;
+        private readonly ICustomerMasterRepository _customerMasterRepository;
+        private const int BatchSize = 1000;
+
+        public GrossProfitCalculationService(
+            ILogger<GrossProfitCalculationService> logger,
+            ISalesVoucherRepository salesVoucherRepository,
+            ICpInventoryRepository cpInventoryRepository,
+            ICustomerMasterRepository customerMasterRepository)
+        {
+            _logger = logger;
+            _salesVoucherRepository = salesVoucherRepository;
+            _cpInventoryRepository = cpInventoryRepository;
+            _customerMasterRepository = customerMasterRepository;
+        }
+
+        /// <summary>
+        /// Process 2-5: 売上伝票への在庫単価書き込みと粗利計算
+        /// </summary>
+        public async Task ExecuteProcess25Async(DateTime jobDate, string dataSetId)
+        {
+            _logger.LogInformation("Process 2-5 開始: JobDate={JobDate}, DataSetId={DataSetId}", 
+                jobDate, dataSetId);
+
+            try
+            {
+                // 1. 売上伝票を取得（バッチ処理）
+                var allSalesVouchers = await _salesVoucherRepository
+                    .GetByJobDateAndDataSetIdAsync(jobDate, dataSetId);
+                
+                _logger.LogInformation("売上伝票件数: {Count}", allSalesVouchers.Count());
+
+                // 2. CP在庫マスタを取得（メモリに保持）
+                var cpInventoryDict = await GetCpInventoryDictionaryAsync(jobDate, dataSetId);
+                _logger.LogInformation("CP在庫マスタ件数: {Count}", cpInventoryDict.Count);
+
+                // 3. 得意先マスタを取得（歩引き率用）
+                var customerDict = await GetCustomerDictionaryAsync();
+
+                // 4. バッチ処理で売上伝票を更新
+                var totalGrossProfit = 0m;
+                var totalDiscountAmount = 0m;
+                var updatedVouchers = new List<SalesVoucher>();
+
+                foreach (var voucher in allSalesVouchers)
+                {
+                    // 5項目キーで在庫単価を取得
+                    var inventoryKey = CreateInventoryKey(voucher);
+                    
+                    if (cpInventoryDict.TryGetValue(inventoryKey, out var cpInventory))
+                    {
+                        // 在庫単価を設定
+                        voucher.InventoryUnitPrice = cpInventory.DailyUnitPrice;
+
+                        // 売上単価の確認（0の場合は計算）
+                        var salesUnitPrice = voucher.UnitPrice;
+                        if (salesUnitPrice == 0 && voucher.Quantity != 0)
+                        {
+                            salesUnitPrice = Math.Round(voucher.Amount / voucher.Quantity, 4, 
+                                MidpointRounding.AwayFromZero);
+                            _logger.LogDebug("売上単価を計算: {Price}", salesUnitPrice);
+                        }
+
+                        // 粗利益計算
+                        var grossProfit = CalculateGrossProfit(
+                            salesUnitPrice, 
+                            cpInventory.DailyUnitPrice, 
+                            voucher.Quantity);
+
+                        // 粗利益を設定
+                        voucher.GrossProfit = grossProfit;
+                        totalGrossProfit += grossProfit;
+
+                        // 歩引き金計算
+                        if (customerDict.TryGetValue(voucher.CustomerCode ?? "", out var customer))
+                        {
+                            var discountRate = customer.WalkingRate ?? 0; // 歩引き率
+                            var discountAmount = Math.Round(voucher.Amount * (discountRate / 100), 2, 
+                                MidpointRounding.AwayFromZero);
+                            
+                            // 歩引き金を設定
+                            voucher.WalkingDiscount = discountAmount;
+                            totalDiscountAmount += discountAmount;
+                        }
+
+                        updatedVouchers.Add(voucher);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("CP在庫マスタが見つかりません: {Key}", inventoryKey);
+                    }
+
+                    // バッチサイズに達したら更新
+                    if (updatedVouchers.Count >= BatchSize)
+                    {
+                        await UpdateSalesVouchersBatchAsync(updatedVouchers);
+                        updatedVouchers.Clear();
+                    }
+                }
+
+                // 残りの更新
+                if (updatedVouchers.Any())
+                {
+                    await UpdateSalesVouchersBatchAsync(updatedVouchers);
+                }
+
+                // 5. CP在庫マスタの粗利益・歩引き金額を更新
+                await UpdateCpInventoryTotalsAsync(jobDate, dataSetId, totalGrossProfit, totalDiscountAmount);
+
+                _logger.LogInformation("Process 2-5 完了: 総粗利益={GrossProfit}, 総歩引き金={Discount}", 
+                    totalGrossProfit, totalDiscountAmount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Process 2-5でエラーが発生しました");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 粗利益計算（0除算対策付き）
+        /// </summary>
+        private decimal CalculateGrossProfit(decimal salesUnitPrice, decimal inventoryUnitPrice, decimal quantity)
+        {
+            var unitProfit = salesUnitPrice - inventoryUnitPrice;
+            var grossProfit = unitProfit * quantity;
+            return Math.Round(grossProfit, 4, MidpointRounding.AwayFromZero);
+        }
+
+        /// <summary>
+        /// 5項目キーの作成
+        /// </summary>
+        private string CreateInventoryKey(SalesVoucher voucher)
+        {
+            return $"{voucher.ProductCode}_{voucher.GradeCode}_{voucher.ClassCode}_" +
+                   $"{voucher.ShippingMarkCode}_{voucher.ShippingMarkName}";
+        }
+
+        /// <summary>
+        /// CP在庫マスタを辞書形式で取得
+        /// </summary>
+        private async Task<Dictionary<string, CpInventoryMaster>> GetCpInventoryDictionaryAsync(
+            DateTime jobDate, string dataSetId)
+        {
+            var cpInventories = await _cpInventoryRepository.GetByJobDateAndDataSetIdAsync(jobDate, dataSetId);
+            
+            return cpInventories.ToDictionary(
+                cp => $"{cp.Key.ProductCode}_{cp.Key.GradeCode}_{cp.Key.ClassCode}_{cp.Key.ShippingMarkCode}_{cp.Key.ShippingMarkName}",
+                cp => cp);
+        }
+
+        /// <summary>
+        /// 得意先マスタを辞書形式で取得
+        /// </summary>
+        private async Task<Dictionary<string, CustomerMaster>> GetCustomerDictionaryAsync()
+        {
+            var customers = await _customerMasterRepository.GetActiveAsync();
+            return customers.ToDictionary(c => c.CustomerCode, c => c);
+        }
+
+        /// <summary>
+        /// 売上伝票のバッチ更新
+        /// </summary>
+        private async Task UpdateSalesVouchersBatchAsync(List<SalesVoucher> vouchers)
+        {
+            // InventoryUnitPrice, GenericNumeric1, GenericNumeric2 を更新
+            await _salesVoucherRepository.UpdateInventoryUnitPriceAndGrossProfitBatchAsync(vouchers);
+            
+            _logger.LogDebug("売上伝票を更新しました: {Count}件", vouchers.Count);
+        }
+
+        /// <summary>
+        /// CP在庫マスタの粗利益・歩引き金額を更新
+        /// </summary>
+        private async Task UpdateCpInventoryTotalsAsync(
+            DateTime jobDate, string dataSetId, decimal totalGrossProfit, decimal totalDiscountAmount)
+        {
+            // CP在庫マスタの当日粗利益、当日歩引き金額に集計値を加算
+            await _cpInventoryRepository.UpdateDailyTotalsAsync(
+                jobDate, dataSetId, totalGrossProfit, totalDiscountAmount);
+        }
+    }
+}

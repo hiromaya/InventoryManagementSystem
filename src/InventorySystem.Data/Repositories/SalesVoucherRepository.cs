@@ -319,4 +319,91 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
             throw;
         }
     }
+    
+    /// <summary>
+    /// Process 2-5: JobDateとDataSetIdで売上伝票を取得
+    /// </summary>
+    public async Task<IEnumerable<SalesVoucher>> GetByJobDateAndDataSetIdAsync(DateTime jobDate, string dataSetId)
+    {
+        const string sql = @"
+            SELECT 
+                VoucherId,
+                LineNumber,
+                VoucherNumber,
+                VoucherDate,
+                VoucherType,
+                CustomerCode,
+                CustomerName,
+                ProductCode,
+                GradeCode,
+                ClassCode,
+                ShippingMarkCode,
+                ShippingMarkName,
+                Quantity,
+                UnitPrice,
+                Amount,
+                InventoryUnitPrice,
+                JobDate,
+                DetailType,
+                DataSetId,
+                GrossProfit,
+                WalkingDiscount
+            FROM SalesVouchers
+            WHERE JobDate = @JobDate AND DataSetId = @DataSetId
+                AND VoucherType IN ('51', '52')
+                AND ProductCode != '00000'
+            ORDER BY VoucherNumber, LineNumber";
+
+        try
+        {
+            using var connection = CreateConnection();
+            var vouchers = await connection.QueryAsync<SalesVoucher>(sql, new { JobDate = jobDate, DataSetId = dataSetId });
+            
+            LogInfo($"Retrieved {vouchers.Count()} sales vouchers for JobDate: {jobDate:yyyy-MM-dd}, DataSetId: {dataSetId}");
+            return vouchers;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetByJobDateAndDataSetIdAsync));
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// Process 2-5: 売上伝票の在庫単価と粗利益をバッチ更新
+    /// </summary>
+    public async Task<int> UpdateInventoryUnitPriceAndGrossProfitBatchAsync(IEnumerable<SalesVoucher> vouchers)
+    {
+        const string updateSql = @"
+            UPDATE SalesVouchers 
+            SET 
+                InventoryUnitPrice = @InventoryUnitPrice,
+                GrossProfit = @GrossProfit,
+                WalkingDiscount = @WalkingDiscount,
+                UpdatedDate = GETDATE()
+            WHERE Id = @Id";
+
+        try
+        {
+            using var connection = CreateConnection();
+            
+            var updateParams = vouchers.Select(v => new
+            {
+                Id = v.Id,
+                InventoryUnitPrice = v.InventoryUnitPrice,
+                GrossProfit = v.GrossProfit,      // 粗利益
+                WalkingDiscount = v.WalkingDiscount // 歩引き金
+            }).ToList();
+
+            var updatedCount = await connection.ExecuteAsync(updateSql, updateParams);
+            
+            LogInfo($"Updated {updatedCount} sales vouchers with inventory unit price and gross profit");
+            return updatedCount;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(UpdateInventoryUnitPriceAndGrossProfitBatchAsync));
+            throw;
+        }
+    }
 }

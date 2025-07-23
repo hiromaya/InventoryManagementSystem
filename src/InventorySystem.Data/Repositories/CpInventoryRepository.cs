@@ -1199,4 +1199,55 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         
         return deletedCount;
     }
+    
+    /// <summary>
+    /// Process 2-5: CP在庫マスタの当日粗利益・歩引き金額を更新
+    /// </summary>
+    public async Task<int> UpdateDailyTotalsAsync(DateTime jobDate, string dataSetId, decimal totalGrossProfit, decimal totalDiscountAmount)
+    {
+        using var connection = CreateConnection();
+        
+        const string updateSql = @"
+            UPDATE CpInventoryMaster 
+            SET 
+                DailyGrossProfit = DailyGrossProfit + @TotalGrossProfit,
+                DailyWalkingAmount = DailyWalkingAmount + @TotalDiscountAmount,
+                UpdatedDate = GETDATE()
+            WHERE DataSetId = @DataSetId";
+        
+        var updatedCount = await connection.ExecuteAsync(updateSql, new 
+        { 
+            TotalGrossProfit = totalGrossProfit,
+            TotalDiscountAmount = totalDiscountAmount,
+            DataSetId = dataSetId
+        });
+        
+        _logger.LogInformation("CP在庫マスタの当日粗利益・歩引き金額を更新しました - 更新件数: {Count}, 粗利益: {GrossProfit}, 歩引き金額: {DiscountAmount}", 
+            updatedCount, totalGrossProfit, totalDiscountAmount);
+        
+        return updatedCount;
+    }
+    
+    /// <summary>
+    /// Process 2-5: JobDateとDataSetIdでCP在庫マスタを取得
+    /// </summary>
+    public async Task<IEnumerable<CpInventoryMaster>> GetByJobDateAndDataSetIdAsync(DateTime jobDate, string dataSetId)
+    {
+        using var connection = CreateConnection();
+        
+        const string selectSql = @"
+            SELECT * FROM CpInventoryMaster 
+            WHERE DataSetId = @DataSetId
+            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
+        
+        var cpInventories = await connection.QueryAsync<CpInventoryMaster>(selectSql, new 
+        { 
+            DataSetId = dataSetId
+        });
+        
+        _logger.LogDebug("CP在庫マスタを取得しました - 件数: {Count}, DataSetId: {DataSetId}", 
+            cpInventories.Count(), dataSetId);
+        
+        return cpInventories;
+    }
 }

@@ -162,4 +162,22 @@ public interface ICpInventoryRepository
     /// <param name="cutoffDate">削除基準日（この日付より前のデータを削除）</param>
     /// <returns>削除件数</returns>
     Task<int> CleanupOldDataAsync(DateTime cutoffDate);
+    
+    /// <summary>
+    /// Process 2-5: CP在庫マスタの当日粗利益・歩引き金額を更新
+    /// </summary>
+    /// <param name="jobDate">対象日付</param>
+    /// <param name="dataSetId">データセットID</param>
+    /// <param name="totalGrossProfit">総粗利益</param>
+    /// <param name="totalDiscountAmount">総歩引き金額</param>
+    /// <returns>更新件数</returns>
+    Task<int> UpdateDailyTotalsAsync(DateTime jobDate, string dataSetId, decimal totalGrossProfit, decimal totalDiscountAmount);
+    
+    /// <summary>
+    /// Process 2-5: JobDateとDataSetIdでCP在庫マスタを取得
+    /// </summary>
+    /// <param name="jobDate">対象日付</param>
+    /// <param name="dataSetId">データセットID</param>
+    /// <returns>CP在庫マスタ一覧</returns>
+    Task<IEnumerable<CpInventoryMaster>> GetByJobDateAndDataSetIdAsync(DateTime jobDate, string dataSetId);
 }
