@@ -2873,6 +2873,64 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 }
             }
             
+            // ========== Phase 5: Process 2-5（売上伝票への在庫単価書込・粗利計算） ==========
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                logger.LogInformation("=== Phase 5: Process 2-5（売上伝票への在庫単価書込・粗利計算）開始 ===");
+                Console.WriteLine("\n========== Phase 5: Process 2-5（売上伝票への在庫単価書込・粗利計算） ==========");
+                
+                try
+                {
+                    // GrossProfitCalculationServiceを取得
+                    var grossProfitService = scopedServices.GetRequiredService<GrossProfitCalculationService>();
+                    
+                    // 期間内の各日付でProcess 2-5を実行
+                    var currentDate = startDate.Value;
+                    while (currentDate <= endDate.Value)
+                    {
+                        // 該当日付のDataSetIdを取得
+                        var dataSets = await datasetRepo.GetByJobDateAsync(currentDate);
+                        var latestDataSet = dataSets.OrderByDescending(d => d.CreatedAt).FirstOrDefault();
+                        
+                        if (latestDataSet != null)
+                        {
+                            Console.WriteLine($"\n[{currentDate:yyyy-MM-dd}] Process 2-5を開始します");
+                            logger.LogInformation("Process 2-5開始: JobDate={JobDate}, DataSetId={DataSetId}", 
+                                currentDate, latestDataSet.DataSetId);
+                            
+                            var stopwatch = Stopwatch.StartNew();
+                            
+                            // Process 2-5実行
+                            await grossProfitService.ExecuteProcess25Async(currentDate, latestDataSet.DataSetId);
+                            
+                            stopwatch.Stop();
+                            
+                            Console.WriteLine($"✅ Process 2-5完了 [{currentDate:yyyy-MM-dd}] ({stopwatch.ElapsedMilliseconds}ms)");
+                            logger.LogInformation("Process 2-5完了: JobDate={JobDate}, DataSetId={DataSetId}, 処理時間={ElapsedMs}ms", 
+                                currentDate, latestDataSet.DataSetId, stopwatch.ElapsedMilliseconds);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"⚠️ [{currentDate:yyyy-MM-dd}] DataSetが見つからないため、Process 2-5をスキップします");
+                            logger.LogWarning("Process 2-5スキップ: JobDate={JobDate} - DataSetが見つかりません", currentDate);
+                        }
+                        
+                        currentDate = currentDate.AddDays(1);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Process 2-5でエラーが発生しました");
+                    Console.WriteLine($"❌ Process 2-5エラー: {ex.Message}");
+                    errorCount++;
+                }
+            }
+            else
+            {
+                Console.WriteLine("\n⚠️ Process 2-5には日付指定が必要です（期間モードでのみ実行）");
+                logger.LogWarning("Process 2-5スキップ: 日付指定が必要です");
+            }
+            
             // ========== アンマッチリスト処理 ==========
             // 注意：アンマッチリスト処理は別途 create-unmatch-list コマンドで実行してください
             // await ExecuteUnmatchListAfterImport(scopedServices, jobDate, logger);

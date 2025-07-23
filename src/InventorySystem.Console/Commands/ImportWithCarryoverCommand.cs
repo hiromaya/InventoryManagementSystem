@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Factories;
+using InventorySystem.Core.Services;
 using InventorySystem.Data.Repositories;
 
 namespace InventorySystem.Console.Commands;
@@ -18,6 +19,7 @@ public class ImportWithCarryoverCommand
     private readonly IDataSetManagementRepository _dataSetRepository;
     private readonly IDataSetManagementFactory _dataSetFactory;
     private readonly ITimeProvider _timeProvider;
+    private readonly GrossProfitCalculationService _grossProfitCalculationService;
     private readonly ILogger<ImportWithCarryoverCommand> _logger;
 
     public ImportWithCarryoverCommand(
@@ -28,6 +30,7 @@ public class ImportWithCarryoverCommand
         IDataSetManagementRepository dataSetRepository,
         IDataSetManagementFactory dataSetFactory,
         ITimeProvider timeProvider,
+        GrossProfitCalculationService grossProfitCalculationService,
         ILogger<ImportWithCarryoverCommand> logger)
     {
         _inventoryRepository = inventoryRepository;
@@ -37,6 +40,7 @@ public class ImportWithCarryoverCommand
         _dataSetRepository = dataSetRepository;
         _dataSetFactory = dataSetFactory;
         _timeProvider = timeProvider;
+        _grossProfitCalculationService = grossProfitCalculationService;
         _logger = logger;
     }
 
@@ -151,8 +155,37 @@ public class ImportWithCarryoverCommand
                 }
             }
             
-            // 10. 完了メッセージ
-            System.Console.WriteLine($"===== 在庫引継インポート完了 =====");
+            // 10. Process 2-5の実行（伝票データがある場合のみ）
+            var hasVoucherData = salesVouchers.Any() || purchaseVouchers.Any() || adjustmentVouchers.Any();
+            if (hasVoucherData)
+            {
+                _logger.LogInformation("Process 2-5: 売上伝票への在庫単価書込・粗利計算を開始");
+                System.Console.WriteLine("\n--- Process 2-5: 売上伝票への在庫単価書込・粗利計算 ---");
+                
+                try
+                {
+                    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                    await _grossProfitCalculationService.ExecuteProcess25Async(targetDate, dataSetId);
+                    stopwatch.Stop();
+                    
+                    System.Console.WriteLine($"✅ Process 2-5完了 ({stopwatch.ElapsedMilliseconds}ms)");
+                    _logger.LogInformation("Process 2-5が完了しました: 処理時間={ElapsedMs}ms", stopwatch.ElapsedMilliseconds);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Process 2-5でエラーが発生しました");
+                    System.Console.WriteLine($"❌ Process 2-5エラー: {ex.Message}");
+                    // エラーが発生しても処理は継続（在庫引継処理は完了済み）
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Process 2-5スキップ: 伝票データが0件のため");
+                System.Console.WriteLine("⚠️ Process 2-5スキップ: 伝票データが0件");
+            }
+            
+            // 11. 完了メッセージ
+            System.Console.WriteLine($"\n===== 在庫引継インポート完了 =====");
             System.Console.WriteLine($"処理対象日: {targetDate:yyyy-MM-dd}");
             System.Console.WriteLine($"DataSetId: {dataSetId}");
             System.Console.WriteLine($"更新/挿入件数: {affectedRows}件");

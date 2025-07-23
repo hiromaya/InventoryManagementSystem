@@ -19,6 +19,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
     private readonly ISalesVoucherRepository _salesVoucherRepository;
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
+    private readonly GrossProfitCalculationService _grossProfitCalculationService;
 
     public DailyReportService(
         IDateValidationService dateValidator,
@@ -28,6 +29,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         ISalesVoucherRepository salesVoucherRepository,
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
+        GrossProfitCalculationService grossProfitCalculationService,
         ILogger<DailyReportService> logger)
         : base(dateValidator, dataSetManager, historyService, logger)
     {
@@ -35,6 +37,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         _salesVoucherRepository = salesVoucherRepository;
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
+        _grossProfitCalculationService = grossProfitCalculationService;
     }
 
     public async Task<DailyReportResult> ProcessDailyReportAsync(DateTime reportDate, string? existingDataSetId = null, bool allowDuplicateProcessing = false)
@@ -99,10 +102,28 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
                 await _cpInventoryRepository.CalculateInventoryUnitPriceAsync(context.DataSetId);
                 _logger.LogInformation("在庫単価計算完了");
 
-                // 処理2-5: 粗利計算
-                _logger.LogInformation("粗利計算開始");
-                await _cpInventoryRepository.CalculateGrossProfitAsync(context.DataSetId, reportDate);
-                _logger.LogInformation("粗利計算完了");
+                // 処理2-5: Process 2-5（売上伝票への在庫単価書込・粗利計算）の実行確認
+                _logger.LogInformation("Process 2-5の実行確認開始");
+                
+                // Process 2-5が実行済みかチェック
+                var salesVouchers = await _salesVoucherRepository.GetByJobDateAsync(reportDate);
+                var zeroUnitPriceCount = salesVouchers.Count(sv => sv.InventoryUnitPrice == 0);
+                
+                if (zeroUnitPriceCount > 0)
+                {
+                    _logger.LogWarning("在庫単価が未設定の売上伝票が{Count}件あります。Process 2-5を実行します。", zeroUnitPriceCount);
+                    
+                    // Process 2-5を実行
+                    await _grossProfitCalculationService.ExecuteProcess25Async(reportDate, context.DataSetId);
+                    
+                    _logger.LogInformation("Process 2-5実行完了");
+                }
+                else
+                {
+                    _logger.LogInformation("Process 2-5スキップ: 全売上伝票で在庫単価が設定済み");
+                }
+                
+                _logger.LogInformation("Process 2-5の実行確認完了");
 
                 // 月計計算
                 _logger.LogInformation("月計計算開始");

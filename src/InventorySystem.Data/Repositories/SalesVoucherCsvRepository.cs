@@ -350,20 +350,89 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
     }
     
     /// <summary>
-    /// Process 2-5: JobDateとDataSetIdで売上伝票を取得（CSV用リポジトリでは使用しない）
+    /// Process 2-5: JobDateとDataSetIdで売上伝票を取得
     /// </summary>
     public async Task<IEnumerable<SalesVoucher>> GetByJobDateAndDataSetIdAsync(DateTime jobDate, string dataSetId)
     {
-        // CSV用リポジトリでは実装しない（メインのSalesVoucherRepositoryを使用）
-        throw new NotImplementedException("CSV用リポジトリではProcess 2-5は使用しません。SalesVoucherRepositoryを使用してください");
+        // CSV用リポジトリでもデータベースからの読み込みを行う
+        _logger.LogInformation("CSV用リポジトリでProcess 2-5用データを取得します: JobDate={JobDate:yyyy-MM-dd}, DataSetId={DataSetId}", jobDate, dataSetId);
+        
+        const string sql = @"
+            SELECT 
+                VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
+                CustomerCode, CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                Quantity, UnitPrice, Amount, InventoryUnitPrice, GrossProfit, WalkingDiscount, CreatedDate, DataSetId
+            FROM SalesVouchers 
+            WHERE JobDate = @JobDate 
+                AND DataSetId = @DataSetId
+                AND VoucherType IN ('51', '52')
+                AND ProductCode != '00000'
+            ORDER BY VoucherNumber, LineNumber";
+        
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var vouchers = await connection.QueryAsync<SalesVoucher>(sql, new { JobDate = jobDate, DataSetId = dataSetId });
+            
+            _logger.LogInformation("Process 2-5用データ取得完了: {Count}件", vouchers.Count());
+            return vouchers;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Process 2-5用データ取得エラー: JobDate={JobDate:yyyy-MM-dd}, DataSetId={DataSetId}", jobDate, dataSetId);
+            throw;
+        }
     }
     
     /// <summary>
-    /// Process 2-5: 売上伝票の在庫単価と粗利益をバッチ更新（CSV用リポジトリでは使用しない）
+    /// Process 2-5: 売上伝票の在庫単価と粗利益をバッチ更新
     /// </summary>
     public async Task<int> UpdateInventoryUnitPriceAndGrossProfitBatchAsync(IEnumerable<SalesVoucher> vouchers)
     {
-        // CSV用リポジトリでは実装しない（メインのSalesVoucherRepositoryを使用）
-        throw new NotImplementedException("CSV用リポジトリではProcess 2-5は使用しません。SalesVoucherRepositoryを使用してください");
+        _logger.LogInformation("CSV用リポジトリで売上伝票の在庫単価と粗利益を更新します: {Count}件", vouchers.Count());
+        
+        const string updateSql = @"
+            UPDATE SalesVouchers 
+            SET 
+                InventoryUnitPrice = @InventoryUnitPrice,
+                GrossProfit = @GrossProfit,
+                WalkingDiscount = @WalkingDiscount
+            WHERE VoucherId = @VoucherId 
+                AND LineNumber = @LineNumber";
+        
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+            
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                var updateParams = vouchers.Select(v => new
+                {
+                    VoucherId = v.VoucherId,
+                    LineNumber = v.LineNumber,
+                    InventoryUnitPrice = v.InventoryUnitPrice,
+                    GrossProfit = v.GrossProfit,      // 粗利益
+                    WalkingDiscount = v.WalkingDiscount // 歩引き金
+                });
+                
+                var updatedCount = await connection.ExecuteAsync(updateSql, updateParams, transaction);
+                await transaction.CommitAsync();
+                
+                _logger.LogInformation("CSV用リポジトリで{Count}件の売上伝票を更新しました", updatedCount);
+                return updatedCount;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "CSV用リポジトリでの売上伝票更新エラー");
+            throw;
+        }
     }
 }
