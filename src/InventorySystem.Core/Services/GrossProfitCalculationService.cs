@@ -147,25 +147,91 @@ namespace InventorySystem.Core.Services
         }
 
         /// <summary>
-        /// 5項目キーの作成
+        /// 5項目キーの作成（正規化処理付き）
         /// </summary>
         private string CreateInventoryKey(SalesVoucher voucher)
         {
-            return $"{voucher.ProductCode}_{voucher.GradeCode}_{voucher.ClassCode}_" +
-                   $"{voucher.ShippingMarkCode}_{voucher.ShippingMarkName}";
+            return CreateNormalizedKey(
+                voucher.ProductCode,
+                voucher.GradeCode,
+                voucher.ClassCode,
+                voucher.ShippingMarkCode,
+                voucher.ShippingMarkName);
         }
 
         /// <summary>
-        /// CP在庫マスタを辞書形式で取得
+        /// CP在庫マスタ用の5項目キー作成（正規化処理付き）
+        /// </summary>
+        private string CreateInventoryKey(CpInventoryMaster cpInventory)
+        {
+            return CreateNormalizedKey(
+                cpInventory.Key.ProductCode,
+                cpInventory.Key.GradeCode,
+                cpInventory.Key.ClassCode,
+                cpInventory.Key.ShippingMarkCode,
+                cpInventory.Key.ShippingMarkName);
+        }
+
+        /// <summary>
+        /// 正規化された5項目複合キーを生成
+        /// 空白文字やnullを統一的に処理して重複を防ぐ
+        /// </summary>
+        private string CreateNormalizedKey(string productCode, string gradeCode, string classCode, 
+            string shippingMarkCode, string shippingMarkName)
+        {
+            // null・空白文字の正規化
+            var normalizedProductCode = NormalizeKeyPart(productCode);
+            var normalizedGradeCode = NormalizeKeyPart(gradeCode);
+            var normalizedClassCode = NormalizeKeyPart(classCode);
+            var normalizedShippingMarkCode = NormalizeKeyPart(shippingMarkCode);
+            var normalizedShippingMarkName = NormalizeKeyPart(shippingMarkName);
+
+            return $"{normalizedProductCode}_{normalizedGradeCode}_{normalizedClassCode}_" +
+                   $"{normalizedShippingMarkCode}_{normalizedShippingMarkName}";
+        }
+
+        /// <summary>
+        /// キー構成要素の正規化（null・空白統一処理）
+        /// </summary>
+        private string NormalizeKeyPart(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+            return value.Trim();
+        }
+
+        /// <summary>
+        /// CP在庫マスタを辞書形式で取得（重複排除処理付き）
         /// </summary>
         private async Task<Dictionary<string, CpInventoryMaster>> GetCpInventoryDictionaryAsync(
             DateTime jobDate, string dataSetId)
         {
             var cpInventories = await _cpInventoryRepository.GetByJobDateAndDataSetIdAsync(jobDate, dataSetId);
             
-            return cpInventories.ToDictionary(
-                cp => $"{cp.Key.ProductCode}_{cp.Key.GradeCode}_{cp.Key.ClassCode}_{cp.Key.ShippingMarkCode}_{cp.Key.ShippingMarkName}",
-                cp => cp);
+            _logger.LogDebug("CP在庫マスタ取得: {Count}件", cpInventories.Count());
+            
+            // GroupByで重複キーを排除してからToDictionaryを実行
+            var groupedInventories = cpInventories
+                .GroupBy(cp => CreateInventoryKey(cp))
+                .ToList();
+            
+            // 重複キーの警告出力
+            var duplicateGroups = groupedInventories.Where(g => g.Count() > 1).ToList();
+            if (duplicateGroups.Any())
+            {
+                _logger.LogWarning("CP在庫マスタで重複キーを検出: {Count}グループ", duplicateGroups.Count);
+                foreach (var group in duplicateGroups)
+                {
+                    _logger.LogWarning("重複キー: {Key}, 件数: {Count}", group.Key, group.Count());
+                }
+            }
+            
+            // 各グループの最初の要素を辞書に登録
+            return groupedInventories.ToDictionary(
+                group => group.Key,
+                group => group.First());
         }
 
         /// <summary>
