@@ -29,13 +29,11 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
 
         const string sql = @"
             INSERT INTO DataSets (
-                Id, Name, Description, ProcessType, DataSetType, ImportedAt, 
-                RecordCount, Status, ErrorMessage, FilePath, JobDate, 
-                CreatedAt, UpdatedAt
+                Id, Name, Description, ProcessType, Status, JobDate, 
+                CreatedDate, UpdatedDate, ErrorMessage
             ) VALUES (
-                @Id, @Name, @Description, @ProcessType, @DataSetType, @ImportedAt,
-                @RecordCount, @Status, @ErrorMessage, @FilePath, @JobDate,
-                @CreatedAt, @UpdatedAt
+                @Id, @Name, @Description, @ProcessType, @Status, @JobDate,
+                @CreatedDate, @UpdatedDate, @ErrorMessage
             )";
 
         try
@@ -47,16 +45,12 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
                 Id = dataSet.Id,
                 Name = dataSet.Name ?? $"DataSet_{DateTime.Now:yyyyMMdd_HHmmss}",
                 Description = dataSet.Description,
-                ProcessType = dataSet.DataSetType ?? "Unknown", // ProcessType は DataSetType で代用
-                DataSetType = dataSet.DataSetType ?? "Unknown",
-                ImportedAt = dataSet.ImportedAt == default ? DateTime.Now : dataSet.ImportedAt,
-                RecordCount = dataSet.RecordCount,
+                ProcessType = dataSet.ProcessType ?? dataSet.DataSetType ?? "Unknown",
                 Status = dataSet.Status ?? "Created",
-                ErrorMessage = dataSet.ErrorMessage,
-                FilePath = dataSet.FilePath,
                 JobDate = dataSet.JobDate,
-                CreatedAt = dataSet.CreatedAt == default ? DateTime.Now : dataSet.CreatedAt,
-                UpdatedAt = dataSet.UpdatedAt == default ? DateTime.Now : dataSet.UpdatedAt
+                CreatedDate = DateTime.Now,
+                UpdatedDate = DateTime.Now,
+                ErrorMessage = dataSet.ErrorMessage
             };
 
             await connection.ExecuteAsync(sql, parameters);
@@ -85,9 +79,8 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
         }
 
         const string sql = @"
-            SELECT Id, Name, Description, ProcessType, DataSetType, ImportedAt, 
-                   RecordCount, Status, ErrorMessage, FilePath, JobDate, 
-                   CreatedAt, UpdatedAt
+            SELECT Id, Name, Description, ProcessType, Status, JobDate,
+                   CreatedDate, UpdatedDate, CompletedDate, ErrorMessage
             FROM DataSets 
             WHERE Id = @Id";
 
@@ -98,6 +91,16 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
             
             if (result != null)
             {
+                // 存在しないプロパティはコード内で初期化
+                result.DataSetType = result.ProcessType; // ProcessTypeから推測
+                result.ImportedAt = result.CreatedDate;  // CreatedDateで代用
+                result.RecordCount = 0;  // デフォルト値
+                result.FilePath = null;  // null設定
+                
+                // プロパティ名の調整
+                result.CreatedAt = result.CreatedDate;
+                result.UpdatedAt = result.UpdatedDate;
+                
                 _logger.LogDebug("データセット取得成功: {DataSetId}, Name: {Name}", id, result.Name);
             }
             else
@@ -129,7 +132,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
             UPDATE DataSets 
             SET Status = @Status, 
                 ErrorMessage = @ErrorMessage,
-                UpdatedAt = @UpdatedAt
+                UpdatedDate = @UpdatedDate
             WHERE Id = @Id";
 
         try
@@ -141,7 +144,7 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
                 Id = id,
                 Status = status,
                 ErrorMessage = errorMessage,
-                UpdatedAt = DateTime.Now
+                UpdatedDate = DateTime.Now
             };
 
             var affectedRows = await connection.ExecuteAsync(sql, parameters);
@@ -160,46 +163,17 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
         }
     }
 
+    /* コメントアウト: RecordCountカラムが存在しないため使用不可
     /// <summary>
     /// データセットの件数を更新
     /// </summary>
     public async Task UpdateRecordCountAsync(string id, int recordCount)
     {
-        if (string.IsNullOrEmpty(id))
-            throw new ArgumentException("ID は必須です", nameof(id));
-
-        const string sql = @"
-            UPDATE DataSets 
-            SET RecordCount = @RecordCount,
-                UpdatedAt = @UpdatedAt
-            WHERE Id = @Id";
-
-        try
-        {
-            using var connection = new SqlConnection(_connectionString);
-            
-            var parameters = new
-            {
-                Id = id,
-                RecordCount = recordCount,
-                UpdatedAt = DateTime.Now
-            };
-
-            var affectedRows = await connection.ExecuteAsync(sql, parameters);
-            
-            if (affectedRows == 0)
-            {
-                throw new InvalidOperationException($"データセットが見つかりません: {id}");
-            }
-
-            _logger.LogInformation("データセット件数更新: {DataSetId} -> {RecordCount}件", id, recordCount);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "データセット件数更新エラー: {DataSetId}", id);
-            throw;
-        }
+        // RecordCountカラムが実際のテーブルに存在しないため、この機能は使用不可
+        // 必要に応じて、別の方法でレコード数を管理する実装を検討
+        throw new NotImplementedException("RecordCountカラムが存在しないため、この機能は使用できません。");
     }
+    */
 
     /// <summary>
     /// 指定した日付のデータセット一覧を取得
@@ -207,17 +181,27 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     public async Task<IEnumerable<DataSet>> GetByJobDateAsync(DateTime jobDate)
     {
         const string sql = @"
-            SELECT Id, Name, Description, ProcessType, DataSetType, ImportedAt, 
-                   RecordCount, Status, ErrorMessage, FilePath, JobDate, 
-                   CreatedAt, UpdatedAt
+            SELECT Id, Name, Description, ProcessType, Status, JobDate,
+                   CreatedDate, UpdatedDate, CompletedDate, ErrorMessage
             FROM DataSets 
             WHERE JobDate = @JobDate
-            ORDER BY ImportedAt DESC";
+            ORDER BY CreatedDate DESC";
 
         try
         {
             using var connection = new SqlConnection(_connectionString);
             var dataSets = await connection.QueryAsync<DataSet>(sql, new { JobDate = jobDate.Date });
+            
+            // 存在しないプロパティはコード内で初期化
+            foreach (var result in dataSets)
+            {
+                result.DataSetType = result.ProcessType;
+                result.ImportedAt = result.CreatedDate;
+                result.RecordCount = 0;
+                result.FilePath = null;
+                result.CreatedAt = result.CreatedDate;
+                result.UpdatedAt = result.UpdatedDate;
+            }
             
             return dataSets;
         }
@@ -234,17 +218,27 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
     public async Task<IEnumerable<DataSet>> GetByStatusAsync(string status)
     {
         const string sql = @"
-            SELECT Id, Name, Description, ProcessType, DataSetType, ImportedAt, 
-                   RecordCount, Status, ErrorMessage, FilePath, JobDate, 
-                   CreatedAt, UpdatedAt
+            SELECT Id, Name, Description, ProcessType, Status, JobDate,
+                   CreatedDate, UpdatedDate, CompletedDate, ErrorMessage
             FROM DataSets 
             WHERE Status = @Status
-            ORDER BY ImportedAt DESC";
+            ORDER BY CreatedDate DESC";
 
         try
         {
             using var connection = new SqlConnection(_connectionString);
             var dataSets = await connection.QueryAsync<DataSet>(sql, new { Status = status });
+            
+            // 存在しないプロパティはコード内で初期化
+            foreach (var result in dataSets)
+            {
+                result.DataSetType = result.ProcessType;
+                result.ImportedAt = result.CreatedDate;
+                result.RecordCount = 0;
+                result.FilePath = null;
+                result.CreatedAt = result.CreatedDate;
+                result.UpdatedAt = result.UpdatedDate;
+            }
             
             return dataSets;
         }
@@ -297,14 +291,11 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
             SET Name = @Name,
                 Description = @Description,
                 ProcessType = @ProcessType,
-                DataSetType = @DataSetType,
-                ImportedAt = @ImportedAt,
-                RecordCount = @RecordCount,
                 Status = @Status,
                 ErrorMessage = @ErrorMessage,
-                FilePath = @FilePath,
                 JobDate = @JobDate,
-                UpdatedAt = @UpdatedAt
+                UpdatedDate = @UpdatedDate,
+                CompletedDate = @CompletedDate
             WHERE Id = @Id";
 
         try
@@ -317,14 +308,11 @@ public class DataSetRepository : BaseRepository, IDataSetRepository
                 Name = dataSet.Name,
                 Description = dataSet.Description,
                 ProcessType = dataSet.ProcessType,
-                DataSetType = dataSet.DataSetType,
-                ImportedAt = dataSet.ImportedAt,
-                RecordCount = dataSet.RecordCount,
                 Status = dataSet.Status,
                 ErrorMessage = dataSet.ErrorMessage,
-                FilePath = dataSet.FilePath,
                 JobDate = dataSet.JobDate,
-                UpdatedAt = DateTime.Now
+                UpdatedDate = DateTime.Now,
+                CompletedDate = dataSet.CompletedDate
             };
 
             var affectedRows = await connection.ExecuteAsync(sql, parameters);

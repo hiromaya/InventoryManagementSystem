@@ -1,162 +1,82 @@
 [
   {
-    "DataSetId": "DS_20250602_125639_DAILY_REPORT",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "UNKNOWN",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-23T12:56:39.7366667",
-    "Notes": null
+    "COLUMN_NAME": "Id",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 100,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "ORDINAL_POSITION": 1
   },
   {
-    "DataSetId": "DS_20250602_110050_DAILY_REPORT",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "UNKNOWN",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-23T11:00:50.0733333",
-    "Notes": null
+    "COLUMN_NAME": "Name",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 100,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "ORDINAL_POSITION": 2
   },
   {
-    "DataSetId": "84a114d9-9f82-40fa-ace4-0ffbceef4a2b",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:36.2033333",
-    "Notes": "支払伝票CSVファイル取込: 支払伝票.csv"
+    "COLUMN_NAME": "Description",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 500,
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "ORDINAL_POSITION": 3
   },
   {
-    "DataSetId": "3f9de333-52d2-4d52-b362-82478f8131d8",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:36.1666667",
-    "Notes": "入金伝票CSVファイル取込: 入金伝票.csv"
+    "COLUMN_NAME": "ProcessType",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 50,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "ORDINAL_POSITION": 4
   },
   {
-    "DataSetId": "47c5f0b7-240e-4ed0-a4df-797e019e77f2",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:36.1166667",
-    "Notes": "在庫調整CSVファイル取込: 受注伝票.csv"
+    "COLUMN_NAME": "Status",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 20,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "('Created')",
+    "ORDINAL_POSITION": 5
   },
   {
-    "DataSetId": "84c629b7-080f-4fc2-ae8f-b93d9f15b6fc",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:36.0066667",
-    "Notes": "仕入伝票CSVファイル取込: 仕入伝票.csv"
+    "COLUMN_NAME": "JobDate",
+    "DATA_TYPE": "date",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "ORDINAL_POSITION": 6
   },
   {
-    "DataSetId": "cd9cf402-413e-41b1-9e5f-73eace6bf4d1",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.5033333",
-    "Notes": "売上伝票CSVファイル取込: 売上伝票.csv"
+    "COLUMN_NAME": "CreatedDate",
+    "DATA_TYPE": "datetime2",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "(getdate())",
+    "ORDINAL_POSITION": 7
   },
   {
-    "DataSetId": "068d9511-0000-4fbb-bcb2-b8e5fd6f8501",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.4933333",
-    "Notes": "担当者分類1マスタCSV取込: 担当者分類１.csv"
+    "COLUMN_NAME": "UpdatedDate",
+    "DATA_TYPE": "datetime2",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "(getdate())",
+    "ORDINAL_POSITION": 8
   },
   {
-    "DataSetId": "44511f7f-9555-49f4-8232-a54298e4fc41",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.4866667",
-    "Notes": "仕入先分類3マスタCSV取込: 仕入先分類３.csv"
+    "COLUMN_NAME": "CompletedDate",
+    "DATA_TYPE": "datetime2",
+    "CHARACTER_MAXIMUM_LENGTH": null,
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "ORDINAL_POSITION": 9
   },
   {
-    "DataSetId": "2b235001-b7bb-4ae9-90b3-01647cadce2d",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.48",
-    "Notes": "仕入先分類2マスタCSV取込: 仕入先分類２.csv"
-  },
-  {
-    "DataSetId": "fbea4413-2ec4-4be4-a4ad-dde5dd395b71",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.47",
-    "Notes": "仕入先分類1マスタCSV取込: 仕入先分類１.csv"
-  },
-  {
-    "DataSetId": "570b691e-cd7f-40b5-a7d0-0bd123f26cb9",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.4633333",
-    "Notes": "得意先分類5マスタCSV取込: 得意先分類５.csv"
-  },
-  {
-    "DataSetId": "94b8d5f4-7b50-43b7-bb74-e650c40f864e",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.46",
-    "Notes": "得意先分類4マスタCSV取込: 得意先分類４.csv"
-  },
-  {
-    "DataSetId": "2254f6de-ee59-43a3-b0e0-5ec39107bf8e",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.4466667",
-    "Notes": "得意先分類3マスタCSV取込: 得意先分類３.csv"
-  },
-  {
-    "DataSetId": "8907b57c-5905-4d38-b1ed-28c3f0162c1e",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.4366667",
-    "Notes": "得意先分類2マスタCSV取込: 得意先分類２.csv"
-  },
-  {
-    "DataSetId": "4c591209-d963-428a-a2d5-c31e9de42e94",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.41",
-    "Notes": "得意先分類1マスタCSV取込: 得意先分類１.csv"
-  },
-  {
-    "DataSetId": "5e15a657-1aaf-4874-8c7b-3cec443747d1",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.4033333",
-    "Notes": "商品分類3マスタCSV取込: 商品分類３.csv"
-  },
-  {
-    "DataSetId": "fdbe5381-8b3e-417b-8e99-14bb5a1703a6",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.3966667",
-    "Notes": "商品分類2マスタCSV取込: 商品分類２.csv"
-  },
-  {
-    "DataSetId": "e9c0cb35-59fe-4f01-af3d-f0b5374e18cf",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.38",
-    "Notes": "商品分類1マスタCSV取込: 商品分類１.csv"
-  },
-  {
-    "DataSetId": "40682312-1756-48f5-81c1-c57753e002e3",
-    "JobDate": "2025-06-02T00:00:00",
-    "ImportType": "IMPORT",
-    "RecordCount": 0,
-    "CreatedAt": "2025-07-20T09:01:35.34",
-    "Notes": "仕入先マスタCSVファイル取込: 仕入先.csv"
+    "COLUMN_NAME": "ErrorMessage",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": -1,
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "ORDINAL_POSITION": 10
   }
 ]

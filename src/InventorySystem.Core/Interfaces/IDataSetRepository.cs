@@ -22,10 +22,12 @@ public interface IDataSetRepository
     /// </summary>
     Task UpdateStatusAsync(string id, string status, string? errorMessage = null);
 
+    /* コメントアウト: RecordCountカラムが存在しないため使用不可
     /// <summary>
     /// データセットの件数を更新
     /// </summary>
     Task UpdateRecordCountAsync(string id, int recordCount);
+    */
 
     /// <summary>
     /// データセットを更新

@@ -1,0 +1,22 @@
+[
+  {
+    "IndexName": "PK_DataSets",
+    "ColumnName": "Id",
+    "IndexType": "CLUSTERED"
+  },
+  {
+    "IndexName": "IX_DataSets_Status",
+    "ColumnName": "Status",
+    "IndexType": "NONCLUSTERED"
+  },
+  {
+    "IndexName": "IX_DataSets_JobDate",
+    "ColumnName": "JobDate",
+    "IndexType": "NONCLUSTERED"
+  },
+  {
+    "IndexName": "IX_DataSets_CreatedDate",
+    "ColumnName": "CreatedDate",
+    "IndexType": "NONCLUSTERED"
+  }
+]

@@ -62,14 +62,37 @@ public class DataSet
     public DateTime JobDate { get; set; }
 
     /// <summary>
-    /// 作成日時
+    /// 完了日時（データベースのCompletedDateカラム）
     /// </summary>
-    public DateTime CreatedAt { get; set; }
+    public DateTime? CompletedDate { get; set; }
 
     /// <summary>
-    /// 更新日時
+    /// 作成日時（データベースのCreatedDateカラム）
     /// </summary>
-    public DateTime UpdatedAt { get; set; }
+    public DateTime CreatedDate { get; set; }
+
+    /// <summary>
+    /// 更新日時（データベースのUpdatedDateカラム）
+    /// </summary>
+    public DateTime UpdatedDate { get; set; }
+
+    /// <summary>
+    /// 作成日時（後方互換性のためのエイリアス）
+    /// </summary>
+    public DateTime CreatedAt 
+    { 
+        get => CreatedDate; 
+        set => CreatedDate = value; 
+    }
+
+    /// <summary>
+    /// 更新日時（後方互換性のためのエイリアス）
+    /// </summary>
+    public DateTime UpdatedAt 
+    { 
+        get => UpdatedDate; 
+        set => UpdatedDate = value; 
+    }
 }
 
 /// <summary>
