@@ -45,7 +45,9 @@ BEGIN
             
             -- グループキー（FastReport用）
             GroupKey NVARCHAR(50) NOT NULL,  -- 100から50に縮小
-            SortKey NVARCHAR(40) NOT NULL,   -- 150から40に縮小
+            SortKeyPart1 NVARCHAR(30) NOT NULL,  -- 基本キー部分
+            SortKeyPart2 INT NOT NULL,            -- 日付部分（YYYYMMDD形式の数値）
+            SortKeyPart3 NVARCHAR(20) NOT NULL,   -- 伝票番号部分
             
             PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName)
         );
@@ -56,7 +58,7 @@ BEGIN
             ProductName, ProductCategory1,
             PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice,
             CurrentStock, CurrentStockAmount, CurrentUnitPrice,
-            GroupKey, SortKey
+            GroupKey, SortKeyPart1, SortKeyPart2, SortKeyPart3
         )
         SELECT 
             cp.ProductCode,
@@ -74,8 +76,10 @@ BEGIN
             cp.DailyUnitPrice as CurrentUnitPrice,
             -- グループキー生成（簡略化）
             cp.ProductCode + '_' + cp.ShippingMarkCode as GroupKey,
-            -- ソートキー生成（簡略化）
-            cp.ProductCode + '_' + cp.ShippingMarkCode + '_' + cp.GradeCode as SortKey
+            -- ソートキー生成（3分割）
+            ISNULL(cp.ProductCategory1, '000') + '_' + cp.ProductCode as SortKeyPart1,
+            0 as SortKeyPart2,  -- 前残は0
+            '00_前残' as SortKeyPart3  -- 固定値
         FROM CpInventoryMaster cp
         WHERE cp.JobDate = @JobDate
           AND (@DepartmentCode IS NULL OR cp.ProductCategory1 = @DepartmentCode);
@@ -113,7 +117,9 @@ BEGIN
                 cp.ProductCategory1,
                 '' as ProductCategory5,
                 cp.GroupKey,
-                cp.SortKey + '_0000' as SortKey,
+                cp.SortKeyPart1 as SortKeyPart1,
+                cp.SortKeyPart2 as SortKeyPart2,
+                cp.SortKeyPart3 as SortKeyPart3,
                 1 as SortOrder
             FROM #CPInventoryMaster cp
             WHERE cp.PreviousDayStock <> 0 OR cp.PreviousDayStockAmount <> 0
@@ -152,7 +158,9 @@ BEGIN
                 cp.ProductCategory1,
                 '' as ProductCategory5,
                 cp.GroupKey,
-                cp.SortKey + '_' + s.VoucherNumber as SortKey,
+                cp.SortKeyPart1 as SortKeyPart1,
+                CAST(FORMAT(s.VoucherDate, 'yyyyMMdd') as INT) as SortKeyPart2,
+                s.VoucherNumber as SortKeyPart3,
                 2 as SortOrder
             FROM SalesVouchers s
             INNER JOIN #CPInventoryMaster cp ON 
@@ -197,7 +205,9 @@ BEGIN
                 cp.ProductCategory1,
                 '' as ProductCategory5,
                 cp.GroupKey,
-                cp.SortKey + '_' + p.VoucherNumber as SortKey,
+                cp.SortKeyPart1 as SortKeyPart1,
+                CAST(FORMAT(p.VoucherDate, 'yyyyMMdd') as INT) as SortKeyPart2,
+                p.VoucherNumber as SortKeyPart3,
                 2 as SortOrder
             FROM PurchaseVouchers p
             INNER JOIN #CPInventoryMaster cp ON 
@@ -248,7 +258,9 @@ BEGIN
                 cp.ProductCategory1,
                 '' as ProductCategory5,
                 cp.GroupKey,
-                cp.SortKey + '_' + a.VoucherNumber as SortKey,
+                cp.SortKeyPart1 as SortKeyPart1,
+                CAST(FORMAT(a.VoucherDate, 'yyyyMMdd') as INT) as SortKeyPart2,
+                a.VoucherNumber as SortKeyPart3,
                 2 as SortOrder
             FROM InventoryAdjustments a
             INNER JOIN #CPInventoryMaster cp ON 
@@ -266,7 +278,7 @@ BEGIN
         -- =============================================
         RankedData AS (
             SELECT *,
-                ROW_NUMBER() OVER (PARTITION BY GroupKey ORDER BY SortKey) as RowNum
+                ROW_NUMBER() OVER (PARTITION BY GroupKey ORDER BY SortKeyPart1, SortKeyPart2, SortKeyPart3) as RowNum
             FROM TransactionData
         ),
         
@@ -275,13 +287,13 @@ BEGIN
                 -- 累積残高計算
                 SUM(PurchaseQuantity - SalesQuantity) OVER (
                     PARTITION BY GroupKey 
-                    ORDER BY SortKey 
+                    ORDER BY SortKeyPart1, SortKeyPart2, SortKeyPart3 
                     ROWS UNBOUNDED PRECEDING
                 ) as RunningQuantity,
                 
                 SUM(Amount * CASE WHEN PurchaseQuantity > 0 THEN 1 WHEN SalesQuantity > 0 THEN -1 ELSE 0 END) OVER (
                     PARTITION BY GroupKey 
-                    ORDER BY SortKey 
+                    ORDER BY SortKeyPart1, SortKeyPart2, SortKeyPart3 
                     ROWS UNBOUNDED PRECEDING
                 ) as RunningAmount
                 
@@ -319,17 +331,20 @@ BEGIN
             GroupKey,
             ProductCategory1,
             ProductCategory5,
+            SortKeyPart1,
+            SortKeyPart2, 
+            SortKeyPart3,
             
             -- 集計用フィールド
-            FIRST_VALUE(RemainingQuantity) OVER (PARTITION BY GroupKey ORDER BY SortKey) as PreviousBalance,
+            FIRST_VALUE(RemainingQuantity) OVER (PARTITION BY GroupKey ORDER BY SortKeyPart1, SortKeyPart2, SortKeyPart3) as PreviousBalance,
             SUM(PurchaseQuantity) OVER (PARTITION BY GroupKey) as TotalPurchaseQuantity,
             SUM(SalesQuantity) OVER (PARTITION BY GroupKey) as TotalSalesQuantity,
-            LAST_VALUE(RunningQuantity) OVER (PARTITION BY GroupKey ORDER BY SortKey ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as CurrentBalance,
+            LAST_VALUE(RunningQuantity) OVER (PARTITION BY GroupKey ORDER BY SortKeyPart1, SortKeyPart2, SortKeyPart3 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as CurrentBalance,
             -- 在庫単価
             LAST_VALUE(CASE WHEN RecordType <> 'Previous' AND RunningQuantity > 0 THEN RunningAmount / NULLIF(RunningQuantity, 0) ELSE 0 END) 
-                OVER (PARTITION BY GroupKey ORDER BY SortKey ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as InventoryUnitPrice,
+                OVER (PARTITION BY GroupKey ORDER BY SortKeyPart1, SortKeyPart2, SortKeyPart3 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as InventoryUnitPrice,
             -- 在庫金額
-            LAST_VALUE(RunningAmount) OVER (PARTITION BY GroupKey ORDER BY SortKey ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as InventoryAmount,
+            LAST_VALUE(RunningAmount) OVER (PARTITION BY GroupKey ORDER BY SortKeyPart1, SortKeyPart2, SortKeyPart3 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as InventoryAmount,
             -- 粗利益合計
             SUM(GrossProfit) OVER (PARTITION BY GroupKey) as TotalGrossProfit,
             -- 粗利率
@@ -340,7 +355,7 @@ BEGIN
             END as GrossProfitRate
             
         FROM CalculatedData
-        ORDER BY ProductCategory1, GroupKey, SortKey;
+        ORDER BY ProductCategory1, GroupKey, SortKeyPart1, SortKeyPart2, SortKeyPart3;
         
         -- 一時テーブルの削除
         DROP TABLE #CPInventoryMaster;
