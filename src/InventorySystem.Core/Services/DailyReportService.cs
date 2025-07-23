@@ -313,7 +313,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
                 // 日計項目（集計）
                 DailySalesQuantity = group.Sum(cp => cp.DailySalesQuantity),
                 DailySalesAmount = group.Sum(cp => cp.DailySalesAmount),
-                DailyPurchaseDiscount = group.Sum(cp => cp.DailyDiscountAmount),
+                DailyPurchaseDiscount = group.Sum(cp => cp.DailyPurchaseDiscountAmount),
                 DailyInventoryAdjustment = group.Sum(cp => cp.DailyInventoryAdjustmentAmount),
                 DailyProcessingCost = group.Sum(cp => cp.DailyProcessingAmount),
                 DailyTransfer = group.Sum(cp => cp.DailyTransferAmount),

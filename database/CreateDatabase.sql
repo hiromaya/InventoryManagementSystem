@@ -118,7 +118,8 @@ BEGIN
         DailyGrossProfit DECIMAL(12,4) NOT NULL DEFAULT 0,         -- 当日粗利益
         DailyWalkingAmount DECIMAL(12,4) NOT NULL DEFAULT 0,       -- 当日歩引き額
         DailyIncentiveAmount DECIMAL(12,4) NOT NULL DEFAULT 0,     -- 当日奨励金
-        DailyDiscountAmount DECIMAL(12,4) NOT NULL DEFAULT 0,      -- 当日仕入値引き額
+        DailyDiscountAmount DECIMAL(12,4) NOT NULL DEFAULT 0,      -- 当日歩引き額
+        DailyPurchaseDiscountAmount DECIMAL(12,4) NOT NULL DEFAULT 0, -- 当日仕入値引き額
         
         -- 月計売上関連
         MonthlySalesQuantity DECIMAL(18,4) NOT NULL DEFAULT 0,        -- 月計売上数量

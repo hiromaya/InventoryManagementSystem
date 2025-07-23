@@ -61,7 +61,8 @@ public class CpInventoryMaster
     public decimal DailyGrossProfit { get; set; }                // 当日粗利益
     public decimal DailyWalkingAmount { get; set; }              // 当日歩引き額
     public decimal DailyIncentiveAmount { get; set; }            // 当日奨励金
-    public decimal DailyDiscountAmount { get; set; }             // 当日仕入値引き額
+    public decimal DailyDiscountAmount { get; set; }             // 当日歩引き額
+    public decimal DailyPurchaseDiscountAmount { get; set; }     // 当日仕入値引き額
     
     // 月計項目（月初から当日までの累計）
     public decimal MonthlySalesQuantity { get; set; }           // 月計売上数量
@@ -165,6 +166,7 @@ public class CpInventoryMaster
         DailyWalkingAmount = 0;
         DailyIncentiveAmount = 0;
         DailyDiscountAmount = 0;
+        DailyPurchaseDiscountAmount = 0;
         
         // 当日在庫をクリア
         DailyStock = 0;

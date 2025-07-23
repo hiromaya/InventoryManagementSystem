@@ -43,6 +43,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 DailyShipmentQuantity = 0, DailyShipmentAmount = 0,
                 DailyGrossProfit = 0, DailyWalkingAmount = 0,
                 DailyIncentiveAmount = 0, DailyDiscountAmount = 0,
+                DailyPurchaseDiscountAmount = 0,
                 DailyStock = 0, DailyStockAmount = 0, DailyUnitPrice = 0,
                 DailyFlag = '9',
                 -- 月計フィールドも明示的に0で初期化（アンマッチリストでのエラー回避）
@@ -123,7 +124,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 DailyReceiptQuantity = @DailyReceiptQuantity, DailyReceiptAmount = @DailyReceiptAmount,
                 DailyShipmentQuantity = @DailyShipmentQuantity, DailyShipmentAmount = @DailyShipmentAmount,
                 DailyGrossProfit = @DailyGrossProfit, DailyWalkingAmount = @DailyWalkingAmount,
-                DailyIncentiveAmount = @DailyIncentiveAmount, DailyDiscountAmount = @DailyDiscountAmount
+                DailyIncentiveAmount = @DailyIncentiveAmount, DailyDiscountAmount = @DailyDiscountAmount,
+                DailyPurchaseDiscountAmount = @DailyPurchaseDiscountAmount
             WHERE ProductCode = @ProductCode 
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
@@ -152,6 +154,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             cpInventory.DailyShipmentQuantity, cpInventory.DailyShipmentAmount,
             cpInventory.DailyGrossProfit, cpInventory.DailyWalkingAmount,
             cpInventory.DailyIncentiveAmount, cpInventory.DailyDiscountAmount,
+            cpInventory.DailyPurchaseDiscountAmount,
             cpInventory.Key.ProductCode, cpInventory.Key.GradeCode, cpInventory.Key.ClassCode,
             cpInventory.Key.ShippingMarkCode, cpInventory.Key.ShippingMarkName,
             cpInventory.DataSetId
@@ -574,6 +577,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             DailyWalkingAmount = row.DailyWalkingAmount ?? 0m,
             DailyIncentiveAmount = row.DailyIncentiveAmount ?? 0m,
             DailyDiscountAmount = row.DailyDiscountAmount ?? 0m,
+            DailyPurchaseDiscountAmount = row.DailyPurchaseDiscountAmount ?? 0m,
             // 月計項目
             MonthlySalesQuantity = row.MonthlySalesQuantity ?? 0m,
             MonthlySalesAmount = row.MonthlySalesAmount ?? 0m,
@@ -758,7 +762,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     {
         const string sql = @"
             UPDATE cp
-            SET cp.DailyDiscountAmount = ISNULL(pv.DiscountAmount, 0)
+            SET cp.DailyPurchaseDiscountAmount = ISNULL(pv.DiscountAmount, 0)
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
