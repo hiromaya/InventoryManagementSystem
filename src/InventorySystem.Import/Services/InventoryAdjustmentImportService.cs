@@ -19,20 +19,20 @@ namespace InventorySystem.Import.Services;
 public class InventoryAdjustmentImportService
 {
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
-    private readonly IDataSetRepository _dataSetRepository;
+    private readonly IDataSetManagementRepository _dataSetManagementRepository;
     private readonly IDataSetService _unifiedDataSetService;
     private readonly ILogger<InventoryAdjustmentImportService> _logger;
     private readonly IDataSetIdManager _dataSetIdManager;
     
     public InventoryAdjustmentImportService(
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
-        IDataSetRepository dataSetRepository,
+        IDataSetManagementRepository dataSetManagementRepository,
         IDataSetService unifiedDataSetService,
         ILogger<InventoryAdjustmentImportService> logger,
         IDataSetIdManager dataSetIdManager)
     {
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
-        _dataSetRepository = dataSetRepository;
+        _dataSetManagementRepository = dataSetManagementRepository;
         _unifiedDataSetService = unifiedDataSetService;
         _logger = logger;
         _dataSetIdManager = dataSetIdManager;
@@ -337,22 +337,24 @@ public class InventoryAdjustmentImportService
     /// </summary>
     public async Task<ImportResult> GetImportResultAsync(string dataSetId)
     {
-        var dataSet = await _dataSetRepository.GetByIdAsync(dataSetId);
-        if (dataSet == null)
+        // DataSetManagementテーブルから取得
+        var dataSetMgmt = await _dataSetManagementRepository.GetByIdAsync(dataSetId);
+        if (dataSetMgmt == null)
         {
             throw new InvalidOperationException($"データセットが見つかりません: {dataSetId}");
         }
-
+        
+        // インポートされたデータを取得
         var importedData = await _inventoryAdjustmentRepository.GetByDataSetIdAsync(dataSetId);
         
         return new ImportResult
         {
             DataSetId = dataSetId,
-            Status = dataSet.Status,
-            ImportedCount = dataSet.RecordCount,
-            ErrorMessage = dataSet.ErrorMessage,
-            FilePath = dataSet.FilePath,
-            CreatedAt = dataSet.CreatedAt,
+            Status = dataSetMgmt.Status,
+            ImportedCount = dataSetMgmt.RecordCount,
+            ErrorMessage = dataSetMgmt.ErrorMessage,
+            FilePath = dataSetMgmt.FilePath,
+            CreatedAt = dataSetMgmt.CreatedAt,
             ImportedData = importedData.Cast<object>().ToList()
         };
     }

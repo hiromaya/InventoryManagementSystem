@@ -130,8 +130,9 @@ builder.Services.AddScoped<IPurchaseVoucherRepository>(provider =>
     new PurchaseVoucherRepository(connectionString, provider.GetRequiredService<ILogger<PurchaseVoucherRepository>>()));
 builder.Services.AddScoped<IInventoryAdjustmentRepository>(provider => 
     new InventoryAdjustmentRepository(connectionString, provider.GetRequiredService<ILogger<InventoryAdjustmentRepository>>()));
-builder.Services.AddScoped<IDataSetRepository>(provider => 
-    new DataSetRepository(connectionString, provider.GetRequiredService<ILogger<DataSetRepository>>()));
+// 廃止: DataSetsテーブルは完全廃止済み、DataSetManagementテーブルのみ使用
+// builder.Services.AddScoped<IDataSetRepository>(provider => 
+//     new DataSetRepository(connectionString, provider.GetRequiredService<ILogger<DataSetRepository>>()));
 
 // CSV取込専用リポジトリ
 builder.Services.AddScoped<SalesVoucherCsvRepository>(provider => 
