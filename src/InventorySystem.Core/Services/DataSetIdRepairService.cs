@@ -91,9 +91,9 @@ namespace InventorySystem.Core.Services
 
             var result = new TableRepairResult { TableName = "SalesVouchers" };
 
-            // 現在のDataSetIdを確認
+            // 現在のDataSetIdを確認（NULLも含める）
             const string checkSql = @"
-                SELECT DataSetId, COUNT(*) as RecordCount 
+                SELECT ISNULL(DataSetId, 'NULL') as DataSetId, COUNT(*) as RecordCount 
                 FROM SalesVouchers 
                 WHERE JobDate = @JobDate 
                 GROUP BY DataSetId";
@@ -104,14 +104,20 @@ namespace InventorySystem.Core.Services
             _logger.LogInformation("売上伝票の現在のDataSetId: {DataSets}", 
                 string.Join(", ", result.BeforeDataSetIds.Select(x => $"{x.DataSetId}({x.Count}件)")));
 
+            if (!result.BeforeDataSetIds.Any())
+            {
+                _logger.LogWarning("対象日付の売上伝票が見つかりません: JobDate={JobDate}", targetDate);
+                return result;
+            }
+
             // DataSetIdManagerから正しいDataSetIdを取得
             var correctDataSetId = await _dataSetIdManager.GetOrCreateDataSetIdAsync(targetDate, "SalesVoucher");
 
-            // 不整合なレコードを修復
+            // 不整合なレコードを修復（NULL値も含む）
             const string updateSql = @"
                 UPDATE SalesVouchers 
-                SET DataSetId = @CorrectDataSetId, UpdatedAt = GETDATE()
-                WHERE JobDate = @JobDate AND DataSetId != @CorrectDataSetId";
+                SET DataSetId = @CorrectDataSetId
+                WHERE JobDate = @JobDate AND (DataSetId != @CorrectDataSetId OR DataSetId IS NULL)";
 
             result.UpdatedRecords = await connection.ExecuteAsync(updateSql, new 
             { 
@@ -139,9 +145,9 @@ namespace InventorySystem.Core.Services
 
             var result = new TableRepairResult { TableName = "CPInventoryMaster" };
 
-            // 現在のDataSetIdを確認
+            // 現在のDataSetIdを確認（NULLも含める）
             const string checkSql = @"
-                SELECT DataSetId, COUNT(*) as RecordCount 
+                SELECT ISNULL(DataSetId, 'NULL') as DataSetId, COUNT(*) as RecordCount 
                 FROM CPInventoryMaster 
                 WHERE JobDate = @JobDate 
                 GROUP BY DataSetId";
@@ -149,14 +155,20 @@ namespace InventorySystem.Core.Services
             var currentDataSets = await connection.QueryAsync(checkSql, new { JobDate = targetDate });
             result.BeforeDataSetIds = currentDataSets.Select(x => new DataSetIdInfo { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
 
+            if (!result.BeforeDataSetIds.Any())
+            {
+                _logger.LogWarning("対象日付のCP在庫マスタが見つかりません: JobDate={JobDate}", targetDate);
+                return result;
+            }
+
             // DataSetIdManagerから正しいDataSetIdを取得
             var correctDataSetId = await _dataSetIdManager.GetOrCreateDataSetIdAsync(targetDate, "CpInventoryMaster");
 
-            // 不整合なレコードを修復
+            // 不整合なレコードを修復（CPInventoryMasterテーブルにはUpdatedDateカラムを使用、NULL値も含む）
             const string updateSql = @"
                 UPDATE CPInventoryMaster 
-                SET DataSetId = @CorrectDataSetId, UpdatedAt = GETDATE()
-                WHERE JobDate = @JobDate AND DataSetId != @CorrectDataSetId";
+                SET DataSetId = @CorrectDataSetId, UpdatedDate = GETDATE()
+                WHERE JobDate = @JobDate AND (DataSetId != @CorrectDataSetId OR DataSetId IS NULL)";
 
             result.UpdatedRecords = await connection.ExecuteAsync(updateSql, new 
             { 
@@ -182,9 +194,9 @@ namespace InventorySystem.Core.Services
         {
             var result = new TableRepairResult { TableName = "PurchaseVouchers" };
 
-            // 仕入伝票の修復ロジック（売上伝票と同様）
+            // 仕入伝票の修復ロジック（NULLも含める）
             const string checkSql = @"
-                SELECT DataSetId, COUNT(*) as RecordCount 
+                SELECT ISNULL(DataSetId, 'NULL') as DataSetId, COUNT(*) as RecordCount 
                 FROM PurchaseVouchers 
                 WHERE JobDate = @JobDate 
                 GROUP BY DataSetId";
@@ -198,8 +210,8 @@ namespace InventorySystem.Core.Services
 
                 const string updateSql = @"
                     UPDATE PurchaseVouchers 
-                    SET DataSetId = @CorrectDataSetId, UpdatedAt = GETDATE()
-                    WHERE JobDate = @JobDate AND DataSetId != @CorrectDataSetId";
+                    SET DataSetId = @CorrectDataSetId
+                    WHERE JobDate = @JobDate AND (DataSetId != @CorrectDataSetId OR DataSetId IS NULL)";
 
                 result.UpdatedRecords = await connection.ExecuteAsync(updateSql, new 
                 { 
@@ -207,7 +219,17 @@ namespace InventorySystem.Core.Services
                     CorrectDataSetId = correctDataSetId 
                 });
 
+                // 修復後の状態を確認
+                var afterDataSets = await connection.QueryAsync(checkSql, new { JobDate = targetDate });
+                result.AfterDataSetIds = afterDataSets.Select(x => new DataSetIdInfo { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
                 result.CorrectDataSetId = correctDataSetId;
+
+                _logger.LogInformation("仕入伝票DataSetId修復完了: 更新件数={UpdatedRecords}, 正しいDataSetId={CorrectDataSetId}", 
+                    result.UpdatedRecords, correctDataSetId);
+            }
+            else
+            {
+                _logger.LogInformation("対象日付の仕入伝票が見つかりません: JobDate={JobDate}", targetDate);
             }
 
             return result;
@@ -220,9 +242,9 @@ namespace InventorySystem.Core.Services
         {
             var result = new TableRepairResult { TableName = "InventoryAdjustments" };
 
-            // 在庫調整の修復ロジック
+            // 在庫調整の修復ロジック（NULLも含める）
             const string checkSql = @"
-                SELECT DataSetId, COUNT(*) as RecordCount 
+                SELECT ISNULL(DataSetId, 'NULL') as DataSetId, COUNT(*) as RecordCount 
                 FROM InventoryAdjustments 
                 WHERE JobDate = @JobDate 
                 GROUP BY DataSetId";
@@ -236,8 +258,8 @@ namespace InventorySystem.Core.Services
 
                 const string updateSql = @"
                     UPDATE InventoryAdjustments 
-                    SET DataSetId = @CorrectDataSetId, UpdatedAt = GETDATE()
-                    WHERE JobDate = @JobDate AND DataSetId != @CorrectDataSetId";
+                    SET DataSetId = @CorrectDataSetId
+                    WHERE JobDate = @JobDate AND (DataSetId != @CorrectDataSetId OR DataSetId IS NULL)";
 
                 result.UpdatedRecords = await connection.ExecuteAsync(updateSql, new 
                 { 
@@ -245,7 +267,17 @@ namespace InventorySystem.Core.Services
                     CorrectDataSetId = correctDataSetId 
                 });
 
+                // 修復後の状態を確認
+                var afterDataSets = await connection.QueryAsync(checkSql, new { JobDate = targetDate });
+                result.AfterDataSetIds = afterDataSets.Select(x => new DataSetIdInfo { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
                 result.CorrectDataSetId = correctDataSetId;
+
+                _logger.LogInformation("在庫調整DataSetId修復完了: 更新件数={UpdatedRecords}, 正しいDataSetId={CorrectDataSetId}", 
+                    result.UpdatedRecords, correctDataSetId);
+            }
+            else
+            {
+                _logger.LogInformation("対象日付の在庫調整が見つかりません: JobDate={JobDate}", targetDate);
             }
 
             return result;
