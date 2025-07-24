@@ -460,6 +460,7 @@ try
             
         // 開発環境用コマンド
         case "init-database":
+        case "migrate-database":
             await ExecuteInitDatabaseAsync(host.Services, args);
             break;
             

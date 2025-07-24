@@ -106,7 +106,8 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         // "051_Phase2_AddNewColumns.sql",            // 新しいカラムを追加（05_create_master_tables.sqlで完了）
         // "052_Phase3_MigrateDataAndSync.sql",       // データ移行と同期（05_create_master_tables.sqlで完了）
         // "053_Phase5_Cleanup.sql"                   // 古いカラムの削除（05_create_master_tables.sqlで完了）
-        "050_Phase1_CheckCurrentSchema.sql"        // スキーマ確認のみ実行
+        "050_Phase1_CheckCurrentSchema.sql",       // スキーマ確認のみ実行
+        "054_CreateJobExecutionLog.sql"            // ジョブ実行ログテーブル作成（DataSetIdManager用）
     };
     
     // 旧テーブル定義（後方互換性のため一時的に保持）

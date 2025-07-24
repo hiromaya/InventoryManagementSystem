@@ -110,7 +110,7 @@ namespace InventorySystem.Core.Services
             // 不整合なレコードを修復
             const string updateSql = @"
                 UPDATE SalesVouchers 
-                SET DataSetId = @CorrectDataSetId, UpdatedDate = GETDATE()
+                SET DataSetId = @CorrectDataSetId, UpdatedAt = GETDATE()
                 WHERE JobDate = @JobDate AND DataSetId != @CorrectDataSetId";
 
             result.UpdatedRecords = await connection.ExecuteAsync(updateSql, new 
@@ -155,7 +155,7 @@ namespace InventorySystem.Core.Services
             // 不整合なレコードを修復
             const string updateSql = @"
                 UPDATE CPInventoryMaster 
-                SET DataSetId = @CorrectDataSetId, UpdatedDate = GETDATE()
+                SET DataSetId = @CorrectDataSetId, UpdatedAt = GETDATE()
                 WHERE JobDate = @JobDate AND DataSetId != @CorrectDataSetId";
 
             result.UpdatedRecords = await connection.ExecuteAsync(updateSql, new 
@@ -198,7 +198,7 @@ namespace InventorySystem.Core.Services
 
                 const string updateSql = @"
                     UPDATE PurchaseVouchers 
-                    SET DataSetId = @CorrectDataSetId, UpdatedDate = GETDATE()
+                    SET DataSetId = @CorrectDataSetId, UpdatedAt = GETDATE()
                     WHERE JobDate = @JobDate AND DataSetId != @CorrectDataSetId";
 
                 result.UpdatedRecords = await connection.ExecuteAsync(updateSql, new 
@@ -236,7 +236,7 @@ namespace InventorySystem.Core.Services
 
                 const string updateSql = @"
                     UPDATE InventoryAdjustments 
-                    SET DataSetId = @CorrectDataSetId, UpdatedDate = GETDATE()
+                    SET DataSetId = @CorrectDataSetId, UpdatedAt = GETDATE()
                     WHERE JobDate = @JobDate AND DataSetId != @CorrectDataSetId";
 
                 result.UpdatedRecords = await connection.ExecuteAsync(updateSql, new 
