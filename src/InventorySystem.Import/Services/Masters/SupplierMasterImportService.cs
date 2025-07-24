@@ -19,18 +19,18 @@ namespace InventorySystem.Import.Services.Masters;
 public class SupplierMasterImportService
 {
     private readonly ISupplierMasterRepository _supplierMasterRepository;
-    private readonly IDataSetRepository _dataSetRepository;
+    private readonly IDataSetManagementRepository _dataSetManagementRepository;
     private readonly IDataSetService _unifiedDataSetService;
     private readonly ILogger<SupplierMasterImportService> _logger;
 
     public SupplierMasterImportService(
         ISupplierMasterRepository supplierMasterRepository,
-        IDataSetRepository dataSetRepository,
+        IDataSetManagementRepository dataSetManagementRepository,
         IDataSetService unifiedDataSetService,
         ILogger<SupplierMasterImportService> logger)
     {
         _supplierMasterRepository = supplierMasterRepository;
-        _dataSetRepository = dataSetRepository;
+        _dataSetManagementRepository = dataSetManagementRepository;
         _unifiedDataSetService = unifiedDataSetService;
         _logger = logger;
     }
@@ -243,8 +243,9 @@ public class SupplierMasterImportService
     /// </summary>
     public async Task<ImportResult> GetImportResultAsync(string dataSetId)
     {
-        var dataSet = await _dataSetRepository.GetByIdAsync(dataSetId);
-        if (dataSet == null)
+        // DataSetManagementテーブルから取得
+        var dataSetMgmt = await _dataSetManagementRepository.GetByIdAsync(dataSetId);
+        if (dataSetMgmt == null)
         {
             throw new InvalidOperationException($"データセットが見つかりません: {dataSetId}");
         }
@@ -252,11 +253,11 @@ public class SupplierMasterImportService
         return new ImportResult
         {
             DataSetId = dataSetId,
-            Status = dataSet.Status,
-            ImportedCount = dataSet.RecordCount,
-            ErrorMessage = dataSet.ErrorMessage,
-            FilePath = dataSet.FilePath,
-            CreatedAt = dataSet.CreatedAt
+            Status = dataSetMgmt.Status,
+            ImportedCount = dataSetMgmt.RecordCount,
+            ErrorMessage = dataSetMgmt.ErrorMessage,
+            FilePath = dataSetMgmt.FilePath,
+            CreatedAt = dataSetMgmt.CreatedAt
         };
     }
 }
