@@ -99,7 +99,7 @@ namespace InventorySystem.Core.Services
                 GROUP BY DataSetId";
 
             var currentDataSets = await connection.QueryAsync(checkSql, new { JobDate = targetDate });
-            result.BeforeDataSetIds = currentDataSets.Select(x => new { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
+            result.BeforeDataSetIds = currentDataSets.Select(x => new DataSetIdInfo { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
 
             _logger.LogInformation("売上伝票の現在のDataSetId: {DataSets}", 
                 string.Join(", ", result.BeforeDataSetIds.Select(x => $"{x.DataSetId}({x.Count}件)")));
@@ -121,7 +121,7 @@ namespace InventorySystem.Core.Services
 
             // 修復後の状態を確認
             var afterDataSets = await connection.QueryAsync(checkSql, new { JobDate = targetDate });
-            result.AfterDataSetIds = afterDataSets.Select(x => new { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
+            result.AfterDataSetIds = afterDataSets.Select(x => new DataSetIdInfo { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
             result.CorrectDataSetId = correctDataSetId;
 
             _logger.LogInformation("売上伝票DataSetId修復完了: 更新件数={UpdatedRecords}, 正しいDataSetId={CorrectDataSetId}", 
@@ -147,7 +147,7 @@ namespace InventorySystem.Core.Services
                 GROUP BY DataSetId";
 
             var currentDataSets = await connection.QueryAsync(checkSql, new { JobDate = targetDate });
-            result.BeforeDataSetIds = currentDataSets.Select(x => new { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
+            result.BeforeDataSetIds = currentDataSets.Select(x => new DataSetIdInfo { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
 
             // DataSetIdManagerから正しいDataSetIdを取得
             var correctDataSetId = await _dataSetIdManager.GetOrCreateDataSetIdAsync(targetDate, "CpInventoryMaster");
@@ -166,7 +166,7 @@ namespace InventorySystem.Core.Services
 
             // 修復後の状態を確認
             var afterDataSets = await connection.QueryAsync(checkSql, new { JobDate = targetDate });
-            result.AfterDataSetIds = afterDataSets.Select(x => new { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
+            result.AfterDataSetIds = afterDataSets.Select(x => new DataSetIdInfo { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
             result.CorrectDataSetId = correctDataSetId;
 
             _logger.LogInformation("CP在庫マスタDataSetId修復完了: 更新件数={UpdatedRecords}, 正しいDataSetId={CorrectDataSetId}", 
@@ -190,7 +190,7 @@ namespace InventorySystem.Core.Services
                 GROUP BY DataSetId";
 
             var currentDataSets = await connection.QueryAsync(checkSql, new { JobDate = targetDate });
-            result.BeforeDataSetIds = currentDataSets.Select(x => new { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
+            result.BeforeDataSetIds = currentDataSets.Select(x => new DataSetIdInfo { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
 
             if (result.BeforeDataSetIds.Any())
             {
@@ -228,7 +228,7 @@ namespace InventorySystem.Core.Services
                 GROUP BY DataSetId";
 
             var currentDataSets = await connection.QueryAsync(checkSql, new { JobDate = targetDate });
-            result.BeforeDataSetIds = currentDataSets.Select(x => new { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
+            result.BeforeDataSetIds = currentDataSets.Select(x => new DataSetIdInfo { DataSetId = x.DataSetId, Count = x.RecordCount }).ToList();
 
             if (result.BeforeDataSetIds.Any())
             {
@@ -278,9 +278,18 @@ namespace InventorySystem.Core.Services
     public class TableRepairResult
     {
         public string TableName { get; set; } = string.Empty;
-        public List<dynamic> BeforeDataSetIds { get; set; } = new();
-        public List<dynamic> AfterDataSetIds { get; set; } = new();
+        public List<DataSetIdInfo> BeforeDataSetIds { get; set; } = new();
+        public List<DataSetIdInfo> AfterDataSetIds { get; set; } = new();
         public string? CorrectDataSetId { get; set; }
         public int UpdatedRecords { get; set; }
+    }
+
+    /// <summary>
+    /// DataSetId情報
+    /// </summary>
+    public class DataSetIdInfo
+    {
+        public string DataSetId { get; set; } = string.Empty;
+        public int Count { get; set; }
     }
 }
