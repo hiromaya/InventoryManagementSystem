@@ -37,9 +37,10 @@ namespace InventorySystem.Import.Services
             string processType,
             DateTime jobDate,
             string? description = null,
-            string? filePath = null)
+            string? filePath = null,
+            string? predefinedDataSetId = null)
         {
-            var dataSetId = Guid.NewGuid().ToString();
+            var dataSetId = predefinedDataSetId ?? Guid.NewGuid().ToString();
             
             // ⭐ ファクトリパターンでJST統一時刻で作成（Gemini推奨）
             var dataSetManagement = _dataSetFactory.CreateNew(

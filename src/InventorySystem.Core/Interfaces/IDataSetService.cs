@@ -13,7 +13,8 @@ namespace InventorySystem.Core.Interfaces
             string processType,
             DateTime jobDate,
             string? description = null,
-            string? filePath = null);
+            string? filePath = null,
+            string? predefinedDataSetId = null);
             
         /// <summary>
         /// ステータスを更新する

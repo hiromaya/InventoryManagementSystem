@@ -50,6 +50,7 @@ public class SalesVoucherImportService
     private readonly DepartmentSettings _departmentSettings;
     private readonly ICsvFileProcessor _csvProcessor;
     private readonly IInventoryRepository _inventoryRepository;
+    private readonly IDataSetIdManager _dataSetIdManager;
     
     public SalesVoucherImportService(
         SalesVoucherCsvRepository salesVoucherRepository,
@@ -58,7 +59,8 @@ public class SalesVoucherImportService
         ILogger<SalesVoucherImportService> logger,
         IOptions<DepartmentSettings> departmentOptions,
         ICsvFileProcessor csvProcessor,
-        IInventoryRepository inventoryRepository)
+        IInventoryRepository inventoryRepository,
+        IDataSetIdManager dataSetIdManager)
     {
         _salesVoucherRepository = salesVoucherRepository;
         _dataSetRepository = dataSetRepository;
@@ -67,6 +69,7 @@ public class SalesVoucherImportService
         _departmentSettings = departmentOptions.Value;
         _csvProcessor = csvProcessor;
         _inventoryRepository = inventoryRepository;
+        _dataSetIdManager = dataSetIdManager;
     }
 
     /// <summary>
@@ -110,30 +113,53 @@ public class SalesVoucherImportService
         departmentCode ??= _departmentSettings.DefaultDepartment;
         var department = _departmentSettings.GetDepartment(departmentCode);
         
-        var dataSetId = GenerateDataSetId();
         var importedCount = 0;
         var skippedCount = 0;
         var errorMessages = new List<string>();
         var dateStatistics = new Dictionary<DateTime, int>(); // 日付別統計
         var skippedRecords = new List<SkippedRecord>(); // スキップされたレコード
 
-        _logger.LogInformation("売上伝票CSV取込開始: {FilePath}, DataSetId: {DataSetId}, Department: {DepartmentCode}, StartDate: {StartDate}, EndDate: {EndDate}, PreserveCsvDates: {PreserveCsvDates}", 
-            filePath, dataSetId, departmentCode, startDate?.ToString("yyyy-MM-dd") ?? "全期間", endDate?.ToString("yyyy-MM-dd") ?? "全期間", preserveCsvDates);
+        _logger.LogInformation("売上伝票CSV取込開始: {FilePath}, Department: {DepartmentCode}, StartDate: {StartDate}, EndDate: {EndDate}", 
+            filePath, departmentCode, startDate?.ToString("yyyy-MM-dd") ?? "全期間", endDate?.ToString("yyyy-MM-dd") ?? "全期間");
 
+        string dataSetId = string.Empty;
         try
         {
-            // 統一データセット作成
+            // まずCSVを読み込んでJobDateを特定
+            var records = await ReadDaijinCsvFileAsync(filePath);
+            _logger.LogInformation("CSVレコード読み込み完了: {Count}件", records.Count);
+
+            if (records.Count == 0)
+            {
+                throw new InvalidOperationException("CSVファイルにデータが存在しません");
+            }
+
+            // 最初のレコードからJobDateを取得（全レコード同じJobDateを想定）
+            var firstRecord = records.First();
+            var jobDateParsed = DateTime.TryParseExact(firstRecord.JobDate, "yyyyMMdd", 
+                CultureInfo.InvariantCulture, DateTimeStyles.None, out var jobDate);
+            
+            if (!jobDateParsed)
+            {
+                throw new InvalidOperationException($"JobDateの解析に失敗しました: {firstRecord.JobDate}");
+            }
+
+            // DataSetIdManagerを使って一意のDataSetIdを取得
+            dataSetId = await _dataSetIdManager.GetOrCreateDataSetIdAsync(jobDate, "SalesVoucher");
+            
+            _logger.LogInformation("DataSetId決定: {DataSetId} (JobDate: {JobDate})", dataSetId, jobDate.ToString("yyyy-MM-dd"));
+
+            // 統一データセット作成（既存の仕組みとの互換性のため）
             dataSetId = await _unifiedDataSetService.CreateDataSetAsync(
                 $"売上伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
                 "SALES",
-                startDate ?? DateTime.Today,
+                jobDate,
                 $"売上伝票CSVファイル取込: {Path.GetFileName(filePath)}",
-                filePath);
+                filePath,
+                dataSetId); // 生成済みのDataSetIdを渡す
 
             // CSV読み込み処理（販売大臣フォーマット対応）
             var salesVouchers = new List<SalesVoucher>();
-            var records = await ReadDaijinCsvFileAsync(filePath);
-            _logger.LogInformation("CSVレコード読み込み完了: {Count}件", records.Count);
 
             // バリデーションと変換
             foreach (var (record, index) in records.Select((r, i) => (r, i + 1)))

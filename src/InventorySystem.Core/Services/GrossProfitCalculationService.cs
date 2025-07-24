@@ -19,22 +19,26 @@ namespace InventorySystem.Core.Services
         private readonly ISalesVoucherRepository _salesVoucherRepository;
         private readonly ICpInventoryRepository _cpInventoryRepository;
         private readonly ICustomerMasterRepository _customerMasterRepository;
+        private readonly IDataSetIdManager _dataSetIdManager;
         private const int BatchSize = 1000;
 
         public GrossProfitCalculationService(
             ILogger<GrossProfitCalculationService> logger,
             ISalesVoucherRepository salesVoucherRepository,
             ICpInventoryRepository cpInventoryRepository,
-            ICustomerMasterRepository customerMasterRepository)
+            ICustomerMasterRepository customerMasterRepository,
+            IDataSetIdManager dataSetIdManager)
         {
             _logger = logger;
             _salesVoucherRepository = salesVoucherRepository;
             _cpInventoryRepository = cpInventoryRepository;
             _customerMasterRepository = customerMasterRepository;
+            _dataSetIdManager = dataSetIdManager;
         }
 
         /// <summary>
         /// Process 2-5: 売上伝票への在庫単価書き込みと粗利計算
+        /// DataSetIdManagerを使用してDataSetIdの一意性を保証
         /// </summary>
         public async Task ExecuteProcess25Async(DateTime jobDate, string dataSetId)
         {
@@ -43,14 +47,28 @@ namespace InventorySystem.Core.Services
 
             try
             {
-                // 1. 売上伝票を取得（バッチ処理）
+                // DataSetIdManagerから売上伝票の正しいDataSetIdを取得
+                var salesVoucherDataSetId = await _dataSetIdManager.GetSalesVoucherDataSetIdAsync(jobDate);
+                if (string.IsNullOrEmpty(salesVoucherDataSetId))
+                {
+                    _logger.LogWarning("売上伝票のDataSetIdが見つかりません: JobDate={JobDate}", jobDate);
+                    return;
+                }
+
+                // CP在庫マスタ用のDataSetIdを取得（存在しない場合は作成）
+                var cpInventoryDataSetId = await _dataSetIdManager.GetOrCreateDataSetIdAsync(jobDate, "CpInventoryMaster");
+
+                _logger.LogInformation("DataSetId解決: 売上伝票={SalesDataSetId}, CP在庫マスタ={CpDataSetId}", 
+                    salesVoucherDataSetId, cpInventoryDataSetId);
+
+                // 1. 売上伝票を取得（DataSetIdManagerで解決したIDを使用）
                 var allSalesVouchers = await _salesVoucherRepository
-                    .GetByJobDateAndDataSetIdAsync(jobDate, dataSetId);
+                    .GetByJobDateAndDataSetIdAsync(jobDate, salesVoucherDataSetId);
                 
                 _logger.LogInformation("売上伝票件数: {Count}", allSalesVouchers.Count());
 
-                // 2. CP在庫マスタを取得（メモリに保持）
-                var cpInventoryDict = await GetCpInventoryDictionaryAsync(jobDate, dataSetId);
+                // 2. CP在庫マスタを取得（DataSetIdManagerで解決したIDを使用）
+                var cpInventoryDict = await GetCpInventoryDictionaryAsync(jobDate, cpInventoryDataSetId);
                 _logger.LogInformation("CP在庫マスタ件数: {Count}", cpInventoryDict.Count);
 
                 // 3. 得意先マスタを取得（歩引き率用）
@@ -124,7 +142,7 @@ namespace InventorySystem.Core.Services
                 }
 
                 // 5. CP在庫マスタの粗利益・歩引き金額を更新
-                await UpdateCpInventoryTotalsAsync(jobDate, dataSetId, totalGrossProfit, totalDiscountAmount);
+                await UpdateCpInventoryTotalsAsync(jobDate, cpInventoryDataSetId, totalGrossProfit, totalDiscountAmount);
 
                 _logger.LogInformation("Process 2-5 完了: 総粗利益={GrossProfit}, 総歩引き金={Discount}", 
                     totalGrossProfit, totalDiscountAmount);
