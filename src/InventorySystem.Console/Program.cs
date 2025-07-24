@@ -196,6 +196,8 @@ builder.Services.AddScoped<InventorySystem.Core.Services.DataSet.IDataSetManager
 builder.Services.AddScoped<InventorySystem.Core.Services.History.IProcessHistoryService, InventorySystem.Core.Services.History.ProcessHistoryService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddScoped<IDailyCloseService, DailyCloseService>();
+builder.Services.AddScoped<IDataSetIdManager, DataSetIdManager>();
+builder.Services.AddScoped<DataSetIdRepairService>();
 
 // Error prevention repositories
 builder.Services.AddScoped<IDataSetManagementRepository>(provider => 
@@ -516,6 +518,10 @@ try
         case "process-2-5":
         case "gross-profit":
             await ExecuteProcess25Async(host.Services, args);
+            break;
+
+        case "repair-dataset-id":
+            await ExecuteRepairDataSetIdAsync(host.Services, args);
             break;
         
         default:
@@ -4202,6 +4208,89 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
         {
             Console.WriteLine($"❌ Process 2-5 でエラーが発生しました: {ex.Message}");
             logger.LogError(ex, "Process 2-5エラー: JobDate={JobDate}", jobDate);
+        }
+    }
+
+    /// <summary>
+    /// DataSetId不整合修復コマンドを実行
+    /// </summary>
+    static async Task ExecuteRepairDataSetIdAsync(IServiceProvider services, string[] args)
+    {
+        if (args.Length < 2)
+        {
+            Console.WriteLine("使用方法: repair-dataset-id <対象日付(yyyy-MM-dd)>");
+            Console.WriteLine("例: repair-dataset-id 2025-06-02");
+            return;
+        }
+
+        if (!DateTime.TryParseExact(args[1], "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var targetDate))
+        {
+            Console.WriteLine("日付の形式が正しくありません。yyyy-MM-dd 形式で入力してください。");
+            return;
+        }
+
+        using var scope = services.CreateScope();
+        var repairService = scope.ServiceProvider.GetRequiredService<DataSetIdRepairService>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+        try
+        {
+            Console.WriteLine("=== DataSetId不整合修復 開始 ===");
+            Console.WriteLine($"対象日: {targetDate:yyyy-MM-dd}");
+            Console.WriteLine();
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            // DataSetId不整合修復実行
+            var result = await repairService.RepairDataSetIdInconsistenciesAsync(targetDate);
+
+            stopwatch.Stop();
+
+            Console.WriteLine("=== 修復結果 ===");
+            
+            // 売上伝票の修復結果
+            Console.WriteLine($"[売上伝票] 更新件数: {result.SalesVoucherResult.UpdatedRecords}件");
+            if (result.SalesVoucherResult.BeforeDataSetIds.Any())
+            {
+                Console.WriteLine($"  修復前DataSetId: {result.SalesVoucherResult.BeforeDataSetIds.Count}種類");
+                Console.WriteLine($"  修復後DataSetId: {result.SalesVoucherResult.CorrectDataSetId}");
+            }
+
+            // CP在庫マスタの修復結果
+            Console.WriteLine($"[CP在庫マスタ] 更新件数: {result.CpInventoryResult.UpdatedRecords}件");
+            if (result.CpInventoryResult.BeforeDataSetIds.Any())
+            {
+                Console.WriteLine($"  修復前DataSetId: {result.CpInventoryResult.BeforeDataSetIds.Count}種類");
+                Console.WriteLine($"  修復後DataSetId: {result.CpInventoryResult.CorrectDataSetId}");
+            }
+
+            // 仕入伝票の修復結果
+            if (result.PurchaseVoucherResult.UpdatedRecords > 0)
+            {
+                Console.WriteLine($"[仕入伝票] 更新件数: {result.PurchaseVoucherResult.UpdatedRecords}件");
+                Console.WriteLine($"  修復後DataSetId: {result.PurchaseVoucherResult.CorrectDataSetId}");
+            }
+
+            // 在庫調整の修復結果
+            if (result.InventoryAdjustmentResult.UpdatedRecords > 0)
+            {
+                Console.WriteLine($"[在庫調整] 更新件数: {result.InventoryAdjustmentResult.UpdatedRecords}件");
+                Console.WriteLine($"  修復後DataSetId: {result.InventoryAdjustmentResult.CorrectDataSetId}");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine($"✅ DataSetId不整合修復が正常に完了しました");
+            Console.WriteLine($"   総更新件数: {result.TotalUpdatedRecords}件");
+            Console.WriteLine($"   処理時間: {stopwatch.Elapsed.TotalSeconds:F2}秒");
+            Console.WriteLine("=== DataSetId不整合修復 完了 ===");
+
+            logger.LogInformation("DataSetId不整合修復完了: TargetDate={TargetDate}, 総更新件数={TotalUpdatedRecords}, 処理時間={ElapsedMs}ms", 
+                targetDate, result.TotalUpdatedRecords, stopwatch.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ DataSetId不整合修復でエラーが発生しました: {ex.Message}");
+            logger.LogError(ex, "DataSetId不整合修復エラー: TargetDate={TargetDate}", targetDate);
         }
     }
 
