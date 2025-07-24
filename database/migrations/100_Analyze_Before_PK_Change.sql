@@ -1,7 +1,8 @@
 -- =============================================
--- InventoryMaster主キー変更前のデータ分析スクリプト
+-- InventoryMaster主キー変更前のデータ分析スクリプト（修正版）
 -- 作成日: 2025-07-20
 -- 目的: 主キー変更（6項目→5項目）の影響を事前に分析
+-- 修正: データが0件でもエラーにならないように修正
 -- =============================================
 
 USE InventoryManagementDB;
@@ -12,7 +13,20 @@ PRINT '';
 
 -- 1. 全レコード数の確認
 PRINT '1. 全レコード数';
-SELECT COUNT(*) as TotalRecords FROM InventoryMaster;
+DECLARE @RecordCount INT;
+SELECT @RecordCount = COUNT(*) FROM InventoryMaster;
+SELECT @RecordCount as TotalRecords;
+
+IF @RecordCount = 0
+BEGIN
+    PRINT '';
+    PRINT '【警告】InventoryMasterテーブルにデータが存在しません。';
+    PRINT 'テストデータを投入してから再度実行してください。';
+    PRINT '';
+    PRINT '========== 分析終了（データなし） ==========';
+    RETURN;
+END
+
 PRINT '';
 
 -- 2. JobDate別のレコード数
@@ -41,10 +55,10 @@ WITH DuplicateKeys AS (
     HAVING COUNT(*) > 1
 )
 SELECT 
-    COUNT(*) as DuplicateKeyCount,
-    SUM(RecordCount) as TotalDuplicateRecords,
-    MAX(JobDateCount) as MaxJobDatesPerKey,
-    AVG(CAST(JobDateCount as FLOAT)) as AvgJobDatesPerKey
+    ISNULL(COUNT(*), 0) as DuplicateKeyCount,
+    ISNULL(SUM(RecordCount), 0) as TotalDuplicateRecords,
+    ISNULL(MAX(JobDateCount), 0) as MaxJobDatesPerKey,
+    ISNULL(AVG(CAST(JobDateCount as FLOAT)), 0) as AvgJobDatesPerKey
 FROM DuplicateKeys;
 PRINT '';
 
@@ -64,6 +78,11 @@ FROM InventoryMaster
 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
 HAVING COUNT(*) > 1
 ORDER BY COUNT(*) DESC, ProductCode;
+
+IF @@ROWCOUNT = 0
+BEGIN
+    PRINT '※ 重複キーは存在しません。';
+END
 PRINT '';
 
 -- 5. 在庫数量の累積状況確認（重複キーでの比較）
@@ -94,6 +113,11 @@ INNER JOIN DuplicateSample ds
     AND im.ShippingMarkCode = ds.ShippingMarkCode
     AND im.ShippingMarkName = ds.ShippingMarkName
 ORDER BY im.ProductCode, im.JobDate;
+
+IF @@ROWCOUNT = 0
+BEGIN
+    PRINT '※ 比較対象の重複キーは存在しません。';
+END
 PRINT '';
 
 -- 6. 最新JobDateの分布
@@ -122,8 +146,8 @@ PRINT '7. データサイズ見積もり';
 SELECT 
     'Current' as Status,
     COUNT(*) as RecordCount,
-    SUM(DATALENGTH(ProductCode) + DATALENGTH(GradeCode) + DATALENGTH(ClassCode) + 
-        DATALENGTH(ShippingMarkCode) + DATALENGTH(ShippingMarkName)) / 1024.0 / 1024.0 as EstimatedSizeMB
+    ISNULL(SUM(DATALENGTH(ProductCode) + DATALENGTH(GradeCode) + DATALENGTH(ClassCode) + 
+        DATALENGTH(ShippingMarkCode) + DATALENGTH(ShippingMarkName)) / 1024.0 / 1024.0, 0) as EstimatedSizeMB
 FROM InventoryMaster
 UNION ALL
 SELECT 
@@ -155,6 +179,11 @@ SELECT
 FROM MultiDateKeys
 GROUP BY ProductCategory1, ProductCategory2
 ORDER BY COUNT(*) DESC;
+
+IF @@ROWCOUNT = 0
+BEGIN
+    PRINT '※ 複数JobDateを持つキーは存在しません。';
+END
 PRINT '';
 
 -- 9. 処理頻度の高い商品の特定
@@ -170,6 +199,11 @@ FROM InventoryMaster
 GROUP BY ProductCode, ProductName
 HAVING COUNT(DISTINCT JobDate) > 1
 ORDER BY COUNT(DISTINCT JobDate) DESC;
+
+IF @@ROWCOUNT = 0
+BEGIN
+    PRINT '※ 複数回更新された商品は存在しません。';
+END
 PRINT '';
 
 -- 10. 推奨事項の提示
@@ -184,7 +218,7 @@ SELECT @UniqueKeys = COUNT(DISTINCT ProductCode + '|' + GradeCode + '|' + ClassC
                             ShippingMarkCode + '|' + ShippingMarkName) FROM InventoryMaster;
 SET @DuplicateKeys = @TotalRecords - @UniqueKeys;
 
-SELECT @MaxDuplicates = MAX(cnt) FROM (
+SELECT @MaxDuplicates = ISNULL(MAX(cnt), 0) FROM (
     SELECT COUNT(*) as cnt
     FROM InventoryMaster
     GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
@@ -193,7 +227,14 @@ SELECT @MaxDuplicates = MAX(cnt) FROM (
 PRINT '- 総レコード数: ' + CAST(@TotalRecords as VARCHAR(20));
 PRINT '- ユニークキー数: ' + CAST(@UniqueKeys as VARCHAR(20));
 PRINT '- 削減されるレコード数: ' + CAST(@DuplicateKeys as VARCHAR(20));
-PRINT '- 削減率: ' + CAST(CAST(@DuplicateKeys as FLOAT) / @TotalRecords * 100 as VARCHAR(10)) + '%';
+IF @TotalRecords > 0
+BEGIN
+    PRINT '- 削減率: ' + CAST(CAST(@DuplicateKeys as FLOAT) / @TotalRecords * 100 as VARCHAR(10)) + '%';
+END
+ELSE
+BEGIN
+    PRINT '- 削減率: 0%（データなし）';
+END
 PRINT '- 最大重複数: ' + CAST(@MaxDuplicates as VARCHAR(20));
 PRINT '';
 
@@ -203,3 +244,20 @@ PRINT '【重要】この分析結果を基に、以下を検討してくださ�
 PRINT '1. 履歴データの保存が必要かどうか';
 PRINT '2. 最新データのみで業務に影響がないか';
 PRINT '3. 削減されるデータ量が許容範囲内か';
+
+-- テストデータ投入用のサンプルクエリ
+PRINT '';
+PRINT '【参考】テストデータ投入サンプル：';
+PRINT '/*';
+PRINT '-- サンプルデータ投入（同じ5項目キーで異なるJobDateのデータ）';
+PRINT 'INSERT INTO InventoryMaster (';
+PRINT '    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, JobDate,';
+PRINT '    PreviousStock, PreviousAmount, CurrentStock, CurrentStockAmount,';
+PRINT '    DailyStock, DailyStockAmount, ProductName, ProductCategory1';
+PRINT ') VALUES';
+PRINT '(''1001'', ''A'', ''01'', ''100'', ''テスト荷印1'', ''2025-06-01'', 100, 10000, 120, 12000, 20, 2000, ''テスト商品1'', 1),';
+PRINT '(''1001'', ''A'', ''01'', ''100'', ''テスト荷印1'', ''2025-06-02'', 120, 12000, 150, 15000, 30, 3000, ''テスト商品1'', 1),';
+PRINT '(''1001'', ''A'', ''01'', ''100'', ''テスト荷印1'', ''2025-06-03'', 150, 15000, 180, 18000, 30, 3000, ''テスト商品1'', 1),';
+PRINT '(''1002'', ''B'', ''02'', ''200'', ''テスト荷印2'', ''2025-06-01'', 200, 20000, 250, 25000, 50, 5000, ''テスト商品2'', 2),';
+PRINT '(''1002'', ''B'', ''02'', ''200'', ''テスト荷印2'', ''2025-06-02'', 250, 25000, 300, 30000, 50, 5000, ''テスト商品2'', 2);';
+PRINT '*/';
