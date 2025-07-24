@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text;
 using InventorySystem.Core.Models;
+using InventorySystem.Core.Services;
+using InventorySystem.Import.Helpers;
 // using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus; // 削除済み
 
 namespace InventorySystem.Import.Services;
@@ -20,17 +22,20 @@ public class InventoryAdjustmentImportService
     private readonly IDataSetRepository _dataSetRepository;
     private readonly IDataSetService _unifiedDataSetService;
     private readonly ILogger<InventoryAdjustmentImportService> _logger;
+    private readonly IDataSetIdManager _dataSetIdManager;
     
     public InventoryAdjustmentImportService(
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
         IDataSetRepository dataSetRepository,
         IDataSetService unifiedDataSetService,
-        ILogger<InventoryAdjustmentImportService> logger)
+        ILogger<InventoryAdjustmentImportService> logger,
+        IDataSetIdManager dataSetIdManager)
     {
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
         _dataSetRepository = dataSetRepository;
         _unifiedDataSetService = unifiedDataSetService;
         _logger = logger;
+        _dataSetIdManager = dataSetIdManager;
     }
 
     /// <summary>
@@ -70,29 +75,69 @@ public class InventoryAdjustmentImportService
             throw new FileNotFoundException($"CSVファイルが見つかりません: {filePath}");
         }
 
-        var dataSetId = GenerateDataSetId();
         var importedCount = 0;
         var skippedCount = 0;
         var errorMessages = new List<string>();
         var dateStatistics = new Dictionary<DateTime, int>(); // 日付別統計
 
-        _logger.LogInformation("在庫調整CSV取込開始: {FilePath}, DataSetId: {DataSetId}, Department: {DepartmentCode}, StartDate: {StartDate}, EndDate: {EndDate}, PreserveCsvDates: {PreserveCsvDates}", 
-            filePath, dataSetId, departmentCode ?? "未指定", startDate?.ToString("yyyy-MM-dd") ?? "全期間", endDate?.ToString("yyyy-MM-dd") ?? "全期間", preserveCsvDates);
+        _logger.LogInformation("在庫調整CSV取込開始: {FilePath}, Department: {DepartmentCode}, StartDate: {StartDate}, EndDate: {EndDate}, PreserveCsvDates: {PreserveCsvDates}", 
+            filePath, departmentCode ?? "未指定", startDate?.ToString("yyyy-MM-dd") ?? "全期間", endDate?.ToString("yyyy-MM-dd") ?? "全期間", preserveCsvDates);
 
+        string dataSetId = string.Empty;
         try
         {
-            // 統一データセット作成
+            // まずCSVを読み込んでJobDateを特定
+            var records = await ReadDaijinCsvFileAsync(filePath);
+            _logger.LogInformation("CSVレコード読み込み完了: {Count}件", records.Count);
+
+            if (records.Count == 0)
+            {
+                throw new InvalidOperationException("CSVファイルにデータが存在しません");
+            }
+
+            // DataSetId決定ロジック
+            DateTime effectiveJobDate;
+            
+            _logger.LogInformation("=== DataSetId決定プロセス開始 ===");
+            _logger.LogInformation("入力パラメータ - StartDate: {StartDate}, EndDate: {EndDate}, PreserveCsvDates: {PreserveCsvDates}",
+                startDate?.ToString("yyyy-MM-dd") ?? "null",
+                endDate?.ToString("yyyy-MM-dd") ?? "null",
+                preserveCsvDates);
+            _logger.LogInformation("CSVレコード総数: {TotalRecords}件", records.Count);
+
+            // 1. コマンドライン引数の日付を優先
+            if (startDate.HasValue)
+            {
+                effectiveJobDate = startDate.Value;
+                _logger.LogInformation("コマンドライン引数の日付を使用: {Date}", effectiveJobDate.ToString("yyyy-MM-dd"));
+            }
+            // 2. CSVの最初のレコードから取得
+            else
+            {
+                var firstRecord = records.First();
+                effectiveJobDate = DateParsingHelper.ParseJobDate(firstRecord.JobDate);
+                
+                _logger.LogInformation("CSVの最初のレコードからJobDateを取得: {Date} (入力値: {Input})", 
+                    effectiveJobDate.ToString("yyyy-MM-dd"), firstRecord.JobDate);
+            }
+
+            // DataSetIdManagerを使って一意のDataSetIdを取得
+            dataSetId = await _dataSetIdManager.GetOrCreateDataSetIdAsync(effectiveJobDate, "InventoryAdjustment");
+            
+            _logger.LogInformation("DataSetId決定: {DataSetId} (JobDate: {JobDate})", dataSetId, effectiveJobDate.ToString("yyyy-MM-dd"));
+            _logger.LogInformation("=== DataSetId決定プロセス完了 ===");
+
+            // 統一データセット作成（既存の仕組みとの互換性のため）
             dataSetId = await _unifiedDataSetService.CreateDataSetAsync(
                 $"在庫調整取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
                 "ADJUSTMENT",
-                startDate ?? DateTime.Today,
+                effectiveJobDate,
                 $"在庫調整CSVファイル取込: {Path.GetFileName(filePath)}",
-                filePath);
+                filePath,
+                dataSetId); // 生成済みのDataSetIdを渡す
 
             // CSV読み込み処理（販売大臣フォーマット対応）
             var adjustments = new List<InventoryAdjustment>();
-            var records = await ReadDaijinCsvFileAsync(filePath);
-            _logger.LogInformation("CSVレコード読み込み完了: {Count}件", records.Count);
 
             // バリデーションと変換
             foreach (var (record, index) in records.Select((r, i) => (r, i + 1)))
@@ -286,15 +331,6 @@ public class InventoryAdjustmentImportService
         return records;
     }
 
-    /// <summary>
-    /// データセットIDを生成
-    /// </summary>
-    private static string GenerateDataSetId()
-    {
-        // GUIDの最初の8文字のみ使用
-        var guid = Guid.NewGuid().ToString("N");
-        return $"ADJUST_{DateTime.Now:yyyyMMdd_HHmmss}_{guid.Substring(0, 8)}";
-    }
 
     /// <summary>
     /// 取込結果を取得

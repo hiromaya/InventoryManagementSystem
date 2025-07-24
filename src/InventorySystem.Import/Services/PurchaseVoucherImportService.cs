@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text;
 using InventorySystem.Core.Models;
+using InventorySystem.Core.Services;
+using InventorySystem.Import.Helpers;
 // using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus; // 削除済み
 
 namespace InventorySystem.Import.Services;
@@ -22,19 +24,22 @@ public class PurchaseVoucherImportService
     private readonly IDataSetService _unifiedDataSetService;
     private readonly ILogger<PurchaseVoucherImportService> _logger;
     private readonly IInventoryRepository _inventoryRepository;
+    private readonly IDataSetIdManager _dataSetIdManager;
     
     public PurchaseVoucherImportService(
         PurchaseVoucherCsvRepository purchaseVoucherRepository,
         IDataSetRepository dataSetRepository,
         IDataSetService unifiedDataSetService,
         ILogger<PurchaseVoucherImportService> logger,
-        IInventoryRepository inventoryRepository)
+        IInventoryRepository inventoryRepository,
+        IDataSetIdManager dataSetIdManager)
     {
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _dataSetRepository = dataSetRepository;
         _unifiedDataSetService = unifiedDataSetService;
         _logger = logger;
         _inventoryRepository = inventoryRepository;
+        _dataSetIdManager = dataSetIdManager;
     }
 
     /// <summary>
@@ -74,29 +79,69 @@ public class PurchaseVoucherImportService
             throw new FileNotFoundException($"CSVファイルが見つかりません: {filePath}");
         }
 
-        var dataSetId = GenerateDataSetId();
         var importedCount = 0;
         var skippedCount = 0;
         var errorMessages = new List<string>();
         var dateStatistics = new Dictionary<DateTime, int>(); // 日付別統計
 
-        _logger.LogInformation("仕入伝票CSV取込開始: {FilePath}, DataSetId: {DataSetId}, Department: {DepartmentCode}, StartDate: {StartDate}, EndDate: {EndDate}, PreserveCsvDates: {PreserveCsvDates}", 
-            filePath, dataSetId, departmentCode ?? "未指定", startDate?.ToString("yyyy-MM-dd") ?? "全期間", endDate?.ToString("yyyy-MM-dd") ?? "全期間", preserveCsvDates);
+        _logger.LogInformation("仕入伝票CSV取込開始: {FilePath}, Department: {DepartmentCode}, StartDate: {StartDate}, EndDate: {EndDate}, PreserveCsvDates: {PreserveCsvDates}", 
+            filePath, departmentCode ?? "未指定", startDate?.ToString("yyyy-MM-dd") ?? "全期間", endDate?.ToString("yyyy-MM-dd") ?? "全期間", preserveCsvDates);
 
+        string dataSetId = string.Empty;
         try
         {
-            // 統一データセット作成
+            // まずCSVを読み込んでJobDateを特定
+            var records = await ReadDaijinCsvFileAsync(filePath);
+            _logger.LogInformation("CSVレコード読み込み完了: {Count}件", records.Count);
+
+            if (records.Count == 0)
+            {
+                throw new InvalidOperationException("CSVファイルにデータが存在しません");
+            }
+
+            // DataSetId決定ロジック
+            DateTime effectiveJobDate;
+            
+            _logger.LogInformation("=== DataSetId決定プロセス開始 ===");
+            _logger.LogInformation("入力パラメータ - StartDate: {StartDate}, EndDate: {EndDate}, PreserveCsvDates: {PreserveCsvDates}",
+                startDate?.ToString("yyyy-MM-dd") ?? "null",
+                endDate?.ToString("yyyy-MM-dd") ?? "null",
+                preserveCsvDates);
+            _logger.LogInformation("CSVレコード総数: {TotalRecords}件", records.Count);
+
+            // 1. コマンドライン引数の日付を優先
+            if (startDate.HasValue)
+            {
+                effectiveJobDate = startDate.Value;
+                _logger.LogInformation("コマンドライン引数の日付を使用: {Date}", effectiveJobDate.ToString("yyyy-MM-dd"));
+            }
+            // 2. CSVの最初のレコードから取得
+            else
+            {
+                var firstRecord = records.First();
+                effectiveJobDate = DateParsingHelper.ParseJobDate(firstRecord.JobDate);
+                
+                _logger.LogInformation("CSVの最初のレコードからJobDateを取得: {Date} (入力値: {Input})", 
+                    effectiveJobDate.ToString("yyyy-MM-dd"), firstRecord.JobDate);
+            }
+
+            // DataSetIdManagerを使って一意のDataSetIdを取得
+            dataSetId = await _dataSetIdManager.GetOrCreateDataSetIdAsync(effectiveJobDate, "PurchaseVoucher");
+            
+            _logger.LogInformation("DataSetId決定: {DataSetId} (JobDate: {JobDate})", dataSetId, effectiveJobDate.ToString("yyyy-MM-dd"));
+            _logger.LogInformation("=== DataSetId決定プロセス完了 ===");
+
+            // 統一データセット作成（既存の仕組みとの互換性のため）
             dataSetId = await _unifiedDataSetService.CreateDataSetAsync(
                 $"仕入伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
                 "PURCHASE",
-                startDate ?? DateTime.Today,
+                effectiveJobDate,
                 $"仕入伝票CSVファイル取込: {Path.GetFileName(filePath)}",
-                filePath);
+                filePath,
+                dataSetId); // 生成済みのDataSetIdを渡す
 
             // CSV読み込み処理（販売大臣フォーマット対応）
             var purchaseVouchers = new List<PurchaseVoucher>();
-            var records = await ReadDaijinCsvFileAsync(filePath);
-            _logger.LogInformation("CSVレコード読み込み完了: {Count}件", records.Count);
 
             // バリデーションと変換
             foreach (var (record, index) in records.Select((r, i) => (r, i + 1)))
@@ -313,15 +358,6 @@ public class PurchaseVoucherImportService
         return records;
     }
 
-    /// <summary>
-    /// データセットIDを生成
-    /// </summary>
-    private static string GenerateDataSetId()
-    {
-        // GUIDの最初の8文字のみ使用
-        var guid = Guid.NewGuid().ToString("N");
-        return $"PURCHASE_{DateTime.Now:yyyyMMdd_HHmmss}_{guid.Substring(0, 8)}";
-    }
 
     /// <summary>
     /// 取込結果を取得

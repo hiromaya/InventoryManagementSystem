@@ -12,6 +12,7 @@ using InventorySystem.Core.Services;
 using Microsoft.Extensions.Options;
 using InventorySystem.Import.Validators;
 using InventorySystem.Core.Models;
+using InventorySystem.Import.Helpers;
 // using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus; // 削除済み
 
 namespace InventorySystem.Import.Services;
@@ -134,26 +135,53 @@ public class SalesVoucherImportService
                 throw new InvalidOperationException("CSVファイルにデータが存在しません");
             }
 
-            // 最初のレコードからJobDateを取得（全レコード同じJobDateを想定）
-            var firstRecord = records.First();
-            var jobDateParsed = DateTime.TryParseExact(firstRecord.JobDate, "yyyyMMdd", 
-                CultureInfo.InvariantCulture, DateTimeStyles.None, out var jobDate);
+            // DataSetId決定ロジックの改善
+            DateTime effectiveJobDate;
             
-            if (!jobDateParsed)
+            _logger.LogInformation("=== DataSetId決定プロセス開始 ===");
+            _logger.LogInformation("入力パラメータ - StartDate: {StartDate}, EndDate: {EndDate}, PreserveCsvDates: {PreserveCsvDates}",
+                startDate?.ToString("yyyy-MM-dd") ?? "null",
+                endDate?.ToString("yyyy-MM-dd") ?? "null",
+                preserveCsvDates);
+            _logger.LogInformation("CSVレコード総数: {TotalRecords}件", records.Count);
+
+            // 1. コマンドライン引数の日付を優先
+            if (startDate.HasValue)
             {
-                throw new InvalidOperationException($"JobDateの解析に失敗しました: {firstRecord.JobDate}");
+                effectiveJobDate = startDate.Value;
+                _logger.LogInformation("コマンドライン引数の日付を使用: {Date}", effectiveJobDate.ToString("yyyy-MM-dd"));
+            }
+            // 2. CSVの最初のレコードから取得
+            else
+            {
+                var firstRecord = records.First();
+                effectiveJobDate = DateParsingHelper.ParseJobDate(firstRecord.JobDate);
+                
+                _logger.LogInformation("CSVの最初のレコードからJobDateを取得: {Date} (入力値: {Input})", 
+                    effectiveJobDate.ToString("yyyy-MM-dd"), firstRecord.JobDate);
             }
 
             // DataSetIdManagerを使って一意のDataSetIdを取得
-            dataSetId = await _dataSetIdManager.GetOrCreateDataSetIdAsync(jobDate, "SalesVoucher");
+            dataSetId = await _dataSetIdManager.GetOrCreateDataSetIdAsync(effectiveJobDate, "SalesVoucher");
             
-            _logger.LogInformation("DataSetId決定: {DataSetId} (JobDate: {JobDate})", dataSetId, jobDate.ToString("yyyy-MM-dd"));
+            _logger.LogInformation("DataSetId決定: {DataSetId} (JobDate: {JobDate})", dataSetId, effectiveJobDate.ToString("yyyy-MM-dd"));
+            _logger.LogInformation("=== DataSetId決定プロセス完了 ===");
+
+            // CSVデータ検証の強化: JobDate一貫性チェック
+            var jobDateValidation = ValidateJobDateConsistency(records);
+            if (jobDateValidation.HasWarnings)
+            {
+                foreach (var warning in jobDateValidation.Warnings)
+                {
+                    _logger.LogWarning("JobDate検証警告: {Warning}", warning);
+                }
+            }
 
             // 統一データセット作成（既存の仕組みとの互換性のため）
             dataSetId = await _unifiedDataSetService.CreateDataSetAsync(
                 $"売上伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
                 "SALES",
-                jobDate,
+                effectiveJobDate,
                 $"売上伝票CSVファイル取込: {Path.GetFileName(filePath)}",
                 filePath,
                 dataSetId); // 生成済みのDataSetIdを渡す
@@ -530,6 +558,89 @@ public class SalesVoucherImportService
         }
     }
 
+    /// <summary>
+    /// CSVファイル内のJobDate一貫性を検証
+    /// 複数のJobDateが混在している場合は警告を出力
+    /// </summary>
+    /// <param name="records">検証対象のCSVレコード</param>
+    /// <returns>検証結果</returns>
+    private JobDateValidationResult ValidateJobDateConsistency(List<SalesVoucherDaijinCsv> records)
+    {
+        var result = new JobDateValidationResult();
+        
+        if (!records.Any())
+        {
+            result.AddWarning("CSVレコードが空です");
+            return result;
+        }
+
+        try
+        {
+            // 全レコードのJobDateを解析
+            var jobDateFrequency = new Dictionary<DateTime, int>();
+            var parseErrors = new List<string>();
+            
+            foreach (var (record, index) in records.Select((r, i) => (r, i + 1)))
+            {
+                try
+                {
+                    var jobDate = DateParsingHelper.ParseJobDate(record.JobDate);
+                    
+                    if (jobDateFrequency.ContainsKey(jobDate))
+                    {
+                        jobDateFrequency[jobDate]++;
+                    }
+                    else
+                    {
+                        jobDateFrequency[jobDate] = 1;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    parseErrors.Add($"行{index}: JobDate解析エラー '{record.JobDate}' - {ex.Message}");
+                }
+            }
+
+            // 解析エラーがある場合は警告
+            if (parseErrors.Any())
+            {
+                result.AddWarning($"JobDate解析エラーが{parseErrors.Count}件発生しました");
+                foreach (var error in parseErrors.Take(5)) // 最初の5件のみログ出力
+                {
+                    result.AddWarning(error);
+                }
+                
+                if (parseErrors.Count > 5)
+                {
+                    result.AddWarning($"... 他{parseErrors.Count - 5}件のエラーがあります");
+                }
+            }
+
+            // 複数のJobDateが存在する場合は警告
+            if (jobDateFrequency.Count > 1)
+            {
+                result.AddWarning($"CSVファイル内に{jobDateFrequency.Count}種類のJobDateが混在しています:");
+                foreach (var kvp in jobDateFrequency.OrderBy(x => x.Key))
+                {
+                    result.AddWarning($"  {kvp.Key:yyyy-MM-dd}: {kvp.Value}件");
+                }
+                result.AddWarning("通常は単一のJobDateが期待されます。データの整合性を確認してください。");
+            }
+            else if (jobDateFrequency.Count == 1)
+            {
+                var jobDate = jobDateFrequency.First();
+                _logger.LogInformation("JobDate一貫性チェック完了: {JobDate} ({Count}件)", 
+                    jobDate.Key.ToString("yyyy-MM-dd"), jobDate.Value);
+            }
+        }
+        catch (Exception ex)
+        {
+            result.AddWarning($"JobDate一貫性チェック中にエラーが発生しました: {ex.Message}");
+        }
+
+        return result;
+    }
+
 }
 
 /// <summary>
@@ -544,4 +655,18 @@ public class ImportResult
     public string? FilePath { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<object> ImportedData { get; set; } = new();
+}
+
+/// <summary>
+/// JobDate検証結果クラス
+/// </summary>
+public class JobDateValidationResult
+{
+    public List<string> Warnings { get; } = new();
+    public bool HasWarnings => Warnings.Any();
+    
+    public void AddWarning(string warning)
+    {
+        Warnings.Add(warning);
+    }
 }
