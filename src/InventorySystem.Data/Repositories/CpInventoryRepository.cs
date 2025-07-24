@@ -1016,30 +1016,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         
         await connection.ExecuteAsync(calculateIncentiveAmountSql, new { JobDate = jobDate, DataSetId = dataSetId });
         
-        // Step 6: 仕入値引き計算
-        const string calculateDiscountAmountSql = @"
-            UPDATE cp
-            SET cp.DailyDiscountAmount = ISNULL(disc.DiscountAmount, 0),
-                cp.UpdatedDate = GETDATE()
-            FROM CpInventoryMaster cp
-            LEFT JOIN (
-                SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                    SUM(ABS(Amount)) as DiscountAmount
-                FROM PurchaseVouchers
-                WHERE JobDate = @JobDate
-                    AND VoucherType IN ('11', '12')
-                    AND DetailType = '3'
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
-            ) disc ON 
-                cp.ProductCode = disc.ProductCode AND
-                cp.GradeCode = disc.GradeCode AND
-                cp.ClassCode = disc.ClassCode AND
-                cp.ShippingMarkCode = disc.ShippingMarkCode AND
-                cp.ShippingMarkName COLLATE Japanese_CI_AS = disc.ShippingMarkName COLLATE Japanese_CI_AS
-            WHERE cp.DataSetId = @DataSetId";
-        
-        await connection.ExecuteAsync(calculateDiscountAmountSql, new { JobDate = jobDate, DataSetId = dataSetId });
+        // Step 6: 仕入値引き計算は CalculatePurchaseDiscountAsync で実施済みのため削除
+        // DailyDiscountAmount への重複設定を回避
         
         return updateCount;
     }

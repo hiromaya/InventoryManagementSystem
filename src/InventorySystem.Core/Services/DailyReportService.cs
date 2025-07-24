@@ -319,7 +319,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
                 DailyTransfer = group.Sum(cp => cp.DailyTransferAmount),
                 DailyIncentive = group.Sum(cp => cp.DailyIncentiveAmount),
                 DailyGrossProfit1 = group.Sum(cp => cp.DailyGrossProfit),
-                DailyDiscountAmount = group.Sum(cp => cp.DailyDiscountAmount),
+                DailyDiscountAmount = group.Sum(cp => cp.DailyWalkingAmount),  // 歩引き額: DailyWalkingAmountを参照
                 
                 // 月計項目（実データを設定）
                 MonthlySalesAmount = group.Sum(cp => cp.MonthlySalesAmount + cp.MonthlySalesReturnAmount),
