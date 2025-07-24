@@ -32,40 +32,15 @@ namespace InventorySystem.Core.Services
         /// <summary>
         /// 指定されたジョブ日付とジョブタイプに対応するDataSetIdを取得します。
         /// 存在しない場合は新しいIDを生成・永続化して返します。
+        /// 注意: このメソッドは非推奨です。CreateNewDataSetIdAsyncを使用してください。
         /// </summary>
+        [Obsolete("このメソッドは非推奨です。CreateNewDataSetIdAsyncを使用してください。")]
         public async Task<string> GetOrCreateDataSetIdAsync(DateTime jobDate, string jobType)
         {
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                await connection.OpenAsync();
-
-                // まず既存のDataSetIdを検索
-                var existingId = await GetExistingDataSetIdAsync(connection, jobDate, jobType);
-                if (!string.IsNullOrEmpty(existingId))
-                {
-                    _logger.LogInformation("既存のDataSetIdを使用: JobDate={JobDate}, JobType={JobType}, DataSetId={DataSetId}", 
-                        jobDate.ToString("yyyy-MM-dd"), jobType, existingId);
-                    return existingId;
-                }
-
-                // 新しいDataSetIdを生成
-                var newDataSetId = Guid.NewGuid().ToString();
-                
-                // データベースに保存
-                await InsertJobExecutionLogAsync(connection, jobDate, jobType, newDataSetId);
-                
-                _logger.LogInformation("新しいDataSetIdを生成: JobDate={JobDate}, JobType={JobType}, DataSetId={DataSetId}", 
-                    jobDate.ToString("yyyy-MM-dd"), jobType, newDataSetId);
-                
-                return newDataSetId;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "DataSetId取得/生成でエラーが発生: JobDate={JobDate}, JobType={JobType}", 
-                    jobDate.ToString("yyyy-MM-dd"), jobType);
-                throw;
-            }
+            // 新しいメソッドにリダイレクト（後方互換性のため残す）
+            _logger.LogWarning(
+                "GetOrCreateDataSetIdAsyncは非推奨です。CreateNewDataSetIdAsyncを使用してください。");
+            return await CreateNewDataSetIdAsync(jobDate, jobType);
         }
 
         /// <summary>
@@ -210,6 +185,61 @@ namespace InventorySystem.Core.Services
                 DataSetId = dataSetId,
                 CreatedBy = Environment.UserName ?? "System"
             });
+        }
+
+        /// <summary>
+        /// 新しいDataSetIdを生成し、古いDataSetを無効化する
+        /// </summary>
+        public async Task<string> CreateNewDataSetIdAsync(DateTime jobDate, string jobType)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                await connection.OpenAsync();
+                
+                // 常に新しいDataSetIdを生成
+                var newDataSetId = Guid.NewGuid().ToString();
+                
+                // JobExecutionLogの既存レコードを削除（UNIQUE制約回避）
+                await DeleteExistingJobExecutionLogAsync(connection, jobDate, jobType);
+                
+                // 新しいレコードを挿入
+                await InsertJobExecutionLogAsync(connection, jobDate, jobType, newDataSetId);
+                
+                _logger.LogInformation(
+                    "新しいDataSetIdを生成（古いDataSetは無効化対象）: " +
+                    "JobDate={JobDate}, JobType={JobType}, DataSetId={DataSetId}", 
+                    jobDate.ToString("yyyy-MM-dd"), jobType, newDataSetId);
+                
+                return newDataSetId;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, 
+                    "DataSetId生成でエラーが発生: JobDate={JobDate}, JobType={JobType}", 
+                    jobDate.ToString("yyyy-MM-dd"), jobType);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 既存のJobExecutionLogレコードを削除
+        /// </summary>
+        private async Task DeleteExistingJobExecutionLogAsync(
+            IDbConnection connection, DateTime jobDate, string jobType)
+        {
+            const string sql = @"
+                DELETE FROM JobExecutionLog 
+                WHERE JobDate = @JobDate AND JobType = @JobType";
+            
+            var deleted = await connection.ExecuteAsync(sql, new { JobDate = jobDate, JobType = jobType });
+            
+            if (deleted > 0)
+            {
+                _logger.LogInformation(
+                    "既存のJobExecutionLogレコードを削除: JobDate={JobDate}, JobType={JobType}", 
+                    jobDate, jobType);
+            }
         }
     }
 }

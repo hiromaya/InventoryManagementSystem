@@ -41,4 +41,9 @@ public interface IDataSetManagementRepository
     /// データセットを無効化
     /// </summary>
     Task<int> DeactivateDataSetAsync(string dataSetId, string? deactivatedBy = null);
+    
+    /// <summary>
+    /// 指定日付・処理種別のデータセット一覧を取得
+    /// </summary>
+    Task<IEnumerable<DataSetManagement>> GetByJobDateAndTypeAsync(DateTime jobDate, string processType);
 }

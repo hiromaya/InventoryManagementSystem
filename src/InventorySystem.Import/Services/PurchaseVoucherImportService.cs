@@ -125,8 +125,8 @@ public class PurchaseVoucherImportService
                     effectiveJobDate.ToString("yyyy-MM-dd"), firstRecord.JobDate);
             }
 
-            // DataSetIdManagerを使って一意のDataSetIdを取得
-            dataSetId = await _dataSetIdManager.GetOrCreateDataSetIdAsync(effectiveJobDate, "PurchaseVoucher");
+            // DataSetIdManagerを使って新しいDataSetIdを生成
+            dataSetId = await _dataSetIdManager.CreateNewDataSetIdAsync(effectiveJobDate, "PurchaseVoucher");
             
             _logger.LogInformation("DataSetId決定: {DataSetId} (JobDate: {JobDate})", dataSetId, effectiveJobDate.ToString("yyyy-MM-dd"));
             _logger.LogInformation("=== DataSetId決定プロセス完了 ===");

@@ -42,6 +42,33 @@ namespace InventorySystem.Import.Services
         {
             var dataSetId = predefinedDataSetId ?? Guid.NewGuid().ToString();
             
+            // 既存のDataSetIdが指定されている場合、既にDataSetManagementレコードが存在するかチェック
+            if (!string.IsNullOrEmpty(predefinedDataSetId))
+            {
+                var existingDataSet = await _repository.GetByIdAsync(dataSetId);
+                if (existingDataSet != null)
+                {
+                    // 既にレコードが存在する場合
+                    _logger.LogInformation(
+                        "既存のDataSetManagementレコードが見つかりました。新規作成をスキップします: " +
+                        "Id={DataSetId}, ProcessType={ProcessType}, JobDate={JobDate}, Status={Status}, IsActive={IsActive}",
+                        dataSetId, existingDataSet.ProcessType, existingDataSet.JobDate, 
+                        existingDataSet.Status, existingDataSet.IsActive);
+                    
+                    // ステータスがCompletedまたはErrorの場合は警告
+                    if (existingDataSet.Status == "Completed" || existingDataSet.Status == "Error")
+                    {
+                        _logger.LogWarning(
+                            "既存のDataSetは既に処理済みです: Status={Status}. " +
+                            "同じJobDate+ProcessTypeで再実行する場合は、新しいDataSetIdの生成を検討してください。",
+                            existingDataSet.Status);
+                    }
+                    
+                    return dataSetId;
+                }
+            }
+            
+            // 以下、既存の新規作成処理
             // ⭐ ファクトリパターンでJST統一時刻で作成（Gemini推奨）
             var dataSetManagement = _dataSetFactory.CreateNew(
                 dataSetId,
@@ -215,6 +242,42 @@ namespace InventorySystem.Import.Services
             }
             
             return string.Empty;
+        }
+
+        /// <summary>
+        /// 指定されたJobDateとProcessTypeの古いDataSetを無効化
+        /// </summary>
+        public async Task DeactivateOldDataSetsAsync(DateTime jobDate, string processType, string currentDataSetId)
+        {
+            _logger.LogInformation(
+                "古いDataSetの無効化開始: JobDate={JobDate}, ProcessType={ProcessType}, CurrentDataSetId={CurrentDataSetId}",
+                jobDate, processType, currentDataSetId);
+            
+            // 同じJobDate+ProcessTypeで、現在のDataSetId以外のアクティブなレコードを取得
+            var oldDataSets = await _repository.GetByJobDateAndTypeAsync(jobDate, processType);
+            var toDeactivate = oldDataSets
+                .Where(ds => ds.IsActive && ds.DataSetId != currentDataSetId)
+                .ToList();
+            
+            foreach (var dataSet in toDeactivate)
+            {
+                dataSet.IsActive = false;
+                dataSet.DeactivatedAt = _timeProvider.Now.DateTime;
+                dataSet.DeactivatedBy = "SYSTEM_AUTO_DEACTIVATION";
+                dataSet.Status = dataSet.Status == "Processing" ? "Cancelled" : dataSet.Status;
+                dataSet.Notes = (dataSet.Notes ?? "") + 
+                    $" | Auto-deactivated on {_timeProvider.Now.DateTime:yyyy-MM-dd HH:mm:ss} due to new import";
+                
+                await _repository.UpdateAsync(dataSet);
+                
+                _logger.LogInformation(
+                    "DataSet無効化完了: DataSetId={DataSetId}, ProcessType={ProcessType}",
+                    dataSet.DataSetId, dataSet.ProcessType);
+            }
+            
+            _logger.LogInformation(
+                "無効化完了: {Count}件のDataSetを無効化しました",
+                toDeactivate.Count);
         }
     }
 }

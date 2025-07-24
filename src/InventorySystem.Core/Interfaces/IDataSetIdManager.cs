@@ -12,11 +12,21 @@ namespace InventorySystem.Core.Interfaces
         /// <summary>
         /// 指定されたジョブ日付とジョブタイプに対応するDataSetIdを取得します。
         /// 存在しない場合は新しいIDを生成・永続化して返します。
+        /// 注意: このメソッドは非推奨です。CreateNewDataSetIdAsyncを使用してください。
         /// </summary>
         /// <param name="jobDate">ジョブの対象日付</param>
         /// <param name="jobType">ジョブの種類（例: "SalesVoucher", "CpInventoryMaster"）</param>
         /// <returns>そのジョブ実行に対応する唯一のDataSetId</returns>
+        [Obsolete("このメソッドは非推奨です。CreateNewDataSetIdAsyncを使用してください。")]
         Task<string> GetOrCreateDataSetIdAsync(DateTime jobDate, string jobType);
+
+        /// <summary>
+        /// 新しいDataSetIdを生成し、古いDataSetを無効化する
+        /// </summary>
+        /// <param name="jobDate">ジョブの対象日付</param>
+        /// <param name="jobType">ジョブの種類（例: "SalesVoucher", "CpInventoryMaster"）</param>
+        /// <returns>新しく生成されたDataSetId</returns>
+        Task<string> CreateNewDataSetIdAsync(DateTime jobDate, string jobType);
 
         /// <summary>
         /// 売上伝票のDataSetIdを取得（Process 2-5用）

@@ -209,4 +209,28 @@ public class DataSetManagementRepository : BaseRepository, IDataSetManagementRep
             throw;
         }
     }
+
+    /// <inheritdoc/>
+    public async Task<IEnumerable<DataSetManagement>> GetByJobDateAndTypeAsync(DateTime jobDate, string processType)
+    {
+        const string sql = @"
+            SELECT * FROM DataSetManagement 
+            WHERE JobDate = @JobDate AND ProcessType = @ProcessType
+            ORDER BY CreatedAt DESC";
+        
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var datasets = await connection.QueryAsync<DataSetManagement>(
+                sql, new { JobDate = jobDate.Date, ProcessType = processType });
+            
+            return datasets;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "データセット取得エラー: JobDate={JobDate}, ProcessType={ProcessType}", 
+                jobDate, processType);
+            throw;
+        }
+    }
 }

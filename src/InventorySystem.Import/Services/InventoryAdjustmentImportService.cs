@@ -121,8 +121,8 @@ public class InventoryAdjustmentImportService
                     effectiveJobDate.ToString("yyyy-MM-dd"), firstRecord.JobDate);
             }
 
-            // DataSetIdManagerを使って一意のDataSetIdを取得
-            dataSetId = await _dataSetIdManager.GetOrCreateDataSetIdAsync(effectiveJobDate, "InventoryAdjustment");
+            // DataSetIdManagerを使って新しいDataSetIdを生成
+            dataSetId = await _dataSetIdManager.CreateNewDataSetIdAsync(effectiveJobDate, "InventoryAdjustment");
             
             _logger.LogInformation("DataSetId決定: {DataSetId} (JobDate: {JobDate})", dataSetId, effectiveJobDate.ToString("yyyy-MM-dd"));
             _logger.LogInformation("=== DataSetId決定プロセス完了 ===");
