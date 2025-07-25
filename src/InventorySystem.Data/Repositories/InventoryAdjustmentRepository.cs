@@ -446,4 +446,106 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
             throw;
         }
     }
+
+    /// <summary>
+    /// 指定されたDataSetIdの伝票データのIsActiveフラグを更新
+    /// </summary>
+    /// <param name="dataSetId">データセットID</param>
+    /// <param name="isActive">アクティブフラグの値</param>
+    /// <returns>更新件数</returns>
+    public async Task<int> UpdateIsActiveByDataSetIdAsync(string dataSetId, bool isActive)
+    {
+        const string sql = @"
+            UPDATE InventoryAdjustments 
+            SET IsActive = @IsActive, 
+                UpdatedDate = GETDATE()
+            WHERE DataSetId = @DataSetId";
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var result = await connection.ExecuteAsync(sql, new { DataSetId = dataSetId, IsActive = isActive });
+            
+            _logger.LogInformation("Updated {Count} inventory adjustments IsActive flag", result);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "在庫調整IsActiveフラグ更新エラー: DataSetId={DataSetId}, IsActive={IsActive}", dataSetId, isActive);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// アクティブな伝票のみを取得（IsActive = true）
+    /// </summary>
+    /// <param name="jobDate">対象日付</param>
+    /// <returns>アクティブな在庫調整一覧</returns>
+    public async Task<IEnumerable<InventoryAdjustment>> GetActiveByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
+                   CustomerCode, CustomerName, CategoryCode,
+                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   Quantity, UnitPrice, Amount, CreatedDate, IsActive
+            FROM InventoryAdjustments 
+            WHERE JobDate = @jobDate AND IsActive = 1
+            ORDER BY VoucherNumber, LineNumber";
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var adjustments = await connection.QueryAsync<InventoryAdjustment>(sql, new { jobDate = jobDate.Date });
+            
+            var results = adjustments.ToList();
+            _logger.LogInformation("Retrieved {Count} active inventory adjustments", results.Count);
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "アクティブ在庫調整データ取得エラー: JobDate={JobDate}", jobDate);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 指定されたJobDateの伝票データを無効化
+    /// </summary>
+    /// <param name="jobDate">対象日付</param>
+    /// <param name="excludeDataSetId">除外するDataSetId（nullの場合は除外しない）</param>
+    /// <returns>無効化件数</returns>
+    public async Task<int> DeactivateByJobDateAsync(DateTime jobDate, string? excludeDataSetId = null)
+    {
+        string sql = @"
+            UPDATE InventoryAdjustments 
+            SET IsActive = 0, 
+                UpdatedDate = GETDATE()
+            WHERE JobDate = @JobDate";
+
+        object parameters;
+        
+        if (!string.IsNullOrEmpty(excludeDataSetId))
+        {
+            sql += " AND DataSetId != @ExcludeDataSetId";
+            parameters = new { JobDate = jobDate, ExcludeDataSetId = excludeDataSetId };
+        }
+        else
+        {
+            parameters = new { JobDate = jobDate };
+        }
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var result = await connection.ExecuteAsync(sql, parameters);
+            
+            _logger.LogInformation("Deactivated {Count} inventory adjustments", result);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "在庫調整無効化エラー: JobDate={JobDate}, ExcludeDataSetId={ExcludeDataSetId}", jobDate, excludeDataSetId);
+            throw;
+        }
+    }
 }

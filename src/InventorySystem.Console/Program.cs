@@ -1800,9 +1800,12 @@ static async Task ExecuteRestoreDatasetAsync(IServiceProvider services, string[]
             // DataSetの復元（IsActive = true に更新）
             try
             {
-                // TODO: DataSetServiceにRestoreDataSetAsyncメソッドを追加する必要があります
-                // 現在は直接リポジトリで更新
-                await dataSetRepo.UpdateAsync(dataSet.DataSetId, ds => ds.IsActive = true);
+                // DataSetを復元する
+                dataSet.IsActive = true;
+                dataSet.DeactivatedAt = null;
+                dataSet.DeactivatedBy = null;
+                dataSet.UpdatedAt = DateTime.Now;
+                await dataSetRepo.UpdateAsync(dataSet);
                 
                 Console.WriteLine($"✅ DataSet '{dataSetId}' を復元しました。");
                 

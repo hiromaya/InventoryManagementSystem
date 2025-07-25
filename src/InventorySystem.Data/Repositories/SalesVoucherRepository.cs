@@ -412,4 +412,125 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
             throw;
         }
     }
+
+    /// <summary>
+    /// 指定されたDataSetIdの伝票データのIsActiveフラグを更新
+    /// </summary>
+    /// <param name="dataSetId">データセットID</param>
+    /// <param name="isActive">アクティブフラグの値</param>
+    /// <returns>更新件数</returns>
+    public async Task<int> UpdateIsActiveByDataSetIdAsync(string dataSetId, bool isActive)
+    {
+        const string sql = @"
+            UPDATE SalesVouchers 
+            SET IsActive = @IsActive, 
+                UpdatedDate = GETDATE()
+            WHERE DataSetId = @DataSetId";
+
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteAsync(sql, new { DataSetId = dataSetId, IsActive = isActive });
+            
+            LogInfo($"Updated {result} sales vouchers IsActive flag", new { dataSetId, isActive });
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(UpdateIsActiveByDataSetIdAsync), new { dataSetId, isActive });
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// アクティブな伝票のみを取得（IsActive = true）
+    /// </summary>
+    /// <param name="jobDate">対象日付</param>
+    /// <returns>アクティブな売上伝票一覧</returns>
+    public async Task<IEnumerable<SalesVoucher>> GetActiveByJobDateAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            SELECT 
+                VoucherId,
+                LineNumber,
+                VoucherNumber,
+                VoucherDate,
+                VoucherType,
+                CustomerCode,
+                CustomerName,
+                ProductCode,
+                GradeCode,
+                ClassCode,
+                ShippingMarkCode,
+                ShippingMarkName,
+                Quantity,
+                UnitPrice as SalesUnitPrice,
+                Amount as SalesAmount,
+                InventoryUnitPrice,
+                JobDate,
+                DetailType,
+                DataSetId,
+                GrossProfit,
+                WalkingDiscount,
+                IsActive
+            FROM SalesVouchers
+            WHERE JobDate = @jobDate AND IsActive = 1
+            ORDER BY VoucherNumber, LineNumber";
+
+        try
+        {
+            using var connection = CreateConnection();
+            var vouchers = await connection.QueryAsync<dynamic>(sql, new { jobDate });
+            
+            var results = vouchers.Select(MapToSalesVoucher).ToList();
+            LogInfo($"Retrieved {results.Count} active sales vouchers", new { jobDate });
+            return results;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetActiveByJobDateAsync), new { jobDate });
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 指定されたJobDateの伝票データを無効化
+    /// </summary>
+    /// <param name="jobDate">対象日付</param>
+    /// <param name="excludeDataSetId">除外するDataSetId（nullの場合は除外しない）</param>
+    /// <returns>無効化件数</returns>
+    public async Task<int> DeactivateByJobDateAsync(DateTime jobDate, string? excludeDataSetId = null)
+    {
+        string sql = @"
+            UPDATE SalesVouchers 
+            SET IsActive = 0, 
+                UpdatedDate = GETDATE()
+            WHERE JobDate = @JobDate";
+
+        object parameters;
+        
+        if (!string.IsNullOrEmpty(excludeDataSetId))
+        {
+            sql += " AND DataSetId != @ExcludeDataSetId";
+            parameters = new { JobDate = jobDate, ExcludeDataSetId = excludeDataSetId };
+        }
+        else
+        {
+            parameters = new { JobDate = jobDate };
+        }
+
+        try
+        {
+            using var connection = CreateConnection();
+            var result = await connection.ExecuteAsync(sql, parameters);
+            
+            LogInfo($"Deactivated {result} sales vouchers", new { jobDate, excludeDataSetId });
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(DeactivateByJobDateAsync), new { jobDate, excludeDataSetId });
+            throw;
+        }
+    }
 }
