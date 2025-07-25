@@ -154,7 +154,7 @@ public class PreviousMonthInventoryCsv
             // 荷印名は手入力項目（153列目、Index=152）から取得する
             // ※CSV内の142列目の「荷印名」フィールドは使用しない（マスタ参照値のため）
             // 伝票に直接入力された値を8桁固定で使用
-            ShippingMarkName: HandInputItem ?? "        "  // 空白8文字をデフォルトとし、Trimしない
+            ShippingMarkName: NormalizeShippingMarkName(HandInputItem)
         );
     }
 
@@ -182,5 +182,32 @@ public class PreviousMonthInventoryCsv
         }
         
         return DateTime.Today;
+    }
+
+    /// <summary>
+    /// 荷印名（手入力項目）を正規化する
+    /// 1. 全角スペースを半角スペースに変換
+    /// 2. 後方の空白をトリム
+    /// 3. 8桁固定長に調整
+    /// </summary>
+    private static string NormalizeShippingMarkName(string? input)
+    {
+        if (input == null) return "        "; // 8桁空白
+        
+        // 1. 全角スペースを半角スペースに変換
+        var normalized = input.Replace('　', ' ');
+        
+        // 2. 後方の空白をトリム
+        normalized = normalized.TrimEnd();
+        
+        // 3. 空文字の場合は8桁空白
+        if (string.IsNullOrEmpty(normalized))
+            return "        ";
+        
+        // 4. 8桁に調整（超過分は切り詰め、不足分は空白で埋める）
+        if (normalized.Length >= 8)
+            return normalized.Substring(0, 8);
+        else
+            return normalized.PadRight(8, ' ');
     }
 }
