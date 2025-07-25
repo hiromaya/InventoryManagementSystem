@@ -167,6 +167,24 @@ public class SalesVoucherImportService
             _logger.LogInformation("DataSetId決定: {DataSetId} (JobDate: {JobDate})", dataSetId, effectiveJobDate.ToString("yyyy-MM-dd"));
             _logger.LogInformation("=== DataSetId決定プロセス完了 ===");
 
+            // ===== 新規追加: 既存DataSetの無効化 =====
+            try
+            {
+                // 同一JobDate+ProcessTypeの既存DataSetを無効化
+                await _unifiedDataSetService.DeactivateOldDataSetsAsync(
+                    effectiveJobDate, "SALES", dataSetId);
+                
+                _logger.LogInformation(
+                    "既存の売上伝票DataSetを無効化しました: JobDate={JobDate}",
+                    effectiveJobDate.ToString("yyyy-MM-dd"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "既存DataSetの無効化中にエラーが発生しましたが、処理を続行します。");
+            }
+            // ===== 新規追加ここまで =====
+
             // CSVデータ検証の強化: JobDate一貫性チェック
             var jobDateValidation = ValidateJobDateConsistency(records);
             if (jobDateValidation.HasWarnings)

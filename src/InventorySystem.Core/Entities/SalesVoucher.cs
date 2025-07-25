@@ -185,6 +185,11 @@ public class SalesVoucher
     public string DepartmentCode { get; set; } = "DeptA";
 
     /// <summary>
+    /// アクティブフラグ（DataSetとの整合性管理用）
+    /// </summary>
+    public bool IsActive { get; set; } = true;
+
+    /// <summary>
     /// 在庫キーを取得（互換性プロパティ）
     /// </summary>
     public InventoryKey InventoryKey { get; set; } = new();

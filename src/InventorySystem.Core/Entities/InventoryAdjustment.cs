@@ -171,6 +171,11 @@ public class InventoryAdjustment
     public string DepartmentCode { get; set; } = "DeptA";
 
     /// <summary>
+    /// アクティブフラグ（DataSetとの整合性管理用）
+    /// </summary>
+    public bool IsActive { get; set; } = true;
+
+    /// <summary>
     /// 在庫キーを取得
     /// </summary>
     public InventoryKey GetInventoryKey()

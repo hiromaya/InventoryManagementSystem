@@ -131,6 +131,24 @@ public class PurchaseVoucherImportService
             _logger.LogInformation("DataSetId決定: {DataSetId} (JobDate: {JobDate})", dataSetId, effectiveJobDate.ToString("yyyy-MM-dd"));
             _logger.LogInformation("=== DataSetId決定プロセス完了 ===");
 
+            // ===== 新規追加: 既存DataSetの無効化 =====
+            try
+            {
+                // 同一JobDate+ProcessTypeの既存DataSetを無効化
+                await _unifiedDataSetService.DeactivateOldDataSetsAsync(
+                    effectiveJobDate, "PURCHASE", dataSetId);
+                
+                _logger.LogInformation(
+                    "既存の仕入伝票DataSetを無効化しました: JobDate={JobDate}",
+                    effectiveJobDate.ToString("yyyy-MM-dd"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "既存DataSetの無効化中にエラーが発生しましたが、処理を続行します。");
+            }
+            // ===== 新規追加ここまで =====
+
             // 統一データセット作成（既存の仕組みとの互換性のため）
             dataSetId = await _unifiedDataSetService.CreateDataSetAsync(
                 $"仕入伝票取込 {DateTime.Now:yyyy/MM/dd HH:mm:ss}",

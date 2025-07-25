@@ -431,6 +431,10 @@ try
             await ExecuteImportFromFolderAsync(host.Services, args);
             break;
         
+        case "restore-dataset":
+            await ExecuteRestoreDatasetAsync(host.Services, args);
+            break;
+        
         case "import-masters":
             await ExecuteImportMastersAsync(host.Services);
             break;
@@ -1663,6 +1667,184 @@ static async Task ExecuteInitializeFoldersAsync(IServiceProvider services)
     }
 }
 
+/// <summary>
+/// 指定されたDataSetIdを復元（再度アクティブにする）
+/// </summary>
+static async Task ExecuteRestoreDatasetAsync(IServiceProvider services, string[] args)
+{
+    if (args.Length < 2)
+    {
+        Console.WriteLine("エラー: DataSetIdが指定されていません");
+        Console.WriteLine("使用方法:");
+        Console.WriteLine("  dotnet run restore-dataset <DataSetId>");
+        Console.WriteLine("  dotnet run restore-dataset list [YYYY-MM-DD] # 指定日の無効DataSet一覧表示");
+        return;
+    }
+
+    using (var scope = services.CreateScope())
+    {
+        var scopedServices = scope.ServiceProvider;
+        var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+        var dataSetService = scopedServices.GetRequiredService<IDataSetService>();
+        var dataSetRepo = scopedServices.GetRequiredService<IDataSetManagementRepository>();
+
+        var command = args[1].ToLower();
+
+        try
+        {
+            // list コマンド: 無効化されたDataSetの一覧表示
+            if (command == "list")
+            {
+                DateTime? targetDate = null;
+                if (args.Length >= 3 && DateTime.TryParse(args[2], out var parsedDate))
+                {
+                    targetDate = parsedDate;
+                }
+
+                Console.WriteLine("=== 無効化されたDataSet一覧 ===");
+                
+                if (targetDate.HasValue)
+                {
+                    Console.WriteLine($"対象日: {targetDate.Value:yyyy-MM-dd}");
+                    var datasets = await dataSetRepo.GetByJobDateAsync(targetDate.Value);
+                    var inactiveDatasets = datasets.Where(ds => !ds.IsActive).ToList();
+                    
+                    if (inactiveDatasets.Any())
+                    {
+                        Console.WriteLine($"無効化されたDataSet: {inactiveDatasets.Count}件");
+                        foreach (var ds in inactiveDatasets.OrderBy(ds => ds.ProcessType))
+                        {
+                            Console.WriteLine($"  {ds.DataSetId} | {ds.ProcessType} | {ds.Description} | {ds.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("無効化されたDataSetはありません。");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("全期間の無効化されたDataSetを検索中...");
+                    // TODO: 全期間の無効DataSet取得メソッドが必要
+                    Console.WriteLine("⚠️ 全期間検索は未実装です。日付を指定してください。");
+                }
+                return;
+            }
+
+            // DataSetId指定による復元処理
+            var dataSetId = args[1];
+            
+            Console.WriteLine("=== DataSet復元処理開始 ===");
+            Console.WriteLine($"対象DataSetId: {dataSetId}");
+
+            // DataSetの存在確認
+            var dataSet = await dataSetRepo.GetByIdAsync(dataSetId);
+            if (dataSet == null)
+            {
+                Console.WriteLine($"❌ エラー: DataSetId '{dataSetId}' が見つかりません。");
+                return;
+            }
+
+            Console.WriteLine($"DataSet情報:");
+            Console.WriteLine($"  - ProcessType: {dataSet.ProcessType}");
+            Console.WriteLine($"  - JobDate: {dataSet.JobDate:yyyy-MM-dd}");
+            Console.WriteLine($"  - Description: {dataSet.Description}");
+            Console.WriteLine($"  - IsActive: {dataSet.IsActive}");
+            Console.WriteLine($"  - CreatedAt: {dataSet.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+
+            if (dataSet.IsActive)
+            {
+                Console.WriteLine("⚠️ 警告: このDataSetは既にアクティブです。");
+                return;
+            }
+
+            // 同一JobDate+ProcessTypeの他のアクティブなDataSetがあるかチェック
+            var existingActive = await dataSetRepo.GetByJobDateAsync(dataSet.JobDate);
+            var conflictingDataSets = existingActive
+                .Where(ds => ds.ProcessType == dataSet.ProcessType && ds.IsActive && ds.DataSetId != dataSetId)
+                .ToList();
+
+            if (conflictingDataSets.Any())
+            {
+                Console.WriteLine("⚠️ 警告: 同じJobDateとProcessTypeのアクティブなDataSetが存在します:");
+                foreach (var conflict in conflictingDataSets)
+                {
+                    Console.WriteLine($"  - {conflict.DataSetId} | {conflict.Description}");
+                }
+                
+                Console.Write("これらのDataSetを無効化して続行しますか？ (y/N): ");
+                var input = Console.ReadLine();
+                if (input?.ToLower() != "y")
+                {
+                    Console.WriteLine("復元処理をキャンセルしました。");
+                    return;
+                }
+
+                // 競合するDataSetを無効化
+                foreach (var conflict in conflictingDataSets)
+                {
+                    try
+                    {
+                        await dataSetService.DeactivateOldDataSetsAsync(
+                            dataSet.JobDate, dataSet.ProcessType, dataSetId);
+                        Console.WriteLine($"✅ DataSet '{conflict.DataSetId}' を無効化しました。");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "競合DataSetの無効化に失敗しました: {DataSetId}", conflict.DataSetId);
+                        Console.WriteLine($"❌ エラー: DataSet '{conflict.DataSetId}' の無効化に失敗しました。");
+                    }
+                }
+            }
+
+            // DataSetの復元（IsActive = true に更新）
+            try
+            {
+                // TODO: DataSetServiceにRestoreDataSetAsyncメソッドを追加する必要があります
+                // 現在は直接リポジトリで更新
+                await dataSetRepo.UpdateAsync(dataSet.DataSetId, ds => ds.IsActive = true);
+                
+                Console.WriteLine($"✅ DataSet '{dataSetId}' を復元しました。");
+                
+                // 関連する伝票データの復元（Phase 2で追加されたIsActiveカラム）
+                try
+                {
+                    var salesRepo = scopedServices.GetRequiredService<ISalesVoucherRepository>();
+                    var purchaseRepo = scopedServices.GetRequiredService<IPurchaseVoucherRepository>();
+                    var adjustmentRepo = scopedServices.GetRequiredService<IInventoryAdjustmentRepository>();
+                    
+                    int salesUpdated = await salesRepo.UpdateIsActiveByDataSetIdAsync(dataSetId, true);
+                    int purchaseUpdated = await purchaseRepo.UpdateIsActiveByDataSetIdAsync(dataSetId, true);
+                    int adjustmentUpdated = await adjustmentRepo.UpdateIsActiveByDataSetIdAsync(dataSetId, true);
+                    
+                    Console.WriteLine($"関連伝票データ復元: 売上{salesUpdated}件、仕入{purchaseUpdated}件、在庫調整{adjustmentUpdated}件");
+                    logger.LogInformation(
+                        "関連伝票データ復元完了: DataSetId={DataSetId}, Sales={Sales}, Purchase={Purchase}, Adjustment={Adjustment}",
+                        dataSetId, salesUpdated, purchaseUpdated, adjustmentUpdated);
+                }
+                catch (Exception voucherEx)
+                {
+                    logger.LogWarning(voucherEx, "伝票データの復元中にエラーが発生しました: {DataSetId}", dataSetId);
+                    Console.WriteLine($"⚠️ 警告: 伝票データの復元中にエラーが発生しました - {voucherEx.Message}");
+                }
+                
+                logger.LogInformation("DataSet復元完了: {DataSetId}", dataSetId);
+                Console.WriteLine("=== DataSet復元処理完了 ===");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "DataSet復元処理でエラーが発生しました: {DataSetId}", dataSetId);
+                Console.WriteLine($"❌ エラー: DataSet復元に失敗しました - {ex.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "restore-datasetコマンド実行中にエラーが発生しました");
+            Console.WriteLine($"❌ エラーが発生しました: {ex.Message}");
+        }
+    }
+}
+
 static async Task ExecuteImportMastersAsync(IServiceProvider services)
 {
     using (var scope = services.CreateScope())
@@ -2224,6 +2406,55 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
         
         try
         {
+            // ===== 新規追加: 既存DataSetの無効化処理 =====
+            if (startDate.HasValue)
+            {
+                var dataSetService = scopedServices.GetRequiredService<IDataSetService>();
+                var dataSetManagementRepo = scopedServices.GetRequiredService<IDataSetManagementRepository>();
+                
+                Console.WriteLine($"\n既存のActiveなDataSetの確認中... (対象日: {startDate.Value:yyyy-MM-dd})");
+                
+                // 対象日付の既存ActiveなDataSetを取得
+                var existingDataSets = await dataSetManagementRepo.GetByJobDateAsync(startDate.Value);
+                var activeDataSets = existingDataSets.Where(ds => ds.IsActive).ToList();
+                
+                if (activeDataSets.Any())
+                {
+                    Console.WriteLine($"既存のActiveなDataSetが{activeDataSets.Count}件見つかりました。無効化処理を開始します。");
+                    logger.LogInformation(
+                        "既存のActiveなDataSetが{Count}件見つかりました。無効化処理を開始します。",
+                        activeDataSets.Count);
+                    
+                    // ProcessType別に無効化
+                    var processTypes = activeDataSets.Select(ds => ds.ProcessType).Distinct();
+                    foreach (var processType in processTypes)
+                    {
+                        try
+                        {
+                            // DeactivateOldDataSetsAsyncを呼び出す
+                            // 注意: currentDataSetIdはまだ生成されていないため、nullを渡す
+                            await dataSetService.DeactivateOldDataSetsAsync(startDate.Value, processType, null);
+                            
+                            Console.WriteLine($"  ✅ ProcessType={processType}の既存DataSetを無効化しました。");
+                            logger.LogInformation(
+                                "ProcessType={ProcessType}の既存DataSetを無効化しました。",
+                                processType);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"  ⚠️ ProcessType={processType}の無効化中にエラー: {ex.Message}");
+                            logger.LogWarning(ex, "ProcessType={ProcessType}の無効化中にエラーが発生しましたが、処理を続行します。", processType);
+                        }
+                    }
+                    Console.WriteLine("✅ 既存DataSet無効化処理完了");
+                }
+                else
+                {
+                    Console.WriteLine("既存のActiveなDataSetは見つかりませんでした。");
+                }
+            }
+            // ===== 新規追加ここまで =====
+            
             // 重複データクリア処理（日付範囲指定時はスキップ）
             if (startDate.HasValue && endDate.HasValue && startDate.Value == endDate.Value)
             {

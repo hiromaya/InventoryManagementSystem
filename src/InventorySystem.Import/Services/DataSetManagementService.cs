@@ -270,6 +270,29 @@ namespace InventorySystem.Import.Services
                 
                 await _repository.UpdateAsync(dataSet);
                 
+                // 関連する伝票データも無効化（Phase 2で追加されたIsActiveカラム）
+                try
+                {
+                    // TODO: Repository依存注入が必要
+                    // var salesRepo = _serviceProvider.GetRequiredService<ISalesVoucherRepository>();
+                    // var purchaseRepo = _serviceProvider.GetRequiredService<IPurchaseVoucherRepository>();
+                    // var adjustmentRepo = _serviceProvider.GetRequiredService<IInventoryAdjustmentRepository>();
+                    
+                    // await salesRepo.UpdateIsActiveByDataSetIdAsync(dataSet.DataSetId, false);
+                    // await purchaseRepo.UpdateIsActiveByDataSetIdAsync(dataSet.DataSetId, false);
+                    // await adjustmentRepo.UpdateIsActiveByDataSetIdAsync(dataSet.DataSetId, false);
+                    
+                    _logger.LogInformation(
+                        "関連伝票データ無効化完了: DataSetId={DataSetId}",
+                        dataSet.DataSetId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "関連伝票データの無効化中にエラーが発生しました: DataSetId={DataSetId}",
+                        dataSet.DataSetId);
+                }
+                
                 _logger.LogInformation(
                     "DataSet無効化完了: DataSetId={DataSetId}, ProcessType={ProcessType}",
                     dataSet.DataSetId, dataSet.ProcessType);

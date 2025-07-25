@@ -45,6 +45,11 @@ namespace InventorySystem.Core.Interfaces
         /// 更新日時を更新する
         /// </summary>
         Task UpdateTimestampAsync(string dataSetId);
+        
+        /// <summary>
+        /// 指定されたJobDateとProcessTypeの古いDataSetを無効化
+        /// </summary>
+        Task DeactivateOldDataSetsAsync(DateTime jobDate, string processType, string? currentDataSetId);
     }
     
     /// <summary>
