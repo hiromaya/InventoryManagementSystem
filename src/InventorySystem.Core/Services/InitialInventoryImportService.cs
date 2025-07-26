@@ -264,33 +264,33 @@ public class InitialInventoryImportService
         // デフォルト値がConvertToInventoryMasterメソッドで設定される
 
         // 数値妥当性チェック
-        if (record.CurrentStockQuantity < 0)
-            errors.Add($"行{rowNumber}: 在庫数量が負の値です ({record.CurrentStockQuantity})");
+        if (record.PreviousStockQuantity < 0)
+            errors.Add($"行{rowNumber}: 在庫数量が負の値です ({record.PreviousStockQuantity})");
 
-        if (record.CurrentStockAmount < 0)
-            errors.Add($"行{rowNumber}: 在庫金額が負の値です ({record.CurrentStockAmount})");
+        if (record.PreviousStockAmount < 0)
+            errors.Add($"行{rowNumber}: 在庫金額が負の値です ({record.PreviousStockAmount})");
 
-        if (record.StandardPrice < 0)
-            errors.Add($"行{rowNumber}: 単価が負の値です ({record.StandardPrice})");
+        if (record.PreviousStockUnitPrice < 0)
+            errors.Add($"行{rowNumber}: 単価が負の値です ({record.PreviousStockUnitPrice})");
 
         // データ整合性チェック（金額 = 数量 × 単価）
         // 数量0の場合は金額も0であることを確認し、単価は問わない
-        if (record.CurrentStockQuantity == 0)
+        if (record.PreviousStockQuantity == 0)
         {
-            if (record.CurrentStockAmount != 0)
+            if (record.PreviousStockAmount != 0)
             {
-                errors.Add($"行{rowNumber}: 在庫数量が0の場合、在庫金額も0である必要があります（実際値: {record.CurrentStockAmount}）");
+                errors.Add($"行{rowNumber}: 在庫数量が0の場合、在庫金額も0である必要があります（実際値: {record.PreviousStockAmount}）");
             }
         }
-        else if (record.CurrentStockQuantity > 0 && record.StandardPrice > 0)
+        else if (record.PreviousStockQuantity > 0 && record.PreviousStockUnitPrice > 0)
         {
-            var calculatedAmount = record.CurrentStockQuantity * record.StandardPrice;
-            var difference = Math.Abs(calculatedAmount - record.CurrentStockAmount);
+            var calculatedAmount = record.PreviousStockQuantity * record.PreviousStockUnitPrice;
+            var difference = Math.Abs(calculatedAmount - record.PreviousStockAmount);
             
             // 誤差許容範囲: ±10円（小数点計算誤差を考慮）
             if (difference > 10)
             {
-                errors.Add($"行{rowNumber}: 在庫金額の整合性エラー - 計算値: {calculatedAmount:F2}, 実際値: {record.CurrentStockAmount:F2}, 差額: {difference:F2}");
+                errors.Add($"行{rowNumber}: 在庫金額の整合性エラー - 計算値: {calculatedAmount:F2}, 実際値: {record.PreviousStockAmount:F2}, 差額: {difference:F2}");
             }
         }
 
@@ -340,7 +340,7 @@ public class InitialInventoryImportService
             ProductName = product?.ProductName ?? $"商品{record.ProductCode}",
             PersonInChargeCode = record.PersonInChargeCode,  // 追加
             Unit = product?.UnitCode ?? "PCS",
-            StandardPrice = record.StandardPrice,
+            StandardPrice = record.PreviousStockUnitPrice,  // 修正: 前日在庫単価を使用
             AveragePrice = record.AveragePrice,  // 追加
             ProductCategory1 = product?.ProductCategory1 ?? "",
             ProductCategory2 = product?.ProductCategory2 ?? "",
@@ -348,8 +348,8 @@ public class InitialInventoryImportService
             // 在庫数量・金額
             PreviousMonthQuantity = record.PreviousStockQuantity,
             PreviousMonthAmount = record.PreviousStockAmount,
-            CurrentStock = record.CurrentStockQuantity,
-            CurrentStockAmount = record.CurrentStockAmount,
+            CurrentStock = record.PreviousStockQuantity,  // 修正: 前日在庫数量を使用
+            CurrentStockAmount = record.PreviousStockAmount,  // 修正: 前日在庫金額を使用
             DailyStock = 0, // 初期データなので0
             DailyStockAmount = 0,
             
@@ -416,7 +416,7 @@ public class InitialInventoryImportService
         Directory.CreateDirectory(_errorPath);
 
         using var writer = new StreamWriter(errorPath, false, Encoding.UTF8);
-        await writer.WriteLineAsync("エラー内容,商品コード,等級コード,階級コード,荷印コード,荷印名,前日在庫数量,前日在庫金額,当日在庫数量,当日在庫単価,当日在庫金額");
+        await writer.WriteLineAsync("エラー内容,商品コード,等級コード,階級コード,荷印コード,荷印名,前日在庫数量,前日在庫金額,前日在庫数量,前日在庫単価,前日在庫金額");
         
         foreach (var (record, error) in errorRecords)
         {
@@ -425,7 +425,7 @@ public class InitialInventoryImportService
                 await writer.WriteLineAsync($"{error},{record.ProductCode},{record.GradeCode}," +
                     $"{record.ClassCode},{record.ShippingMarkCode},{record.ShippingMarkName}," +
                     $"{record.PreviousStockQuantity},{record.PreviousStockAmount}," +
-                    $"{record.CurrentStockQuantity},{record.StandardPrice},{record.CurrentStockAmount}");
+                    $"{record.PreviousStockQuantity},{record.PreviousStockUnitPrice},{record.PreviousStockAmount}");
             }
             else
             {

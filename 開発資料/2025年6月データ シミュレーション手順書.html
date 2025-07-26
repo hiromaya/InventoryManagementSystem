@@ -293,7 +293,7 @@
         <div class="header">
             <h1>📋 在庫管理システム</h1>
             <p>新しい運用手順ガイド（初期在庫読込から日次処理まで）</p>
-            <p><strong>最終更新:</strong> 2025年7月19日 - DailyCloseManagement完全実装対応 | <strong>対象:</strong> 開発・運用</p>
+            <p><strong>最終更新:</strong> 2025年7月26日 - アンマッチチェック0件必須機能実装対応 | <strong>対象:</strong> 開発・運用</p>
         </div>
 
         <div class="phase" style="background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); color: white;">
@@ -993,6 +993,11 @@ DataSetId: INITIAL_20250531_090000
             <div class="info">
                 <h4>📝 利用可能なコマンド（Program.cs より抽出）</h4>
                 <p>以下は実際にシステムで利用可能な全コマンドです。</p>
+                <div class="warning" style="margin: 15px 0;">
+                    <h4>🆕 アンマッチチェック0件必須機能実装済み（2025-07-26）</h4>
+                    <p><strong>本番用コマンド</strong>：帳票実行前にアンマッチ0件チェックが必須</p>
+                    <p><strong>開発用コマンド</strong>：<code>--skip-unmatch-check</code>フラグでチェックをバイパス可能</p>
+                </div>
             </div>
 
             <table>
@@ -1027,10 +1032,15 @@ DataSetId: INITIAL_20250531_090000
                         <td>[CSVファイルパス]</td>
                     </tr>
                     <tr style="background: #e8f4f8;">
-                        <td rowspan="6"><strong>データベース管理</strong></td>
+                        <td rowspan="7"><strong>データベース管理</strong></td>
                         <td>init-database</td>
                         <td>データベース初期化</td>
                         <td>[--force]</td>
+                    </tr>
+                    <tr style="background: #e8f4f8;">
+                        <td>migrate-database</td>
+                        <td>データベースマイグレーション</td>
+                        <td>-</td>
                     </tr>
                     <tr style="background: #e8f4f8;">
                         <td>check-data-status</td>
@@ -1040,25 +1050,25 @@ DataSetId: INITIAL_20250531_090000
                     <tr style="background: #e8f4f8;">
                         <td>check-schema</td>
                         <td>スキーマ確認</td>
-                        <td>[YYYY-MM-DD]</td>
+                        <td>-</td>
                     </tr>
                     <tr style="background: #e8f4f8;">
                         <td>migrate-phase2</td>
                         <td>フェーズ2マイグレーション</td>
-                        <td>[YYYY-MM-DD]</td>
+                        <td>-</td>
                     </tr>
                     <tr style="background: #e8f4f8;">
                         <td>migrate-phase3</td>
                         <td>フェーズ3マイグレーション</td>
-                        <td>[YYYY-MM-DD]</td>
+                        <td>-</td>
                     </tr>
                     <tr style="background: #e8f4f8;">
                         <td>migrate-phase5</td>
                         <td>フェーズ5マイグレーション</td>
-                        <td>[YYYY-MM-DD]</td>
+                        <td>-</td>
                     </tr>
                     <tr style="background: #fff3e0;">
-                        <td rowspan="9"><strong>データインポート</strong></td>
+                        <td rowspan="10"><strong>データインポート</strong></td>
                         <td>import-folder</td>
                         <td>フォルダからCSV一括インポート（推奨）</td>
                         <td>DeptA [YYYY-MM-DD]</td>
@@ -1103,36 +1113,57 @@ DataSetId: INITIAL_20250531_090000
                         <td>マスタデータ一括インポート</td>
                         <td>-</td>
                     </tr>
+                    <tr style="background: #fff3e0;">
+                        <td>import-previous-inventory</td>
+                        <td>前月末在庫インポート</td>
+                        <td>[ファイルパス] [YYYY-MM-DD]</td>
+                    </tr>
                     <tr style="background: #e3f2fd;">
-                        <td rowspan="4"><strong>帳票出力</strong></td>
+                        <td rowspan="4"><strong>帳票出力（本番用）</strong></td>
                         <td>unmatch-list</td>
-                        <td>アンマッチリスト作成</td>
+                        <td>🔒 アンマッチリスト作成</td>
                         <td>-（全期間対象）</td>
                     </tr>
                     <tr style="background: #e3f2fd;">
                         <td>daily-report</td>
-                        <td>商品日報作成</td>
+                        <td>🔒 商品日報作成（アンマッチ0件必須）</td>
                         <td>[YYYY-MM-DD] [--dataset-id ID]</td>
                     </tr>
                     <tr style="background: #e3f2fd;">
                         <td>product-account</td>
-                        <td>商品勘定帳票作成</td>
+                        <td>🔒 商品勘定帳票作成（アンマッチ0件必須）</td>
                         <td>[YYYY-MM-DD]</td>
                     </tr>
                     <tr style="background: #e3f2fd;">
                         <td>inventory-list</td>
-                        <td>在庫表作成</td>
+                        <td>🔒 在庫表作成（アンマッチ0件必須）</td>
                         <td>[YYYY-MM-DD]</td>
                     </tr>
-                    <tr style="background: #f3e5f5;">
-                        <td rowspan="4"><strong>日次終了処理</strong></td>
-                        <td>check-daily-close</td>
-                        <td>日次終了処理の事前確認</td>
-                        <td>[YYYY-MM-DD]</td>
+                    <tr style="background: #f1f8e9;">
+                        <td rowspan="4"><strong>帳票出力（開発用）</strong></td>
+                        <td>dev-daily-report</td>
+                        <td>🔓 商品日報作成（開発用・制限なし）</td>
+                        <td>[YYYY-MM-DD] [--skip-unmatch-check]</td>
                     </tr>
-                    <tr style="background: #f3e5f5;">
+                    <tr style="background: #f1f8e9;">
+                        <td>dev-product-account</td>
+                        <td>🔓 商品勘定作成（開発用・制限なし）</td>
+                        <td>[YYYY-MM-DD] [--skip-unmatch-check]</td>
+                    </tr>
+                    <tr style="background: #f1f8e9;">
+                        <td>dev-inventory-list</td>
+                        <td>🔓 在庫表作成（開発用・制限なし）</td>
+                        <td>[YYYY-MM-DD] [--skip-unmatch-check]</td>
+                    </tr>
+                    <tr style="background: #f1f8e9;">
                         <td>dev-check-daily-close</td>
-                        <td>日次終了処理の事前確認（開発用）</td>
+                        <td>🔓 日次終了確認（開発用・時間制限なし）</td>
+                        <td>[YYYY-MM-DD]</td>
+                    </tr>
+                    <tr style="background: #f3e5f5;">
+                        <td rowspan="3"><strong>日次終了処理</strong></td>
+                        <td>check-daily-close</td>
+                        <td>日次終了処理の事前確認（本番用）</td>
                         <td>[YYYY-MM-DD]</td>
                     </tr>
                     <tr style="background: #f3e5f5;">
@@ -1157,11 +1188,6 @@ DataSetId: INITIAL_20250531_090000
                         <td>[YYYY-MM-DD]</td>
                     </tr>
                     <tr style="background: #fce4ec;">
-                        <td>import-previous-inventory</td>
-                        <td>前月末在庫インポート</td>
-                        <td>[ファイルパス] [YYYY-MM-DD]</td>
-                    </tr>
-                    <tr style="background: #fce4ec;">
                         <td>import-with-carryover</td>
                         <td>前日在庫引継でインポート</td>
                         <td>[YYYY-MM-DD]</td>
@@ -1184,22 +1210,42 @@ DataSetId: INITIAL_20250531_090000
                     <tr style="background: #fce4ec;">
                         <td>simulate-daily</td>
                         <td>日次処理シミュレーション</td>
-                        <td>[YYYY-MM-DD]</td>
+                        <td>[部門名] [YYYY-MM-DD] [--dry-run]</td>
                     </tr>
-                    <tr style="background: #f1f8e9;">
-                        <td rowspan="3"><strong>開発・メンテナンス</strong></td>
-                        <td>dev-daily-report</td>
-                        <td>商品日報作成（開発用）</td>
-                        <td>[YYYY-MM-DD]</td>
+                    <tr style="background: #fce4ec;">
+                        <td>restore-dataset</td>
+                        <td>データセット復元</td>
+                        <td>[DataSetId]</td>
                     </tr>
-                    <tr style="background: #f1f8e9;">
+                    <tr style="background: #ffe0e0;">
+                        <td rowspan="6"><strong>開発・メンテナンス</strong></td>
                         <td>check-masters</td>
                         <td>マスタデータ確認</td>
                         <td>-</td>
                     </tr>
-                    <tr style="background: #f1f8e9;">
+                    <tr style="background: #ffe0e0;">
                         <td>init-folders</td>
                         <td>フォルダ初期化</td>
+                        <td>-</td>
+                    </tr>
+                    <tr style="background: #ffe0e0;">
+                        <td>analyze-pk-change</td>
+                        <td>主キー変更分析</td>
+                        <td>-</td>
+                    </tr>
+                    <tr style="background: #ffe0e0;">
+                        <td>repair-dataset-id</td>
+                        <td>DataSetId修復</td>
+                        <td>-</td>
+                    </tr>
+                    <tr style="background: #ffe0e0;">
+                        <td>process-2-5</td>
+                        <td>プロセス2.5実行</td>
+                        <td>-</td>
+                    </tr>
+                    <tr style="background: #ffe0e0;">
+                        <td>gross-profit</td>
+                        <td>粗利計算</td>
                         <td>-</td>
                     </tr>
                 </tbody>
@@ -1208,7 +1254,8 @@ DataSetId: INITIAL_20250531_090000
             <div class="warning">
                 <h4>⚠️ 重要なコマンド使用上の注意</h4>
                 <ul>
-                    <li><strong>dev-*コマンド</strong>：開発用コマンドで時間制約がありません</li>
+                    <li><strong>🔒 本番用帳票コマンド</strong>：アンマッチ0件チェックが必須（daily-report, product-account, inventory-list）</li>
+                    <li><strong>🔓 dev-*コマンド</strong>：開発用コマンドで制限を回避可能（--skip-unmatch-check フラグ）</li>
                     <li><strong>import-folder</strong>：推奨のインポートコマンド（自動引継機能あり）</li>
                     <li><strong>unmatch-list</strong>：日付パラメータ不要（全期間対象）</li>
                     <li><strong>test-pdf</strong>：廃止済み、test-fastreportを使用してください</li>
@@ -1217,18 +1264,243 @@ DataSetId: INITIAL_20250531_090000
             </div>
 
             <div class="step">
-                <h4>💡 推奨コマンド組み合わせ（日次処理）</h4>
+                <h4>💡 推奨コマンド組み合わせ（アンマッチチェック0件必須機能対応）</h4>
+                
+                <h5 style="color: #e74c3c;">🔒 本番環境での日次処理フロー</h5>
                 <div class="command-block">
-<span class="comment"># 基本的な日次処理フロー</span>
+<span class="comment"># 1. データインポート</span>
 <span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
-<span class="command-line">dotnet run unmatch-list</span>
-<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-01</span>
-<span class="command-line">dotnet run product-account 2025-06-01</span>
-<span class="command-line">.\dev.ps1 dev-daily-close 2025-06-01</span>
 
-<span class="comment"># 初期設定（システム開始時のみ）</span>
+<span class="comment"># 2. アンマッチリスト作成（必須：帳票実行の前提条件）</span>
+<span class="command-line">dotnet run unmatch-list</span>
+
+<span class="comment"># 3. アンマッチ0件確認後、帳票実行</span>
+<span class="comment"># ※ アンマッチが1件でもあると帳票実行が拒否されます</span>
+<span class="command-line">dotnet run daily-report 2025-06-01</span>
+<span class="command-line">dotnet run product-account 2025-06-01</span>
+<span class="command-line">dotnet run inventory-list 2025-06-01</span>
+
+<span class="comment"># 4. 日次終了処理</span>
+<span class="command-line">dotnet run check-daily-close 2025-06-01    # 事前確認</span>
+<span class="command-line">dotnet run dev-daily-close 2025-06-01      # 実行</span>
+                </div>
+                
+                <h5 style="color: #27ae60;">🔓 開発環境での日次処理フロー（推奨）</h5>
+                <div class="command-block">
+<span class="comment"># 1. データインポート</span>
+<span class="command-line">dotnet run import-folder DeptA 2025-06-01</span>
+
+<span class="comment"># 2. アンマッチリスト作成</span>
+<span class="command-line">dotnet run unmatch-list</span>
+
+<span class="comment"># 3. 開発用帳票実行（アンマッチがあってもスキップ可能）</span>
+<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-01 --skip-unmatch-check</span>
+<span class="command-line">.\dev.ps1 dev-product-account 2025-06-01 --skip-unmatch-check</span>
+<span class="command-line">.\dev.ps1 dev-inventory-list 2025-06-01 --skip-unmatch-check</span>
+
+<span class="comment"># 4. 開発用日次終了処理（時間制限なし）</span>
+<span class="command-line">.\dev.ps1 dev-check-daily-close 2025-06-01  # 事前確認</span>
+<span class="command-line">.\dev.ps1 dev-daily-close 2025-06-01        # 実行</span>
+                </div>
+
+                <h5 style="color: #8e44ad;">🔧 初期設定（システム開始時のみ）</h5>
+                <div class="command-block">
+<span class="comment"># 移行用在庫マスタ読込</span>
 <span class="command-line">dotnet run import-initial-inventory DeptA</span>
+
+<span class="comment"># データ状態確認</span>
 <span class="command-line">dotnet run check-data-status</span>
+
+<span class="comment"># マスタデータ確認</span>
+<span class="command-line">dotnet run check-masters</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- アンマッチチェック0件必須機能詳細説明セクション -->
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-number">🆕</div>
+                <div class="phase-title">アンマッチチェック0件必須機能詳細（2025-07-26実装）</div>
+            </div>
+            
+            <div class="info">
+                <h4>📋 機能概要</h4>
+                <p>データ品質を保証するため、帳票実行前にアンマッチデータが0件であることをチェックする機能を実装しました。</p>
+            </div>
+
+            <div class="step">
+                <h4>🔒 本番用コマンドの動作</h4>
+                <ul>
+                    <li><strong>daily-report</strong>：商品日報実行前にアンマッチ0件をチェック</li>
+                    <li><strong>product-account</strong>：商品勘定実行前にアンマッチ0件をチェック</li>
+                    <li><strong>inventory-list</strong>：在庫表実行前にアンマッチ0件をチェック</li>
+                    <li><strong>チェック失敗時</strong>：詳細なエラーメッセージを表示して実行を拒否</li>
+                </ul>
+                
+                <div class="warning" style="margin-top: 15px;">
+                    <h4>❌ アンマッチありの場合のエラー例</h4>
+                    <pre style="background: #f8f8f8; padding: 10px; border-radius: 5px;">
+❌ 帳票実行前検証でエラーが発生しました
+理由: アンマッチデータあり！！修正してください！（15件）
+最終チェック: 2025-07-26 14:30:25
+全角エラー: なし
+
+対処方法:
+1. unmatch-listコマンドでアンマッチリストを確認
+2. データを修正してアンマッチを0件にする
+3. 再度帳票実行を試行</pre>
+                </div>
+            </div>
+
+            <div class="step">
+                <h4>🔓 開発用コマンドの利便性</h4>
+                <ul>
+                    <li><strong>dev-daily-report</strong>：アンマッチがあっても実行可能</li>
+                    <li><strong>dev-product-account</strong>：アンマッチがあっても実行可能</li>
+                    <li><strong>dev-inventory-list</strong>：アンマッチがあっても実行可能</li>
+                    <li><strong>--skip-unmatch-check</strong>：明示的にチェックをスキップ</li>
+                </ul>
+                
+                <div class="success" style="margin-top: 15px;">
+                    <h4>✅ 開発環境での実行例</h4>
+                    <pre style="background: #f0f8f0; padding: 10px; border-radius: 5px;">
+=== 商品日報処理開始（開発用） ===
+レポート日付: 2025-06-30
+⚠️ アンマッチチェックはスキップされます（開発用）
+
+商品日報作成中...
+✅ 商品日報処理が完了しました（開発用モード）
+出力先: D:\Reports\DailyReport_20250630.pdf</pre>
+                </div>
+            </div>
+
+            <div class="step">
+                <h4>⚙️ 実装された機能詳細</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>機能</th>
+                            <th>実装内容</th>
+                            <th>本番環境</th>
+                            <th>開発環境</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>UnmatchCheckResultテーブル</td>
+                            <td>チェック結果の永続化</td>
+                            <td>✅</td>
+                            <td>✅</td>
+                        </tr>
+                        <tr>
+                            <td>UnmatchCheckValidationService</td>
+                            <td>検証ロジックの実装</td>
+                            <td>✅</td>
+                            <td>✅</td>
+                        </tr>
+                        <tr>
+                            <td>事前チェック機能</td>
+                            <td>帳票実行前のアンマッチ検証</td>
+                            <td>🔒 必須</td>
+                            <td>🔓 スキップ可</td>
+                        </tr>
+                        <tr>
+                            <td>エラーメッセージ</td>
+                            <td>詳細な失敗理由の表示</td>
+                            <td>✅</td>
+                            <td>✅</td>
+                        </tr>
+                        <tr>
+                            <td>全角エラー検出</td>
+                            <td>荷印名の全角文字検出</td>
+                            <td>✅</td>
+                            <td>✅</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="troubleshooting">
+                <h3>🛠️ アンマッチチェック機能のトラブルシューティング</h3>
+
+                <h4>❌ 問題1: 「アンマッチチェックが実行されていません」エラー</h4>
+                <div class="step">
+                    <strong>原因:</strong> unmatch-listコマンドを実行していない
+                    <div class="command-block">
+<span class="comment"># 対処法: アンマッチリストを先に実行</span>
+<span class="command-line">dotnet run unmatch-list</span>
+
+<span class="comment"># その後、帳票実行</span>
+<span class="command-line">dotnet run daily-report 2025-06-30</span>
+                    </div>
+                </div>
+
+                <h4>❌ 問題2: 「アンマッチデータあり」で帳票実行が拒否される</h4>
+                <div class="step">
+                    <strong>対処法1:</strong> 開発環境ではdev-*コマンドを使用
+                    <div class="command-block">
+<span class="comment"># 開発用コマンドでスキップ</span>
+<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-30 --skip-unmatch-check</span>
+                    </div>
+                    <strong>対処法2:</strong> アンマッチデータを修正
+                    <div class="command-block">
+<span class="comment"># アンマッチリストを確認</span>
+<span class="command-line">dotnet run unmatch-list</span>
+
+<span class="comment"># データ修正後、再実行</span>
+<span class="command-line">dotnet run daily-report 2025-06-30</span>
+                    </div>
+                </div>
+
+                <h4>❌ 問題3: 全角エラーが検出される</h4>
+                <div class="step">
+                    <strong>原因:</strong> 荷印名に全角文字が含まれている
+                    <div class="command-block">
+<span class="comment"># 対処法: アンマッチリストで詳細確認</span>
+<span class="command-line">dotnet run unmatch-list</span>
+
+<span class="comment"># 全角エラーを修正後、再チェック</span>
+<span class="command-line">dotnet run unmatch-list</span>
+<span class="command-line">dotnet run daily-report 2025-06-30</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="verification">
+                <h3>🔍 アンマッチチェック機能の動作確認</h3>
+                
+                <h4>1. 機能テスト手順</h4>
+                <div class="command-block">
+<span class="comment"># Step 1: アンマッチありの状態を作る</span>
+<span class="command-line">dotnet run import-folder DeptA 2025-06-30</span>
+
+<span class="comment"># Step 2: アンマッチリスト実行（アンマッチが発生する想定）</span>
+<span class="command-line">dotnet run unmatch-list</span>
+
+<span class="comment"># Step 3: 本番用コマンドで実行拒否を確認</span>
+<span class="command-line">dotnet run daily-report 2025-06-30</span>
+<span class="comment"># → エラーメッセージが表示されることを確認</span>
+
+<span class="comment"># Step 4: 開発用コマンドで実行成功を確認</span>
+<span class="command-line">.\dev.ps1 dev-daily-report 2025-06-30 --skip-unmatch-check</span>
+<span class="comment"># → 正常に実行されることを確認</span>
+                </div>
+
+                <h4>2. データベース確認</h4>
+                <div class="command-block">
+<span class="comment">-- UnmatchCheckResultテーブルの確認（SQL Server）</span>
+<span class="command-line">SELECT TOP 10 *</span>
+<span class="command-line">FROM UnmatchCheckResult</span>
+<span class="command-line">ORDER BY CheckDateTime DESC;</span>
+
+<span class="comment">-- チェック結果の集計確認</span>
+<span class="command-line">SELECT</span>
+<span class="command-line">    CheckStatus,</span>
+<span class="command-line">    COUNT(*) as Count,</span>
+<span class="command-line">    AVG(UnmatchCount) as AvgUnmatchCount</span>
+<span class="command-line">FROM UnmatchCheckResult</span>
+<span class="command-line">GROUP BY CheckStatus;</span>
                 </div>
             </div>
         </div>
@@ -1236,6 +1508,7 @@ DataSetId: INITIAL_20250531_090000
         <div class="header" style="margin-top: 50px; background: rgba(255, 255, 255, 0.95); padding: 20px; border-radius: 10px;">
             <p><strong>🎯 この手順により、移行用在庫マスタを基盤とした安全で確実な在庫管理が実現できます</strong></p>
             <p>import-initial-inventoryによる初期設定から日次処理まで、段階的に進めることで確実な運用が可能です</p>
+            <p><strong>🆕 アンマッチチェック0件必須機能により、データ品質を保証した帳票出力が可能になりました</strong></p>
             <br>
             <button class="button" onclick="window.print()">📄 この手順書を印刷</button>
         </div>

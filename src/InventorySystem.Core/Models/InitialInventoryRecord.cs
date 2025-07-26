@@ -38,6 +38,10 @@ public class InitialInventoryRecord
     [Index(9)]
     public decimal PreviousStockQuantity { get; set; }
 
+    [Name("前日在庫単価")]
+    [Index(10)]
+    public decimal PreviousStockUnitPrice { get; set; }
+
     [Name("前日在庫金額")]
     [Index(11)]
     public decimal PreviousStockAmount { get; set; }
@@ -74,6 +78,7 @@ public sealed class InitialInventoryRecordMap : ClassMap<InitialInventoryRecord>
         Map(m => m.ShippingMarkName).Index(4).Name("荷印名");
         Map(m => m.PersonInChargeCode).Index(5).Name("商品分類１担当者ＣＤ");
         Map(m => m.PreviousStockQuantity).Index(9).Name("前日在庫数量");
+        Map(m => m.PreviousStockUnitPrice).Index(10).Name("前日在庫単価");
         Map(m => m.PreviousStockAmount).Index(11).Name("前日在庫金額");
         Map(m => m.CurrentStockQuantity).Index(14).Name("当日在庫数量");
         Map(m => m.StandardPrice).Index(15).Name("当日在庫単価");

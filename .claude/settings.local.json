@@ -53,7 +53,8 @@
       "Bash(pip install:*)",
       "Bash(cp:*)",
       "Bash(__NEW_LINE__ /home/hiroki/.claude/gemini-search.sh \"SQL Server UpdatedAt column not exists migration strategy\")",
-      "Bash(dotnet test:*)"
+      "Bash(dotnet test:*)",
+      "Bash(awk:*)"
     ],
     "deny": []
   }
