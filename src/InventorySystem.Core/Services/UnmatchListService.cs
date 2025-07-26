@@ -406,7 +406,7 @@ public class UnmatchListService : IUnmatchListService
         var salesList = salesVouchers
             .Where(s => s.VoucherType == "51" || s.VoucherType == "52") // 売上伝票
             .Where(s => s.DetailType == "1" || s.DetailType == "2")  // 明細種（売上・返品のみ、単品値引は除外）
-            .Where(s => s.Quantity > 0)                                 // 数量>0（出荷データのみ）
+            .Where(s => s.Quantity < 0)                                 // 数量<0（返品等の出荷データ）
             .Where(s => s.ProductCode != "00000")                       // 商品コード"00000"を除外
             .Where(s => !targetDate.HasValue || s.JobDate <= targetDate.Value) // 指定日以前フィルタ
             .ToList();
@@ -468,6 +468,7 @@ public class UnmatchListService : IUnmatchListService
                     unmatchItem.CustomerName, unmatchItem.ProductName, unmatchItem.Key.ShippingMarkName, unmatchItem.Category);
             }
             // 在庫0エラー削除：マイナス在庫を許容（2025/07/26仕様変更）
+            // 売上返品（数量<0）の出荷データのみをチェック
         }
 
         _logger.LogCritical("===== CheckSalesUnmatchAsync 処理結果 =====");
@@ -502,7 +503,7 @@ public class UnmatchListService : IUnmatchListService
         var purchaseList = purchaseVouchers
             .Where(p => p.VoucherType == "11" || p.VoucherType == "12") // 仕入伝票
             .Where(p => p.DetailType == "1" || p.DetailType == "2")  // 明細種（仕入・返品のみ、単品値引は除外）
-            .Where(p => p.Quantity < 0)                                 // 数量<0（仕入返品のみ）
+            .Where(p => p.Quantity > 0)                                 // 数量>0（通常仕入の出荷データ）
             .Where(p => p.ProductCode != "00000")                       // 商品コード"00000"を除外
             .Where(p => !targetDate.HasValue || p.JobDate <= targetDate.Value) // 指定日以前フィルタ
             .ToList();
@@ -532,6 +533,7 @@ public class UnmatchListService : IUnmatchListService
                 unmatchItems.Add(unmatchItem);
             }
             // 在庫0エラー削除：マイナス在庫を許容（2025/07/26仕様変更）
+            // 通常仕入（数量>0）の出荷データのみをチェック
         }
 
         return unmatchItems;
@@ -650,6 +652,7 @@ public class UnmatchListService : IUnmatchListService
                 unmatchItems.Add(unmatchItem);
             }
             // 在庫0エラー削除：マイナス在庫を許容（2025/07/26仕様変更）
+            // 在庫調整（数量>0）の出荷データのみをチェック
         }
 
         return unmatchItems;
@@ -918,9 +921,10 @@ public class UnmatchListService : IUnmatchListService
             var purchaseCount = await _cpInventoryRepository.AggregatePurchaseDataAsync(dataSetId, targetDate);
             _logger.LogInformation("仕入データを集計しました（{ProcessType}）。更新件数: {Count}件", processType, purchaseCount);
             
-            // 2. 売上データの集計
-            var salesCount = await _cpInventoryRepository.AggregateSalesDataAsync(dataSetId, targetDate);
-            _logger.LogInformation("売上データを集計しました（{ProcessType}）。更新件数: {Count}件", processType, salesCount);
+            // 2. 売上データの集計（2025/07/26仕様変更：入荷データのみ集計のため売上は除外）
+            // var salesCount = await _cpInventoryRepository.AggregateSalesDataAsync(dataSetId, targetDate);
+            // _logger.LogInformation("売上データを集計しました（{ProcessType}）。更新件数: {Count}件", processType, salesCount);
+            _logger.LogInformation("売上データの集計はスキップします（入荷データのみ集計）");
             
             // 3. 在庫調整データの集計
             var adjustmentCount = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, targetDate);
