@@ -406,7 +406,7 @@ public class UnmatchListService : IUnmatchListService
         var salesList = salesVouchers
             .Where(s => s.VoucherType == "51" || s.VoucherType == "52") // 売上伝票
             .Where(s => s.DetailType == "1" || s.DetailType == "2")  // 明細種（売上・返品のみ、単品値引は除外）
-            .Where(s => s.Quantity != 0)                                // 数量0以外（共通仕様）
+            .Where(s => s.Quantity > 0)                                 // 数量>0（出荷データのみ）
             .Where(s => s.ProductCode != "00000")                       // 商品コード"00000"を除外
             .Where(s => !targetDate.HasValue || s.JobDate <= targetDate.Value) // 指定日以前フィルタ
             .ToList();
@@ -467,7 +467,7 @@ public class UnmatchListService : IUnmatchListService
                 _logger.LogDebug("アンマッチ項目作成: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}', カテゴリ={Category}", 
                     unmatchItem.CustomerName, unmatchItem.ProductName, unmatchItem.Key.ShippingMarkName, unmatchItem.Category);
             }
-            // 在庫0チェックを削除：マイナス在庫を許容
+            // 在庫0エラー削除：マイナス在庫を許容（2025/07/26仕様変更）
         }
 
         _logger.LogCritical("===== CheckSalesUnmatchAsync 処理結果 =====");
@@ -502,7 +502,7 @@ public class UnmatchListService : IUnmatchListService
         var purchaseList = purchaseVouchers
             .Where(p => p.VoucherType == "11" || p.VoucherType == "12") // 仕入伝票
             .Where(p => p.DetailType == "1" || p.DetailType == "2")  // 明細種（仕入・返品のみ、単品値引は除外）
-            .Where(p => p.Quantity != 0)                                // 数量0以外（共通仕様）
+            .Where(p => p.Quantity < 0)                                 // 数量<0（仕入返品のみ）
             .Where(p => p.ProductCode != "00000")                       // 商品コード"00000"を除外
             .Where(p => !targetDate.HasValue || p.JobDate <= targetDate.Value) // 指定日以前フィルタ
             .ToList();
@@ -531,7 +531,7 @@ public class UnmatchListService : IUnmatchListService
                 unmatchItem.AlertType2 = "在庫マスタ無";
                 unmatchItems.Add(unmatchItem);
             }
-            // 在庫0チェックを削除：マイナス在庫を許容
+            // 在庫0エラー削除：マイナス在庫を許容（2025/07/26仕様変更）
         }
 
         return unmatchItems;
@@ -616,7 +616,7 @@ public class UnmatchListService : IUnmatchListService
         var adjustmentList = adjustments
             .Where(a => a.VoucherType == "71" || a.VoucherType == "72")  // 在庫調整伝票
             .Where(a => a.DetailType == "3" || a.DetailType == "4")      // 明細種（受注伝票代用のため3,4を使用）
-            .Where(a => a.Quantity != 0)                                 // 数量0以外（共通仕様）
+            .Where(a => a.Quantity > 0)                                  // 数量>0（出荷データのみ）
             .Where(a => a.ProductCode != "00000")                        // 商品コード"00000"を除外
             .Where(a => a.UnitCode != "02" && a.UnitCode != "05")        // 単位コード02（ギフト経費）,05（加工費B）は除外
             .Where(a => !targetDate.HasValue || a.JobDate <= targetDate.Value) // 指定日以前フィルタ
@@ -643,11 +643,13 @@ public class UnmatchListService : IUnmatchListService
                     adjustment.ProductCode, adjustment.GradeCode, adjustment.ClassCode, 
                     adjustment.ShippingMarkCode);
                 
-                var unmatchItem = UnmatchItem.FromInventoryAdjustment(adjustment, "", productCategory1);
+                // 単位コードで集計先を判定
+                string adjustmentType = GetAdjustmentType(adjustment.UnitCode);
+                var unmatchItem = UnmatchItem.FromInventoryAdjustment(adjustment, adjustmentType, productCategory1);
                 unmatchItem.AlertType2 = "在庫マスタ無";
                 unmatchItems.Add(unmatchItem);
             }
-            // 在庫0チェックを削除：マイナス在庫を許容
+            // 在庫0エラー削除：マイナス在庫を許容（2025/07/26仕様変更）
         }
 
         return unmatchItems;
@@ -661,6 +663,25 @@ public class UnmatchListService : IUnmatchListService
             adjustment.ShippingMarkCode);
         task.Wait();
         return task.Result;
+    }
+    
+    /// <summary>
+    /// 単位コードから調整種別を判定する
+    /// </summary>
+    /// <param name="unitCode">単位コード</param>
+    /// <returns>調整種別</returns>
+    private string GetAdjustmentType(string unitCode)
+    {
+        return unitCode switch
+        {
+            "01" => "在庫調整",  // 在庫ロス
+            "02" => "加工",      // ギフト経費
+            "03" => "在庫調整",  // 腐り
+            "04" => "振替",      // 振替
+            "05" => "加工",      // 加工費B
+            "06" => "在庫調整",  // 在庫調整
+            _ => "在庫調整"      // デフォルト
+        };
     }
 
     private async Task<UnmatchItem> EnrichWithMasterData(UnmatchItem item)
