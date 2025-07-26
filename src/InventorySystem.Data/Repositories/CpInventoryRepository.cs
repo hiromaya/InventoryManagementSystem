@@ -215,7 +215,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 {dateCondition}
                     {(jobDate.HasValue ? "AND" : "WHERE")} VoucherType IN ('51', '52')
                     AND DetailType IN ('1', '2')
-                    AND Quantity > 0
+                    AND Quantity < 0  -- 修正: 売上返品（入荷データ）のみ集計
+                    AND ProductCode != '00000'
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) sales ON cp.ProductCode = sales.ProductCode 
                 AND cp.GradeCode = sales.GradeCode 
@@ -255,7 +256,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 {dateCondition}
                     {(jobDate.HasValue ? "AND" : "WHERE")} VoucherType IN ('11', '12')
                     AND DetailType IN ('1', '2')  -- 仕入、返品のみ（値引は別途計算）
-                    AND Quantity > 0
+                    AND Quantity > 0  -- 通常仕入（入荷データ）
+                    AND ProductCode != '00000'
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) purchase ON cp.ProductCode = purchase.ProductCode 
                 AND cp.GradeCode = purchase.GradeCode 
@@ -298,9 +300,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 FROM InventoryAdjustments 
                 {dateCondition}
                     {(jobDate.HasValue ? "AND" : "WHERE")} VoucherType IN ('71', '72')
-                    AND DetailType IN ('1', '3', '4')
+                    AND DetailType = '1'  -- 修正: 受注伝票代用のため明細種別1のみ
                     AND CategoryCode IN (1, 3, 6)  -- 在庫調整の単位コード
-                    AND Quantity > 0
+                    AND Quantity > 0  -- 入荷データ
+                    AND ProductCode != '00000'
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) adj ON cp.ProductCode = adj.ProductCode 
                 AND cp.GradeCode = adj.GradeCode 
@@ -334,9 +337,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 FROM InventoryAdjustments 
                 {dateCondition}
                     {(jobDate.HasValue ? "AND" : "WHERE")} VoucherType IN ('71', '72')
-                    AND DetailType IN ('1', '3', '4')
+                    AND DetailType = '1'  -- 修正: 受注伝票代用のため明細種別1のみ
                     AND CategoryCode IN (2, 5)  -- 加工費の単位コード
-                    AND Quantity > 0
+                    AND Quantity > 0  -- 入荷データ
+                    AND ProductCode != '00000'
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) adj ON cp.ProductCode = adj.ProductCode 
                 AND cp.GradeCode = adj.GradeCode 
@@ -370,9 +374,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 FROM InventoryAdjustments 
                 {dateCondition}
                     {(jobDate.HasValue ? "AND" : "WHERE")} VoucherType IN ('71', '72')
-                    AND DetailType IN ('1', '3', '4')
+                    AND DetailType = '1'  -- 修正: 受注伝票代用のため明細種別1のみ
                     AND CategoryCode = 4  -- 振替の単位コード
-                    AND Quantity > 0
+                    AND Quantity > 0  -- 入荷データ
+                    AND ProductCode != '00000'
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) adj ON cp.ProductCode = adj.ProductCode 
                 AND cp.GradeCode = adj.GradeCode 
