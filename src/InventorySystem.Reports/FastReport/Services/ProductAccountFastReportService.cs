@@ -171,14 +171,14 @@ namespace InventorySystem.Reports.FastReport.Services
                         ClassName = reader.IsDBNull("ClassName") ? "" : reader.GetString("ClassName"),
                         VoucherNumber = reader.GetString("VoucherNumber"),
                         DisplayCategory = reader.GetString("DisplayCategory"),
-                        // TransactionDate = reader.GetDateTime("TransactionDate"), // FastReportテンプレートに未定義のため削除
+                        TransactionDate = reader.GetDateTime("TransactionDate"),
                         PurchaseQuantity = reader.GetDecimal("PurchaseQuantity"),
                         SalesQuantity = reader.GetDecimal("SalesQuantity"),
                         RemainingQuantity = reader.GetDecimal("RemainingQuantity"),
                         UnitPrice = reader.GetDecimal("UnitPrice"),
                         Amount = reader.GetDecimal("Amount"),
                         GrossProfit = reader.GetDecimal("GrossProfit"),
-                        // WalkingDiscount = reader.GetDecimal("WalkingDiscount"), // FastReportテンプレートに未定義のため削除
+                        WalkingDiscount = reader.GetDecimal("WalkingDiscount"),
                         CustomerSupplierName = reader.GetString("CustomerSupplierName"),
                         GroupKey = reader.GetString("GroupKey"),
                         ProductCategory1 = reader.IsDBNull("ProductCategory1") ? null : reader.GetString("ProductCategory1"),
@@ -346,24 +346,86 @@ namespace InventorySystem.Reports.FastReport.Services
                     throw new FileNotFoundException($"テンプレートファイルが見つかりません: {_templatePath}");
                 }
 
+                // アンマッチリストと同じ初期化処理
+                report.ReportResourceString = "";
+                report.FileName = _templatePath;
+                
+                _logger.LogInformation("レポートテンプレートを読み込んでいます...");
                 report.Load(_templatePath);
                 
-                // ScriptLanguageをNoneに設定（他帳票との統一）
-                SetScriptLanguageToNone(report);
+                // .NET 8対応: ScriptLanguageを強制的にNoneに設定（アンマッチリストと同じパターン）
+                try
+                {
+                    // リフレクションを使用してScriptLanguageプロパティを取得
+                    var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                    if (scriptLanguageProperty != null)
+                    {
+                        var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                        if (scriptLanguageType.IsEnum)
+                        {
+                            // FastReport.ScriptLanguage.None を設定
+                            var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
+                            if (noneValue != null)
+                            {
+                                scriptLanguageProperty.SetValue(report, noneValue);
+                                _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+                    // エラーが発生しても処理を継続
+                }
 
                 // データテーブル作成
                 var dataTable = CreateDataTable(reportData);
                 report.RegisterData(dataTable, "ProductAccount");
+                
+                // データソースを明示的に取得して設定
+                var dataSource = report.GetDataSource("ProductAccount");
+                if (dataSource != null)
+                {
+                    dataSource.Enabled = true;
+                    _logger.LogInformation("データソースを有効化しました");
+                }
+                else
+                {
+                    _logger.LogWarning("データソース 'ProductAccount' が見つかりません");
+                }
 
                 // レポートパラメータ設定
+                _logger.LogInformation("レポートパラメータを設定しています...");
                 report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
                 report.SetParameterValue("GeneratedAt", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
 
                 // レポート準備・生成
+                _logger.LogInformation("レポートを生成しています...");
                 report.Prepare();
 
-                // PDF出力
-                using var pdfExport = new PDFExport();
+                // PDF出力設定（アンマッチリストと同じパターン）
+                using var pdfExport = new PDFExport
+                {
+                    // 日本語フォントの埋め込み（重要）
+                    EmbeddingFonts = true,
+                    
+                    // PDFのメタデータ
+                    Title = $"商品勘定帳票_{jobDate:yyyyMMdd}",
+                    Subject = "商品勘定帳票",
+                    Creator = "在庫管理システム",
+                    Author = "在庫管理システム",
+                    
+                    // 文字エンコーディング設定
+                    TextInCurves = false,  // テキストをパスに変換しない
+                    
+                    // 画質設定
+                    JpegQuality = 95,
+                    
+                    // セキュリティ設定なし
+                    OpenAfterExport = false
+                };
+                
                 using var stream = new MemoryStream();
                 pdfExport.Export(report, stream);
                 
@@ -402,6 +464,7 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("UnitPrice", typeof(decimal));
             table.Columns.Add("Amount", typeof(decimal));
             table.Columns.Add("GrossProfit", typeof(decimal));
+            table.Columns.Add("WalkingDiscount", typeof(decimal));
             table.Columns.Add("CustomerSupplierName", typeof(string));
             table.Columns.Add("GroupKey", typeof(string));
             
@@ -437,6 +500,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["UnitPrice"] = item.UnitPrice;
                 row["Amount"] = item.Amount;
                 row["GrossProfit"] = item.GrossProfit;
+                row["WalkingDiscount"] = item.WalkingDiscount;
                 row["CustomerSupplierName"] = item.CustomerSupplierName;
                 row["GroupKey"] = item.GroupKey;
                 
@@ -509,39 +573,6 @@ namespace InventorySystem.Reports.FastReport.Services
             // 各グループで前残高から開始して取引ごとに残高を更新
         }
 
-        /// <summary>
-        /// ScriptLanguageをNoneに設定（他帳票との統一パターン）
-        /// </summary>
-        private void SetScriptLanguageToNone(FR.Report report)
-        {
-            try
-            {
-                // リフレクションを使用してScriptLanguageプロパティを取得
-                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
-                if (scriptLanguageProperty != null)
-                {
-                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
-                    if (scriptLanguageType.IsEnum)
-                    {
-                        // FastReport.ScriptLanguage.None を設定
-                        var noneValue = Enum.GetValues(scriptLanguageType)
-                            .Cast<object>()
-                            .FirstOrDefault(v => v.ToString() == "None");
-                        
-                        if (noneValue != null)
-                        {
-                            scriptLanguageProperty.SetValue(report, noneValue);
-                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
-                // エラーが発生しても処理を継続
-            }
-        }
     }
 }
 #endif
