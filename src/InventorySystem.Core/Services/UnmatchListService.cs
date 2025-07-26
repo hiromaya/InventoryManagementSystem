@@ -405,8 +405,9 @@ public class UnmatchListService : IUnmatchListService
         // フィルタリング前後の件数
         var salesList = salesVouchers
             .Where(s => s.VoucherType == "51" || s.VoucherType == "52") // 売上伝票
-            .Where(s => s.DetailType == "1" || s.DetailType == "2" || s.DetailType == "3")  // 明細種（単品値引追加）
+            .Where(s => s.DetailType == "1" || s.DetailType == "2")  // 明細種（売上・返品のみ、単品値引は除外）
             .Where(s => s.Quantity != 0)                                // 数量0以外（共通仕様）
+            .Where(s => s.ProductCode != "00000")                       // 商品コード"00000"を除外
             .Where(s => !targetDate.HasValue || s.JobDate <= targetDate.Value) // 指定日以前フィルタ
             .ToList();
         
@@ -424,7 +425,6 @@ public class UnmatchListService : IUnmatchListService
         _logger.LogCritical("CP在庫マスタとの照合開始...");
         int checkedCount = 0;
         int notFoundCount = 0;
-        int stockZeroCount = 0;
 
         foreach (var sales in salesList)
         {
@@ -450,37 +450,29 @@ public class UnmatchListService : IUnmatchListService
                 notFoundCount++;
                 if (notFoundCount <= 5)  // 最初の5件のみログ出力
                 {
-                    _logger.LogCritical("該当無サンプル: Product={Product}, Grade={Grade}, Class={Class}, Mark={Mark}, Name={Name}",
+                    _logger.LogCritical("在庫マスタ無サンプル: Product={Product}, Grade={Grade}, Class={Class}, Mark={Mark}, Name={Name}",
                         sales.ProductCode, sales.GradeCode, sales.ClassCode, 
                         sales.ShippingMarkCode, sales.ShippingMarkName);
                 }
                 
-                // 該当無エラー - 商品分類1を取得
+                // 在庫マスタ未登録エラー - 商品分類1を取得
                 var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
                     sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", productCategory1);
-                unmatchItem.AlertType2 = "該当無";
+                unmatchItem.AlertType2 = "在庫マスタ無";
                 unmatchItems.Add(unmatchItem);
                 
                 // アンマッチ項目作成時の文字列状態を確認
                 _logger.LogDebug("アンマッチ項目作成: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}', カテゴリ={Category}", 
                     unmatchItem.CustomerName, unmatchItem.ProductName, unmatchItem.Key.ShippingMarkName, unmatchItem.Category);
             }
-            else if (cpInventory.PreviousDayStock >= 0 && cpInventory.DailyStock <= 0)
-            {
-                stockZeroCount++;
-                // 在庫0以下エラー（マイナス在庫含む）
-                var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "在庫0",
-                    cpInventory.GetAdjustedProductCategory1());
-                unmatchItems.Add(unmatchItem);
-            }
+            // 在庫0チェックを削除：マイナス在庫を許容
         }
 
         _logger.LogCritical("===== CheckSalesUnmatchAsync 処理結果 =====");
         _logger.LogCritical("処理対象件数: {Total}", salesList.Count);
-        _logger.LogCritical("該当無件数: {NotFound}", notFoundCount);
-        _logger.LogCritical("在庫0件数: {StockZero}", stockZeroCount);
+        _logger.LogCritical("在庫マスタ無件数: {NotFound}", notFoundCount);
         _logger.LogCritical("アンマッチ合計: {Unmatch}", unmatchItems.Count);
         _logger.LogCritical("=========================================");
 
@@ -509,8 +501,9 @@ public class UnmatchListService : IUnmatchListService
         }
         var purchaseList = purchaseVouchers
             .Where(p => p.VoucherType == "11" || p.VoucherType == "12") // 仕入伝票
-            .Where(p => p.DetailType == "1" || p.DetailType == "2" || p.DetailType == "3")  // 明細種（単品値引追加）
+            .Where(p => p.DetailType == "1" || p.DetailType == "2")  // 明細種（仕入・返品のみ、単品値引は除外）
             .Where(p => p.Quantity != 0)                                // 数量0以外（共通仕様）
+            .Where(p => p.ProductCode != "00000")                       // 商品コード"00000"を除外
             .Where(p => !targetDate.HasValue || p.JobDate <= targetDate.Value) // 指定日以前フィルタ
             .ToList();
 
@@ -530,21 +523,15 @@ public class UnmatchListService : IUnmatchListService
 
             if (cpInventory == null)
             {
-                // 該当無エラー - 商品分類1を取得
+                // 在庫マスタ未登録エラー - 商品分類1を取得
                 var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
                     purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "", productCategory1);
-                unmatchItem.AlertType2 = "該当無";
+                unmatchItem.AlertType2 = "在庫マスタ無";
                 unmatchItems.Add(unmatchItem);
             }
-            else if (cpInventory.DailyStock <= 0)
-            {
-                // 在庫0以下エラー（マイナス在庫含む）
-                var unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "在庫0",
-                    cpInventory.GetAdjustedProductCategory1());
-                unmatchItems.Add(unmatchItem);
-            }
+            // 在庫0チェックを削除：マイナス在庫を許容
         }
 
         return unmatchItems;
@@ -628,10 +615,10 @@ public class UnmatchListService : IUnmatchListService
         }
         var adjustmentList = adjustments
             .Where(a => a.VoucherType == "71" || a.VoucherType == "72")  // 在庫調整伝票
-            .Where(a => a.DetailType == "1")                             // 明細種
-            .Where(a => a.Quantity > 0)                                  // 数量 > 0
-            .Where(a => a.CategoryCode.HasValue)                         // 区分コードあり
-            .Where(a => a.CategoryCode.GetValueOrDefault() != 2 && a.CategoryCode.GetValueOrDefault() != 5)  // 区分2,5（経費、加工）は除外
+            .Where(a => a.DetailType == "3" || a.DetailType == "4")      // 明細種（受注伝票代用のため3,4を使用）
+            .Where(a => a.Quantity != 0)                                 // 数量0以外（共通仕様）
+            .Where(a => a.ProductCode != "00000")                        // 商品コード"00000"を除外
+            .Where(a => a.UnitCode != "02" && a.UnitCode != "05")        // 単位コード02（ギフト経費）,05（加工費B）は除外
             .Where(a => !targetDate.HasValue || a.JobDate <= targetDate.Value) // 指定日以前フィルタ
             .ToList();
 
@@ -651,22 +638,16 @@ public class UnmatchListService : IUnmatchListService
 
             if (cpInventory == null)
             {
-                // 該当無エラー - 商品分類1を取得
+                // 在庫マスタ未登録エラー - 商品分類1を取得
                 var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
                     adjustment.ProductCode, adjustment.GradeCode, adjustment.ClassCode, 
                     adjustment.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromInventoryAdjustment(adjustment, "", productCategory1);
-                unmatchItem.AlertType2 = "該当無";
+                unmatchItem.AlertType2 = "在庫マスタ無";
                 unmatchItems.Add(unmatchItem);
             }
-            else if (cpInventory.DailyStock <= 0)
-            {
-                // 在庫0以下エラー（マイナス在庫含む）
-                var unmatchItem = UnmatchItem.FromInventoryAdjustment(adjustment, "在庫0",
-                    cpInventory.GetAdjustedProductCategory1());
-                unmatchItems.Add(unmatchItem);
-            }
+            // 在庫0チェックを削除：マイナス在庫を許容
         }
 
         return unmatchItems;
