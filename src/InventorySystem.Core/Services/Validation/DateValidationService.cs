@@ -27,7 +27,7 @@ public class DateValidationService : IDateValidationService
     }
     
     /// <inheritdoc/>
-    public async Task<ValidationResult> ValidateJobDate(DateTime jobDate, string processType, bool allowDuplicateProcessing = false)
+    public async Task<Models.ValidationResult> ValidateJobDate(DateTime jobDate, string processType, bool allowDuplicateProcessing = false)
     {
         _logger.LogInformation("日付検証開始: JobDate={JobDate}, ProcessType={ProcessType}", 
             jobDate, processType);
@@ -36,7 +36,7 @@ public class DateValidationService : IDateValidationService
         if (jobDate.Date > DateTime.Today)
         {
             _logger.LogError("未来日エラー: {JobDate}", jobDate);
-            return ValidationResult.Failure(ErrorMessages.FutureDateError);
+            return Models.ValidationResult.Failure(ErrorMessages.FutureDateError);
         }
         
         // 2. 過去日付範囲チェック（開発環境では無視）
@@ -50,7 +50,7 @@ public class DateValidationService : IDateValidationService
             if (jobDate.Date < DateTime.Today.AddDays(-maxDaysInPast))
             {
                 _logger.LogError("過去日付範囲超過: {JobDate}", jobDate);
-                return ValidationResult.Failure(
+                return Models.ValidationResult.Failure(
                     string.Format(ErrorMessages.PastDateRangeError, maxDaysInPast));
             }
         }
@@ -67,7 +67,7 @@ public class DateValidationService : IDateValidationService
             {
                 _logger.LogError("重複処理エラー: JobDate={JobDate}, ProcessType={ProcessType}", 
                     jobDate, processType);
-                return ValidationResult.Failure(ErrorMessages.AlreadyProcessedError);
+                return Models.ValidationResult.Failure(ErrorMessages.AlreadyProcessedError);
             }
         }
         else if (allowDuplicateProcessing)
@@ -85,7 +85,7 @@ public class DateValidationService : IDateValidationService
         }
         
         _logger.LogInformation("日付検証成功: JobDate={JobDate}", jobDate);
-        return ValidationResult.Success();
+        return Models.ValidationResult.Success();
     }
     
     /// <inheritdoc/>

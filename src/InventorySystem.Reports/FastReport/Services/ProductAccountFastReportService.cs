@@ -16,6 +16,7 @@ using InventorySystem.Reports.Models;
 using InventorySystem.Reports.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using InventorySystem.Core.Models;
 using FR = global::FastReport;
 
 namespace InventorySystem.Reports.FastReport.Services
@@ -32,6 +33,7 @@ namespace InventorySystem.Reports.FastReport.Services
         private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
         private readonly IInventoryRepository _inventoryRepository;
         private readonly ICustomerMasterRepository _customerMasterRepository;
+        private readonly IUnmatchCheckValidationService _unmatchCheckValidationService;
         private readonly string _templatePath;
         
         public ProductAccountFastReportService(
@@ -41,7 +43,8 @@ namespace InventorySystem.Reports.FastReport.Services
             IPurchaseVoucherRepository purchaseVoucherRepository,
             IInventoryAdjustmentRepository inventoryAdjustmentRepository,
             IInventoryRepository inventoryRepository,
-            ICustomerMasterRepository customerMasterRepository)
+            ICustomerMasterRepository customerMasterRepository,
+            IUnmatchCheckValidationService unmatchCheckValidationService)
         {
             _logger = logger;
             _configuration = configuration;
@@ -50,6 +53,7 @@ namespace InventorySystem.Reports.FastReport.Services
             _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
             _inventoryRepository = inventoryRepository;
             _customerMasterRepository = customerMasterRepository;
+            _unmatchCheckValidationService = unmatchCheckValidationService;
             
             // テンプレートファイルのパス設定
             var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -59,15 +63,49 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
-        /// 商品勘定帳票を生成
+        /// 商品勘定帳票を生成（旧式 - アンマッチチェックなし）
         /// </summary>
         public byte[] GenerateProductAccountReport(DateTime jobDate, string? departmentCode = null)
+        {
+            return GenerateProductAccountReportWithValidation(jobDate, departmentCode, null, skipUnmatchCheck: true);
+        }
+
+        /// <summary>
+        /// 商品勘定帳票を生成（DataSetId指定・アンマッチチェックあり）
+        /// </summary>
+        public async Task<byte[]> GenerateProductAccountReportAsync(DateTime jobDate, string dataSetId, string? departmentCode = null, bool skipUnmatchCheck = false)
+        {
+            return await Task.Run(() => GenerateProductAccountReportWithValidation(jobDate, departmentCode, dataSetId, skipUnmatchCheck));
+        }
+
+        /// <summary>
+        /// 商品勘定帳票を生成（内部実装）
+        /// </summary>
+        private byte[] GenerateProductAccountReportWithValidation(DateTime jobDate, string? departmentCode, string? dataSetId, bool skipUnmatchCheck)
         {
             try
             {
                 _logger.LogInformation("=== 商品勘定帳票生成開始 ===");
                 _logger.LogInformation($"対象日: {jobDate:yyyy-MM-dd}");
                 _logger.LogInformation($"部門: {departmentCode ?? "全部門"}");
+                _logger.LogInformation($"DataSetId: {dataSetId ?? "未指定"}");
+                _logger.LogInformation($"アンマッチチェックスキップ: {skipUnmatchCheck}");
+
+                // アンマッチチェック検証（DataSetId指定時のみ）
+                if (!string.IsNullOrEmpty(dataSetId) && !skipUnmatchCheck)
+                {
+                    _logger.LogInformation("アンマッチチェック検証開始 - DataSetId: {DataSetId}", dataSetId);
+                    var validation = _unmatchCheckValidationService.ValidateForReportExecutionAsync(
+                        dataSetId, ReportType.ProductAccount).GetAwaiter().GetResult();
+
+                    if (!validation.CanExecute)
+                    {
+                        _logger.LogError("❌ 商品勘定帳票実行不可 - {ErrorMessage}", validation.ErrorMessage);
+                        throw new InvalidOperationException($"商品勘定帳票を実行できません。{validation.ErrorMessage}");
+                    }
+
+                    _logger.LogInformation("✅ アンマッチチェック検証合格 - 商品勘定帳票実行を継続します");
+                }
 
                 // データを取得・計算
                 var reportData = PrepareReportData(jobDate, departmentCode);

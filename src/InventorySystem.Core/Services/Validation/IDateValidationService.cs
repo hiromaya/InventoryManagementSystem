@@ -14,7 +14,7 @@ public interface IDateValidationService
     /// <param name="processType">処理種別</param>
     /// <param name="allowDuplicateProcessing">重複処理を許可するか（開発用）</param>
     /// <returns>検証結果</returns>
-    Task<ValidationResult> ValidateJobDate(DateTime jobDate, string processType, bool allowDuplicateProcessing = false);
+    Task<Models.ValidationResult> ValidateJobDate(DateTime jobDate, string processType, bool allowDuplicateProcessing = false);
     
     /// <summary>
     /// 最後に処理された日付を取得

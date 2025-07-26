@@ -20,6 +20,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
     private readonly GrossProfitCalculationService _grossProfitCalculationService;
+    private readonly IUnmatchCheckValidationService _unmatchCheckValidationService;
 
     public DailyReportService(
         IDateValidationService dateValidator,
@@ -30,6 +31,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
         GrossProfitCalculationService grossProfitCalculationService,
+        IUnmatchCheckValidationService unmatchCheckValidationService,
         ILogger<DailyReportService> logger)
         : base(dateValidator, dataSetManager, historyService, logger)
     {
@@ -38,6 +40,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
         _grossProfitCalculationService = grossProfitCalculationService;
+        _unmatchCheckValidationService = unmatchCheckValidationService;
     }
 
     public async Task<DailyReportResult> ProcessDailyReportAsync(DateTime reportDate, string? existingDataSetId = null, bool allowDuplicateProcessing = false)
@@ -49,6 +52,22 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         try
         {
             _logger.LogInformation("商品日報処理開始 - レポート日付: {ReportDate}", reportDate);
+
+            // 既存DataSetIdがある場合は、アンマッチチェック0件必須の検証を実行
+            if (!isNewDataSet && !string.IsNullOrEmpty(existingDataSetId))
+            {
+                _logger.LogInformation("アンマッチチェック検証開始 - DataSetId: {DataSetId}", existingDataSetId);
+                var validation = await _unmatchCheckValidationService.ValidateForReportExecutionAsync(
+                    existingDataSetId, ReportType.DailyReport);
+
+                if (!validation.CanExecute)
+                {
+                    _logger.LogError("❌ 商品日報実行不可 - {ErrorMessage}", validation.ErrorMessage);
+                    throw new InvalidOperationException($"商品日報を実行できません。{validation.ErrorMessage}");
+                }
+
+                _logger.LogInformation("✅ アンマッチチェック検証合格 - 商品日報実行を継続します");
+            }
             
             var executedBy = Environment.UserName ?? "System";
             

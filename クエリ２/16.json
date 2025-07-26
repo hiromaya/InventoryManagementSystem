@@ -1,0 +1,26 @@
+[
+  {
+    "TABLE_NAME": "AuditLogs"
+  },
+  {
+    "TABLE_NAME": "DateProcessingHistory"
+  },
+  {
+    "TABLE_NAME": "FileProcessingHistory"
+  },
+  {
+    "TABLE_NAME": "InitialInventory_ErrorLog"
+  },
+  {
+    "TABLE_NAME": "JobExecutionLog"
+  },
+  {
+    "TABLE_NAME": "MigrationHistory"
+  },
+  {
+    "TABLE_NAME": "ProcessHistory"
+  },
+  {
+    "TABLE_NAME": "vw_InventoryMaster_History"
+  }
+]

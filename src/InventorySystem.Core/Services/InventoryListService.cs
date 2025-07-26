@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Models;
 
 namespace InventorySystem.Core.Services;
 
@@ -14,6 +15,7 @@ public class InventoryListService : IInventoryListService
     private readonly ISalesVoucherRepository _salesVoucherRepository;
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
+    private readonly IUnmatchCheckValidationService _unmatchCheckValidationService;
     private readonly ILogger<InventoryListService> _logger;
 
     public InventoryListService(
@@ -21,46 +23,69 @@ public class InventoryListService : IInventoryListService
         ISalesVoucherRepository salesVoucherRepository,
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
+        IUnmatchCheckValidationService unmatchCheckValidationService,
         ILogger<InventoryListService> logger)
     {
         _cpInventoryRepository = cpInventoryRepository;
         _salesVoucherRepository = salesVoucherRepository;
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
+        _unmatchCheckValidationService = unmatchCheckValidationService;
         _logger = logger;
     }
 
     public async Task<InventoryListResult> ProcessInventoryListAsync(DateTime reportDate)
     {
+        return await ProcessInventoryListAsync(reportDate, null, skipUnmatchCheck: true);
+    }
+
+    public async Task<InventoryListResult> ProcessInventoryListAsync(DateTime reportDate, string? dataSetId, bool skipUnmatchCheck = false)
+    {
         var stopwatch = Stopwatch.StartNew();
-        var dataSetId = Guid.NewGuid().ToString();
+        var finalDataSetId = dataSetId ?? Guid.NewGuid().ToString();
         
         try
         {
-            _logger.LogInformation("在庫表処理開始 - レポート日付: {ReportDate}, データセットID: {DataSetId}", 
-                reportDate, dataSetId);
+            _logger.LogInformation("在庫表処理開始 - レポート日付: {ReportDate}, データセットID: {DataSetId}, アンマッチチェックスキップ: {SkipCheck}", 
+                reportDate, finalDataSetId, skipUnmatchCheck);
+
+            // アンマッチチェック検証（DataSetId指定時のみ）
+            if (!string.IsNullOrEmpty(dataSetId) && !skipUnmatchCheck)
+            {
+                _logger.LogInformation("アンマッチチェック検証開始 - DataSetId: {DataSetId}", dataSetId);
+                var validation = await _unmatchCheckValidationService.ValidateForReportExecutionAsync(
+                    dataSetId, ReportType.InventoryList);
+
+                if (!validation.CanExecute)
+                {
+                    _logger.LogError("❌ 在庫表実行不可 - {ErrorMessage}", validation.ErrorMessage);
+                    throw new InvalidOperationException($"在庫表を実行できません。{validation.ErrorMessage}");
+                }
+
+                _logger.LogInformation("✅ アンマッチチェック検証合格 - 在庫表実行を継続します");
+            }
 
             // 1. CP在庫M作成
             _logger.LogInformation("CP在庫マスタ作成開始");
-            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, reportDate);
+            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(finalDataSetId, reportDate);
             _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
 
             // 2. 当日エリアクリア
             _logger.LogInformation("当日エリアクリア開始");
-            await _cpInventoryRepository.ClearDailyAreaAsync(dataSetId);
+            await _cpInventoryRepository.ClearDailyAreaAsync(finalDataSetId);
             _logger.LogInformation("当日エリアクリア完了");
 
             // 3. 当日データ集計
             _logger.LogInformation("当日データ集計開始");
-            await _cpInventoryRepository.AggregateSalesDataAsync(dataSetId, reportDate);
-            await _cpInventoryRepository.AggregatePurchaseDataAsync(dataSetId, reportDate);
-            await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, reportDate);
+            await _cpInventoryRepository.AggregateSalesDataAsync(finalDataSetId, reportDate);
+            await _cpInventoryRepository.AggregatePurchaseDataAsync(finalDataSetId, reportDate);
+            await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(finalDataSetId, reportDate);
             _logger.LogInformation("当日データ集計完了");
 
             // 4. 当日在庫計算
             _logger.LogInformation("当日在庫計算開始");
-            await _cpInventoryRepository.CalculateDailyStockAsync(dataSetId);
-            await _cpInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
+            await _cpInventoryRepository.CalculateDailyStockAsync(finalDataSetId);
+            await _cpInventoryRepository.SetDailyFlagToProcessedAsync(finalDataSetId);
             _logger.LogInformation("当日在庫計算完了");
 
             // 5. 担当者別在庫表データ生成
@@ -76,7 +101,7 @@ public class InventoryListService : IInventoryListService
             return new InventoryListResult
             {
                 Success = true,
-                DataSetId = dataSetId,
+                DataSetId = finalDataSetId,
                 ProcessedCount = staffInventories.Sum(s => s.Items.Count),
                 StaffInventories = staffInventories,
                 GrandTotal = grandTotal,
@@ -86,11 +111,11 @@ public class InventoryListService : IInventoryListService
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "在庫表処理でエラーが発生しました - データセットID: {DataSetId}", dataSetId);
+            _logger.LogError(ex, "在庫表処理でエラーが発生しました - データセットID: {DataSetId}", finalDataSetId);
             
             // CP在庫マスタの削除を保留（日次終了処理まで保持）
             // Phase 1改修: 削除タイミングを日次終了処理後に変更
-            _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", dataSetId);
+            _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", finalDataSetId);
             
             /*
             try
@@ -106,7 +131,7 @@ public class InventoryListService : IInventoryListService
             return new InventoryListResult
             {
                 Success = false,
-                DataSetId = dataSetId,
+                DataSetId = finalDataSetId,
                 ErrorMessage = ex.Message,
                 ProcessingTime = stopwatch.Elapsed
             };

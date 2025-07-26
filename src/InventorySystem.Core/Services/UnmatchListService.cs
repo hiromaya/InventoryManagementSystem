@@ -19,6 +19,7 @@ public class UnmatchListService : IUnmatchListService
     private readonly ICustomerMasterRepository _customerMasterRepository;
     private readonly IProductMasterRepository _productMasterRepository;
     private readonly ISupplierMasterRepository _supplierMasterRepository;
+    private readonly IUnmatchCheckRepository _unmatchCheckRepository;
     private readonly ILogger<UnmatchListService> _logger;
 
     public UnmatchListService(
@@ -32,6 +33,7 @@ public class UnmatchListService : IUnmatchListService
         ICustomerMasterRepository customerMasterRepository,
         IProductMasterRepository productMasterRepository,
         ISupplierMasterRepository supplierMasterRepository,
+        IUnmatchCheckRepository unmatchCheckRepository,
         ILogger<UnmatchListService> logger)
     {
         _cpInventoryRepository = cpInventoryRepository;
@@ -44,6 +46,7 @@ public class UnmatchListService : IUnmatchListService
         _customerMasterRepository = customerMasterRepository;
         _productMasterRepository = productMasterRepository;
         _supplierMasterRepository = supplierMasterRepository;
+        _unmatchCheckRepository = unmatchCheckRepository;
         _logger = logger;
     }
 
@@ -256,7 +259,7 @@ public class UnmatchListService : IUnmatchListService
                 _logger.LogCritical("アンマッチ項目は検出されませんでした (0件)");
             }
 
-            return new UnmatchListResult
+            var result = new UnmatchListResult
             {
                 Success = true,
                 DataSetId = dataSetId,
@@ -264,6 +267,11 @@ public class UnmatchListService : IUnmatchListService
                 UnmatchItems = unmatchList,
                 ProcessingTime = stopwatch.Elapsed
             };
+
+            // アンマッチチェック結果を保存
+            await SaveUnmatchCheckResultAsync(dataSetId, result);
+
+            return result;
         }
         catch (Exception ex)
         {
@@ -285,13 +293,18 @@ public class UnmatchListService : IUnmatchListService
             }
             */
 
-            return new UnmatchListResult
+            var errorResult = new UnmatchListResult
             {
                 Success = false,
                 DataSetId = dataSetId,
                 ErrorMessage = ex.Message,
                 ProcessingTime = stopwatch.Elapsed
             };
+
+            // エラー結果も保存
+            await SaveUnmatchCheckResultAsync(dataSetId, errorResult);
+
+            return errorResult;
         }
     }
 
@@ -846,6 +859,47 @@ public class UnmatchListService : IUnmatchListService
             _logger.LogError(ex, "在庫マスタ最適化処理で予期しないエラーが発生しました");
             // CP在庫マスタ作成は継続するため、ここでは例外を再スローしない
             _logger.LogWarning("エラーが発生しましたが、処理を継続します");
+        }
+    }
+
+    /// <summary>
+    /// アンマッチチェック結果を保存する
+    /// </summary>
+    /// <param name="dataSetId">データセットID</param>
+    /// <param name="result">アンマッチリスト処理結果</param>
+    private async Task SaveUnmatchCheckResultAsync(string dataSetId, UnmatchListResult result)
+    {
+        try
+        {
+            _logger.LogInformation("アンマッチチェック結果を保存開始 - DataSetId: {DataSetId}, Status: {Success}, Count: {Count}",
+                dataSetId, result.Success, result.UnmatchCount);
+
+            var checkResult = UnmatchCheckResult.FromUnmatchListResult(dataSetId, result);
+            var saved = await _unmatchCheckRepository.SaveOrUpdateAsync(checkResult);
+
+            if (saved)
+            {
+                _logger.LogInformation("✅ アンマッチチェック結果を保存しました - DataSetId: {DataSetId}, Status: {Status}, 帳票実行可能: {CanExecute}",
+                    dataSetId, checkResult.CheckStatus, checkResult.CanExecuteReport());
+                
+                if (checkResult.CanExecuteReport())
+                {
+                    _logger.LogInformation("🎯 アンマッチ0件達成！帳票実行が可能になりました");
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ アンマッチあり（{Count}件）。帳票実行前にデータ修正が必要です", result.UnmatchCount);
+                }
+            }
+            else
+            {
+                _logger.LogError("❌ アンマッチチェック結果の保存に失敗しました - DataSetId: {DataSetId}", dataSetId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "アンマッチチェック結果保存処理でエラーが発生しました - DataSetId: {DataSetId}", dataSetId);
+            // 保存に失敗してもメイン処理は継続
         }
     }
     
