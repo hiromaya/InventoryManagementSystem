@@ -55,10 +55,10 @@ namespace InventorySystem.Core.Services
                     return;
                 }
 
-                // CP在庫マスタ用のDataSetIdを取得（存在しない場合は作成）
-                var cpInventoryDataSetId = await _dataSetIdManager.GetOrCreateDataSetIdAsync(jobDate, "CpInventoryMaster");
-
-                _logger.LogInformation("DataSetId解決: 売上伝票={SalesDataSetId}, CP在庫マスタ={CpDataSetId}", 
+                // 引数のdataSetIdをそのまま使用（新規作成しない）
+                var cpInventoryDataSetId = dataSetId;
+                
+                _logger.LogInformation("DataSetId解決: 売上伝票={SalesDataSetId}, CP在庫マスタ={CpDataSetId}（引数使用）", 
                     salesVoucherDataSetId, cpInventoryDataSetId);
 
                 // 1. 売上伝票を取得（DataSetIdManagerで解決したIDを使用）

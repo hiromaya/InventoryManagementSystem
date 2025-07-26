@@ -1220,21 +1220,35 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     /// </summary>
     public async Task<IEnumerable<CpInventoryMaster>> GetByJobDateAndDataSetIdAsync(DateTime jobDate, string dataSetId)
     {
-        using var connection = CreateConnection();
-        
         const string selectSql = @"
             SELECT * FROM CpInventoryMaster 
-            WHERE DataSetId = @DataSetId
+            WHERE DataSetId = @DataSetId 
+            AND JobDate = @JobDate
             ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
-        
-        var cpInventories = await connection.QueryAsync<CpInventoryMaster>(selectSql, new 
-        { 
-            DataSetId = dataSetId
-        });
-        
-        _logger.LogDebug("CP在庫マスタを取得しました - 件数: {Count}, DataSetId: {DataSetId}", 
-            cpInventories.Count(), dataSetId);
-        
-        return cpInventories;
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var cpInventories = await connection.QueryAsync<dynamic>(selectSql, new 
+            { 
+                DataSetId = dataSetId,
+                JobDate = jobDate  // JobDateパラメータを追加
+            });
+
+            var result = cpInventories.Select(MapToCpInventoryMaster).ToList();
+            
+            _logger.LogInformation(
+                "CP在庫マスタ取得完了: JobDate={JobDate}, DataSetId={DataSetId}, 件数={Count}", 
+                jobDate, dataSetId, result.Count);
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, 
+                "CP在庫マスタ取得エラー: JobDate={JobDate}, DataSetId={DataSetId}", 
+                jobDate, dataSetId);
+            throw;
+        }
     }
 }
