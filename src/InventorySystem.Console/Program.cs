@@ -124,6 +124,8 @@ builder.Services.AddScoped<IInventoryRepository>(provider =>
     new InventoryRepository(connectionString, provider.GetRequiredService<ILogger<InventoryRepository>>()));
 builder.Services.AddScoped<ICpInventoryRepository>(provider => 
     new CpInventoryRepository(connectionString, provider.GetRequiredService<ILogger<CpInventoryRepository>>()));
+builder.Services.AddScoped<IUnInventoryRepository>(provider => 
+    new UnInventoryRepository(connectionString, provider.GetRequiredService<ILogger<UnInventoryRepository>>()));
 builder.Services.AddScoped<ISalesVoucherRepository>(provider => 
     new SalesVoucherRepository(connectionString, provider.GetRequiredService<ILogger<SalesVoucherRepository>>()));
 builder.Services.AddScoped<IPurchaseVoucherRepository>(provider => 
@@ -987,6 +989,18 @@ try
             }
             
             Console.WriteLine("✅ アンマッチチェック合格（0件確認済み）");
+            
+            // 既存データセット使用時：CP在庫マスタ作成
+            Console.WriteLine("📊 CP在庫マスタ作成中...");
+            var cpInventoryRepository = scopedServices.GetRequiredService<ICpInventoryRepository>();
+            await cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(existingDataSetId, jobDate);
+            await cpInventoryRepository.ClearDailyAreaAsync(existingDataSetId);
+            await cpInventoryRepository.AggregateSalesDataAsync(existingDataSetId, jobDate);
+            await cpInventoryRepository.AggregatePurchaseDataAsync(existingDataSetId, jobDate);
+            await cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(existingDataSetId, jobDate);
+            await cpInventoryRepository.CalculateDailyStockAsync(existingDataSetId);
+            await cpInventoryRepository.SetDailyFlagToProcessedAsync(existingDataSetId);
+            Console.WriteLine("✅ CP在庫マスタ作成完了");
         }
         Console.WriteLine();
         
@@ -1286,14 +1300,67 @@ static async Task ExecuteDevCheckDailyCloseAsync(IServiceProvider services, stri
 
     static async Task ExecuteInventoryListAsync(IServiceProvider services, string[] args)
 {
+    if (args.Length < 2)
+    {
+        Console.WriteLine("使用方法: inventory-list <JobDate>");
+        Console.WriteLine("例: inventory-list 2025-06-30");
+        return;
+    }
+
+    if (!DateTime.TryParse(args[1], out DateTime jobDate))
+    {
+        Console.WriteLine($"❌ 不正な日付形式です: {args[1]}");
+        Console.WriteLine("例: inventory-list 2025-06-30");
+        return;
+    }
+
     using (var scope = services.CreateScope())
     {
         var scopedServices = scope.ServiceProvider;
         var logger = scopedServices.GetRequiredService<ILogger<Program>>();
-        var inventoryListService = scopedServices.GetRequiredService<IInventoryListService>();
-        // TODO: Implement FastReport version for inventory list
-        Console.WriteLine("在庫表のFastReport対応は未実装です。QuestPDFからの移行が必要です。");
-        await Task.CompletedTask; // 警告を回避
+        var salesVoucherRepository = scopedServices.GetRequiredService<ISalesVoucherRepository>();
+        var cpInventoryRepository = scopedServices.GetRequiredService<ICpInventoryRepository>();
+
+        try
+        {
+            logger.LogInformation("=== 在庫表作成開始 ===");
+            Console.WriteLine("=== 在庫表作成開始 ===");
+            Console.WriteLine($"対象日: {jobDate:yyyy-MM-dd}");
+
+            // 1. データセットIDを取得
+            Console.WriteLine("🔍 対象データセットを検索中...");
+            var dataSetId = await salesVoucherRepository.GetDataSetIdByJobDateAsync(jobDate);
+            if (string.IsNullOrEmpty(dataSetId))
+            {
+                Console.WriteLine($"❌ {jobDate:yyyy-MM-dd}のデータセットが見つかりません");
+                return;
+            }
+            Console.WriteLine($"✅ データセットID: {dataSetId}");
+
+            // 2. CP在庫マスタを作成
+            Console.WriteLine("📊 CP在庫マスタ作成中...");
+            await cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, jobDate);
+            await cpInventoryRepository.ClearDailyAreaAsync(dataSetId);
+            await cpInventoryRepository.AggregateSalesDataAsync(dataSetId, jobDate);
+            await cpInventoryRepository.AggregatePurchaseDataAsync(dataSetId, jobDate);
+            await cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, jobDate);
+            await cpInventoryRepository.CalculateDailyStockAsync(dataSetId);
+            await cpInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
+            Console.WriteLine("✅ CP在庫マスタ作成完了");
+
+            // 3. 在庫表作成（未実装）
+            Console.WriteLine("📋 在庫表生成中...");
+            Console.WriteLine("⚠️ 在庫表のFastReport対応は未実装です。QuestPDFからの移行が必要です。");
+            // TODO: Implement FastReport version for inventory list
+            
+            logger.LogInformation("=== 在庫表作成完了 ===");
+            Console.WriteLine("=== 在庫表作成完了 ===");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "在庫表作成中にエラーが発生しました");
+            Console.WriteLine($"❌ エラーが発生しました: {ex.Message}");
+        }
     }
 }
 
@@ -1318,6 +1385,8 @@ static async Task ExecuteProductAccountAsync(IServiceProvider services, string[]
         var scopedServices = scope.ServiceProvider;
         var logger = scopedServices.GetRequiredService<ILogger<Program>>();
         var productAccountService = scopedServices.GetRequiredService<InventorySystem.Reports.Interfaces.IProductAccountReportService>();
+        var salesVoucherRepository = scopedServices.GetRequiredService<ISalesVoucherRepository>();
+        var cpInventoryRepository = scopedServices.GetRequiredService<ICpInventoryRepository>();
 
         try
         {
@@ -1325,12 +1394,34 @@ static async Task ExecuteProductAccountAsync(IServiceProvider services, string[]
             Console.WriteLine("=== 商品勘定帳票作成開始 ===");
             Console.WriteLine($"対象日: {jobDate:yyyy-MM-dd}");
 
-            // 商品勘定帳票を作成
+            // 1. データセットIDを取得
+            Console.WriteLine("🔍 対象データセットを検索中...");
+            var dataSetId = await salesVoucherRepository.GetDataSetIdByJobDateAsync(jobDate);
+            if (string.IsNullOrEmpty(dataSetId))
+            {
+                Console.WriteLine($"❌ {jobDate:yyyy-MM-dd}のデータセットが見つかりません");
+                return;
+            }
+            Console.WriteLine($"✅ データセットID: {dataSetId}");
+
+            // 2. CP在庫マスタを作成
+            Console.WriteLine("📊 CP在庫マスタ作成中...");
+            await cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, jobDate);
+            await cpInventoryRepository.ClearDailyAreaAsync(dataSetId);
+            await cpInventoryRepository.AggregateSalesDataAsync(dataSetId, jobDate);
+            await cpInventoryRepository.AggregatePurchaseDataAsync(dataSetId, jobDate);
+            await cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, jobDate);
+            await cpInventoryRepository.CalculateDailyStockAsync(dataSetId);
+            await cpInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
+            Console.WriteLine("✅ CP在庫マスタ作成完了");
+
+            // 3. 商品勘定帳票を作成
+            Console.WriteLine("📋 商品勘定帳票生成中...");
             var pdfBytes = productAccountService.GenerateProductAccountReport(jobDate);
             
             if (pdfBytes != null && pdfBytes.Length > 0)
             {
-                // ファイル保存処理（必要に応じて実装）
+                // ファイル保存処理
                 var outputPath = Path.Combine("帳票出力", $"ProductAccount_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
                 await File.WriteAllBytesAsync(outputPath, pdfBytes);
@@ -3151,85 +3242,9 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 }
             }
             
-            // ========== Phase 4: CP在庫マスタ作成 ==========
-            if (startDate.HasValue && endDate.HasValue)
-            {
-                logger.LogInformation("=== Phase 4: CP在庫マスタ作成開始 ===");
-                Console.WriteLine("\n========== Phase 4: CP在庫マスタ作成 ==========");
-                
-                try
-                {
-                    // CP在庫マスタリポジトリの取得
-                    var cpInventoryRepo = scopedServices.GetRequiredService<ICpInventoryRepository>();
-                    
-                    // 期間内の各日付でCP在庫マスタを作成
-                    var currentDate = startDate.Value;
-                    while (currentDate <= endDate.Value)
-                    {
-                        // 該当日付のDataSetIdを取得
-                        var dataSets = await datasetRepo.GetByJobDateAsync(currentDate);
-                        var latestDataSet = dataSets.OrderByDescending(d => d.CreatedAt).FirstOrDefault();
-                        
-                        if (latestDataSet != null)
-                        {
-                            var dataSetId = latestDataSet.DataSetId;
-                            Console.WriteLine($"\n[{currentDate:yyyy-MM-dd}] CP在庫マスタ作成開始 - DataSetId: {dataSetId}");
-                            
-                            // 既存のCP在庫マスタを確認・削除
-                            var existingCp = await cpInventoryRepo.GetAllAsync(dataSetId);
-                            if (existingCp.Any())
-                            {
-                                Console.WriteLine($"既存のCP在庫マスタが見つかりました（{existingCp.Count()}件）。削除します。");
-                                await cpInventoryRepo.DeleteByDataSetIdAsync(dataSetId);
-                            }
-                            
-                            // CP在庫マスタ作成（ストアドプロシージャ使用）
-                            var createCount = await cpInventoryRepo.CreateCpInventoryFromInventoryMasterAsync(dataSetId, currentDate);
-                            Console.WriteLine($"✅ CP在庫マスタ作成完了: {createCount}件");
-                            
-                            // 当日エリアクリア
-                            Console.WriteLine("当日エリアクリア開始");
-                            await cpInventoryRepo.ClearDailyAreaAsync(dataSetId);
-                            
-                            // 当日データ集計
-                            Console.WriteLine("当日データ集計開始");
-                            var salesResult = await cpInventoryRepo.AggregateSalesDataAsync(dataSetId, currentDate);
-                            Console.WriteLine($"売上データ集計: {salesResult}件");
-                            
-                            var purchaseResult = await cpInventoryRepo.AggregatePurchaseDataAsync(dataSetId, currentDate);
-                            Console.WriteLine($"仕入データ集計: {purchaseResult}件");
-                            
-                            var adjustmentResult = await cpInventoryRepo.AggregateInventoryAdjustmentDataAsync(dataSetId, currentDate);
-                            Console.WriteLine($"在庫調整データ集計: {adjustmentResult}件");
-                            
-                            // 当日在庫計算
-                            Console.WriteLine("当日在庫計算開始");
-                            await cpInventoryRepo.CalculateDailyStockAsync(dataSetId);
-                            await cpInventoryRepo.SetDailyFlagToProcessedAsync(dataSetId);
-                            Console.WriteLine($"✅ CP在庫マスタ準備完了 [{currentDate:yyyy-MM-dd}]");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"⚠️ [{currentDate:yyyy-MM-dd}] DataSetが見つからないため、CP在庫マスタ作成をスキップします");
-                            logger.LogWarning("CP在庫マスタ作成スキップ: JobDate={JobDate} - DataSetが見つかりません", currentDate);
-                        }
-                        
-                        currentDate = currentDate.AddDays(1);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "CP在庫マスタ作成でエラーが発生しました");
-                    Console.WriteLine($"❌ CP在庫マスタ作成エラー: {ex.Message}");
-                    errorCount++;
-                    return; // CP在庫マスタ作成失敗時は処理を中断
-                }
-            }
-            else
-            {
-                Console.WriteLine("\n⚠️ CP在庫マスタ作成には日付指定が必要です");
-                logger.LogWarning("CP在庫マスタ作成スキップ: 日付指定が必要です");
-            }
+            // ========== 注意：CP在庫マスタ作成は削除されました ==========
+            // CP在庫マスタは各帳票コマンド実行時に作成されます
+            // アンマッチリスト処理ではUN在庫マスタ（アンマッチチェック専用）を使用します
             
             // ========== Phase 5: アンマッチリスト実行 ==========
             if (startDate.HasValue && endDate.HasValue)

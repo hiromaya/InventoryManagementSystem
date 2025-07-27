@@ -9,7 +9,7 @@ namespace InventorySystem.Core.Services;
 
 public class UnmatchListService : IUnmatchListService
 {
-    private readonly ICpInventoryRepository _cpInventoryRepository;
+    private readonly IUnInventoryRepository _unInventoryRepository;
     private readonly ISalesVoucherRepository _salesVoucherRepository;
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
@@ -23,7 +23,7 @@ public class UnmatchListService : IUnmatchListService
     private readonly ILogger<UnmatchListService> _logger;
 
     public UnmatchListService(
-        ICpInventoryRepository cpInventoryRepository,
+        IUnInventoryRepository unInventoryRepository,
         ISalesVoucherRepository salesVoucherRepository,
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
@@ -36,7 +36,7 @@ public class UnmatchListService : IUnmatchListService
         IUnmatchCheckRepository unmatchCheckRepository,
         ILogger<UnmatchListService> logger)
     {
-        _cpInventoryRepository = cpInventoryRepository;
+        _unInventoryRepository = unInventoryRepository;
         _salesVoucherRepository = salesVoucherRepository;
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
@@ -150,14 +150,14 @@ public class UnmatchListService : IUnmatchListService
             /*
             // 重要: 既存のCP在庫マスタを全件削除
             _logger.LogInformation("既存のCP在庫マスタを全件削除します");
-            var deletedCount = await _cpInventoryRepository.DeleteAllAsync();
+            var deletedCount = await _unInventoryRepository.DeleteByDataSetIdAsync("ALL");
             _logger.LogInformation("CP在庫マスタから{Count}件のレコードを削除しました", deletedCount);
             */
 
-            // 処理1-1: CP在庫M作成（指定日以前のアクティブな在庫マスタから）
-            _logger.LogInformation("CP在庫マスタ作成開始（{ProcessType}） - DataSetId: {DataSetId}", processType, dataSetId);
-            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, targetDate);
-            _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}, DataSetId: {DataSetId}", createResult, dataSetId);
+            // 処理1-1: UN在庫M作成（指定日以前のアクティブな在庫マスタから）
+            _logger.LogInformation("UN在庫マスタ作成開始（{ProcessType}） - DataSetId: {DataSetId}", processType, dataSetId);
+            var createResult = await _unInventoryRepository.CreateFromInventoryMasterAsync(dataSetId, targetDate);
+            _logger.LogInformation("UN在庫マスタ作成完了 - 作成件数: {Count}, DataSetId: {DataSetId}", createResult, dataSetId);
 
             // 前日在庫の引き継ぎ処理は不要（期間対象のため）
             if (targetDate.HasValue)
@@ -171,17 +171,10 @@ public class UnmatchListService : IUnmatchListService
 
             // 処理1-2: 当日エリアクリア
             _logger.LogInformation("当日エリアクリア開始");
-            await _cpInventoryRepository.ClearDailyAreaAsync(dataSetId);
+            await _unInventoryRepository.ClearDailyAreaAsync(dataSetId);
             _logger.LogInformation("当日エリアクリア完了");
             
-            // CP在庫マスタ作成後、文字化けチェック
-            var garbledCount = await _cpInventoryRepository.CountGarbledShippingMarkNamesAsync(dataSetId);
-            if (garbledCount > 0)
-            {
-                _logger.LogWarning("CP在庫マスタに文字化けデータが{Count}件検出されました。修復を試みます。", garbledCount);
-                var repairCount = await _cpInventoryRepository.RepairShippingMarkNamesAsync(dataSetId);
-                _logger.LogInformation("文字化けデータ{Count}件を修復しました。", repairCount);
-            }
+            // UN在庫マスタでは文字化けチェック不要（アンマッチチェック専用のため）
 
             // データ集計と検証
             _logger.LogInformation("{ProcessType}データ集計開始", processType);
@@ -216,11 +209,11 @@ public class UnmatchListService : IUnmatchListService
             _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", dataSetId);
             
             /*
-            // CP在庫マスタを削除
+            // UN在庫マスタを削除
             try
             {
-                await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
-                _logger.LogInformation("CP在庫マスタを削除しました - データセットID: {DataSetId}", dataSetId);
+                await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+                _logger.LogInformation("UN在庫マスタを削除しました - データセットID: {DataSetId}", dataSetId);
             }
             catch (Exception cleanupEx)
             {
@@ -285,7 +278,7 @@ public class UnmatchListService : IUnmatchListService
             /*
             try
             {
-                await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+                await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
             }
             catch (Exception cleanupEx)
             {
@@ -443,9 +436,9 @@ public class UnmatchListService : IUnmatchListService
                 ShippingMarkName = sales.ShippingMarkName
             };
 
-            var cpInventory = await _cpInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
+            var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
 
-            if (cpInventory == null)
+            if (unInventory == null)
             {
                 notFoundCount++;
                 if (notFoundCount <= 5)  // 最初の5件のみログ出力
@@ -520,9 +513,9 @@ public class UnmatchListService : IUnmatchListService
             };
 
             // CP在庫マスタから該当データを取得
-            var cpInventory = await _cpInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
+            var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
 
-            if (cpInventory == null)
+            if (unInventory == null)
             {
                 // 在庫マスタ未登録エラー - 商品分類1を取得
                 var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
@@ -636,9 +629,9 @@ public class UnmatchListService : IUnmatchListService
             };
 
             // CP在庫マスタから該当データを取得
-            var cpInventory = await _cpInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
+            var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
 
-            if (cpInventory == null)
+            if (unInventory == null)
             {
                 // 在庫マスタ未登録エラー - 商品分類1を取得
                 var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
@@ -918,19 +911,19 @@ public class UnmatchListService : IUnmatchListService
             var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
             
             // 1. 仕入データの集計
-            var purchaseCount = await _cpInventoryRepository.AggregatePurchaseDataAsync(dataSetId, targetDate);
+            var purchaseCount = await _unInventoryRepository.AggregatePurchaseDataAsync(dataSetId, targetDate);
             _logger.LogInformation("仕入データを集計しました（{ProcessType}）。更新件数: {Count}件", processType, purchaseCount);
             
             // 2. 売上データの集計（2025/07/26仕様変更：売上返品（入荷データ）のみ集計）
-            var salesCount = await _cpInventoryRepository.AggregateSalesDataAsync(dataSetId, targetDate);
+            var salesCount = await _unInventoryRepository.AggregateSalesDataAsync(dataSetId, targetDate);
             _logger.LogInformation("売上返品データを集計しました（{ProcessType}）。更新件数: {Count}件", processType, salesCount);
             
             // 3. 在庫調整データの集計
-            var adjustmentCount = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, targetDate);
+            var adjustmentCount = await _unInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, targetDate);
             _logger.LogInformation("在庫調整データを集計しました（{ProcessType}）。更新件数: {Count}件", processType, adjustmentCount);
             
             // 4. 当日在庫計算
-            var calculatedCount = await _cpInventoryRepository.CalculateDailyStockAsync(dataSetId);
+            var calculatedCount = await _unInventoryRepository.CalculateDailyStockAsync(dataSetId);
             _logger.LogInformation("当日在庫を計算しました。更新件数: {Count}件", calculatedCount);
             
             // 5. 当日発生フラグ更新は各集計処理内で実行されるため、ここでは実行しない
@@ -956,6 +949,8 @@ public class UnmatchListService : IUnmatchListService
             // 月初日を計算
             var monthStartDate = new DateTime(jobDate.Year, jobDate.Month, 1);
             
+            // UN在庫マスタでは月計処理不要（アンマッチチェック専用のため）
+            /*
             // 売上月計の集計
             var monthlySalesUpdated = await _cpInventoryRepository.UpdateMonthlySalesAsync(monthStartDate, jobDate);
             _logger.LogInformation("売上月計を集計しました。更新件数: {Count}件", monthlySalesUpdated);
@@ -971,6 +966,7 @@ public class UnmatchListService : IUnmatchListService
             // 月計粗利益の計算
             var monthlyGrossProfitUpdated = await _cpInventoryRepository.CalculateMonthlyGrossProfitAsync(jobDate);
             _logger.LogInformation("月計粗利益を計算しました。更新件数: {Count}件", monthlyGrossProfitUpdated);
+            */
             
             _logger.LogInformation("月計データ集計完了");
         }
@@ -988,7 +984,8 @@ public class UnmatchListService : IUnmatchListService
     {
         try
         {
-            return await _cpInventoryRepository.GetAggregationResultAsync(dataSetId);
+            // UN在庫マスタではAggregationResultは取得しない（アンマッチチェック専用）
+            return new AggregationResult(); // ダミーの結果を返す
         }
         catch (Exception ex)
         {

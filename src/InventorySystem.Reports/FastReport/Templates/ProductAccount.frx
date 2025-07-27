@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="None" TextQuality="Regular" ReportInfo.Description="商品勘定帳票 - 商品別の収支詳細を表示" ReportInfo.Created="2025-07-21" ReportInfo.Modified="07/26/2025 16:30:00" ReportInfo.CreatorVersion="2024.1.3.0">
+<Report ScriptLanguage="CSharp" TextQuality="Regular" ReportInfo.Description="商品勘定帳票 - 商品別の収支詳細を表示" ReportInfo.Created="2025-07-21" ReportInfo.Modified="07/26/2025 21:41:01" ReportInfo.CreatorVersion="2024.1.3.0">
   <Dictionary>
     <TableDataSource Name="ProductAccount" ReferenceName="ProductAccount" DataType="System.Int32" Enabled="true">
       <Column Name="ProductCode" DataType="System.String"/>
@@ -39,15 +39,13 @@
   <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" Watermark.Font="Arial, 60pt">
     <ReportTitleBand Name="ReportTitle1" Width="1512" Height="40">
       <TextObject Name="CreateDate" Width="300" Height="20" Text="作成日：[GeneratedAt]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="ReportTitle" Left="500" Width="500" Height="20" Text="※ [JobDate] 商 品 勘 定 ※" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 14pt"/>
+      <TextObject Name="ReportTitle" Left="500" Top="18.9" Width="500" Height="20" Text="※ [JobDate] 商 品 勘 定 ※" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 14pt"/>
       <TextObject Name="PageNumber" Left="1212" Width="300" Height="20" Text="[Page#] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
     </ReportTitleBand>
-    <PageHeaderBand Name="PageHeader1" Top="43.2" Width="1512" Height="60">
-      <!-- 担当者情報をPageHeaderBandに追加 -->
-      <TextObject Name="StaffInfo" Top="0" Width="300" Height="20" Text="担当者：[ProductAccount.ProductCategory1]" Font="ＭＳ ゴシック, 9pt"/>
+    <PageHeaderBand Name="PageHeader1" Top="42.56" Width="1512" Height="60">
+      <TextObject Name="StaffInfo" Width="300" Height="20" Text="担当者：[ProductAccount.ProductCategory1]" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    <!-- 列ヘッダーを独立したColumnHeaderBandに設定 -->
-    <ColumnHeaderBand Name="ColumnHeader1" Top="106.4" Width="1512" Height="40">
+    <ColumnHeaderBand Name="ColumnHeader1" Top="105.12" Width="1512" Height="40">
       <TextObject Name="Header1" Width="150" Height="40" Text="商　品　名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header2" Left="150" Width="144" Height="40" Text="荷　　印　　名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header3" Left="294" Width="86" Height="40" Text="手入力" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -64,14 +62,10 @@
       <TextObject Name="Header14" Left="1246" Width="102" Height="40" Text="粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header15" Left="1348" Width="164" Height="40" Text="取　引　先　名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </ColumnHeaderBand>
-    
-    <!-- 商品グループのみ残す（GroupHeader2をGroupHeader1に変更、商品コード+荷印+手入力でグループ化） -->
-    <GroupHeaderBand Name="GroupHeader1" Top="149.6" Width="1512" Height="0" Condition="[ProductAccount.ProductCode]+[ProductAccount.ShippingMarkCode]+[ProductAccount.ManualShippingMark]">
-      <!-- 商品情報は明細行の最初で表示するため、高さ0に設定 -->
-    </GroupHeaderBand>
-    <DataBand Name="Data1" Top="152.8" Width="1512" Height="18" DataSource="ProductAccount">
-      <TextObject Name="Data1" Width="150" Height="18" Text="[ProductAccount.ProductName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" WordWrap="false" Trimming="EllipsisCharacter"/>
-      <TextObject Name="Data2" Left="150" Width="144" Height="18" Text="[ProductAccount.ShippingMarkName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" WordWrap="false" Trimming="EllipsisCharacter"/>
+    <GroupHeaderBand Name="GroupHeader1" Top="147.68" Width="1512" Condition="[ProductAccount.ProductCode]+[ProductAccount.ShippingMarkCode]+[ProductAccount.ManualShippingMark]"/>
+    <DataBand Name="Data1" Top="150.24" Width="1512" Height="18" DataSource="ProductAccount">
+      <TextObject Name="Data1" Width="150" Height="18" Text="[ProductAccount.ProductName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
+      <TextObject Name="Data2" Left="150" Width="144" Height="18" Text="[ProductAccount.ShippingMarkName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="Data3" Left="294" Width="86" Height="18" Text="[ProductAccount.ManualShippingMark]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data4" Left="380" Width="75" Height="18" Text="[ProductAccount.GradeName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data5" Left="455" Width="75" Height="18" Text="[ProductAccount.ClassName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
@@ -84,24 +78,9 @@
       <TextObject Name="Data12" Left="1032" Width="96" Height="18" Text="[IIf([ProductAccount.UnitPrice] &lt; 0, FormatNumber(Abs([ProductAccount.UnitPrice]), 0, true, false, false) + '▲', FormatNumber([ProductAccount.UnitPrice], 0, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data13" Left="1128" Width="118" Height="18" Text="[IIf([ProductAccount.Amount] &lt; 0, FormatNumber(Abs([ProductAccount.Amount]), 0, true, false, false) + '▲', FormatNumber([ProductAccount.Amount], 0, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data14" Left="1246" Width="102" Height="18" Text="[IIf([ProductAccount.GrossProfit] &lt; 0, FormatNumber(Abs([ProductAccount.GrossProfit]), 0, true, false, false) + '▲', FormatNumber([ProductAccount.GrossProfit], 0, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data15" Left="1348" Width="164" Height="18" Text="[ProductAccount.CustomerSupplierName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" WordWrap="false" Trimming="EllipsisCharacter"/>
+      <TextObject Name="Data15" Left="1348" Width="164" Height="18" Text="[ProductAccount.CustomerSupplierName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
     </DataBand>
-    <!-- 商品別小計（GroupFooter2をGroupFooter1に変更） -->
-    <GroupFooterBand Name="GroupFooter1" Top="174.0" Width="1512" Height="50">
-      <!-- 小計ラベル行 -->
-      <TextObject Name="SubtotalLabels" Top="0" Width="1512" Height="20" Text="【前日残】    【仕入計】    【売上計】    【当日残】    【在庫単価】    【在庫金額】    【粗利益】    【粗利率】" Font="ＭＳ ゴシック, 8pt"/>
-      
-      <!-- 小計値の行 -->
-      <TextObject Name="PreviousBalance" Left="50" Top="20" Width="90" Height="25" Text="[IIf([ProductAccount.PreviousBalance] &lt; 0, FormatNumber(Abs([ProductAccount.PreviousBalance]), 2, true, false, false) + '▲', FormatNumber([ProductAccount.PreviousBalance], 2, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="TotalPurchase" Left="150" Top="20" Width="90" Height="25" Text="[IIf(First([ProductAccount.TotalPurchaseQuantity],[ProductAccount.GroupKey]) &lt; 0, FormatNumber(Abs(First([ProductAccount.TotalPurchaseQuantity],[ProductAccount.GroupKey])), 2, true, false, false) + '▲', FormatNumber(First([ProductAccount.TotalPurchaseQuantity],[ProductAccount.GroupKey]), 2, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="TotalSales" Left="250" Top="20" Width="90" Height="25" Text="[IIf(First([ProductAccount.TotalSalesQuantity],[ProductAccount.GroupKey]) &lt; 0, FormatNumber(Abs(First([ProductAccount.TotalSalesQuantity],[ProductAccount.GroupKey])), 2, true, false, false) + '▲', FormatNumber(First([ProductAccount.TotalSalesQuantity],[ProductAccount.GroupKey]), 2, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="CurrentBalance" Left="350" Top="20" Width="90" Height="25" Text="[IIf(First([ProductAccount.CurrentBalance],[ProductAccount.GroupKey]) &lt; 0, FormatNumber(Abs(First([ProductAccount.CurrentBalance],[ProductAccount.GroupKey])), 2, true, false, false) + '▲', FormatNumber(First([ProductAccount.CurrentBalance],[ProductAccount.GroupKey]), 2, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="InventoryUnitPrice" Left="450" Top="20" Width="90" Height="25" Text="[IIf(First([ProductAccount.InventoryUnitPrice],[ProductAccount.GroupKey]) &lt; 0, FormatNumber(Abs(First([ProductAccount.InventoryUnitPrice],[ProductAccount.GroupKey])), 0, true, false, false) + '▲', FormatNumber(First([ProductAccount.InventoryUnitPrice],[ProductAccount.GroupKey]), 0, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="InventoryAmount" Left="550" Top="20" Width="100" Height="25" Text="[IIf(First([ProductAccount.InventoryAmount],[ProductAccount.GroupKey]) &lt; 0, FormatNumber(Abs(First([ProductAccount.InventoryAmount],[ProductAccount.GroupKey])), 0, true, false, false) + '▲', FormatNumber(First([ProductAccount.InventoryAmount],[ProductAccount.GroupKey]), 0, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="TotalGrossProfit" Left="660" Top="20" Width="90" Height="25" Text="[IIf(First([ProductAccount.TotalGrossProfit],[ProductAccount.GroupKey]) &lt; 0, FormatNumber(Abs(First([ProductAccount.TotalGrossProfit],[ProductAccount.GroupKey])), 0, true, false, false) + '▲', FormatNumber(First([ProductAccount.TotalGrossProfit],[ProductAccount.GroupKey]), 0, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="GrossProfitRate" Left="760" Top="20" Width="80" Height="25" Text="[IIf(First([ProductAccount.GrossProfitRate],[ProductAccount.GroupKey]) &lt; 0, FormatNumber(Abs(First([ProductAccount.GrossProfitRate],[ProductAccount.GroupKey])), 1, true, false, false) + '▲%', FormatNumber(First([ProductAccount.GrossProfitRate],[ProductAccount.GroupKey]), 1, true, false, false) + '%')]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-    </GroupFooterBand>
-    <PageFooterBand Name="PageFooter1" Top="227.2" Width="1512" Height="20">
+    <PageFooterBand Name="PageFooter1" Top="170.8" Width="1512" Height="20">
       <TextObject Name="Footer" Width="1512" Height="20" Text="在庫管理システム - 商品勘定" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
     </PageFooterBand>
   </ReportPage>

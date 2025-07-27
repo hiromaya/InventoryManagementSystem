@@ -23,6 +23,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     private readonly IBackupService _backupService;
     private readonly IInventoryRepository _inventoryRepository;
     private readonly ICpInventoryRepository _cpInventoryRepository;
+    private readonly IUnInventoryRepository _unInventoryRepository;
     private readonly IDailyCloseManagementRepository _dailyCloseRepository;
     private readonly ISalesVoucherRepository _salesRepository;
     private readonly IPurchaseVoucherRepository _purchaseRepository;
@@ -36,6 +37,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         IBackupService backupService,
         IInventoryRepository inventoryRepository,
         ICpInventoryRepository cpInventoryRepository,
+        IUnInventoryRepository unInventoryRepository,
         IDailyCloseManagementRepository dailyCloseRepository,
         ISalesVoucherRepository salesRepository,
         IPurchaseVoucherRepository purchaseRepository,
@@ -47,6 +49,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         _backupService = backupService;
         _inventoryRepository = inventoryRepository;
         _cpInventoryRepository = cpInventoryRepository;
+        _unInventoryRepository = unInventoryRepository;
         _dailyCloseRepository = dailyCloseRepository;
         _salesRepository = salesRepository;
         _purchaseRepository = purchaseRepository;
@@ -793,6 +796,11 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             
             // Phase 1改修: CP在庫マスタのクリーンアップ（日次終了処理後）
             await CleanupCpInventoryMaster(jobDate, dailyReportDataSetId);
+            
+            // UN在庫マスタの削除（日次終了処理完了後）
+            _logger.LogInformation("UN在庫マスタ削除を開始");
+            var deletedUnCount = await _unInventoryRepository.DeleteByDataSetIdAsync(dailyReportDataSetId);
+            _logger.LogInformation("UN在庫マスタ削除完了: {Count}件", deletedUnCount);
             
             // ステップ5: 在庫ゼロ商品の非アクティブ化
             _logger.LogInformation("ステップ5: 在庫ゼロ商品の非アクティブ化を開始");
