@@ -464,7 +464,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
 
     /// <summary>
     /// 動的型からUnInventoryMasterにマッピング
-    /// InventoryKeyは自動的に正しい桁数でフォーマットされます
+    /// InventoryKeyは冪等性のある0埋め処理で自動フォーマットされます
     /// </summary>
     private UnInventoryMaster MapToUnInventoryMaster(dynamic item)
     {
@@ -472,11 +472,11 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
         {
             Key = new InventoryKey
             {
-                ProductCode = item.ProductCode ?? string.Empty,      // 自動的に5桁0埋め
-                GradeCode = item.GradeCode ?? string.Empty,          // 自動的に3桁0埋め
-                ClassCode = item.ClassCode ?? string.Empty,          // 自動的に3桁0埋め
-                ShippingMarkCode = item.ShippingMarkCode ?? string.Empty, // 自動的に4桁0埋め
-                ShippingMarkName = item.ShippingMarkName ?? string.Empty  // 自動的に8桁固定
+                ProductCode = item.ProductCode ?? string.Empty,      // 冪等性のある5桁0埋め
+                GradeCode = item.GradeCode ?? string.Empty,          // 冪等性のある3桁0埋め
+                ClassCode = item.ClassCode ?? string.Empty,          // 冪等性のある3桁0埋め
+                ShippingMarkCode = item.ShippingMarkCode ?? string.Empty, // 冪等性のある4桁0埋め
+                ShippingMarkName = item.ShippingMarkName ?? string.Empty  // 8桁固定（正規化済み）
             },
             DataSetId = item.DataSetId ?? string.Empty,
             PreviousDayStock = item.PreviousDayStock ?? 0,

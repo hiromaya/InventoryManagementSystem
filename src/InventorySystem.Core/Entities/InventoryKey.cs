@@ -1,5 +1,3 @@
-using System.Linq;
-
 namespace InventorySystem.Core.Entities;
 
 public class InventoryKey
@@ -11,39 +9,115 @@ public class InventoryKey
     private string _shippingMarkName = string.Empty;
 
     /// <summary>
-    /// 商品コード（5桁固定、左0埋め）
+    /// 商品コード（5桁左0埋め、冪等性あり）
     /// </summary>
     public string ProductCode 
     { 
         get => _productCode;
-        set => _productCode = PadProductCode(value);
+        set 
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                _productCode = "00000";
+                return;
+            }
+            
+            var trimmed = value.Trim();
+            
+            // 既に5桁以上で数値のみの場合はそのまま使用
+            if (trimmed.Length >= 5 && int.TryParse(trimmed, out _))
+            {
+                _productCode = trimmed;
+            }
+            else
+            {
+                _productCode = trimmed.PadLeft(5, '0');
+            }
+        }
     }
 
     /// <summary>
-    /// 等級コード（3桁固定、左0埋め）
+    /// 等級コード（3桁左0埋め、冪等性あり）
     /// </summary>
     public string GradeCode 
     { 
         get => _gradeCode;
-        set => _gradeCode = PadGradeCode(value);
+        set 
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                _gradeCode = "000";
+                return;
+            }
+            
+            var trimmed = value.Trim();
+            
+            // 既に3桁以上で数値のみの場合はそのまま使用
+            if (trimmed.Length >= 3 && int.TryParse(trimmed, out _))
+            {
+                _gradeCode = trimmed;
+            }
+            else
+            {
+                _gradeCode = trimmed.PadLeft(3, '0');
+            }
+        }
     }
 
     /// <summary>
-    /// 階級コード（3桁固定、左0埋め）
+    /// 階級コード（3桁左0埋め、冪等性あり）
     /// </summary>
     public string ClassCode 
     { 
         get => _classCode;
-        set => _classCode = PadClassCode(value);
+        set 
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                _classCode = "000";
+                return;
+            }
+            
+            var trimmed = value.Trim();
+            
+            // 既に3桁以上で数値のみの場合はそのまま使用
+            if (trimmed.Length >= 3 && int.TryParse(trimmed, out _))
+            {
+                _classCode = trimmed;
+            }
+            else
+            {
+                _classCode = trimmed.PadLeft(3, '0');
+            }
+        }
     }
 
     /// <summary>
-    /// 荷印コード（4桁固定、左0埋め）
+    /// 荷印コード（4桁左0埋め、冪等性あり）
     /// </summary>
     public string ShippingMarkCode 
     { 
         get => _shippingMarkCode;
-        set => _shippingMarkCode = PadShippingMarkCode(value);
+        set 
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                _shippingMarkCode = "0000";
+                return;
+            }
+            
+            var trimmed = value.Trim();
+            
+            // 既に4桁以上で数値のみの場合はそのまま使用
+            if (trimmed.Length >= 4 && int.TryParse(trimmed, out _))
+            {
+                _shippingMarkCode = trimmed;
+            }
+            else
+            {
+                _shippingMarkCode = trimmed.PadLeft(4, '0');
+            }
+        }
     }
 
     /// <summary>
@@ -97,69 +171,6 @@ public class InventoryKey
             : trimmed.PadRight(8, ' ');
     }
 
-    /// <summary>
-    /// 商品コードを5桁の左0埋め形式に変換
-    /// </summary>
-    /// <param name="value">商品コード</param>
-    /// <returns>5桁左0埋めの商品コード</returns>
-    public static string PadProductCode(string? value)
-    {
-        if (string.IsNullOrEmpty(value)) return "00000";
-        
-        // 数値部分のみ抽出して0埋め
-        var numericValue = new string(value.Where(char.IsDigit).ToArray());
-        if (string.IsNullOrEmpty(numericValue)) return "00000";
-        
-        return numericValue.PadLeft(5, '0');
-    }
-
-    /// <summary>
-    /// 等級コードを3桁の左0埋め形式に変換
-    /// </summary>
-    /// <param name="value">等級コード</param>
-    /// <returns>3桁左0埋めの等級コード</returns>
-    public static string PadGradeCode(string? value)
-    {
-        if (string.IsNullOrEmpty(value)) return "000";
-        
-        // 数値部分のみ抽出して0埋め
-        var numericValue = new string(value.Where(char.IsDigit).ToArray());
-        if (string.IsNullOrEmpty(numericValue)) return "000";
-        
-        return numericValue.PadLeft(3, '0');
-    }
-
-    /// <summary>
-    /// 階級コードを3桁の左0埋め形式に変換
-    /// </summary>
-    /// <param name="value">階級コード</param>
-    /// <returns>3桁左0埋めの階級コード</returns>
-    public static string PadClassCode(string? value)
-    {
-        if (string.IsNullOrEmpty(value)) return "000";
-        
-        // 数値部分のみ抽出して0埋め
-        var numericValue = new string(value.Where(char.IsDigit).ToArray());
-        if (string.IsNullOrEmpty(numericValue)) return "000";
-        
-        return numericValue.PadLeft(3, '0');
-    }
-
-    /// <summary>
-    /// 荷印コードを4桁の左0埋め形式に変換
-    /// </summary>
-    /// <param name="value">荷印コード</param>
-    /// <returns>4桁左0埋めの荷印コード</returns>
-    public static string PadShippingMarkCode(string? value)
-    {
-        if (string.IsNullOrEmpty(value)) return "0000";
-        
-        // 数値部分のみ抽出して0埋め
-        var numericValue = new string(value.Where(char.IsDigit).ToArray());
-        if (string.IsNullOrEmpty(numericValue)) return "0000";
-        
-        return numericValue.PadLeft(4, '0');
-    }
 
     /// <summary>
     /// 荷印名を設定する（明示的な正規化メソッド）
