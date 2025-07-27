@@ -61,7 +61,7 @@ BEGIN
         )
         SELECT DISTINCT
             v.ProductCode, v.GradeCode, v.ClassCode, v.ShippingMarkCode, v.ShippingMarkName,
-            ISNULL(pm.ProductName, ''), 
+            ISNULL(v.ProductName, ISNULL(pm.ProductName, '')), -- 伝票の商品名を優先、フォールバックとして商品マスタ
             ISNULL(u.UnitName, 'PCS'),
             ISNULL(pm.StandardPrice, 0),
             ISNULL(pm.ProductCategory1, ''), 
@@ -69,13 +69,13 @@ BEGIN
             @JobDate, GETDATE(), GETDATE(),
             0, 0, 0, 0, '0', 0, 0
         FROM (
-            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, ProductName
             FROM SalesVouchers WHERE JobDate = @JobDate
             UNION
-            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, ProductName
             FROM PurchaseVouchers WHERE JobDate = @JobDate
             UNION
-            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, ProductName
             FROM InventoryAdjustments WHERE JobDate = @JobDate
         ) v
         LEFT JOIN ProductMaster pm ON v.ProductCode = pm.ProductCode
