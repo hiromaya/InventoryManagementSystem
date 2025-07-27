@@ -76,7 +76,7 @@ namespace InventorySystem.Core.Entities
         /// <summary>
         /// 当日発生フラグ（'9':未処理、'0':処理済み）
         /// </summary>
-        public string DailyFlag { get; set; } = "9";
+        public char DailyFlag { get; set; } = '9';
 
         /// <summary>
         /// ジョブ日付

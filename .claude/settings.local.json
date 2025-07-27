@@ -56,7 +56,8 @@
       "Bash(dotnet test:*)",
       "Bash(awk:*)",
       "Bash(nkf:*)",
-      "Bash(iconv:*)"
+      "Bash(iconv:*)",
+      "Bash(dotnet tool install:*)"
     ],
     "deny": []
   }

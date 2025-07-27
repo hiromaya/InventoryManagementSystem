@@ -10,7 +10,8 @@ namespace InventorySystem.Core.Services;
 public class UnmatchListService : IUnmatchListService
 {
     private readonly IUnInventoryRepository _unInventoryRepository;
-    private readonly ICpInventoryRepository _cpInventoryRepository;
+    // CP在庫マスタはアンマッチ処理では使用しない（2025年7月27日仕様変更）
+    // private readonly ICpInventoryRepository _cpInventoryRepository;
     private readonly ISalesVoucherRepository _salesVoucherRepository;
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
@@ -25,7 +26,7 @@ public class UnmatchListService : IUnmatchListService
 
     public UnmatchListService(
         IUnInventoryRepository unInventoryRepository,
-        ICpInventoryRepository cpInventoryRepository,
+        // ICpInventoryRepository cpInventoryRepository, // アンマッチ処理では不要（仕様変更）
         ISalesVoucherRepository salesVoucherRepository,
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
@@ -39,7 +40,7 @@ public class UnmatchListService : IUnmatchListService
         ILogger<UnmatchListService> logger)
     {
         _unInventoryRepository = unInventoryRepository;
-        _cpInventoryRepository = cpInventoryRepository;
+        // _cpInventoryRepository = cpInventoryRepository; // アンマッチ処理では不要
         _salesVoucherRepository = salesVoucherRepository;
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
@@ -158,25 +159,9 @@ public class UnmatchListService : IUnmatchListService
                 _logger.LogInformation("同一DataSetIdのUN在庫マスタは存在しないため削除処理をスキップ - DataSetId: {DataSetId}", dataSetId);
             }
 
-            // CP在庫マスタの削除（旧仕様データのクリーンアップ）
-            try 
-            {
-                _logger.LogInformation("CP在庫マスタクリーンアップ開始 - DataSetId: {DataSetId}", dataSetId);
-                var cpDeletedCount = await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
-                if (cpDeletedCount > 0)
-                {
-                    _logger.LogInformation("CP在庫マスタクリーンアップ完了: {Count}件削除（旧データクリーンアップ）", cpDeletedCount);
-                }
-                else
-                {
-                    _logger.LogInformation("CP在庫マスタ: 削除対象データなし（DataSetId: {DataSetId}）", dataSetId);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "CP在庫マスタの削除中にエラーが発生しましたが、処理を継続します - DataSetId: {DataSetId}", dataSetId);
-                // エラーが発生しても処理を継続
-            }
+            // ⚠️ 重要：CP在庫マスタはアンマッチ処理では削除しない
+            // CP在庫マスタは商品勘定作成時のみ作成・削除される（2025年7月27日仕様確認済み）
+            _logger.LogInformation("CP在庫マスタは保持します（アンマッチ処理では削除しない） - DataSetId: {DataSetId}", dataSetId);
 
             // 処理1-1: UN在庫M作成（指定日以前のアクティブな在庫マスタから）
             _logger.LogCritical("=== UN在庫マスタ作成処理 詳細デバッグ ===");
