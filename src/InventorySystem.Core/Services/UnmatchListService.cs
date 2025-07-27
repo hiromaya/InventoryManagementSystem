@@ -148,9 +148,34 @@ public class UnmatchListService : IUnmatchListService
             _logger.LogInformation("UN在庫マスタから{Count}件のレコードを削除しました", deletedCount);
 
             // 処理1-1: UN在庫M作成（指定日以前のアクティブな在庫マスタから）
-            _logger.LogInformation("UN在庫マスタ作成開始（{ProcessType}） - DataSetId: {DataSetId}", processType, dataSetId);
+            _logger.LogCritical("=== UN在庫マスタ作成処理 詳細デバッグ ===");
+            _logger.LogCritical("処理タイプ: {ProcessType}", processType);
+            _logger.LogCritical("DataSetId: {DataSetId}", dataSetId);
+            _logger.LogCritical("TargetDate: {TargetDate}", targetDate?.ToString("yyyy-MM-dd HH:mm:ss") ?? "NULL");
+            
             var createResult = await _unInventoryRepository.CreateFromInventoryMasterAsync(dataSetId, targetDate);
-            _logger.LogInformation("UN在庫マスタ作成完了 - 作成件数: {Count}, DataSetId: {DataSetId}", createResult, dataSetId);
+            _logger.LogCritical("UN在庫マスタ作成結果: {Count}件", createResult);
+            
+            if (createResult == 0)
+            {
+                _logger.LogError("❌ UN在庫マスタの作成件数が0件です！原因を調査が必要です。");
+                _logger.LogError("在庫マスタにデータが存在しない可能性があります。");
+                
+                // 在庫マスタの件数を確認
+                var inventoryCount = await _inventoryRepository.GetCountByJobDateAsync(latestJobDate);
+                _logger.LogError("在庫マスタの総件数（最新JobDate={JobDate}）: {Count}", latestJobDate, inventoryCount);
+                
+                if (targetDate.HasValue)
+                {
+                    // 指定日以前の在庫マスタ件数を確認（近似値）
+                    var beforeTargetCount = await _inventoryRepository.GetCountByJobDateAsync(targetDate.Value);
+                    _logger.LogError("在庫マスタの件数（指定日={TargetDate}）: {Count}", targetDate.Value, beforeTargetCount);
+                }
+            }
+            else
+            {
+                _logger.LogCritical("✅ UN在庫マスタ作成成功: {Count}件", createResult);
+            }
 
             // 前日在庫の引き継ぎ処理は不要（期間対象のため）
             if (targetDate.HasValue)
@@ -170,9 +195,33 @@ public class UnmatchListService : IUnmatchListService
             // UN在庫マスタでは文字化けチェック不要（アンマッチチェック専用のため）
 
             // データ集計と検証
-            _logger.LogInformation("{ProcessType}データ集計開始", processType);
+            _logger.LogCritical("=== {ProcessType}データ集計開始 ===", processType);
             await AggregateDailyDataWithValidationAsync(dataSetId, targetDate);
-            _logger.LogInformation("{ProcessType}データ集計完了", processType);
+            _logger.LogCritical("=== {ProcessType}データ集計完了 ===", processType);
+            
+            // 集計後のUN在庫マスタの状態を確認
+            var postAggregationCount = await _unInventoryRepository.GetCountAsync(dataSetId);
+            _logger.LogCritical("集計後のUN在庫マスタ件数: {Count}", postAggregationCount);
+            
+            if (postAggregationCount == 0)
+            {
+                _logger.LogError("❌ 集計後もUN在庫マスタが0件です！集計処理に問題があります。");
+            }
+            else
+            {
+                _logger.LogCritical("✅ 集計後のUN在庫マスタ: {Count}件", postAggregationCount);
+                
+                // 最初の5件をサンプル表示
+                var sampleRecords = await _unInventoryRepository.GetAllAsync(dataSetId);
+                var first5 = sampleRecords.Take(5);
+                _logger.LogCritical("UN在庫マスタサンプル（最初の5件）:");
+                foreach (var (record, index) in first5.Select((r, i) => (r, i)))
+                {
+                    _logger.LogCritical("  [{Index}] Product={Product}, Grade={Grade}, Class={Class}, Mark={Mark}, Name='{Name}', PrevStock={PrevStock}, DailyStock={DailyStock}",
+                        index + 1, record.Key.ProductCode, record.Key.GradeCode, record.Key.ClassCode, 
+                        record.Key.ShippingMarkCode, record.Key.ShippingMarkName, record.PreviousDayStock, record.DailyStock);
+                }
+            }
             
             // 月計データ集計はスキップ（期間対象のため）
             _logger.LogInformation("{ProcessType}対象のため、月計データ集計はスキップします", processType);
@@ -428,9 +477,14 @@ public class UnmatchListService : IUnmatchListService
                 notFoundCount++;
                 if (notFoundCount <= 5)  // 最初の5件のみログ出力
                 {
-                    _logger.LogCritical("在庫マスタ無サンプル: Product={Product}, Grade={Grade}, Class={Class}, Mark={Mark}, Name={Name}",
+                    _logger.LogCritical("在庫マスタ無サンプル: Product={Product}, Grade={Grade}, Class={Class}, Mark={Mark}, Name='{Name}'",
                         sales.ProductCode, sales.GradeCode, sales.ClassCode, 
                         sales.ShippingMarkCode, sales.ShippingMarkName);
+                    
+                    // デバッグ：InventoryKeyの0埋め結果を確認
+                    _logger.LogCritical("  -> 0埋め後Key: Product={Product}, Grade={Grade}, Class={Class}, Mark={Mark}, Name='{Name}'",
+                        inventoryKey.ProductCode, inventoryKey.GradeCode, inventoryKey.ClassCode, 
+                        inventoryKey.ShippingMarkCode, inventoryKey.ShippingMarkName);
                 }
                 
                 // 在庫マスタ未登録エラー - 商品分類1を取得
@@ -895,25 +949,38 @@ public class UnmatchListService : IUnmatchListService
         {
             var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
             
-            // 1. 仕入データの集計
+            _logger.LogCritical("=== 入荷データ集計処理 詳細デバッグ ===");
+            _logger.LogCritical("DataSetId: {DataSetId}", dataSetId);
+            _logger.LogCritical("TargetDate: {TargetDate}", targetDate?.ToString("yyyy-MM-dd") ?? "NULL");
+            
+            // 1. 仕入データの集計（通常仕入のみ = 数量 > 0）
+            _logger.LogCritical("1. 仕入データ集計開始...");
             var purchaseCount = await _unInventoryRepository.AggregatePurchaseDataAsync(dataSetId, targetDate);
-            _logger.LogInformation("仕入データを集計しました（{ProcessType}）。更新件数: {Count}件", processType, purchaseCount);
+            _logger.LogCritical("仕入データ集計完了: {Count}件更新", purchaseCount);
             
-            // 2. 売上データの集計（2025/07/26仕様変更：売上返品（入荷データ）のみ集計）
+            // 2. 売上データの集計（売上返品のみ = 数量 < 0）
+            _logger.LogCritical("2. 売上返品データ集計開始...");
             var salesCount = await _unInventoryRepository.AggregateSalesDataAsync(dataSetId, targetDate);
-            _logger.LogInformation("売上返品データを集計しました（{ProcessType}）。更新件数: {Count}件", processType, salesCount);
+            _logger.LogCritical("売上返品データ集計完了: {Count}件更新", salesCount);
             
-            // 3. 在庫調整データの集計
+            // 3. 在庫調整データの集計（入荷調整のみ = 数量 > 0）
+            _logger.LogCritical("3. 在庫調整データ集計開始...");
             var adjustmentCount = await _unInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, targetDate);
-            _logger.LogInformation("在庫調整データを集計しました（{ProcessType}）。更新件数: {Count}件", processType, adjustmentCount);
+            _logger.LogCritical("在庫調整データ集計完了: {Count}件更新", adjustmentCount);
             
             // 4. 当日在庫計算
+            _logger.LogCritical("4. 当日在庫計算開始...");
             var calculatedCount = await _unInventoryRepository.CalculateDailyStockAsync(dataSetId);
-            _logger.LogInformation("当日在庫を計算しました。更新件数: {Count}件", calculatedCount);
+            _logger.LogCritical("当日在庫計算完了: {Count}件更新", calculatedCount);
             
-            // 5. 当日発生フラグ更新は各集計処理内で実行されるため、ここでは実行しない
-            // var flagCount = await _cpInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
-            // _logger.LogInformation("当日発生フラグを更新しました。更新件数: {Count}件", flagCount);
+            // 5. 当日発生フラグ更新
+            _logger.LogCritical("5. 当日発生フラグ更新開始...");
+            var flagCount = await _unInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
+            _logger.LogCritical("当日発生フラグ更新完了: {Count}件更新", flagCount);
+            
+            _logger.LogCritical("=== 入荷データ集計処理完了 ===");
+            _logger.LogCritical("集計サマリー: 仕入={Purchase}, 売上返品={Sales}, 在庫調整={Adjustment}, 計算={Calculated}, フラグ={Flag}",
+                purchaseCount, salesCount, adjustmentCount, calculatedCount, flagCount);
         }
         catch (Exception ex)
         {
