@@ -142,17 +142,10 @@ public class UnmatchListService : IUnmatchListService
             await OptimizeInventoryMasterAsync(dataSetId);
             _logger.LogInformation("在庫マスタの最適化が完了しました");
 
-            // CP在庫マスタの削除を保留（日次終了処理まで保持）
-            // Phase 1改修: 削除タイミングを日次終了処理後に変更
-            _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", dataSetId);
-            var deletedCount = 0; // 削除はスキップ
-            
-            /*
-            // 重要: 既存のCP在庫マスタを全件削除
-            _logger.LogInformation("既存のCP在庫マスタを全件削除します");
-            var deletedCount = await _unInventoryRepository.DeleteByDataSetIdAsync("ALL");
-            _logger.LogInformation("CP在庫マスタから{Count}件のレコードを削除しました", deletedCount);
-            */
+            // UN在庫マスタ作成前：既存のUN在庫マスタを削除（データセット単位）
+            _logger.LogInformation("既存のUN在庫マスタを削除します - データセットID: {DataSetId}", dataSetId);
+            var deletedCount = await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+            _logger.LogInformation("UN在庫マスタから{Count}件のレコードを削除しました", deletedCount);
 
             // 処理1-1: UN在庫M作成（指定日以前のアクティブな在庫マスタから）
             _logger.LogInformation("UN在庫マスタ作成開始（{ProcessType}） - DataSetId: {DataSetId}", processType, dataSetId);
@@ -204,12 +197,8 @@ public class UnmatchListService : IUnmatchListService
 
             stopwatch.Stop();
 
-            // CP在庫マスタの削除を保留（日次終了処理まで保持）
-            // Phase 1改修: 削除タイミングを日次終了処理後に変更
-            _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", dataSetId);
-            
-            /*
-            // UN在庫マスタを削除
+            // UN在庫マスタクリーンアップ：アンマッチチェック完了後は削除
+            _logger.LogInformation("UN在庫マスタをクリーンアップします - データセットID: {DataSetId}", dataSetId);
             try
             {
                 await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
@@ -217,10 +206,9 @@ public class UnmatchListService : IUnmatchListService
             }
             catch (Exception cleanupEx)
             {
-                _logger.LogError(cleanupEx, "CP在庫マスタの削除に失敗しました - データセットID: {DataSetId}", dataSetId);
+                _logger.LogError(cleanupEx, "UN在庫マスタの削除に失敗しました - データセットID: {DataSetId}", dataSetId);
                 // 削除に失敗しても処理は成功として扱う
             }
-            */
 
             // 最終確認ログ
             _logger.LogCritical("===== UnmatchListService 最終結果確認 =====");
@@ -271,20 +259,17 @@ public class UnmatchListService : IUnmatchListService
             stopwatch.Stop();
             _logger.LogError(ex, "アンマッチリスト処理でエラーが発生しました - データセットID: {DataSetId}", dataSetId);
             
-            // CP在庫マスタの削除を保留（日次終了処理まで保持）
-            // Phase 1改修: 削除タイミングを日次終了処理後に変更
-            _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", dataSetId);
-            
-            /*
+            // エラー時のUN在庫マスタクリーンアップ
+            _logger.LogInformation("エラー発生のためUN在庫マスタをクリーンアップします - データセットID: {DataSetId}", dataSetId);
             try
             {
                 await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+                _logger.LogInformation("UN在庫マスタを削除しました - データセットID: {DataSetId}", dataSetId);
             }
             catch (Exception cleanupEx)
             {
-                _logger.LogError(cleanupEx, "CP在庫マスタのクリーンアップに失敗しました - データセットID: {DataSetId}", dataSetId);
+                _logger.LogError(cleanupEx, "UN在庫マスタのクリーンアップに失敗しました - データセットID: {DataSetId}", dataSetId);
             }
-            */
 
             var errorResult = new UnmatchListResult
             {
@@ -414,8 +399,8 @@ public class UnmatchListService : IUnmatchListService
                 index + 1, sales.CustomerName, sales.ProductName, sales.ShippingMarkName);
         }
 
-        // CP在庫マスタとの照合
-        _logger.LogCritical("CP在庫マスタとの照合開始...");
+        // UN在庫マスタとの照合
+        _logger.LogCritical("UN在庫マスタとの照合開始...");
         int checkedCount = 0;
         int notFoundCount = 0;
 
@@ -512,7 +497,7 @@ public class UnmatchListService : IUnmatchListService
                 ShippingMarkName = purchase.ShippingMarkName
             };
 
-            // CP在庫マスタから該当データを取得
+            // UN在庫マスタから該当データを取得
             var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
 
             if (unInventory == null)
@@ -628,7 +613,7 @@ public class UnmatchListService : IUnmatchListService
                 ShippingMarkName = adjustment.ShippingMarkName
             };
 
-            // CP在庫マスタから該当データを取得
+            // UN在庫マスタから該当データを取得
             var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
 
             if (unInventory == null)
@@ -855,7 +840,7 @@ public class UnmatchListService : IUnmatchListService
         catch (Exception ex)
         {
             _logger.LogError(ex, "在庫マスタ最適化処理で予期しないエラーが発生しました");
-            // CP在庫マスタ作成は継続するため、ここでは例外を再スローしない
+            // UN在庫マスタ作成は継続するため、ここでは例外を再スローしない
             _logger.LogWarning("エラーが発生しましたが、処理を継続します");
         }
     }
