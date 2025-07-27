@@ -142,10 +142,18 @@ public class UnmatchListService : IUnmatchListService
             await OptimizeInventoryMasterAsync(dataSetId);
             _logger.LogInformation("在庫マスタの最適化が完了しました");
 
-            // UN在庫マスタ作成前：既存のUN在庫マスタを削除（データセット単位）
-            _logger.LogInformation("既存のUN在庫マスタを削除します - データセットID: {DataSetId}", dataSetId);
-            var deletedCount = await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
-            _logger.LogInformation("UN在庫マスタから{Count}件のレコードを削除しました", deletedCount);
+            // UN在庫マスタ作成前：同一DataSetIdの既存レコードが存在する場合のみ削除
+            var existingCount = await _unInventoryRepository.GetCountAsync(dataSetId);
+            if (existingCount > 0)
+            {
+                _logger.LogInformation("同一DataSetIdの既存UN在庫マスタを削除します - DataSetId: {DataSetId}, 件数: {Count}", dataSetId, existingCount);
+                var deletedCount = await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+                _logger.LogInformation("UN在庫マスタ削除完了: {Count}件", deletedCount);
+            }
+            else
+            {
+                _logger.LogInformation("同一DataSetIdのUN在庫マスタは存在しないため削除処理をスキップ - DataSetId: {DataSetId}", dataSetId);
+            }
 
             // 処理1-1: UN在庫M作成（指定日以前のアクティブな在庫マスタから）
             _logger.LogCritical("=== UN在庫マスタ作成処理 詳細デバッグ ===");
@@ -246,16 +254,16 @@ public class UnmatchListService : IUnmatchListService
 
             stopwatch.Stop();
 
-            // UN在庫マスタクリーンアップ：アンマッチチェック完了後は削除
-            _logger.LogInformation("UN在庫マスタをクリーンアップします - データセットID: {DataSetId}", dataSetId);
+            // UN在庫マスタクリーンアップ：アンマッチチェック完了後は一時データを削除（仕様準拠）
+            _logger.LogInformation("アンマッチチェック完了：一時作成したUN在庫マスタをクリーンアップします - DataSetId: {DataSetId}", dataSetId);
             try
             {
-                await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
-                _logger.LogInformation("UN在庫マスタを削除しました - データセットID: {DataSetId}", dataSetId);
+                var cleanupCount = await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+                _logger.LogInformation("UN在庫マスタクリーンアップ完了: {Count}件削除 - DataSetId: {DataSetId}", cleanupCount, dataSetId);
             }
             catch (Exception cleanupEx)
             {
-                _logger.LogError(cleanupEx, "UN在庫マスタの削除に失敗しました - データセットID: {DataSetId}", dataSetId);
+                _logger.LogError(cleanupEx, "UN在庫マスタクリーンアップに失敗しました - DataSetId: {DataSetId}", dataSetId);
                 // 削除に失敗しても処理は成功として扱う
             }
 
@@ -308,16 +316,16 @@ public class UnmatchListService : IUnmatchListService
             stopwatch.Stop();
             _logger.LogError(ex, "アンマッチリスト処理でエラーが発生しました - データセットID: {DataSetId}", dataSetId);
             
-            // エラー時のUN在庫マスタクリーンアップ
-            _logger.LogInformation("エラー発生のためUN在庫マスタをクリーンアップします - データセットID: {DataSetId}", dataSetId);
+            // エラー時のUN在庫マスタクリーンアップ（一時データ削除）
+            _logger.LogInformation("エラー発生：一時作成したUN在庫マスタをクリーンアップします - DataSetId: {DataSetId}", dataSetId);
             try
             {
-                await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
-                _logger.LogInformation("UN在庫マスタを削除しました - データセットID: {DataSetId}", dataSetId);
+                var errorCleanupCount = await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+                _logger.LogInformation("エラー時UN在庫マスタクリーンアップ完了: {Count}件削除 - DataSetId: {DataSetId}", errorCleanupCount, dataSetId);
             }
             catch (Exception cleanupEx)
             {
-                _logger.LogError(cleanupEx, "UN在庫マスタのクリーンアップに失敗しました - データセットID: {DataSetId}", dataSetId);
+                _logger.LogError(cleanupEx, "エラー時UN在庫マスタクリーンアップに失敗しました - DataSetId: {DataSetId}", dataSetId);
             }
 
             var errorResult = new UnmatchListResult
