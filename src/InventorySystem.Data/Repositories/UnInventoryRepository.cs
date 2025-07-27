@@ -31,7 +31,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
             SELECT 
                 i.ProductCode, i.GradeCode, i.ClassCode, i.ShippingMarkCode, i.ShippingMarkName,
                 @DataSetId,
-                i.PreviousDayStock,
+                ISNULL(i.PreviousMonthQuantity, 0),
                 0 as DailyStock,
                 '9' as DailyFlag,
                 i.JobDate,
