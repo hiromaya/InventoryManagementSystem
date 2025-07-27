@@ -3242,97 +3242,17 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 }
             }
             
-            // ========== 注意：CP在庫マスタ作成は削除されました ==========
-            // CP在庫マスタは各帳票コマンド実行時に作成されます
-            // アンマッチリスト処理ではUN在庫マスタ（アンマッチチェック専用）を使用します
+            // ========== 注意：アンマッチリスト処理は削除されました ==========
+            // UN/CP在庫マスタ分離仕様により、import-folderコマンドではアンマッチチェックを行いません
+            // アンマッチチェックは別途 'unmatch-list' コマンドで実行してください
             
-            // ========== Phase 5: アンマッチリスト実行 ==========
-            if (startDate.HasValue && endDate.HasValue)
-            {
-                logger.LogInformation("=== Phase 5: アンマッチリスト実行開始 ===");
-                Console.WriteLine("\n========== Phase 5: アンマッチリスト実行 ==========");
-                
-                try
-                {
-                    // アンマッチリストサービスの取得
-                    var unmatchService = scopedServices.GetRequiredService<IUnmatchListService>();
-                    
-                    // 期間内の各日付でアンマッチリストを実行
-                    var currentDate = startDate.Value;
-                    var hasUnmatched = false;
-                    
-                    while (currentDate <= endDate.Value)
-                    {
-                        // 該当日付のDataSetIdを取得
-                        var dataSets = await datasetRepo.GetByJobDateAsync(currentDate);
-                        var latestDataSet = dataSets.OrderByDescending(d => d.CreatedAt).FirstOrDefault();
-                        
-                        if (latestDataSet != null)
-                        {
-                            var dataSetId = latestDataSet.DataSetId;
-                            Console.WriteLine($"\n[{currentDate:yyyy-MM-dd}] アンマッチリストを実行します - DataSetId: {dataSetId}");
-                            
-                            var unmatchResult = await unmatchService.ProcessUnmatchListAsync(currentDate);
-                            
-                            if (unmatchResult.Success)
-                            {
-                                Console.WriteLine($"✅ アンマッチリスト完了 [{currentDate:yyyy-MM-dd}]");
-                                Console.WriteLine($"   - アンマッチ件数: {unmatchResult.UnmatchCount}");
-                                Console.WriteLine($"   - DataSetId: {unmatchResult.DataSetId}");
-                                
-                                if (unmatchResult.UnmatchCount > 0)
-                                {
-                                    hasUnmatched = true;
-                                    Console.WriteLine($"   - アンマッチ項目数: {unmatchResult.UnmatchItems.Count()}");
-                                }
-                            }
-                            else
-                            {
-                                Console.WriteLine($"❌ アンマッチリスト実行エラー [{currentDate:yyyy-MM-dd}]: {unmatchResult.ErrorMessage}");
-                                errorCount++;
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine($"⚠️ [{currentDate:yyyy-MM-dd}] DataSetが見つからないため、アンマッチリスト実行をスキップします");
-                            logger.LogWarning("アンマッチリスト実行スキップ: JobDate={JobDate} - DataSetが見つかりません", currentDate);
-                        }
-                        
-                        currentDate = currentDate.AddDays(1);
-                    }
-                    
-                    // アンマッチ結果の総合判定
-                    if (hasUnmatched)
-                    {
-                        Console.WriteLine();
-                        Console.WriteLine("⚠️  アンマッチが検出されました！");
-                        Console.WriteLine();
-                        Console.WriteLine("以下の手順で対応してください：");
-                        Console.WriteLine("1. アンマッチリストPDFを確認");
-                        Console.WriteLine("2. 伝票データを修正");
-                        Console.WriteLine("3. import-folderコマンドを再実行");
-                        Console.WriteLine();
-                        Console.WriteLine("※再実行時は既存のCP在庫マスタが自動的に削除され、再作成されます。");
-                        return; // アンマッチがある場合はここで処理を終了
-                    }
-                    else
-                    {
-                        Console.WriteLine("✅ アンマッチなし - 各帳票作成が可能です");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "アンマッチリスト実行でエラーが発生しました");
-                    Console.WriteLine($"❌ アンマッチリスト実行エラー: {ex.Message}");
-                    errorCount++;
-                    return; // アンマッチリスト失敗時は処理を中断
-                }
-            }
-            else
-            {
-                Console.WriteLine("\n⚠️ アンマッチリスト実行には日付指定が必要です");
-                logger.LogWarning("アンマッチリスト実行スキップ: 日付指定が必要です");
-            }
+            Console.WriteLine("\n========== データ取込完了 ==========");
+            Console.WriteLine("✅ CSVファイルの取込処理が完了しました");
+            Console.WriteLine();
+            Console.WriteLine("次の手順:");
+            Console.WriteLine("1. アンマッチチェック: dotnet run -- unmatch-list <日付>");
+            Console.WriteLine("2. 帳票生成: dotnet run -- daily-report <日付>");
+            Console.WriteLine("3. 商品勘定: dotnet run -- product-account <日付>");
             
             // 処理結果のサマリを表示
             Console.WriteLine("\n=== フォルダ監視取込完了 ===");
@@ -3378,10 +3298,10 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 // 正常完了時のメッセージ
                 Console.WriteLine();
                 Console.WriteLine("✅ データ取込が正常に完了しました。");
-                Console.WriteLine("✅ CP在庫マスタが作成されました。");
-                Console.WriteLine("✅ アンマッチはありません。");
                 Console.WriteLine();
-                Console.WriteLine("次のコマンドで各帳票を作成できます：");
+                Console.WriteLine("次の手順で処理を続けてください：");
+                Console.WriteLine("1. アンマッチチェック: dotnet run -- unmatch-list <日付>");
+                Console.WriteLine("2. 帳票生成（アンマッチ0件確認後）:");
                 
                 if (startDate.HasValue && endDate.HasValue)
                 {

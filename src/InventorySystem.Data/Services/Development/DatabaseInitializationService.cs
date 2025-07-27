@@ -101,6 +101,9 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "procedures/sp_CreateCpInventoryFromInventoryMasterCumulative.sql",     // CP在庫作成
         "procedures/sp_CreateProductLedgerData.sql",                            // 商品勘定帳票データ生成
         
+        // === UN在庫マスタ作成（アンマッチチェック専用） ===
+        "060_CreateUnInventoryMaster.sql",                                     // UN在庫マスタテーブル作成
+        
         // === DataSets完全削除（DataSetManagement完全移行のため） ===
         "999_DropDataSetsTable.sql",                                           // DataSetsテーブル削除
         
