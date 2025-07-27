@@ -111,7 +111,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                     s.ProductCode, s.GradeCode, s.ClassCode, 
                     s.ShippingMarkCode, s.ShippingMarkName,
                     SUM(s.Quantity) as SalesReturnQuantity
-                FROM SalesVoucher s
+                FROM SalesVouchers s
                 WHERE s.DataSetId = @DataSetId
                 AND s.VoucherType IN ('51', '52')  -- 掛売・現売
                 AND s.Quantity < 0  -- 売上返品のみ（入荷）
@@ -169,7 +169,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                     p.ProductCode, p.GradeCode, p.ClassCode, 
                     p.ShippingMarkCode, p.ShippingMarkName,
                     SUM(p.Quantity) as PurchaseQuantity
-                FROM PurchaseVoucher p
+                FROM PurchaseVouchers p
                 WHERE p.DataSetId = @DataSetId
                 AND p.VoucherType IN ('11', '12')  -- 掛仕入・現金仕入
                 AND p.Quantity > 0  -- 通常仕入（返品除外）
@@ -227,7 +227,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                     ia.ProductCode, ia.GradeCode, ia.ClassCode, 
                     ia.ShippingMarkCode, ia.ShippingMarkName,
                     SUM(ia.Quantity) as AdjustmentQuantity
-                FROM InventoryAdjustment ia
+                FROM InventoryAdjustments ia
                 WHERE ia.DataSetId = @DataSetId
                 AND ia.VoucherType = '71'  -- 在庫調整
                 AND ia.DetailType = '1'    -- ロス
