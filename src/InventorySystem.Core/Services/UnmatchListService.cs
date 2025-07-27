@@ -10,6 +10,7 @@ namespace InventorySystem.Core.Services;
 public class UnmatchListService : IUnmatchListService
 {
     private readonly IUnInventoryRepository _unInventoryRepository;
+    private readonly ICpInventoryRepository _cpInventoryRepository;
     private readonly ISalesVoucherRepository _salesVoucherRepository;
     private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
@@ -24,6 +25,7 @@ public class UnmatchListService : IUnmatchListService
 
     public UnmatchListService(
         IUnInventoryRepository unInventoryRepository,
+        ICpInventoryRepository cpInventoryRepository,
         ISalesVoucherRepository salesVoucherRepository,
         IPurchaseVoucherRepository purchaseVoucherRepository,
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
@@ -37,6 +39,7 @@ public class UnmatchListService : IUnmatchListService
         ILogger<UnmatchListService> logger)
     {
         _unInventoryRepository = unInventoryRepository;
+        _cpInventoryRepository = cpInventoryRepository;
         _salesVoucherRepository = salesVoucherRepository;
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
@@ -153,6 +156,26 @@ public class UnmatchListService : IUnmatchListService
             else
             {
                 _logger.LogInformation("同一DataSetIdのUN在庫マスタは存在しないため削除処理をスキップ - DataSetId: {DataSetId}", dataSetId);
+            }
+
+            // CP在庫マスタの削除（旧仕様データのクリーンアップ）
+            try 
+            {
+                _logger.LogInformation("CP在庫マスタクリーンアップ開始 - DataSetId: {DataSetId}", dataSetId);
+                var cpDeletedCount = await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+                if (cpDeletedCount > 0)
+                {
+                    _logger.LogInformation("CP在庫マスタクリーンアップ完了: {Count}件削除（旧データクリーンアップ）", cpDeletedCount);
+                }
+                else
+                {
+                    _logger.LogInformation("CP在庫マスタ: 削除対象データなし（DataSetId: {DataSetId}）", dataSetId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "CP在庫マスタの削除中にエラーが発生しましたが、処理を継続します - DataSetId: {DataSetId}", dataSetId);
+                // エラーが発生しても処理を継続
             }
 
             // 処理1-1: UN在庫M作成（指定日以前のアクティブな在庫マスタから）
