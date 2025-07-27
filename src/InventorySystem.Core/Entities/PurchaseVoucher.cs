@@ -41,10 +41,35 @@ public class PurchaseVoucher
     /// </summary>
     public string DetailType { get; set; } = string.Empty;
 
+    private string? _supplierCode;
+
     /// <summary>
-    /// 仕入先コード
+    /// 仕入先コード（5桁左0埋め、冪等性あり）
     /// </summary>
-    public string? SupplierCode { get; set; }
+    public string? SupplierCode 
+    { 
+        get => _supplierCode;
+        set 
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                _supplierCode = null;
+                return;
+            }
+            
+            var trimmed = value.Trim();
+            
+            // 既に5桁以上で数値のみの場合はそのまま使用
+            if (trimmed.Length >= 5 && int.TryParse(trimmed, out _))
+            {
+                _supplierCode = trimmed;
+            }
+            else
+            {
+                _supplierCode = trimmed.PadLeft(5, '0');
+            }
+        }
+    }
 
     /// <summary>
     /// 仕入先名

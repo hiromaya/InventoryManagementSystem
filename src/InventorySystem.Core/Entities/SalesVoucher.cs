@@ -41,10 +41,35 @@ public class SalesVoucher
     /// </summary>
     public string DetailType { get; set; } = string.Empty;
 
+    private string? _customerCode;
+
     /// <summary>
-    /// 得意先コード
+    /// 得意先コード（5桁左0埋め、冪等性あり）
     /// </summary>
-    public string? CustomerCode { get; set; }
+    public string? CustomerCode 
+    { 
+        get => _customerCode;
+        set 
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                _customerCode = null;
+                return;
+            }
+            
+            var trimmed = value.Trim();
+            
+            // 既に5桁以上で数値のみの場合はそのまま使用
+            if (trimmed.Length >= 5 && int.TryParse(trimmed, out _))
+            {
+                _customerCode = trimmed;
+            }
+            else
+            {
+                _customerCode = trimmed.PadLeft(5, '0');
+            }
+        }
+    }
 
     /// <summary>
     /// 得意先名
