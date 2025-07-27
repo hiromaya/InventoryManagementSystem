@@ -3151,18 +3151,18 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 }
             }
             
-            // ========== Phase 5: Process 2-5（売上伝票への在庫単価書込・粗利計算） ==========
+            // ========== Phase 4: CP在庫マスタ作成 ==========
             if (startDate.HasValue && endDate.HasValue)
             {
-                logger.LogInformation("=== Phase 5: Process 2-5（売上伝票への在庫単価書込・粗利計算）開始 ===");
-                Console.WriteLine("\n========== Phase 5: Process 2-5（売上伝票への在庫単価書込・粗利計算） ==========");
+                logger.LogInformation("=== Phase 4: CP在庫マスタ作成開始 ===");
+                Console.WriteLine("\n========== Phase 4: CP在庫マスタ作成 ==========");
                 
                 try
                 {
-                    // GrossProfitCalculationServiceを取得
-                    var grossProfitService = scopedServices.GetRequiredService<GrossProfitCalculationService>();
+                    // CP在庫マスタリポジトリの取得
+                    var cpInventoryRepo = scopedServices.GetRequiredService<ICpInventoryRepository>();
                     
-                    // 期間内の各日付でProcess 2-5を実行
+                    // 期間内の各日付でCP在庫マスタを作成
                     var currentDate = startDate.Value;
                     while (currentDate <= endDate.Value)
                     {
@@ -3172,25 +3172,46 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                         
                         if (latestDataSet != null)
                         {
-                            Console.WriteLine($"\n[{currentDate:yyyy-MM-dd}] Process 2-5を開始します");
-                            logger.LogInformation("Process 2-5開始: JobDate={JobDate}, DataSetId={DataSetId}", 
-                                currentDate, latestDataSet.DataSetId);
+                            var dataSetId = latestDataSet.DataSetId;
+                            Console.WriteLine($"\n[{currentDate:yyyy-MM-dd}] CP在庫マスタ作成開始 - DataSetId: {dataSetId}");
                             
-                            var stopwatch = Stopwatch.StartNew();
+                            // 既存のCP在庫マスタを確認・削除
+                            var existingCp = await cpInventoryRepo.GetAllAsync(dataSetId);
+                            if (existingCp.Any())
+                            {
+                                Console.WriteLine($"既存のCP在庫マスタが見つかりました（{existingCp.Count()}件）。削除します。");
+                                await cpInventoryRepo.DeleteByDataSetIdAsync(dataSetId);
+                            }
                             
-                            // Process 2-5実行
-                            await grossProfitService.ExecuteProcess25Async(currentDate, latestDataSet.DataSetId);
+                            // CP在庫マスタ作成（ストアドプロシージャ使用）
+                            var createCount = await cpInventoryRepo.CreateCpInventoryFromInventoryMasterAsync(dataSetId, currentDate);
+                            Console.WriteLine($"✅ CP在庫マスタ作成完了: {createCount}件");
                             
-                            stopwatch.Stop();
+                            // 当日エリアクリア
+                            Console.WriteLine("当日エリアクリア開始");
+                            await cpInventoryRepo.ClearDailyAreaAsync(dataSetId);
                             
-                            Console.WriteLine($"✅ Process 2-5完了 [{currentDate:yyyy-MM-dd}] ({stopwatch.ElapsedMilliseconds}ms)");
-                            logger.LogInformation("Process 2-5完了: JobDate={JobDate}, DataSetId={DataSetId}, 処理時間={ElapsedMs}ms", 
-                                currentDate, latestDataSet.DataSetId, stopwatch.ElapsedMilliseconds);
+                            // 当日データ集計
+                            Console.WriteLine("当日データ集計開始");
+                            var salesResult = await cpInventoryRepo.AggregateSalesDataAsync(dataSetId, currentDate);
+                            Console.WriteLine($"売上データ集計: {salesResult}件");
+                            
+                            var purchaseResult = await cpInventoryRepo.AggregatePurchaseDataAsync(dataSetId, currentDate);
+                            Console.WriteLine($"仕入データ集計: {purchaseResult}件");
+                            
+                            var adjustmentResult = await cpInventoryRepo.AggregateInventoryAdjustmentDataAsync(dataSetId, currentDate);
+                            Console.WriteLine($"在庫調整データ集計: {adjustmentResult}件");
+                            
+                            // 当日在庫計算
+                            Console.WriteLine("当日在庫計算開始");
+                            await cpInventoryRepo.CalculateDailyStockAsync(dataSetId);
+                            await cpInventoryRepo.SetDailyFlagToProcessedAsync(dataSetId);
+                            Console.WriteLine($"✅ CP在庫マスタ準備完了 [{currentDate:yyyy-MM-dd}]");
                         }
                         else
                         {
-                            Console.WriteLine($"⚠️ [{currentDate:yyyy-MM-dd}] DataSetが見つからないため、Process 2-5をスキップします");
-                            logger.LogWarning("Process 2-5スキップ: JobDate={JobDate} - DataSetが見つかりません", currentDate);
+                            Console.WriteLine($"⚠️ [{currentDate:yyyy-MM-dd}] DataSetが見つからないため、CP在庫マスタ作成をスキップします");
+                            logger.LogWarning("CP在庫マスタ作成スキップ: JobDate={JobDate} - DataSetが見つかりません", currentDate);
                         }
                         
                         currentDate = currentDate.AddDays(1);
@@ -3198,20 +3219,105 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Process 2-5でエラーが発生しました");
-                    Console.WriteLine($"❌ Process 2-5エラー: {ex.Message}");
+                    logger.LogError(ex, "CP在庫マスタ作成でエラーが発生しました");
+                    Console.WriteLine($"❌ CP在庫マスタ作成エラー: {ex.Message}");
                     errorCount++;
+                    return; // CP在庫マスタ作成失敗時は処理を中断
                 }
             }
             else
             {
-                Console.WriteLine("\n⚠️ Process 2-5には日付指定が必要です（期間モードでのみ実行）");
-                logger.LogWarning("Process 2-5スキップ: 日付指定が必要です");
+                Console.WriteLine("\n⚠️ CP在庫マスタ作成には日付指定が必要です");
+                logger.LogWarning("CP在庫マスタ作成スキップ: 日付指定が必要です");
             }
             
-            // ========== アンマッチリスト処理 ==========
-            // 注意：アンマッチリスト処理は別途 create-unmatch-list コマンドで実行してください
-            // await ExecuteUnmatchListAfterImport(scopedServices, jobDate, logger);
+            // ========== Phase 5: アンマッチリスト実行 ==========
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                logger.LogInformation("=== Phase 5: アンマッチリスト実行開始 ===");
+                Console.WriteLine("\n========== Phase 5: アンマッチリスト実行 ==========");
+                
+                try
+                {
+                    // アンマッチリストサービスの取得
+                    var unmatchService = scopedServices.GetRequiredService<IUnmatchListService>();
+                    
+                    // 期間内の各日付でアンマッチリストを実行
+                    var currentDate = startDate.Value;
+                    var hasUnmatched = false;
+                    
+                    while (currentDate <= endDate.Value)
+                    {
+                        // 該当日付のDataSetIdを取得
+                        var dataSets = await datasetRepo.GetByJobDateAsync(currentDate);
+                        var latestDataSet = dataSets.OrderByDescending(d => d.CreatedAt).FirstOrDefault();
+                        
+                        if (latestDataSet != null)
+                        {
+                            var dataSetId = latestDataSet.DataSetId;
+                            Console.WriteLine($"\n[{currentDate:yyyy-MM-dd}] アンマッチリストを実行します - DataSetId: {dataSetId}");
+                            
+                            var unmatchResult = await unmatchService.ProcessUnmatchListAsync(currentDate);
+                            
+                            if (unmatchResult.Success)
+                            {
+                                Console.WriteLine($"✅ アンマッチリスト完了 [{currentDate:yyyy-MM-dd}]");
+                                Console.WriteLine($"   - アンマッチ件数: {unmatchResult.UnmatchCount}");
+                                Console.WriteLine($"   - DataSetId: {unmatchResult.DataSetId}");
+                                
+                                if (unmatchResult.UnmatchCount > 0)
+                                {
+                                    hasUnmatched = true;
+                                    Console.WriteLine($"   - アンマッチ項目数: {unmatchResult.UnmatchItems.Count()}");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine($"❌ アンマッチリスト実行エラー [{currentDate:yyyy-MM-dd}]: {unmatchResult.ErrorMessage}");
+                                errorCount++;
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"⚠️ [{currentDate:yyyy-MM-dd}] DataSetが見つからないため、アンマッチリスト実行をスキップします");
+                            logger.LogWarning("アンマッチリスト実行スキップ: JobDate={JobDate} - DataSetが見つかりません", currentDate);
+                        }
+                        
+                        currentDate = currentDate.AddDays(1);
+                    }
+                    
+                    // アンマッチ結果の総合判定
+                    if (hasUnmatched)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("⚠️  アンマッチが検出されました！");
+                        Console.WriteLine();
+                        Console.WriteLine("以下の手順で対応してください：");
+                        Console.WriteLine("1. アンマッチリストPDFを確認");
+                        Console.WriteLine("2. 伝票データを修正");
+                        Console.WriteLine("3. import-folderコマンドを再実行");
+                        Console.WriteLine();
+                        Console.WriteLine("※再実行時は既存のCP在庫マスタが自動的に削除され、再作成されます。");
+                        return; // アンマッチがある場合はここで処理を終了
+                    }
+                    else
+                    {
+                        Console.WriteLine("✅ アンマッチなし - 各帳票作成が可能です");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "アンマッチリスト実行でエラーが発生しました");
+                    Console.WriteLine($"❌ アンマッチリスト実行エラー: {ex.Message}");
+                    errorCount++;
+                    return; // アンマッチリスト失敗時は処理を中断
+                }
+            }
+            else
+            {
+                Console.WriteLine("\n⚠️ アンマッチリスト実行には日付指定が必要です");
+                logger.LogWarning("アンマッチリスト実行スキップ: 日付指定が必要です");
+            }
             
             // 処理結果のサマリを表示
             Console.WriteLine("\n=== フォルダ監視取込完了 ===");
@@ -3239,8 +3345,6 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             Console.WriteLine($"部門: {department}");
             Console.WriteLine($"処理ファイル数: {sortedFiles.Count}");
             
-            // 総処理時間は省略（StartTimeがないため）
-            
             if (processedCounts.Any())
             {
                 Console.WriteLine("\n処理実績:");
@@ -3253,6 +3357,35 @@ static async Task ExecuteImportFromFolderAsync(IServiceProvider services, string
             if (errorCount > 0)
             {
                 Console.WriteLine($"\n⚠️ {errorCount}件のファイルでエラーが発生しました。");
+            }
+            else
+            {
+                // 正常完了時のメッセージ
+                Console.WriteLine();
+                Console.WriteLine("✅ データ取込が正常に完了しました。");
+                Console.WriteLine("✅ CP在庫マスタが作成されました。");
+                Console.WriteLine("✅ アンマッチはありません。");
+                Console.WriteLine();
+                Console.WriteLine("次のコマンドで各帳票を作成できます：");
+                
+                if (startDate.HasValue && endDate.HasValue)
+                {
+                    if (startDate.Value == endDate.Value)
+                    {
+                        // 単一日付の場合
+                        var targetDate = startDate.Value;
+                        Console.WriteLine($"  商品日報: dotnet run daily-report {targetDate:yyyy-MM-dd}");
+                        Console.WriteLine($"  商品勘定: dotnet run product-account {targetDate:yyyy-MM-dd}");
+                        Console.WriteLine($"  在庫表: dotnet run inventory-list {targetDate:yyyy-MM-dd}");
+                    }
+                    else
+                    {
+                        // 期間指定の場合
+                        Console.WriteLine($"  商品日報: dotnet run daily-report <YYYY-MM-DD> （{startDate.Value:yyyy-MM-dd} ～ {endDate.Value:yyyy-MM-dd}）");
+                        Console.WriteLine($"  商品勘定: dotnet run product-account <YYYY-MM-DD>");
+                        Console.WriteLine($"  在庫表: dotnet run inventory-list <YYYY-MM-DD>");
+                    }
+                }
             }
             
             Console.WriteLine("========================\n");
