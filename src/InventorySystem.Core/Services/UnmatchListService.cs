@@ -254,18 +254,11 @@ public class UnmatchListService : IUnmatchListService
 
             stopwatch.Stop();
 
-            // UN在庫マスタクリーンアップ：アンマッチチェック完了後は一時データを削除（仕様準拠）
-            _logger.LogInformation("アンマッチチェック完了：一時作成したUN在庫マスタをクリーンアップします - DataSetId: {DataSetId}", dataSetId);
-            try
-            {
-                var cleanupCount = await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
-                _logger.LogInformation("UN在庫マスタクリーンアップ完了: {Count}件削除 - DataSetId: {DataSetId}", cleanupCount, dataSetId);
-            }
-            catch (Exception cleanupEx)
-            {
-                _logger.LogError(cleanupEx, "UN在庫マスタクリーンアップに失敗しました - DataSetId: {DataSetId}", dataSetId);
-                // 削除に失敗しても処理は成功として扱う
-            }
+            // UN在庫マスタは保持する（仕様準拠）
+            // 自身が作成したUN在庫マスタは削除しない
+            // 削除は日次終了処理時または明示的な削除指示時のみ実行
+            _logger.LogInformation("アンマッチチェック完了：UN在庫マスタは保持されます - DataSetId: {DataSetId}, 件数: {Count}", 
+                dataSetId, await _unInventoryRepository.GetCountAsync(dataSetId));
 
             // 最終確認ログ
             _logger.LogCritical("===== UnmatchListService 最終結果確認 =====");
@@ -316,16 +309,16 @@ public class UnmatchListService : IUnmatchListService
             stopwatch.Stop();
             _logger.LogError(ex, "アンマッチリスト処理でエラーが発生しました - データセットID: {DataSetId}", dataSetId);
             
-            // エラー時のUN在庫マスタクリーンアップ（一時データ削除）
-            _logger.LogInformation("エラー発生：一時作成したUN在庫マスタをクリーンアップします - DataSetId: {DataSetId}", dataSetId);
+            // エラー時もUN在庫マスタは保持する（仕様準拠）
+            // 自身が作成したUN在庫マスタは削除しない
             try
             {
-                var errorCleanupCount = await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
-                _logger.LogInformation("エラー時UN在庫マスタクリーンアップ完了: {Count}件削除 - DataSetId: {DataSetId}", errorCleanupCount, dataSetId);
+                var remainingCount = await _unInventoryRepository.GetCountAsync(dataSetId);
+                _logger.LogInformation("エラー発生：UN在庫マスタは保持されます - DataSetId: {DataSetId}, 件数: {Count}", dataSetId, remainingCount);
             }
-            catch (Exception cleanupEx)
+            catch (Exception countEx)
             {
-                _logger.LogError(cleanupEx, "エラー時UN在庫マスタクリーンアップに失敗しました - DataSetId: {DataSetId}", dataSetId);
+                _logger.LogError(countEx, "UN在庫マスタ件数確認に失敗しました - DataSetId: {DataSetId}", dataSetId);
             }
 
             var errorResult = new UnmatchListResult
