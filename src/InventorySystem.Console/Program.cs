@@ -649,12 +649,14 @@ try
             // ===== サービス診断情報 終了 =====
             
             Console.WriteLine("PDF生成中...");
-            var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, latestJobDate);
+            // 指定された日付またはシステム日付を使用（latestJobDateではない）
+            var reportDate = targetDate ?? DateTime.Today;
+            var pdfBytes = reportService.GenerateUnmatchListReport(result.UnmatchItems, reportDate);
             
             if (pdfBytes != null && pdfBytes.Length > 0)
             {
                 // FileManagementServiceを使用してレポートパスを取得
-                var pdfPath = await fileManagementService.GetReportOutputPathAsync("UnmatchList", latestJobDate, "pdf");
+                var pdfPath = await fileManagementService.GetReportOutputPathAsync("UnmatchList", reportDate, "pdf");
                 
                 await File.WriteAllBytesAsync(pdfPath, pdfBytes);
                 
