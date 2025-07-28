@@ -39,6 +39,11 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 GETDATE()
             FROM InventoryMaster i
             WHERE (@TargetDate IS NULL OR i.JobDate = @TargetDate)
+                -- ☆マスタ存在チェックを追加☆
+                AND EXISTS (SELECT 1 FROM ProductMaster pm WHERE pm.ProductCode = i.ProductCode)
+                AND (i.GradeCode = '000' OR EXISTS (SELECT 1 FROM GradeMaster gm WHERE gm.GradeCode = i.GradeCode))
+                AND (i.ClassCode = '000' OR EXISTS (SELECT 1 FROM ClassMaster cm WHERE cm.ClassCode = i.ClassCode))
+                AND (i.ShippingMarkCode = '0000' OR EXISTS (SELECT 1 FROM ShippingMarkMaster sm WHERE sm.ShippingMarkCode = i.ShippingMarkCode))
             """;
 
         try
