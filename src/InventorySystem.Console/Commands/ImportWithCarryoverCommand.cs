@@ -450,6 +450,13 @@ public class ImportWithCarryoverCommand
     {
         try
         {
+            // 商品コード'00000'の除外チェック
+            if (voucher.ProductCode == "00000")
+            {
+                _logger.LogDebug("商品コード'00000'は除外対象: ProductCode={Code}", voucher.ProductCode);
+                return false;
+            }
+            
             // 商品マスタチェック
             var product = await _productMasterRepository.GetByCodeAsync(voucher.ProductCode);
             if (product == null)
@@ -507,6 +514,13 @@ public class ImportWithCarryoverCommand
     {
         try
         {
+            // 商品コード'00000'の除外チェック
+            if (voucher.ProductCode == "00000")
+            {
+                _logger.LogDebug("商品コード'00000'は除外対象: ProductCode={Code}", voucher.ProductCode);
+                return false;
+            }
+            
             // 商品マスタチェック
             var product = await _productMasterRepository.GetByCodeAsync(voucher.ProductCode);
             if (product == null)
@@ -564,6 +578,13 @@ public class ImportWithCarryoverCommand
     {
         try
         {
+            // 商品コード'00000'の除外チェック
+            if (voucher.ProductCode == "00000")
+            {
+                _logger.LogDebug("商品コード'00000'は除外対象: ProductCode={Code}", voucher.ProductCode);
+                return false;
+            }
+            
             // 商品マスタチェック
             var product = await _productMasterRepository.GetByCodeAsync(voucher.ProductCode);
             if (product == null)
