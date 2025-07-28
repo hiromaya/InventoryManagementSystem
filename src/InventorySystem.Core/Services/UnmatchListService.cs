@@ -456,6 +456,13 @@ public class UnmatchListService : IUnmatchListService
         // 最初の5件の文字列状態を確認
         foreach (var (sales, index) in salesList.Take(5).Select((s, i) => (s, i)))
         {
+            _logger.LogCritical("売上伝票サンプル[{Index}]: VoucherNumber={VoucherNumber}, Product={Product}, Grade={Grade}, Class={Class}, Mark={Mark}, Name='{Name}', Qty={Qty}",
+                index, sales.VoucherNumber, sales.ProductCode, sales.GradeCode, sales.ClassCode, 
+                sales.ShippingMarkCode, sales.ShippingMarkName, sales.Quantity);
+        }
+        
+        foreach (var (sales, index) in salesList.Select((s, i) => (s, i)))
+        {
             _logger.LogDebug("売上伝票 行{Index}: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}'", 
                 index + 1, sales.CustomerName, sales.ProductName, sales.ShippingMarkName);
         }
@@ -485,6 +492,17 @@ public class UnmatchListService : IUnmatchListService
             };
 
             var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
+
+            // ★デバッグログ追加：UN在庫マスタ検索結果を詳細表示★
+            _logger.LogCritical("UN在庫マスタ検索結果: Product={Product}, Grade={Grade}, Class={Class}, Mark={Mark}, Name='{Name}' -> Found={Found}",
+                sales.ProductCode, sales.GradeCode, sales.ClassCode, 
+                sales.ShippingMarkCode, sales.ShippingMarkName, unInventory != null);
+            
+            if (unInventory != null)
+            {
+                _logger.LogCritical("  -> UN在庫マスタ存在: PrevStock={PrevStock}, DailyStock={DailyStock}, DataSetId={DataSetId}",
+                    unInventory.PreviousDayStock, unInventory.DailyStock, unInventory.DataSetId);
+            }
 
             if (unInventory == null)
             {
