@@ -260,7 +260,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
                     sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", productCategory1);
-                unmatchItem.AlertType2 = "該当無";
+                // unmatchItem.AlertType2 = "該当無";  // 2025/7/29 コメントアウト（該当無アラート削除）
                 unmatchItems.Add(unmatchItem);
             }
             else if (cpInventory.PreviousDayStock >= 0 && cpInventory.DailyStock == 0)
@@ -308,7 +308,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
                     purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "", productCategory1);
-                unmatchItem.AlertType2 = "該当無";
+                // unmatchItem.AlertType2 = "該当無";  // 2025/7/29 コメントアウト（該当無アラート削除）
                 unmatchItems.Add(unmatchItem);
             }
             else if (cpInventory.DailyStock == 0)
@@ -376,7 +376,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
                     adjustment.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromInventoryAdjustment(adjustment, "", productCategory1);
-                unmatchItem.AlertType2 = "該当無";
+                // unmatchItem.AlertType2 = "該当無";  // 2025/7/29 コメントアウト（該当無アラート削除）
                 unmatchItems.Add(unmatchItem);
             }
             else if (cpInventory.DailyStock == 0)

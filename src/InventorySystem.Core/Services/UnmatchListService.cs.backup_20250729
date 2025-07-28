@@ -500,7 +500,7 @@ public class UnmatchListService : IUnmatchListService
                 var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", productCategory1);
                 // ★修正: AlertTypeとAlertType2を正しく設定
                 unmatchItem.AlertType = "在庫マスタ無";   // 左側：在庫マスタ無
-                // unmatchItem.AlertType2 = "該当無";     // 右側：該当無 ← 2025/7/29 コメントアウト（該当無アラート削除）
+                unmatchItem.AlertType2 = "該当無";        // 右側：該当無
                 unmatchItems.Add(unmatchItem);
                 
                 // アンマッチ項目作成時の文字列状態を確認
@@ -573,7 +573,7 @@ public class UnmatchListService : IUnmatchListService
                 var unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "", productCategory1);
                 // ★修正: AlertTypeとAlertType2を正しく設定
                 unmatchItem.AlertType = "在庫マスタ無";   // 左側：在庫マスタ無
-                // unmatchItem.AlertType2 = "該当無";     // 右側：該当無 ← 2025/7/29 コメントアウト（該当無アラート削除）
+                unmatchItem.AlertType2 = "該当無";        // 右側：該当無
                 unmatchItems.Add(unmatchItem);
             }
             // 在庫0エラー削除：マイナス在庫を許容（2025/07/26仕様変更）
@@ -694,7 +694,7 @@ public class UnmatchListService : IUnmatchListService
                 var unmatchItem = UnmatchItem.FromInventoryAdjustment(adjustment, adjustmentType, productCategory1);
                 // ★修正: AlertTypeとAlertType2を正しく設定
                 unmatchItem.AlertType = "在庫マスタ無";   // 左側：在庫マスタ無
-                // unmatchItem.AlertType2 = "該当無";     // 右側：該当無 ← 2025/7/29 コメントアウト（該当無アラート削除）
+                unmatchItem.AlertType2 = "該当無";        // 右側：該当無
                 unmatchItems.Add(unmatchItem);
             }
             // 在庫0エラー削除：マイナス在庫を許容（2025/07/26仕様変更）
