@@ -92,6 +92,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "036_MigrateDataSetsToDataSetManagement.sql", // DataSetsからDataSetManagementへの完全統合
         "037_FixDataSetManagementDefaultConstraints.sql", // UpdatedAtデフォルト制約追加（プレースホルダー）
         "038_RecreateDailyCloseManagementIdealStructure.sql", // DailyCloseManagement理想的構造移行
+        "039_DropDataSetIdFromUnInventoryMaster.sql", // UN在庫マスタのDataSetId列削除（使い捨てテーブル設計）
         
         // === ストアドプロシージャ作成（Gemini推奨順序） ===
         "procedures/sp_MergeInitialInventory.sql",                              // 初期在庫マージ（最優先）

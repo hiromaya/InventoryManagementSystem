@@ -3,8 +3,9 @@ using System;
 namespace InventorySystem.Core.Entities
 {
     /// <summary>
-    /// UN在庫マスタ（アンマッチチェック専用）
+    /// UN在庫マスタ（アンマッチチェック専用・使い捨てテーブル設計）
     /// 数量のみを管理し、単価・金額は含まない
+    /// DataSetId管理を廃止し、TRUNCATEによる高速リセットを採用
     /// </summary>
     public class UnInventoryMaster
     {
@@ -58,10 +59,7 @@ namespace InventorySystem.Core.Entities
             set => Key.ShippingMarkName = value;
         }
 
-        /// <summary>
-        /// データセットID
-        /// </summary>
-        public string DataSetId { get; set; } = string.Empty;
+        // DataSetIdプロパティを削除（使い捨てテーブル設計によりDataSetId管理を廃止）
 
         /// <summary>
         /// 前日在庫数量

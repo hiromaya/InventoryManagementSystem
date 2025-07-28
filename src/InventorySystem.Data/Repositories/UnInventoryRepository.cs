@@ -494,7 +494,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 ShippingMarkCode = item.ShippingMarkCode ?? string.Empty, // 冪等性のある4桁0埋め
                 ShippingMarkName = item.ShippingMarkName ?? string.Empty  // 8桁固定（正規化済み）
             },
-            DataSetId = item.DataSetId ?? string.Empty,
+            // DataSetIdプロパティを削除（使い捨てテーブル設計）
             PreviousDayStock = item.PreviousDayStock ?? 0,
             DailyStock = item.DailyStock ?? 0,
             DailyFlag = dailyFlag,
