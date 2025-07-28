@@ -703,8 +703,8 @@ namespace InventorySystem.Data.Services
                                 "  除外商品: ProductCode={ProductCode}, GradeCode={GradeCode}, " +
                                 "ClassCode={ClassCode}, ShippingMarkCode={ShippingMarkCode}, " +
                                 "ShippingMarkName='{ShippingMarkName}'",
-                                product.ProductCode, product.GradeCode, product.ClassCode,
-                                product.ShippingMarkCode, product.ShippingMarkName);
+                                (string)product.ProductCode, (string)product.GradeCode, (string)product.ClassCode,
+                                (string)product.ShippingMarkCode, (string)product.ShippingMarkName);
                         }
                         
                         if (group.Count() > 5)
