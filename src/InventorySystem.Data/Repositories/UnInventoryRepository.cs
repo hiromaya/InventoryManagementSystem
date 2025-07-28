@@ -468,6 +468,20 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
     /// </summary>
     private UnInventoryMaster MapToUnInventoryMaster(dynamic item)
     {
+        // DailyFlagの安全な変換（string→char型変換）
+        char dailyFlag = '9';
+        if (item.DailyFlag != null)
+        {
+            if (item.DailyFlag is char)
+            {
+                dailyFlag = item.DailyFlag;
+            }
+            else if (item.DailyFlag is string flagStr && !string.IsNullOrEmpty(flagStr))
+            {
+                dailyFlag = flagStr[0];  // 文字列の最初の文字を取得
+            }
+        }
+
         return new UnInventoryMaster
         {
             Key = new InventoryKey
@@ -481,7 +495,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
             DataSetId = item.DataSetId ?? string.Empty,
             PreviousDayStock = item.PreviousDayStock ?? 0,
             DailyStock = item.DailyStock ?? 0,
-            DailyFlag = item.DailyFlag ?? "9",
+            DailyFlag = dailyFlag,
             JobDate = item.JobDate,
             CreatedDate = item.CreatedDate ?? DateTime.Now,
             UpdatedDate = item.UpdatedDate ?? DateTime.Now
