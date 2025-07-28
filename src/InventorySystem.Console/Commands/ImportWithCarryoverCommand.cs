@@ -112,7 +112,7 @@ public class ImportWithCarryoverCommand
                 salesVouchers.Count, purchaseVouchers.Count, adjustmentVouchers.Count);
             
             // 6. 在庫計算処理
-            var mergedInventory = CalculateInventory(
+            var mergedInventory = await CalculateInventoryAsync(
                 currentInventory,
                 salesVouchers,
                 purchaseVouchers,
@@ -219,7 +219,7 @@ public class ImportWithCarryoverCommand
     /// <summary>
     /// 在庫計算メソッド（新規追加）
     /// </summary>
-    private List<InventoryMaster> CalculateInventory(
+    private async Task<List<InventoryMaster>> CalculateInventoryAsync(
         List<InventoryMaster> currentInventory,
         List<SalesVoucher> salesVouchers,
         List<PurchaseVoucher> purchaseVouchers,
@@ -444,9 +444,123 @@ public class ImportWithCarryoverCommand
     }
     
     /// <summary>
-    /// すべてのマスタに存在するかチェック
+    /// すべてのマスタに存在するかチェック（売上伝票用）
     /// </summary>
-    private async Task<bool> IsExistsInAllMastersAsync(dynamic voucher)
+    private async Task<bool> IsExistsInAllMastersAsync(SalesVoucher voucher)
+    {
+        try
+        {
+            // 商品マスタチェック
+            var product = await _productMasterRepository.GetByCodeAsync(voucher.ProductCode);
+            if (product == null)
+            {
+                _logger.LogDebug("商品マスタ未登録: ProductCode={Code}", voucher.ProductCode);
+                return false;
+            }
+            
+            // 等級マスタチェック（コード000は許可）
+            if (voucher.GradeCode != "000")
+            {
+                var grade = await _gradeMasterRepository.GetByCodeAsync(voucher.GradeCode);
+                if (grade == null)
+                {
+                    _logger.LogDebug("等級マスタ未登録: GradeCode={Code}", voucher.GradeCode);
+                    return false;
+                }
+            }
+            
+            // 階級マスタチェック（コード000は許可）
+            if (voucher.ClassCode != "000")
+            {
+                var classEntity = await _classMasterRepository.GetByCodeAsync(voucher.ClassCode);
+                if (classEntity == null)
+                {
+                    _logger.LogDebug("階級マスタ未登録: ClassCode={Code}", voucher.ClassCode);
+                    return false;
+                }
+            }
+            
+            // 荷印マスタチェック（コード0000は許可）
+            if (voucher.ShippingMarkCode != "0000")
+            {
+                var shippingMark = await _shippingMarkMasterRepository.GetByCodeAsync(voucher.ShippingMarkCode);
+                if (shippingMark == null)
+                {
+                    _logger.LogDebug("荷印マスタ未登録: ShippingMarkCode={Code}", voucher.ShippingMarkCode);
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "マスタ存在チェック中にエラーが発生しました");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// すべてのマスタに存在するかチェック（仕入伝票用）
+    /// </summary>
+    private async Task<bool> IsExistsInAllMastersAsync(PurchaseVoucher voucher)
+    {
+        try
+        {
+            // 商品マスタチェック
+            var product = await _productMasterRepository.GetByCodeAsync(voucher.ProductCode);
+            if (product == null)
+            {
+                _logger.LogDebug("商品マスタ未登録: ProductCode={Code}", voucher.ProductCode);
+                return false;
+            }
+            
+            // 等級マスタチェック（コード000は許可）
+            if (voucher.GradeCode != "000")
+            {
+                var grade = await _gradeMasterRepository.GetByCodeAsync(voucher.GradeCode);
+                if (grade == null)
+                {
+                    _logger.LogDebug("等級マスタ未登録: GradeCode={Code}", voucher.GradeCode);
+                    return false;
+                }
+            }
+            
+            // 階級マスタチェック（コード000は許可）
+            if (voucher.ClassCode != "000")
+            {
+                var classEntity = await _classMasterRepository.GetByCodeAsync(voucher.ClassCode);
+                if (classEntity == null)
+                {
+                    _logger.LogDebug("階級マスタ未登録: ClassCode={Code}", voucher.ClassCode);
+                    return false;
+                }
+            }
+            
+            // 荷印マスタチェック（コード0000は許可）
+            if (voucher.ShippingMarkCode != "0000")
+            {
+                var shippingMark = await _shippingMarkMasterRepository.GetByCodeAsync(voucher.ShippingMarkCode);
+                if (shippingMark == null)
+                {
+                    _logger.LogDebug("荷印マスタ未登録: ShippingMarkCode={Code}", voucher.ShippingMarkCode);
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "マスタ存在チェック中にエラーが発生しました");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// すべてのマスタに存在するかチェック（在庫調整用）
+    /// </summary>
+    private async Task<bool> IsExistsInAllMastersAsync(InventoryAdjustment voucher)
     {
         try
         {
