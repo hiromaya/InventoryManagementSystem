@@ -335,7 +335,10 @@ namespace InventorySystem.Data.Services
                 // 主キーが5項目になったため、日付別の履歴管理は行わない
                 _logger.LogInformation("スナップショット管理モデルのため、前日引き継ぎ処理はスキップします");
                 
-                // 5. MERGE文で一括処理
+                // 5. 除外商品のログ出力（デバッグ用）
+                await LogExcludedProductsAsync(connection, transaction, jobDate);
+                
+                // 6. MERGE文で一括処理
                 var mergeResults = await MergeInventoryMasterAsync(connection, transaction, jobDate, dataSetId);
                 result.InsertedCount = mergeResults.insertCount;
                 result.UpdatedCount = mergeResults.updateCount;
@@ -600,6 +603,128 @@ namespace InventorySystem.Data.Services
                     )";
 
             return await connection.ExecuteAsync(sql, new { jobDate }, transaction);
+        }
+
+        /// <summary>
+        /// マスタ未登録により除外される商品をログ出力する（デバッグ用）
+        /// </summary>
+        /// <param name="connection">データベース接続</param>
+        /// <param name="transaction">トランザクション</param>
+        /// <param name="jobDate">処理対象日</param>
+        /// <returns>除外された商品数</returns>
+        private async Task<int> LogExcludedProductsAsync(
+            SqlConnection connection,
+            SqlTransaction transaction,
+            DateTime jobDate)
+        {
+            try
+            {
+                const string sql = @"
+                    WITH CurrentDayTransactions AS (
+                        -- 当日の取引データを集計（ShippingMarkNameをトリミング）
+                        SELECT DISTINCT
+                            ProductCode,
+                            GradeCode,
+                            ClassCode,
+                            ShippingMarkCode,
+                            LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName
+                        FROM (
+                            -- 売上データ
+                            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                            FROM SalesVouchers 
+                            WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
+                            
+                            UNION ALL
+                            
+                            -- 仕入データ
+                            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                            FROM PurchaseVouchers 
+                            WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
+                            
+                            UNION ALL
+                            
+                            -- 在庫調整データ
+                            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                            FROM InventoryAdjustments 
+                            WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
+                        ) AS AllTransactions
+                    ),
+                    ExcludedProducts AS (
+                        SELECT 
+                            t.*,
+                            CASE 
+                                WHEN NOT EXISTS (SELECT 1 FROM ProductMaster pmc WHERE pmc.ProductCode = t.ProductCode) THEN '商品マスタ未登録'
+                                WHEN t.GradeCode != '000' AND NOT EXISTS (SELECT 1 FROM GradeMaster gm WHERE gm.GradeCode = t.GradeCode) THEN '等級マスタ未登録'
+                                WHEN t.ClassCode != '000' AND NOT EXISTS (SELECT 1 FROM ClassMaster cm WHERE cm.ClassCode = t.ClassCode) THEN '階級マスタ未登録'
+                                WHEN t.ShippingMarkCode != '0000' AND NOT EXISTS (SELECT 1 FROM ShippingMarkMaster sm WHERE sm.ShippingMarkCode = t.ShippingMarkCode) THEN '荷印マスタ未登録'
+                                ELSE 'その他'
+                            END as ExclusionReason
+                        FROM CurrentDayTransactions t
+                        WHERE NOT (
+                            EXISTS (SELECT 1 FROM ProductMaster pmc WHERE pmc.ProductCode = t.ProductCode)
+                            AND (t.GradeCode = '000' OR EXISTS (SELECT 1 FROM GradeMaster gm WHERE gm.GradeCode = t.GradeCode))
+                            AND (t.ClassCode = '000' OR EXISTS (SELECT 1 FROM ClassMaster cm WHERE cm.ClassCode = t.ClassCode))
+                            AND (t.ShippingMarkCode = '0000' OR EXISTS (SELECT 1 FROM ShippingMarkMaster sm WHERE sm.ShippingMarkCode = t.ShippingMarkCode))
+                        )
+                    )
+                    SELECT 
+                        ProductCode,
+                        GradeCode,
+                        ClassCode,
+                        ShippingMarkCode,
+                        ShippingMarkName,
+                        ExclusionReason
+                    FROM ExcludedProducts
+                    ORDER BY ExclusionReason, ProductCode, GradeCode, ClassCode, ShippingMarkCode";
+
+                var excludedProducts = await connection.QueryAsync<dynamic>(
+                    sql,
+                    new { jobDate },
+                    transaction);
+
+                var excludedList = excludedProducts.ToList();
+
+                if (excludedList.Any())
+                {
+                    _logger.LogWarning("マスタ未登録により在庫マスタ登録から除外された商品: {Count}件", excludedList.Count);
+                    
+                    // 除外理由別にグループ化してログ出力
+                    var groupedByReason = excludedList.GroupBy(p => (string)p.ExclusionReason);
+                    
+                    foreach (var group in groupedByReason)
+                    {
+                        _logger.LogDebug("除外理由「{Reason}」: {Count}件", group.Key, group.Count());
+                        
+                        // 詳細ログ（最初の5件のみ）
+                        var samples = group.Take(5);
+                        foreach (var product in samples)
+                        {
+                            _logger.LogDebug(
+                                "  除外商品: ProductCode={ProductCode}, GradeCode={GradeCode}, " +
+                                "ClassCode={ClassCode}, ShippingMarkCode={ShippingMarkCode}, " +
+                                "ShippingMarkName='{ShippingMarkName}'",
+                                product.ProductCode, product.GradeCode, product.ClassCode,
+                                product.ShippingMarkCode, product.ShippingMarkName);
+                        }
+                        
+                        if (group.Count() > 5)
+                        {
+                            _logger.LogDebug("  （他 {Count}件）", group.Count() - 5);
+                        }
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("マスタ未登録による除外商品: 0件（すべて登録済み）");
+                }
+
+                return excludedList.Count;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "除外商品のログ出力中にエラーが発生しました");
+                return 0;
+            }
         }
     }
 

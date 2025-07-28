@@ -96,6 +96,7 @@ BEGIN
         )
         
         -- MERGE文で在庫マスタを更新（スナップショット管理）
+        -- ☆マスタ存在チェックを追加☆
         MERGE InventoryMaster AS target
         USING (
             SELECT 
@@ -108,6 +109,11 @@ BEGIN
             FROM CurrentDayTransactions t
             LEFT JOIN ProductMaster pm ON t.ProductCode = pm.ProductCode
             LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode
+            -- ☆マスタ存在チェック条件を追加☆
+            WHERE EXISTS (SELECT 1 FROM ProductMaster pmc WHERE pmc.ProductCode = t.ProductCode)
+                AND (t.GradeCode = '000' OR EXISTS (SELECT 1 FROM GradeMaster gm WHERE gm.GradeCode = t.GradeCode))
+                AND (t.ClassCode = '000' OR EXISTS (SELECT 1 FROM ClassMaster cm WHERE cm.ClassCode = t.ClassCode))
+                AND (t.ShippingMarkCode = '0000' OR EXISTS (SELECT 1 FROM ShippingMarkMaster sm WHERE sm.ShippingMarkCode = t.ShippingMarkCode))
         ) AS source
         ON (
             target.ProductCode = source.ProductCode
