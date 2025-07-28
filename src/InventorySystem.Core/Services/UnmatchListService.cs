@@ -164,7 +164,7 @@ public class UnmatchListService : IUnmatchListService
             _logger.LogCritical("TargetDate: {TargetDate}", targetDate?.ToString("yyyy-MM-dd HH:mm:ss") ?? "NULL");
             _logger.LogCritical("使い捨てテーブル設計：DataSetId管理を廃止");
             
-            var createResult = await _unInventoryRepository.CreateFromInventoryMasterAsync("UNUSED", targetDate);
+            var createResult = await _unInventoryRepository.CreateFromInventoryMasterAsync(targetDate);
             _logger.LogCritical("UN在庫マスタ作成結果: {Count}件", createResult);
             
             if (createResult == 0)
@@ -198,9 +198,9 @@ public class UnmatchListService : IUnmatchListService
                 _logger.LogInformation("全期間対象のため、前日在庫引き継ぎ処理はスキップします");
             }
 
-            // 処理1-2: 当日エリアクリア
-            _logger.LogInformation("当日エリアクリア開始");
-            await _unInventoryRepository.ClearDailyAreaAsync(dataSetId);
+            // 処理1-2: 当日エリアクリア（使い捨てテーブル設計で全テーブル対象）
+            _logger.LogInformation("当日エリアクリア開始（全テーブル対象）");
+            await _unInventoryRepository.ClearDailyAreaAsync();
             _logger.LogInformation("当日エリアクリア完了");
             
             // UN在庫マスタでは文字化けチェック不要（アンマッチチェック専用のため）
@@ -210,8 +210,8 @@ public class UnmatchListService : IUnmatchListService
             await AggregateDailyDataWithValidationAsync(dataSetId, targetDate);
             _logger.LogCritical("=== {ProcessType}データ集計完了 ===", processType);
             
-            // 集計後のUN在庫マスタの状態を確認
-            var postAggregationCount = await _unInventoryRepository.GetCountAsync(dataSetId);
+            // 集計後のUN在庫マスタの状態を確認（使い捨てテーブル設計）
+            var postAggregationCount = await _unInventoryRepository.GetCountAsync();
             _logger.LogCritical("集計後のUN在庫マスタ件数: {Count}", postAggregationCount);
             
             if (postAggregationCount == 0)
@@ -222,8 +222,8 @@ public class UnmatchListService : IUnmatchListService
             {
                 _logger.LogCritical("✅ 集計後のUN在庫マスタ: {Count}件", postAggregationCount);
                 
-                // 最初の5件をサンプル表示
-                var sampleRecords = await _unInventoryRepository.GetAllAsync(dataSetId);
+                // 最初の5件をサンプル表示（使い捨てテーブル設計）
+                var sampleRecords = await _unInventoryRepository.GetAllAsync();
                 var first5 = sampleRecords.Take(5);
                 _logger.LogCritical("UN在庫マスタサンプル（最初の5件）:");
                 foreach (var (record, index) in first5.Select((r, i) => (r, i)))
@@ -260,8 +260,8 @@ public class UnmatchListService : IUnmatchListService
             // UN在庫マスタは保持する（仕様準拠）
             // 自身が作成したUN在庫マスタは削除しない
             // 削除は日次終了処理時または明示的な削除指示時のみ実行
-            _logger.LogInformation("アンマッチチェック完了：UN在庫マスタは保持されます - DataSetId: {DataSetId}, 件数: {Count}", 
-                dataSetId, await _unInventoryRepository.GetCountAsync(dataSetId));
+            _logger.LogInformation("アンマッチチェック完了：UN在庫マスタは保持されます - 件数: {Count}", 
+                await _unInventoryRepository.GetCountAsync());
 
             // 最終確認ログ
             _logger.LogCritical("===== UnmatchListService 最終結果確認 =====");
@@ -316,8 +316,8 @@ public class UnmatchListService : IUnmatchListService
             // 自身が作成したUN在庫マスタは削除しない
             try
             {
-                var remainingCount = await _unInventoryRepository.GetCountAsync(dataSetId);
-                _logger.LogInformation("エラー発生：UN在庫マスタは保持されます - DataSetId: {DataSetId}, 件数: {Count}", dataSetId, remainingCount);
+                var remainingCount = await _unInventoryRepository.GetCountAsync();
+                _logger.LogInformation("エラー発生：UN在庫マスタは保持されます - 件数: {Count}", remainingCount);
             }
             catch (Exception countEx)
             {
@@ -476,7 +476,7 @@ public class UnmatchListService : IUnmatchListService
                 ShippingMarkName = sales.ShippingMarkName
             };
 
-            var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
+            var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey);
 
             if (unInventory == null)
             {
@@ -562,7 +562,7 @@ public class UnmatchListService : IUnmatchListService
             };
 
             // UN在庫マスタから該当データを取得
-            var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
+            var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey);
 
             if (unInventory == null)
             {
@@ -680,7 +680,7 @@ public class UnmatchListService : IUnmatchListService
             };
 
             // UN在庫マスタから該当データを取得
-            var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey, dataSetId);
+            var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey);
 
             if (unInventory == null)
             {
@@ -982,14 +982,14 @@ public class UnmatchListService : IUnmatchListService
             var adjustmentCount = await _unInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, targetDate);
             _logger.LogCritical("在庫調整データ集計完了: {Count}件更新", adjustmentCount);
             
-            // 4. 当日在庫計算
-            _logger.LogCritical("4. 当日在庫計算開始...");
-            var calculatedCount = await _unInventoryRepository.CalculateDailyStockAsync(dataSetId);
+            // 4. 当日在庫計算（使い捨てテーブル設計で全テーブル対象）
+            _logger.LogCritical("4. 当日在庫計算開始（全テーブル対象）...");
+            var calculatedCount = await _unInventoryRepository.CalculateDailyStockAsync();
             _logger.LogCritical("当日在庫計算完了: {Count}件更新", calculatedCount);
             
-            // 5. 当日発生フラグ更新
-            _logger.LogCritical("5. 当日発生フラグ更新開始...");
-            var flagCount = await _unInventoryRepository.SetDailyFlagToProcessedAsync(dataSetId);
+            // 5. 当日発生フラグ更新（使い捨てテーブル設計で全テーブル対象）
+            _logger.LogCritical("5. 当日発生フラグ更新開始（全テーブル対象）...");
+            var flagCount = await _unInventoryRepository.SetDailyFlagToProcessedAsync();
             _logger.LogCritical("当日発生フラグ更新完了: {Count}件更新", flagCount);
             
             _logger.LogCritical("=== 入荷データ集計処理完了 ===");

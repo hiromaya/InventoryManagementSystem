@@ -8,19 +8,17 @@ namespace InventorySystem.Core.Interfaces
     public interface IUnInventoryRepository
     {
         /// <summary>
-        /// 在庫マスタからUN在庫マスタを作成する
+        /// 在庫マスタからUN在庫マスタを作成する（使い捨てテーブル設計）
         /// </summary>
-        /// <param name="dataSetId">データセットID</param>
         /// <param name="targetDate">対象日付（nullの場合は全期間）</param>
         /// <returns>作成件数</returns>
-        Task<int> CreateFromInventoryMasterAsync(string dataSetId, DateTime? targetDate = null);
+        Task<int> CreateFromInventoryMasterAsync(DateTime? targetDate = null);
 
         /// <summary>
-        /// UN在庫マスタの当日エリアをクリアし、当日発生フラグを'9'にセットする
+        /// UN在庫マスタの当日エリアをクリアし、当日発生フラグを'9'にセットする（使い捨てテーブル設計）
         /// </summary>
-        /// <param name="dataSetId">データセットID</param>
         /// <returns>更新件数</returns>
-        Task<int> ClearDailyAreaAsync(string dataSetId);
+        Task<int> ClearDailyAreaAsync();
 
         /// <summary>
         /// 売上データをUN在庫マスタに集計する
@@ -47,33 +45,29 @@ namespace InventorySystem.Core.Interfaces
         Task<int> AggregateInventoryAdjustmentDataAsync(string dataSetId, DateTime? targetDate = null);
 
         /// <summary>
-        /// 当日在庫数量を計算する
+        /// 当日在庫数量を計算する（使い捨てテーブル設計）
         /// </summary>
-        /// <param name="dataSetId">データセットID</param>
         /// <returns>更新件数</returns>
-        Task<int> CalculateDailyStockAsync(string dataSetId);
+        Task<int> CalculateDailyStockAsync();
 
         /// <summary>
-        /// 当日発生フラグを'0'（処理済み）に更新する
+        /// 当日発生フラグを'0'（処理済み）に更新する（使い捨てテーブル設計）
         /// </summary>
-        /// <param name="dataSetId">データセットID</param>
         /// <returns>更新件数</returns>
-        Task<int> SetDailyFlagToProcessedAsync(string dataSetId);
+        Task<int> SetDailyFlagToProcessedAsync();
 
         /// <summary>
-        /// UN在庫マスタを取得する（キー指定）
+        /// UN在庫マスタを取得する（キー指定）（使い捨てテーブル設計）
         /// </summary>
         /// <param name="key">5項目複合キー</param>
-        /// <param name="dataSetId">データセットID</param>
         /// <returns>UN在庫マスタ</returns>
-        Task<UnInventoryMaster?> GetByKeyAsync(InventoryKey key, string dataSetId);
+        Task<UnInventoryMaster?> GetByKeyAsync(InventoryKey key);
 
         /// <summary>
-        /// UN在庫マスタを一括取得する
+        /// UN在庫マスタを一括取得する（使い捨てテーブル設計）
         /// </summary>
-        /// <param name="dataSetId">データセットID</param>
         /// <returns>UN在庫マスタ一覧</returns>
-        Task<IEnumerable<UnInventoryMaster>> GetAllAsync(string dataSetId);
+        Task<IEnumerable<UnInventoryMaster>> GetAllAsync();
 
         /// <summary>
         /// UN在庫マスタを削除する（データセット指定）
@@ -89,18 +83,16 @@ namespace InventorySystem.Core.Interfaces
         Task<int> TruncateAllAsync();
 
         /// <summary>
-        /// UN在庫マスタの件数を取得する
+        /// UN在庫マスタの件数を取得する（使い捨てテーブル設計）
         /// </summary>
-        /// <param name="dataSetId">データセットID</param>
         /// <returns>件数</returns>
-        Task<int> GetCountAsync(string dataSetId);
+        Task<int> GetCountAsync();
 
         /// <summary>
-        /// JobDateとDataSetIdでUN在庫マスタを取得
+        /// JobDateでUN在庫マスタを取得（使い捨てテーブル設計）
         /// </summary>
         /// <param name="jobDate">対象日付</param>
-        /// <param name="dataSetId">データセットID</param>
         /// <returns>UN在庫マスタ一覧</returns>
-        Task<IEnumerable<UnInventoryMaster>> GetByJobDateAndDataSetIdAsync(DateTime jobDate, string dataSetId);
+        Task<IEnumerable<UnInventoryMaster>> GetByJobDateAsync(DateTime jobDate);
     }
 }

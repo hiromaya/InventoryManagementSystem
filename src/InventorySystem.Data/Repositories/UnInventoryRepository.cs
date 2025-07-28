@@ -18,9 +18,9 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
     }
 
     /// <summary>
-    /// 在庫マスタからUN在庫マスタを作成する
+    /// 在庫マスタからUN在庫マスタを作成する（使い捨てテーブル設計）
     /// </summary>
-    public async Task<int> CreateFromInventoryMasterAsync(string dataSetId, DateTime? targetDate = null)
+    public async Task<int> CreateFromInventoryMasterAsync(DateTime? targetDate = null)
     {
         const string sql = """
             INSERT INTO UnInventoryMaster (
@@ -69,15 +69,15 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
         }
         catch (Exception ex)
         {
-            LogError(ex, "UN在庫マスタ作成エラー", new { dataSetId, targetDate });
+            LogError(ex, "UN在庫マスタ作成エラー", new { targetDate });
             throw;
         }
     }
 
     /// <summary>
-    /// UN在庫マスタの当日エリアをクリアし、当日発生フラグを'9'にセットする
+    /// UN在庫マスタの当日エリアをクリアし、当日発生フラグを'9'にセットする（使い捨てテーブル設計）
     /// </summary>
-    public async Task<int> ClearDailyAreaAsync(string dataSetId)
+    public async Task<int> ClearDailyAreaAsync()
     {
         const string sql = """
             UPDATE UnInventoryMaster 
@@ -85,26 +85,25 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 DailyStock = 0,
                 DailyFlag = '9',
                 UpdatedDate = GETDATE()
-            WHERE DataSetId = @DataSetId
             """;
 
         try
         {
             using var connection = CreateConnection();
-            var count = await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+            var count = await connection.ExecuteAsync(sql);
 
-            LogInfo($"UN在庫マスタ当日エリアクリア完了: {count}件", new { dataSetId });
+            LogInfo($"UN在庫マスタ当日エリアクリア完了: {count}件（全テーブル対象）", new { count });
             return count;
         }
         catch (Exception ex)
         {
-            LogError(ex, "UN在庫マスタ当日エリアクリアエラー", new { dataSetId });
+            LogError(ex, "UN在庫マスタ当日エリアクリアエラー", null);
             throw;
         }
     }
 
     /// <summary>
-    /// 売上返品データをUN在庫マスタに集計する（入荷データのみ）
+    /// 売上返品データをUN在庫マスタに集計する（入荷データのみ）（使い捨てテーブル設計）
     /// </summary>
     public async Task<int> AggregateSalesDataAsync(string dataSetId, DateTime? targetDate = null)
     {
@@ -139,7 +138,6 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 AND un.ClassCode = sales.ClassCode
                 AND un.ShippingMarkCode = sales.ShippingMarkCode
                 AND un.ShippingMarkName = sales.ShippingMarkName
-            WHERE un.DataSetId = @DataSetId
             """;
 
         try
@@ -151,7 +149,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 TargetDate = targetDate 
             });
 
-            LogInfo($"UN在庫マスタ売上データ集計完了: {count}件", new { dataSetId, targetDate });
+            LogInfo($"UN在庫マスタ売上データ集計完了: {count}件（全テーブル対象）", new { dataSetId, targetDate });
             return count;
         }
         catch (Exception ex)
@@ -162,7 +160,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
     }
 
     /// <summary>
-    /// 仕入データをUN在庫マスタに集計する
+    /// 仕入データをUN在庫マスタに集計する（使い捨てテーブル設計）
     /// </summary>
     public async Task<int> AggregatePurchaseDataAsync(string dataSetId, DateTime? targetDate = null)
     {
@@ -197,7 +195,6 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 AND un.ClassCode = purchase.ClassCode
                 AND un.ShippingMarkCode = purchase.ShippingMarkCode
                 AND un.ShippingMarkName = purchase.ShippingMarkName
-            WHERE un.DataSetId = @DataSetId
             """;
 
         try
@@ -209,7 +206,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 TargetDate = targetDate 
             });
 
-            LogInfo($"UN在庫マスタ仕入データ集計完了: {count}件", new { dataSetId, targetDate });
+            LogInfo($"UN在庫マスタ仕入データ集計完了: {count}件（全テーブル対象）", new { dataSetId, targetDate });
             return count;
         }
         catch (Exception ex)
@@ -220,7 +217,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
     }
 
     /// <summary>
-    /// 在庫調整データをUN在庫マスタに集計する（入荷データのみ）
+    /// 在庫調整データをUN在庫マスタに集計する（入荷データのみ）（使い捨てテーブル設計）
     /// </summary>
     public async Task<int> AggregateInventoryAdjustmentDataAsync(string dataSetId, DateTime? targetDate = null)
     {
@@ -256,7 +253,6 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 AND un.ClassCode = adjustment.ClassCode
                 AND un.ShippingMarkCode = adjustment.ShippingMarkCode
                 AND un.ShippingMarkName = adjustment.ShippingMarkName
-            WHERE un.DataSetId = @DataSetId
             """;
 
         try
@@ -268,7 +264,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 TargetDate = targetDate 
             });
 
-            LogInfo($"UN在庫マスタ在庫調整データ集計完了: {count}件", new { dataSetId, targetDate });
+            LogInfo($"UN在庫マスタ在庫調整データ集計完了: {count}件（全テーブル対象）", new { dataSetId, targetDate });
             return count;
         }
         catch (Exception ex)
@@ -279,65 +275,63 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
     }
 
     /// <summary>
-    /// 当日在庫数量を計算する
+    /// 当日在庫数量を計算する（使い捨てテーブル設計）
     /// </summary>
-    public async Task<int> CalculateDailyStockAsync(string dataSetId)
+    public async Task<int> CalculateDailyStockAsync()
     {
         const string sql = """
             UPDATE UnInventoryMaster 
             SET 
                 DailyStock = PreviousDayStock + DailyStock,
                 UpdatedDate = GETDATE()
-            WHERE DataSetId = @DataSetId
             """;
 
         try
         {
             using var connection = CreateConnection();
-            var count = await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+            var count = await connection.ExecuteAsync(sql);
 
-            LogInfo($"UN在庫マスタ当日在庫計算完了: {count}件", new { dataSetId });
+            LogInfo($"UN在庫マスタ当日在庫計算完了: {count}件（全テーブル対象）", new { count });
             return count;
         }
         catch (Exception ex)
         {
-            LogError(ex, "UN在庫マスタ当日在庫計算エラー", new { dataSetId });
+            LogError(ex, "UN在庫マスタ当日在庫計算エラー", null);
             throw;
         }
     }
 
     /// <summary>
-    /// 当日発生フラグを'0'（処理済み）に更新する
+    /// 当日発生フラグを'0'（処理済み）に更新する（使い捨てテーブル設計）
     /// </summary>
-    public async Task<int> SetDailyFlagToProcessedAsync(string dataSetId)
+    public async Task<int> SetDailyFlagToProcessedAsync()
     {
         const string sql = """
             UPDATE UnInventoryMaster 
             SET 
                 DailyFlag = '0',
                 UpdatedDate = GETDATE()
-            WHERE DataSetId = @DataSetId
             """;
 
         try
         {
             using var connection = CreateConnection();
-            var count = await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+            var count = await connection.ExecuteAsync(sql);
 
-            LogInfo($"UN在庫マスタ処理フラグ更新完了: {count}件", new { dataSetId });
+            LogInfo($"UN在庫マスタ処理フラグ更新完了: {count}件（全テーブル対象）", new { count });
             return count;
         }
         catch (Exception ex)
         {
-            LogError(ex, "UN在庫マスタ処理フラグ更新エラー", new { dataSetId });
+            LogError(ex, "UN在庫マスタ処理フラグ更新エラー", null);
             throw;
         }
     }
 
     /// <summary>
-    /// UN在庫マスタを取得する（キー指定）
+    /// UN在庫マスタを取得する（キー指定）（使い捨てテーブル設計）
     /// </summary>
-    public async Task<UnInventoryMaster?> GetByKeyAsync(InventoryKey key, string dataSetId)
+    public async Task<UnInventoryMaster?> GetByKeyAsync(InventoryKey key)
     {
         const string sql = """
             SELECT * FROM UnInventoryMaster 
@@ -346,7 +340,6 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
             AND ClassCode = @ClassCode
             AND ShippingMarkCode = @ShippingMarkCode
             AND ShippingMarkName = @ShippingMarkName
-            AND DataSetId = @DataSetId
             """;
 
         try
@@ -358,40 +351,38 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 GradeCode = key.GradeCode,
                 ClassCode = key.ClassCode,
                 ShippingMarkCode = key.ShippingMarkCode,
-                ShippingMarkName = key.ShippingMarkName,
-                DataSetId = dataSetId 
+                ShippingMarkName = key.ShippingMarkName
             });
 
             return result != null ? MapToUnInventoryMaster(result) : null;
         }
         catch (Exception ex)
         {
-            LogError(ex, "UN在庫マスタ取得エラー", new { key, dataSetId });
+            LogError(ex, "UN在庫マスタ取得エラー", new { key });
             throw;
         }
     }
 
     /// <summary>
-    /// UN在庫マスタを一括取得する
+    /// UN在庫マスタを一括取得する（使い捨てテーブル設計）
     /// </summary>
-    public async Task<IEnumerable<UnInventoryMaster>> GetAllAsync(string dataSetId)
+    public async Task<IEnumerable<UnInventoryMaster>> GetAllAsync()
     {
         const string sql = """
             SELECT * FROM UnInventoryMaster 
-            WHERE DataSetId = @DataSetId
             ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             """;
 
         try
         {
             using var connection = CreateConnection();
-            var results = await connection.QueryAsync<dynamic>(sql, new { DataSetId = dataSetId });
+            var results = await connection.QueryAsync<dynamic>(sql);
 
             return results.Select(MapToUnInventoryMaster);
         }
         catch (Exception ex)
         {
-            LogError(ex, "UN在庫マスタ一括取得エラー", new { dataSetId });
+            LogError(ex, "UN在庫マスタ一括取得エラー", null);
             throw;
         }
     }
@@ -422,36 +413,34 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
     }
 
     /// <summary>
-    /// UN在庫マスタの件数を取得する
+    /// UN在庫マスタの件数を取得する（使い捨てテーブル設計）
     /// </summary>
-    public async Task<int> GetCountAsync(string dataSetId)
+    public async Task<int> GetCountAsync()
     {
         const string sql = """
-            SELECT COUNT(*) FROM UnInventoryMaster 
-            WHERE DataSetId = @DataSetId
+            SELECT COUNT(*) FROM UnInventoryMaster
             """;
 
         try
         {
             using var connection = CreateConnection();
-            return await connection.ExecuteScalarAsync<int>(sql, new { DataSetId = dataSetId });
+            return await connection.ExecuteScalarAsync<int>(sql);
         }
         catch (Exception ex)
         {
-            LogError(ex, "UN在庫マスタ件数取得エラー", new { dataSetId });
+            LogError(ex, "UN在庫マスタ件数取得エラー", null);
             throw;
         }
     }
 
     /// <summary>
-    /// JobDateとDataSetIdでUN在庫マスタを取得
+    /// JobDateでUN在庫マスタを取得（使い捨てテーブル設計）
     /// </summary>
-    public async Task<IEnumerable<UnInventoryMaster>> GetByJobDateAndDataSetIdAsync(DateTime jobDate, string dataSetId)
+    public async Task<IEnumerable<UnInventoryMaster>> GetByJobDateAsync(DateTime jobDate)
     {
         const string sql = """
             SELECT * FROM UnInventoryMaster 
-            WHERE DataSetId = @DataSetId 
-            AND JobDate = @JobDate
+            WHERE JobDate = @JobDate
             ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             """;
 
@@ -460,18 +449,17 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
             using var connection = CreateConnection();
             var results = await connection.QueryAsync<dynamic>(sql, new 
             { 
-                DataSetId = dataSetId,
                 JobDate = jobDate 
             });
 
-            LogInfo($"UN在庫マスタ取得完了: JobDate={jobDate}, DataSetId={dataSetId}, 件数={results.Count()}", 
-                new { jobDate, dataSetId });
+            LogInfo($"UN在庫マスタ取得完了: JobDate={jobDate}, 件数={results.Count()}", 
+                new { jobDate });
             
             return results.Select(MapToUnInventoryMaster);
         }
         catch (Exception ex)
         {
-            LogError(ex, "UN在庫マスタ取得エラー", new { jobDate, dataSetId });
+            LogError(ex, "UN在庫マスタ取得エラー", new { jobDate });
             throw;
         }
     }
