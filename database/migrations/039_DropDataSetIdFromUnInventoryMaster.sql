@@ -49,8 +49,8 @@ PRINT '=== UN在庫マスタの全データ削除（使い捨てテーブル設�
 TRUNCATE TABLE UnInventoryMaster;
 PRINT 'UN在庫マスタの全データを削除しました。';
 
--- Step 5: DataSetId列を削除
-PRINT '=== DataSetId列の削除実行 ===';
+-- Step 5: 主キー制約とDataSetId列の削除
+PRINT '=== 主キー制約とDataSetId列の削除実行 ===';
 BEGIN TRY
     -- DataSetId列が存在する場合のみ削除
     IF EXISTS (
@@ -60,8 +60,21 @@ BEGIN TRY
           AND COLUMN_NAME = 'DataSetId'
     )
     BEGIN
+        -- Step 5-1: 既存の主キー制約を削除
+        PRINT '主キー制約を削除中...';
+        ALTER TABLE UnInventoryMaster DROP CONSTRAINT PK_UnInventoryMaster;
+        PRINT '✅ 主キー制約 PK_UnInventoryMaster を削除しました。';
+        
+        -- Step 5-2: DataSetId列を削除
+        PRINT 'DataSetId列を削除中...';
         ALTER TABLE UnInventoryMaster DROP COLUMN DataSetId;
         PRINT '✅ DataSetId列を正常に削除しました。';
+        
+        -- Step 5-3: 新しい主キー制約を作成（5項目複合キーのみ）
+        PRINT '新しい主キー制約を作成中...';
+        ALTER TABLE UnInventoryMaster ADD CONSTRAINT PK_UnInventoryMaster 
+            PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+        PRINT '✅ 新しい主キー制約を作成しました（5項目複合キー）。';
     END
     ELSE
     BEGIN
@@ -85,6 +98,18 @@ FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME = 'UnInventoryMaster' 
 ORDER BY ORDINAL_POSITION;
 
+-- 新しい主キー制約を確認
+PRINT '=== 新しい主キー制約確認 ===';
+SELECT 
+    tc.CONSTRAINT_NAME,
+    kcu.COLUMN_NAME
+FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu 
+    ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+WHERE tc.TABLE_NAME = 'UnInventoryMaster' 
+    AND tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
+ORDER BY kcu.ORDINAL_POSITION;
+
 -- Step 7: 使い捨てテーブル設計の検証
 PRINT '=== 使い捨てテーブル設計の検証完了 ===';
 PRINT 'UnInventoryMasterテーブルはDataSetId管理から完全に独立しました。';
@@ -92,5 +117,7 @@ PRINT 'このテーブルは以下の特徴を持ちます：';
 PRINT '- TRUNCATEによる高速全削除';
 PRINT '- 単一処理での一時データ格納';
 PRINT '- DataSetId依存なしの純粋な作業テーブル';
+PRINT '- 5項目複合キーのみで管理（DataSetId不要）';
+PRINT '- アンマッチチェック専用の一時作業領域';
 
 GO
