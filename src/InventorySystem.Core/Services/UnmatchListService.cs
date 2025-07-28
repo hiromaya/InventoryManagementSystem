@@ -149,18 +149,10 @@ public class UnmatchListService : IUnmatchListService
             await OptimizeInventoryMasterAsync(dataSetId);
             _logger.LogInformation("在庫マスタの最適化が完了しました");
 
-            // UN在庫マスタ作成前：同一DataSetIdの既存レコードが存在する場合のみ削除
-            var existingCount = await _unInventoryRepository.GetCountAsync(dataSetId);
-            if (existingCount > 0)
-            {
-                _logger.LogInformation("同一DataSetIdの既存UN在庫マスタを削除します - DataSetId: {DataSetId}, 件数: {Count}", dataSetId, existingCount);
-                var deletedCount = await _unInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
-                _logger.LogInformation("UN在庫マスタ削除完了: {Count}件", deletedCount);
-            }
-            else
-            {
-                _logger.LogInformation("同一DataSetIdのUN在庫マスタは存在しないため削除処理をスキップ - DataSetId: {DataSetId}", dataSetId);
-            }
+            // UN在庫マスタ作成前：使い捨てテーブルとして全削除
+            _logger.LogInformation("UN在庫マスタ全削除開始（使い捨てテーブル設計）");
+            var deletedCount = await _unInventoryRepository.TruncateAllAsync();
+            _logger.LogInformation("UN在庫マスタ全削除完了: {Count}件", deletedCount);
 
             // ⚠️ 重要：CP在庫マスタはアンマッチ処理では削除しない
             // CP在庫マスタは商品勘定作成時のみ作成・削除される（2025年7月27日仕様確認済み）
@@ -169,10 +161,10 @@ public class UnmatchListService : IUnmatchListService
             // 処理1-1: UN在庫M作成（指定日以前のアクティブな在庫マスタから）
             _logger.LogCritical("=== UN在庫マスタ作成処理 詳細デバッグ ===");
             _logger.LogCritical("処理タイプ: {ProcessType}", processType);
-            _logger.LogCritical("DataSetId: {DataSetId}", dataSetId);
             _logger.LogCritical("TargetDate: {TargetDate}", targetDate?.ToString("yyyy-MM-dd HH:mm:ss") ?? "NULL");
+            _logger.LogCritical("使い捨てテーブル設計：DataSetId管理を廃止");
             
-            var createResult = await _unInventoryRepository.CreateFromInventoryMasterAsync(dataSetId, targetDate);
+            var createResult = await _unInventoryRepository.CreateFromInventoryMasterAsync("UNUSED", targetDate);
             _logger.LogCritical("UN在庫マスタ作成結果: {Count}件", createResult);
             
             if (createResult == 0)

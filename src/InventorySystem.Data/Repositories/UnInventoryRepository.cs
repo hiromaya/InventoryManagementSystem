@@ -25,12 +25,11 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
         const string sql = """
             INSERT INTO UnInventoryMaster (
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                DataSetId, PreviousDayStock, DailyStock, DailyFlag, JobDate,
+                PreviousDayStock, DailyStock, DailyFlag, JobDate,
                 CreatedDate, UpdatedDate
             )
             SELECT 
                 i.ProductCode, i.GradeCode, i.ClassCode, i.ShippingMarkCode, i.ShippingMarkName,
-                @DataSetId,
                 ISNULL(i.PreviousMonthQuantity, 0),
                 0 as DailyStock,
                 '9' as DailyFlag,
@@ -62,11 +61,10 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
             using var connection = CreateConnection();
             var count = await connection.ExecuteAsync(sql, new 
             { 
-                DataSetId = dataSetId, 
                 TargetDate = targetDate 
             });
 
-            LogInfo($"UN在庫マスタ作成完了: {count}件", new { dataSetId, targetDate });
+            LogInfo($"UN在庫マスタ作成完了: {count}件", new { targetDate });
             return count;
         }
         catch (Exception ex)
@@ -516,5 +514,31 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
             CreatedDate = item.CreatedDate ?? DateTime.Now,
             UpdatedDate = item.UpdatedDate ?? DateTime.Now
         };
+    }
+
+    /// <summary>
+    /// UN在庫マスタの全データを削除する（使い捨てテーブル設計）
+    /// </summary>
+    /// <returns>削除件数</returns>
+    public async Task<int> TruncateAllAsync()
+    {
+        try
+        {
+            using var connection = CreateConnection();
+            
+            // 削除前の件数を取得
+            var beforeCount = await connection.QuerySingleAsync<int>("SELECT COUNT(*) FROM UnInventoryMaster");
+            
+            // TRUNCATE文でパフォーマンス向上（ログ不要、高速削除）
+            await connection.ExecuteAsync("TRUNCATE TABLE UnInventoryMaster");
+            
+            LogInfo($"UN在庫マスタ全削除完了: {beforeCount}件（TRUNCATE実行）", new { beforeCount });
+            return beforeCount;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, "UN在庫マスタ全削除エラー", null);
+            throw;
+        }
     }
 }

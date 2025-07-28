@@ -83,6 +83,12 @@ namespace InventorySystem.Core.Interfaces
         Task<int> DeleteByDataSetIdAsync(string dataSetId);
 
         /// <summary>
+        /// UN在庫マスタの全データを削除する（使い捨てテーブル設計）
+        /// </summary>
+        /// <returns>削除件数</returns>
+        Task<int> TruncateAllAsync();
+
+        /// <summary>
         /// UN在庫マスタの件数を取得する
         /// </summary>
         /// <param name="dataSetId">データセットID</param>
