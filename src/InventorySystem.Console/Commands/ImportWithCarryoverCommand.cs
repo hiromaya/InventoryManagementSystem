@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Interfaces.Masters;
 using InventorySystem.Core.Factories;
 using InventorySystem.Core.Services;
 using InventorySystem.Data.Repositories;
@@ -20,6 +21,10 @@ public class ImportWithCarryoverCommand
     private readonly IDataSetManagementFactory _dataSetFactory;
     private readonly ITimeProvider _timeProvider;
     private readonly GrossProfitCalculationService _grossProfitCalculationService;
+    private readonly IProductMasterRepository _productMasterRepository;
+    private readonly IGradeMasterRepository _gradeMasterRepository;
+    private readonly IClassMasterRepository _classMasterRepository;
+    private readonly IShippingMarkMasterRepository _shippingMarkMasterRepository;
     private readonly ILogger<ImportWithCarryoverCommand> _logger;
 
     public ImportWithCarryoverCommand(
@@ -31,6 +36,10 @@ public class ImportWithCarryoverCommand
         IDataSetManagementFactory dataSetFactory,
         ITimeProvider timeProvider,
         GrossProfitCalculationService grossProfitCalculationService,
+        IProductMasterRepository productMasterRepository,
+        IGradeMasterRepository gradeMasterRepository,
+        IClassMasterRepository classMasterRepository,
+        IShippingMarkMasterRepository shippingMarkMasterRepository,
         ILogger<ImportWithCarryoverCommand> logger)
     {
         _inventoryRepository = inventoryRepository;
@@ -41,6 +50,10 @@ public class ImportWithCarryoverCommand
         _dataSetFactory = dataSetFactory;
         _timeProvider = timeProvider;
         _grossProfitCalculationService = grossProfitCalculationService;
+        _productMasterRepository = productMasterRepository;
+        _gradeMasterRepository = gradeMasterRepository;
+        _classMasterRepository = classMasterRepository;
+        _shippingMarkMasterRepository = shippingMarkMasterRepository;
         _logger = logger;
     }
 
@@ -251,7 +264,18 @@ public class ImportWithCarryoverCommand
             }
             else
             {
-                // 新規商品（在庫なしで売上）
+                // ☆新規商品の場合、マスタ存在チェックを追加☆
+                if (!await IsExistsInAllMastersAsync(sales))
+                {
+                    _logger.LogWarning(
+                        "マスタ未登録のため在庫マスタ作成をスキップ(売上): " +
+                        "ProductCode={ProductCode}, GradeCode={GradeCode}, " +
+                        "ClassCode={ClassCode}, ShippingMarkCode={ShippingMarkCode}",
+                        sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode);
+                    continue; // 在庫マスタには登録しない
+                }
+                
+                // マスタに存在する場合のみ登録
                 inventoryDict[key] = CreateNewInventory(sales, targetDate, dataSetId, -sales.Quantity, -sales.Amount);
             }
         }
@@ -269,7 +293,18 @@ public class ImportWithCarryoverCommand
             }
             else
             {
-                // 新規商品
+                // ☆新規商品の場合、マスタ存在チェックを追加☆
+                if (!await IsExistsInAllMastersAsync(purchase))
+                {
+                    _logger.LogWarning(
+                        "マスタ未登録のため在庫マスタ作成をスキップ(仕入): " +
+                        "ProductCode={ProductCode}, GradeCode={GradeCode}, " +
+                        "ClassCode={ClassCode}, ShippingMarkCode={ShippingMarkCode}",
+                        purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode);
+                    continue; // 在庫マスタには登録しない
+                }
+                
+                // マスタに存在する場合のみ登録
                 inventoryDict[key] = CreateNewInventory(purchase, targetDate, dataSetId, purchase.Quantity, purchase.Amount);
             }
         }
@@ -287,7 +322,18 @@ public class ImportWithCarryoverCommand
             }
             else
             {
-                // 新規商品
+                // ☆新規商品の場合、マスタ存在チェックを追加☆
+                if (!await IsExistsInAllMastersAsync(adj))
+                {
+                    _logger.LogWarning(
+                        "マスタ未登録のため在庫マスタ作成をスキップ(在庫調整): " +
+                        "ProductCode={ProductCode}, GradeCode={GradeCode}, " +
+                        "ClassCode={ClassCode}, ShippingMarkCode={ShippingMarkCode}",
+                        adj.ProductCode, adj.GradeCode, adj.ClassCode, adj.ShippingMarkCode);
+                    continue; // 在庫マスタには登録しない
+                }
+                
+                // マスタに存在する場合のみ登録
                 inventoryDict[key] = CreateNewInventory(adj, targetDate, dataSetId, adj.Quantity, adj.Amount);
             }
         }
@@ -397,6 +443,63 @@ public class ImportWithCarryoverCommand
         };
     }
     
+    /// <summary>
+    /// すべてのマスタに存在するかチェック
+    /// </summary>
+    private async Task<bool> IsExistsInAllMastersAsync(dynamic voucher)
+    {
+        try
+        {
+            // 商品マスタチェック
+            var product = await _productMasterRepository.GetByCodeAsync(voucher.ProductCode);
+            if (product == null)
+            {
+                _logger.LogDebug("商品マスタ未登録: ProductCode={Code}", voucher.ProductCode);
+                return false;
+            }
+            
+            // 等級マスタチェック（コード000は許可）
+            if (voucher.GradeCode != "000")
+            {
+                var grade = await _gradeMasterRepository.GetByCodeAsync(voucher.GradeCode);
+                if (grade == null)
+                {
+                    _logger.LogDebug("等級マスタ未登録: GradeCode={Code}", voucher.GradeCode);
+                    return false;
+                }
+            }
+            
+            // 階級マスタチェック（コード000は許可）
+            if (voucher.ClassCode != "000")
+            {
+                var classEntity = await _classMasterRepository.GetByCodeAsync(voucher.ClassCode);
+                if (classEntity == null)
+                {
+                    _logger.LogDebug("階級マスタ未登録: ClassCode={Code}", voucher.ClassCode);
+                    return false;
+                }
+            }
+            
+            // 荷印マスタチェック（コード0000は許可）
+            if (voucher.ShippingMarkCode != "0000")
+            {
+                var shippingMark = await _shippingMarkMasterRepository.GetByCodeAsync(voucher.ShippingMarkCode);
+                if (shippingMark == null)
+                {
+                    _logger.LogDebug("荷印マスタ未登録: ShippingMarkCode={Code}", voucher.ShippingMarkCode);
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "マスタ存在チェック中にエラーが発生しました");
+            return false;
+        }
+    }
+
     /// <summary>
     /// ランダム文字列生成
     /// </summary>

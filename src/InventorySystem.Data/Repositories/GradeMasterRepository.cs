@@ -5,6 +5,7 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using Dapper;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Entities.Masters;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -37,6 +38,28 @@ public class GradeMasterRepository : IGradeMasterRepository
         // CSVファイルパスの設定（環境変数またはデフォルトパスを使用）
         var basePath = Environment.GetEnvironmentVariable("MASTER_DATA_PATH") ?? @"D:\InventoryImport\DeptA\Import";
         _csvFilePath = Path.Combine(basePath, "等級汎用マスター１.csv");
+    }
+
+    public async Task<GradeMaster?> GetByCodeAsync(string gradeCode)
+    {
+        if (string.IsNullOrEmpty(gradeCode))
+            return null;
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var sql = "SELECT * FROM GradeMaster WHERE GradeCode = @GradeCode";
+            var gradeMaster = await connection.QuerySingleOrDefaultAsync<GradeMaster>(sql, new { GradeCode = gradeCode });
+            
+            return gradeMaster;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "等級マスタの取得でエラーが発生しました。コード: {GradeCode}", gradeCode);
+            return null;
+        }
     }
 
     public async Task<string?> GetGradeNameAsync(string gradeCode)

@@ -1,3 +1,5 @@
+using InventorySystem.Core.Entities.Masters;
+
 namespace InventorySystem.Core.Interfaces;
 
 /// <summary>
@@ -5,6 +7,13 @@ namespace InventorySystem.Core.Interfaces;
 /// </summary>
 public interface IClassMasterRepository
 {
+    /// <summary>
+    /// 階級コードから階級マスタを取得する
+    /// </summary>
+    /// <param name="classCode">階級コード</param>
+    /// <returns>階級マスタ（見つからない場合はnull）</returns>
+    Task<ClassMaster?> GetByCodeAsync(string classCode);
+
     /// <summary>
     /// 階級コードから階級名を取得する
     /// </summary>

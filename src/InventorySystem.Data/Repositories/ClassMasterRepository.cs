@@ -5,6 +5,7 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using Dapper;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Entities.Masters;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -37,6 +38,28 @@ public class ClassMasterRepository : IClassMasterRepository
         // CSVファイルパスの設定（環境変数またはデフォルトパスを使用）
         var basePath = Environment.GetEnvironmentVariable("MASTER_DATA_PATH") ?? @"D:\InventoryImport\DeptA\Import";
         _csvFilePath = Path.Combine(basePath, "階級汎用マスター２.csv");
+    }
+
+    public async Task<ClassMaster?> GetByCodeAsync(string classCode)
+    {
+        if (string.IsNullOrEmpty(classCode))
+            return null;
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var sql = "SELECT * FROM ClassMaster WHERE ClassCode = @ClassCode";
+            var classMaster = await connection.QuerySingleOrDefaultAsync<ClassMaster>(sql, new { ClassCode = classCode });
+            
+            return classMaster;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "階級マスタの取得でエラーが発生しました。コード: {ClassCode}", classCode);
+            return null;
+        }
     }
 
     public async Task<string?> GetClassNameAsync(string classCode)

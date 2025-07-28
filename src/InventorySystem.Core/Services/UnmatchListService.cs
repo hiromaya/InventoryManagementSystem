@@ -21,6 +21,7 @@ public class UnmatchListService : IUnmatchListService
     private readonly ICustomerMasterRepository _customerMasterRepository;
     private readonly IProductMasterRepository _productMasterRepository;
     private readonly ISupplierMasterRepository _supplierMasterRepository;
+    private readonly IShippingMarkMasterRepository _shippingMarkMasterRepository;
     private readonly IUnmatchCheckRepository _unmatchCheckRepository;
     private readonly ILogger<UnmatchListService> _logger;
 
@@ -36,6 +37,7 @@ public class UnmatchListService : IUnmatchListService
         ICustomerMasterRepository customerMasterRepository,
         IProductMasterRepository productMasterRepository,
         ISupplierMasterRepository supplierMasterRepository,
+        IShippingMarkMasterRepository shippingMarkMasterRepository,
         IUnmatchCheckRepository unmatchCheckRepository,
         ILogger<UnmatchListService> logger)
     {
@@ -50,6 +52,7 @@ public class UnmatchListService : IUnmatchListService
         _customerMasterRepository = customerMasterRepository;
         _productMasterRepository = productMasterRepository;
         _supplierMasterRepository = supplierMasterRepository;
+        _shippingMarkMasterRepository = shippingMarkMasterRepository;
         _unmatchCheckRepository = unmatchCheckRepository;
         _logger = logger;
     }
@@ -470,6 +473,60 @@ public class UnmatchListService : IUnmatchListService
                 _logger.LogInformation("処理進捗: {Checked}/{Total}", checkedCount, salesList.Count);
             }
 
+            var unmatchItem = new UnmatchItem();
+            var productCategory1 = "";
+            
+            // ☆1. 商品マスタチェック☆
+            var product = await _productMasterRepository.GetByCodeAsync(sales.ProductCode);
+            if (product == null)
+            {
+                unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", "");
+                unmatchItem.AlertType2 = "商品マスタ無";
+                unmatchItems.Add(unmatchItem);
+                continue;
+            }
+            productCategory1 = product.ProductCategory1 ?? "";
+            
+            // ☆2. 等級マスタチェック（コード000は許可）☆
+            if (sales.GradeCode != "000")
+            {
+                var grade = await _gradeMasterRepository.GetByCodeAsync(sales.GradeCode);
+                if (grade == null)
+                {
+                    unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", productCategory1);
+                    unmatchItem.AlertType2 = "等級マスタ無";
+                    unmatchItems.Add(unmatchItem);
+                    continue;
+                }
+            }
+            
+            // ☆3. 階級マスタチェック（コード000は許可）☆
+            if (sales.ClassCode != "000")
+            {
+                var classEntity = await _classMasterRepository.GetByCodeAsync(sales.ClassCode);
+                if (classEntity == null)
+                {
+                    unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", productCategory1);
+                    unmatchItem.AlertType2 = "階級マスタ無";
+                    unmatchItems.Add(unmatchItem);
+                    continue;
+                }
+            }
+            
+            // ☆4. 荷印マスタチェック（コード0000は許可）☆
+            if (sales.ShippingMarkCode != "0000")
+            {
+                var shippingMark = await _shippingMarkMasterRepository.GetByCodeAsync(sales.ShippingMarkCode);
+                if (shippingMark == null)
+                {
+                    unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", productCategory1);
+                    unmatchItem.AlertType2 = "荷印マスタ無";
+                    unmatchItems.Add(unmatchItem);
+                    continue;
+                }
+            }
+
+            // ☆5. 既存の在庫マスタチェック☆
             var inventoryKey = new InventoryKey
             {
                 ProductCode = sales.ProductCode,
@@ -496,11 +553,7 @@ public class UnmatchListService : IUnmatchListService
                         inventoryKey.ShippingMarkCode, inventoryKey.ShippingMarkName);
                 }
                 
-                // 在庫マスタ未登録エラー - 商品分類1を取得
-                var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
-                    sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode);
-                
-                var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", productCategory1);
+                unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", productCategory1);
                 unmatchItem.AlertType2 = "在庫マスタ無";
                 unmatchItems.Add(unmatchItem);
                 
@@ -551,6 +604,60 @@ public class UnmatchListService : IUnmatchListService
 
         foreach (var purchase in purchaseList)
         {
+            var unmatchItem = new UnmatchItem();
+            var productCategory1 = "";
+            
+            // ☆1. 商品マスタチェック☆
+            var product = await _productMasterRepository.GetByCodeAsync(purchase.ProductCode);
+            if (product == null)
+            {
+                unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "", "");
+                unmatchItem.AlertType2 = "商品マスタ無";
+                unmatchItems.Add(unmatchItem);
+                continue;
+            }
+            productCategory1 = product.ProductCategory1 ?? "";
+            
+            // ☆2. 等級マスタチェック（コード000は許可）☆
+            if (purchase.GradeCode != "000")
+            {
+                var grade = await _gradeMasterRepository.GetByCodeAsync(purchase.GradeCode);
+                if (grade == null)
+                {
+                    unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "", productCategory1);
+                    unmatchItem.AlertType2 = "等級マスタ無";
+                    unmatchItems.Add(unmatchItem);
+                    continue;
+                }
+            }
+            
+            // ☆3. 階級マスタチェック（コード000は許可）☆
+            if (purchase.ClassCode != "000")
+            {
+                var classEntity = await _classMasterRepository.GetByCodeAsync(purchase.ClassCode);
+                if (classEntity == null)
+                {
+                    unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "", productCategory1);
+                    unmatchItem.AlertType2 = "階級マスタ無";
+                    unmatchItems.Add(unmatchItem);
+                    continue;
+                }
+            }
+            
+            // ☆4. 荷印マスタチェック（コード0000は許可）☆
+            if (purchase.ShippingMarkCode != "0000")
+            {
+                var shippingMark = await _shippingMarkMasterRepository.GetByCodeAsync(purchase.ShippingMarkCode);
+                if (shippingMark == null)
+                {
+                    unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "", productCategory1);
+                    unmatchItem.AlertType2 = "荷印マスタ無";
+                    unmatchItems.Add(unmatchItem);
+                    continue;
+                }
+            }
+
+            // ☆5. 既存の在庫マスタチェック☆
             var inventoryKey = new InventoryKey
             {
                 ProductCode = purchase.ProductCode,
@@ -565,11 +672,7 @@ public class UnmatchListService : IUnmatchListService
 
             if (unInventory == null)
             {
-                // 在庫マスタ未登録エラー - 商品分類1を取得
-                var productCategory1 = await GetProductCategory1FromInventoryMasterAsync(
-                    purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode);
-                
-                var unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "", productCategory1);
+                unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "", productCategory1);
                 unmatchItem.AlertType2 = "在庫マスタ無";
                 unmatchItems.Add(unmatchItem);
             }
