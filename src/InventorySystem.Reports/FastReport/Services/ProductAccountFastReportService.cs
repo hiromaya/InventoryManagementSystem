@@ -461,8 +461,29 @@ namespace InventorySystem.Reports.FastReport.Services
             using var stream = new MemoryStream();
             report.Export(pdfExport, stream);
             
-            _logger.LogInformation($"商品勘定帳票PDF生成完了: {stream.Length} bytes");
-            return stream.ToArray();
+            var pdfBytes = stream.ToArray();
+            _logger.LogInformation($"商品勘定帳票PDF生成完了: {pdfBytes.Length} bytes");
+            
+            // PDF生成チェック
+            if (pdfBytes.Length == 0)
+            {
+                _logger.LogError("❌ PDFファイルのサイズが0バイトです");
+                _logger.LogDebug("レポート診断情報:");
+                _logger.LogDebug($"- Report.Pages.Count: {report.Pages.Count}");
+                _logger.LogDebug($"- Report.ReportInfo.TotalPages: {report.ReportInfo.TotalPages}");
+                
+                // レポートページを確認
+                foreach (var page in report.Pages)
+                {
+                    _logger.LogDebug($"- ページ: {page.Name}, 高さ: {page.Height}");
+                }
+                
+                throw new InvalidOperationException(
+                    "PDF生成に失敗しました。ファイルサイズが0バイトです。" +
+                    "データが正しく処理されていない可能性があります。");
+            }
+            
+            return pdfBytes;
         }
 
         /// <summary>
@@ -748,16 +769,30 @@ namespace InventorySystem.Reports.FastReport.Services
                 report.ScriptText = "";
                 _logger.LogDebug("✅ ScriptTextを空文字列に設定");
                 
-                // 3. Prepare()の代わりに手動でデータバインディングを実行
-                // report.Prepare()は呼ばずに、データソースのみ設定
-                var dataSource = report.GetDataSource("ProductAccount");
-                if (dataSource != null)
+                // 3. まず通常のPrepare()を試行（スクリプト無効化後なので安全なはず）
+                try 
                 {
-                    dataSource.Enabled = true;
-                    _logger.LogDebug("✅ データソースを手動で有効化");
+                    _logger.LogDebug("🔄 スクリプト無効化後のPrepare()を試行...");
+                    report.Prepare();
+                    _logger.LogInformation("✅ 通常のPrepare()が成功しました");
+                }
+                catch (System.PlatformNotSupportedException)
+                {
+                    _logger.LogWarning("⚠️ Prepare()でコンパイルエラー、手動処理に切り替え");
+                    
+                    // 4. Prepare()が失敗した場合のみ手動データバインディング
+                    var dataSource = report.GetDataSource("ProductAccount");
+                    if (dataSource != null)
+                    {
+                        dataSource.Enabled = true;
+                        _logger.LogDebug("✅ データソースを手動で有効化");
+                    }
+                    
+                    // データバンドにデータを手動で設定
+                    ManuallyPrepareDataBand(report);
                 }
                 
-                _logger.LogDebug("✅ コンパイル回避モードでPrepare成功");
+                _logger.LogDebug("✅ コンパイル回避モードでPrepare完了");
             }
             catch (System.PlatformNotSupportedException ex)
             {
@@ -768,6 +803,42 @@ namespace InventorySystem.Reports.FastReport.Services
                 throw new InvalidOperationException(
                     ".NET 8.0環境でFastReportのC#コンパイル機能が利用できません。" +
                     "テンプレートファイルにスクリプトが含まれている可能性があります。", ex);
+            }
+        }
+        
+        /// <summary>
+        /// データバンドを手動で準備（Prepare()の代替処理）
+        /// </summary>    
+        private void ManuallyPrepareDataBand(FR.Report report)
+        {
+            try
+            {
+                _logger.LogDebug("手動データバンド準備開始");
+                
+                // データバンドを検索
+                var dataBand = report.FindObject("Data1") as FR.DataBand;
+                if (dataBand != null)
+                {
+                    _logger.LogDebug("✅ Data1バンドを発見");
+                    
+                    // データソースを設定
+                    var dataSource = report.GetDataSource("ProductAccount");
+                    if (dataSource != null)
+                    {
+                        dataBand.DataSource = dataSource;
+                        _logger.LogDebug("✅ Data1にデータソースを設定");
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Data1バンドが見つかりません");
+                }
+                
+                _logger.LogDebug("✅ 手動データバンド準備完了");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("手動データバンド準備時の警告: {Message}", ex.Message);
             }
         }
 
