@@ -426,7 +426,7 @@ namespace InventorySystem.Reports.FastReport.Services
             };
             
             using var stream = new MemoryStream();
-            pdfExport.Export(report, stream);
+            report.Export(pdfExport, stream);
             
             _logger.LogInformation($"商品勘定帳票PDF生成完了: {stream.Length} bytes");
             return stream.ToArray();
