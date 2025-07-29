@@ -36,7 +36,6 @@
     <Parameter Name="JobDate" DataType="System.String" AsString=""/>
     <Parameter Name="GeneratedAt" DataType="System.String" AsString=""/>
   </Dictionary>
-  <ScriptText></ScriptText>
   <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" Watermark.Font="Arial, 60pt">
     <ReportTitleBand Name="ReportTitle1" Width="1512" Height="40">
       <TextObject Name="CreateDate" Width="300" Height="20" Text="作成日：[GeneratedAt]" Font="ＭＳ ゴシック, 9pt"/>
@@ -60,28 +59,4 @@
       <TextObject Name="Header11" Left="936" Width="96" Height="40" Text="残数量（箱）" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header12" Left="1032" Width="96" Height="40" Text="単価（円）" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header13" Left="1128" Width="118" Height="40" Text="金額（円）" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header14" Left="1246" Width="102" Height="40" Text="粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header15" Left="1348" Width="164" Height="40" Text="取　引　先　名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-    </ColumnHeaderBand>
-    <DataBand Name="Data1" Top="150.24" Width="1512" Height="18" DataSource="ProductAccount">
-      <TextObject Name="Data1" Width="150" Height="18" Text="[ProductAccount.ProductName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
-      <TextObject Name="Data2" Left="150" Width="144" Height="18" Text="[ProductAccount.ShippingMarkName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
-      <TextObject Name="Data3" Left="294" Width="86" Height="18" Text="[ProductAccount.ManualShippingMark]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data4" Left="380" Width="75" Height="18" Text="[ProductAccount.GradeName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data5" Left="455" Width="75" Height="18" Text="[ProductAccount.ClassName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data6" Left="530" Width="91" Height="18" Text="[ProductAccount.VoucherNumber]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data7" Left="621" Width="59" Height="18" Text="[ProductAccount.DisplayCategory]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data8" Left="680" Width="64" Height="18" Text="[ProductAccount.MonthDay]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data9" Left="744" Width="96" Height="18" Text="[ProductAccount.PurchaseQuantity]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data10" Left="840" Width="96" Height="18" Text="[ProductAccount.SalesQuantity]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data11" Left="936" Width="96" Height="18" Text="[ProductAccount.RemainingQuantity]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data12" Left="1032" Width="96" Height="18" Text="[ProductAccount.UnitPrice]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data13" Left="1128" Width="118" Height="18" Text="[ProductAccount.Amount]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data14" Left="1246" Width="102" Height="18" Text="[ProductAccount.GrossProfit]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data15" Left="1348" Width="164" Height="18" Text="[ProductAccount.CustomerSupplierName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
-    </DataBand>
-    <PageFooterBand Name="PageFooter1" Top="170.8" Width="1512" Height="20">
-      <TextObject Name="Footer" Width="1512" Height="20" Text="在庫管理システム - 商品勘定" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
-    </PageFooterBand>
-  </ReportPage>
-</Report>
+      <TextObject Name="Header14" Left="1246" Width="102" Height="40" Text="粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ
