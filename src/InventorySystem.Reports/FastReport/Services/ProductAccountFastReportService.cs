@@ -470,12 +470,48 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogError("❌ PDFファイルのサイズが0バイトです");
                 _logger.LogDebug("レポート診断情報:");
                 _logger.LogDebug($"- Report.Pages.Count: {report.Pages.Count}");
-                _logger.LogDebug($"- Report.ReportInfo.TotalPages: {report.ReportInfo.TotalPages}");
                 
-                // レポートページを確認
-                foreach (var page in report.Pages)
+                // ReportInfoのプロパティを安全に取得
+                try
                 {
-                    _logger.LogDebug($"- ページ: {page.Name}, 高さ: {page.Height}");
+                    var reportInfoType = report.ReportInfo.GetType();
+                    var totalPagesProperty = reportInfoType.GetProperty("TotalPages");
+                    if (totalPagesProperty != null)
+                    {
+                        var totalPages = totalPagesProperty.GetValue(report.ReportInfo);
+                        _logger.LogDebug($"- Report.ReportInfo.TotalPages: {totalPages}");
+                    }
+                    else
+                    {
+                        _logger.LogDebug("- Report.ReportInfo.TotalPages: プロパティが存在しません");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug($"- ReportInfo診断エラー: {ex.Message}");
+                }
+                
+                // レポートページを確認（型安全にキャスト）
+                try
+                {
+                    foreach (var pageObj in report.Pages)
+                    {
+                        if (pageObj != null)
+                        {
+                            var pageType = pageObj.GetType();
+                            var nameProperty = pageType.GetProperty("Name");
+                            var heightProperty = pageType.GetProperty("Height");
+                            
+                            var name = nameProperty?.GetValue(pageObj)?.ToString() ?? "不明";
+                            var height = heightProperty?.GetValue(pageObj)?.ToString() ?? "不明";
+                            
+                            _logger.LogDebug($"- ページ: {name}, 高さ: {height}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug($"- Pages診断エラー: {ex.Message}");
                 }
                 
                 throw new InvalidOperationException(
