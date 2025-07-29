@@ -42,12 +42,18 @@
     </None>
   </ItemGroup>
 
-  <!-- FastReportテンプレートファイルをビルド時にコピー (Windows only) -->
-  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
-    <None Include="..\InventorySystem.Reports\FastReport\Templates\*.frx" Link="FastReport\Templates\%(Filename)%(Extension)">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
+  <!-- FastReportテンプレートを確実にコピーするTarget -->
+  <Target Name="CopyFastReportTemplates" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT'">
+    <MakeDir Directories="$(OutputPath)FastReport\Templates" />
+    <ItemGroup>
+      <FastReportTemplates Include="..\InventorySystem.Reports\FastReport\Templates\*.frx" />
+    </ItemGroup>
+    <Copy SourceFiles="@(FastReportTemplates)" 
+          DestinationFolder="$(OutputPath)FastReport\Templates" 
+          SkipUnchangedFiles="false" />
+    <Message Text="FastReportテンプレートをコピーしました: $(OutputPath)FastReport\Templates" Importance="high" />
+    <Message Text="コピーされたファイル数: @(FastReportTemplates->Count())" Importance="high" />
+  </Target>
 
   <!-- ビルド後にFastReport DLLをコピー (Windows only) -->
   <Target Name="CopyFastReportFiles" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT'">

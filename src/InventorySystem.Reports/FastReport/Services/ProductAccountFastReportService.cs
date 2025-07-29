@@ -337,9 +337,54 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private byte[] GeneratePdfReport(IEnumerable<ProductAccountReportModel> reportData, DateTime jobDate)
         {
-            // テンプレートファイルの存在確認
+            // テンプレートファイルの存在確認を強化
             if (!File.Exists(_templatePath))
             {
+                var searchPaths = new[]
+                {
+                    _templatePath,
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "ProductAccount.frx"),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "Templates", "ProductAccount.frx"),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FastReport", "Templates", "ProductAccount.frx")
+                };
+                
+                _logger.LogError("テンプレートファイルが見つかりません。検索パス:");
+                foreach (var path in searchPaths)
+                {
+                    _logger.LogError("- {Path} (存在: {Exists})", path, File.Exists(path));
+                }
+                
+                // ディレクトリの内容も確認
+                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                _logger.LogError("ベースディレクトリ内容:");
+                if (Directory.Exists(baseDir))
+                {
+                    foreach (var dir in Directory.GetDirectories(baseDir))
+                    {
+                        _logger.LogError("- ディレクトリ: {Dir}", Path.GetFileName(dir));
+                    }
+                }
+                
+                var fastReportDir = Path.Combine(baseDir, "FastReport");
+                if (Directory.Exists(fastReportDir))
+                {
+                    _logger.LogError("FastReportディレクトリ内容:");
+                    foreach (var subDir in Directory.GetDirectories(fastReportDir))
+                    {
+                        _logger.LogError("- サブディレクトリ: {SubDir}", Path.GetFileName(subDir));
+                    }
+                }
+                
+                var templatesDir = Path.Combine(baseDir, "FastReport", "Templates");
+                if (Directory.Exists(templatesDir))
+                {
+                    _logger.LogError("Templatesディレクトリ内容:");
+                    foreach (var file in Directory.GetFiles(templatesDir, "*.frx"))
+                    {
+                        _logger.LogError("- テンプレートファイル: {File}", Path.GetFileName(file));
+                    }
+                }
+                
                 throw new FileNotFoundException($"テンプレートファイルが見つかりません: {_templatePath}");
             }
 
