@@ -39,7 +39,28 @@
     <Parameter Name="JobDate" DataType="System.String" AsString=""/>
     <Parameter Name="GeneratedAt" DataType="System.String" AsString=""/>
   </Dictionary>
-  
+  <ReportScript>
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Windows.Forms;
+using System.Drawing;
+using System.Data;
+using FastReport;
+using FastReport.Data;
+using FastReport.Dialog;
+using FastReport.Barcode;
+using FastReport.Table;
+using FastReport.Utils;
+
+namespace FastReport
+{
+  public class ReportScript
+  {
+  }
+}
+</ReportScript>
   <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" LeftMargin="10" TopMargin="10" RightMargin="10" BottomMargin="10" Watermark.Font="Arial, 60pt">
     <!-- レポートタイトル -->
     <ReportTitleBand Name="ReportTitle1" Width="1512" Height="40">

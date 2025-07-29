@@ -801,9 +801,19 @@ namespace InventorySystem.Reports.FastReport.Services
                     _logger.LogDebug("✅ FCompileEnabled = false");
                 }
                 
-                // 2. ScriptTextを確実に空にする
-                report.ScriptText = "";
-                _logger.LogDebug("✅ ScriptTextを空文字列に設定");
+                // 2. ScriptTextに最小限のReportScriptクラスを設定
+                var minimalScript = @"
+using System;
+using FastReport;
+
+namespace FastReport
+{
+    public class ReportScript
+    {
+    }
+}";
+                report.ScriptText = minimalScript;
+                _logger.LogDebug("✅ ScriptTextに最小限のReportScriptクラスを設定");
                 
                 // 3. まず通常のPrepare()を試行（スクリプト無効化後なので安全なはず）
                 try 
