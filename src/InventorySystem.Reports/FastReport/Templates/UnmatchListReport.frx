@@ -43,10 +43,10 @@
       <TextObject Name="Header11" Left="920" Top="50" Width="45" Height="30" Text="ｺｰﾄﾞ" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header12" Left="965" Top="50" Width="75" Height="30" Text="階　級" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header13" Left="1040" Top="50" Width="75" Height="30" Text="　数　量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header14" Left="1115" Top="50" Width="75" Height="30" Text="　単　価" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header15" Left="1170" Top="50" Width="95" Height="30" Text="　金　額" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header16" Left="1270" Top="50" Width="75" Height="30" Text="伝票番号" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header17" Left="1350" Top="50" Width="160" Height="30" Text="ｱﾗｰﾄ" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header14" Left="1115" Top="50" Width="75" Height="30" Text="　単　価" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header15" Left="1190" Top="50" Width="95" Height="30" Text="　金　額" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header16" Left="1285" Top="50" Width="75" Height="30" Text="伝票番号" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header17" Left="1360" Top="50" Width="150" Height="30" Text="ｱﾗｰﾄ" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
     <DataBand Name="Data1" Top="81.96" Width="1512" Height="20" DataSource="UnmatchItems">
       <TextObject Name="Data1" Width="75" Height="20" Text="[UnmatchItems.Category]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
@@ -63,9 +63,9 @@
       <TextObject Name="Data12" Left="965" Width="75" Height="20" Text="[UnmatchItems.ClassName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data13" Left="1040" Width="75" Height="20" Text="[UnmatchItems.Quantity]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data14" Left="1115" Width="75" Height="20" Text="[UnmatchItems.UnitPrice]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data15" Left="1170" Width="95" Height="20" Text="[UnmatchItems.Amount]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data16" Left="1270" Width="75" Height="20" Text="[UnmatchItems.VoucherNumber]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data17" Left="1350" Width="160" Height="20" Text="[UnmatchItems.AlertType]" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data15" Left="1190" Width="95" Height="20" Text="[UnmatchItems.Amount]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data16" Left="1285" Width="75" Height="20" Text="[UnmatchItems.VoucherNumber]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data17" Left="1360" Width="150" Height="20" Text="[UnmatchItems.AlertType]" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
     </DataBand>
     <ReportSummaryBand Name="ReportSummary1" Top="103.92" Width="1512" Height="40">
       <TextObject Name="SummaryText" Top="10" Width="300" Height="20" Text="アンマッチ件数＝[TotalCount]" Font="ＭＳ ゴシック, 11pt"/>
