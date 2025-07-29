@@ -1389,6 +1389,7 @@ static async Task ExecuteProductAccountAsync(IServiceProvider services, string[]
         var productAccountService = scopedServices.GetRequiredService<InventorySystem.Reports.Interfaces.IProductAccountReportService>();
         var salesVoucherRepository = scopedServices.GetRequiredService<ISalesVoucherRepository>();
         var cpInventoryRepository = scopedServices.GetRequiredService<ICpInventoryRepository>();
+        var fileManagementService = scopedServices.GetRequiredService<IFileManagementService>();
 
         try
         {
@@ -1423,13 +1424,13 @@ static async Task ExecuteProductAccountAsync(IServiceProvider services, string[]
             
             if (pdfBytes != null && pdfBytes.Length > 0)
             {
-                // ファイル保存処理
-                var outputPath = Path.Combine("帳票出力", $"ProductAccount_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
-                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-                await File.WriteAllBytesAsync(outputPath, pdfBytes);
+                // FileManagementServiceを使用してレポートパスを取得（他の帳票と同じ方式）
+                var pdfPath = await fileManagementService.GetReportOutputPathAsync("ProductAccount", jobDate, "pdf");
+                
+                await File.WriteAllBytesAsync(pdfPath, pdfBytes);
                 
                 Console.WriteLine($"✅ 商品勘定帳票を作成しました");
-                Console.WriteLine($"出力ファイル: {outputPath}");
+                Console.WriteLine($"出力ファイル: {pdfPath}");
                 Console.WriteLine($"ファイルサイズ: {pdfBytes.Length:N0} bytes");
             }
             else
