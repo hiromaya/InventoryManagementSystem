@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" TextQuality="Regular" ReportInfo.Description="商品勘定帳票 - 商品別の収支詳細を表示" ReportInfo.Created="2025-07-21" ReportInfo.Modified="07/26/2025 21:41:01" ReportInfo.CreatorVersion="2024.1.3.0">
+<Report ScriptLanguage="None" TextQuality="Regular" ReportInfo.Description="商品勘定帳票 - 商品別の収支詳細を表示" ReportInfo.Created="2025-07-21" ReportInfo.Modified="07/29/2025 10:30:00" ReportInfo.CreatorVersion="2024.1.3.0">
   <Dictionary>
     <TableDataSource Name="ProductAccount" ReferenceName="ProductAccount" DataType="System.Int32" Enabled="true">
       <Column Name="ProductCode" DataType="System.String"/>
@@ -72,12 +72,12 @@
       <TextObject Name="Data6" Left="530" Width="91" Height="18" Text="[ProductAccount.VoucherNumber]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data7" Left="621" Width="59" Height="18" Text="[ProductAccount.DisplayCategory]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data8" Left="680" Width="64" Height="18" Text="[ProductAccount.MonthDay]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data9" Left="744" Width="96" Height="18" Text="[IIf([ProductAccount.PurchaseQuantity] &lt; 0, FormatNumber(Abs([ProductAccount.PurchaseQuantity]), 2, true, false, false) + '▲', FormatNumber([ProductAccount.PurchaseQuantity], 2, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data10" Left="840" Width="96" Height="18" Text="[IIf([ProductAccount.SalesQuantity] &lt; 0, FormatNumber(Abs([ProductAccount.SalesQuantity]), 2, true, false, false) + '▲', FormatNumber([ProductAccount.SalesQuantity], 2, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data11" Left="936" Width="96" Height="18" Text="[IIf([ProductAccount.RemainingQuantity] &lt; 0, FormatNumber(Abs([ProductAccount.RemainingQuantity]), 2, true, false, false) + '▲', FormatNumber([ProductAccount.RemainingQuantity], 2, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data12" Left="1032" Width="96" Height="18" Text="[IIf([ProductAccount.UnitPrice] &lt; 0, FormatNumber(Abs([ProductAccount.UnitPrice]), 0, true, false, false) + '▲', FormatNumber([ProductAccount.UnitPrice], 0, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data13" Left="1128" Width="118" Height="18" Text="[IIf([ProductAccount.Amount] &lt; 0, FormatNumber(Abs([ProductAccount.Amount]), 0, true, false, false) + '▲', FormatNumber([ProductAccount.Amount], 0, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data14" Left="1246" Width="102" Height="18" Text="[IIf([ProductAccount.GrossProfit] &lt; 0, FormatNumber(Abs([ProductAccount.GrossProfit]), 0, true, false, false) + '▲', FormatNumber([ProductAccount.GrossProfit], 0, true, false, false))]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data9" Left="744" Width="96" Height="18" Text="[ProductAccount.PurchaseQuantity]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data10" Left="840" Width="96" Height="18" Text="[ProductAccount.SalesQuantity]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data11" Left="936" Width="96" Height="18" Text="[ProductAccount.RemainingQuantity]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data12" Left="1032" Width="96" Height="18" Text="[ProductAccount.UnitPrice]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data13" Left="1128" Width="118" Height="18" Text="[ProductAccount.Amount]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data14" Left="1246" Width="102" Height="18" Text="[ProductAccount.GrossProfit]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data15" Left="1348" Width="164" Height="18" Text="[ProductAccount.CustomerSupplierName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
     </DataBand>
     <PageFooterBand Name="PageFooter1" Top="170.8" Width="1512" Height="20">

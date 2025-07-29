@@ -435,12 +435,12 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("VoucherNumber", typeof(string));
             table.Columns.Add("DisplayCategory", typeof(string));
             table.Columns.Add("MonthDay", typeof(string));
-            table.Columns.Add("PurchaseQuantity", typeof(decimal));
-            table.Columns.Add("SalesQuantity", typeof(decimal));
-            table.Columns.Add("RemainingQuantity", typeof(decimal));
-            table.Columns.Add("UnitPrice", typeof(decimal));
-            table.Columns.Add("Amount", typeof(decimal));
-            table.Columns.Add("GrossProfit", typeof(decimal));
+            table.Columns.Add("PurchaseQuantity", typeof(string));
+            table.Columns.Add("SalesQuantity", typeof(string));
+            table.Columns.Add("RemainingQuantity", typeof(string));
+            table.Columns.Add("UnitPrice", typeof(string));
+            table.Columns.Add("Amount", typeof(string));
+            table.Columns.Add("GrossProfit", typeof(string));
             table.Columns.Add("WalkingDiscount", typeof(decimal));
             table.Columns.Add("CustomerSupplierName", typeof(string));
             table.Columns.Add("GroupKey", typeof(string));
@@ -471,12 +471,12 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["VoucherNumber"] = item.VoucherNumber;
                 row["DisplayCategory"] = item.DisplayCategory;
                 row["MonthDay"] = item.MonthDayDisplay;
-                row["PurchaseQuantity"] = item.PurchaseQuantity;
-                row["SalesQuantity"] = item.SalesQuantity;
-                row["RemainingQuantity"] = item.RemainingQuantity;
-                row["UnitPrice"] = item.UnitPrice;
-                row["Amount"] = item.Amount;
-                row["GrossProfit"] = item.GrossProfit;
+                row["PurchaseQuantity"] = FormatNumberWithNegativeSymbol(item.PurchaseQuantity, 2);
+                row["SalesQuantity"] = FormatNumberWithNegativeSymbol(item.SalesQuantity, 2);
+                row["RemainingQuantity"] = FormatNumberWithNegativeSymbol(item.RemainingQuantity, 2);
+                row["UnitPrice"] = FormatNumberWithNegativeSymbol(item.UnitPrice, 0);
+                row["Amount"] = FormatNumberWithNegativeSymbol(item.Amount, 0);
+                row["GrossProfit"] = FormatNumberWithNegativeSymbol(item.GrossProfit, 0);
                 row["WalkingDiscount"] = item.WalkingDiscount;
                 row["CustomerSupplierName"] = item.CustomerSupplierName;
                 row["GroupKey"] = item.GroupKey;
@@ -496,6 +496,21 @@ namespace InventorySystem.Reports.FastReport.Services
 
             _logger.LogInformation($"DataTable作成完了: {table.Rows.Count}行");
             return table;
+        }
+
+        /// <summary>
+        /// 負の値に▲記号を付けて数値をフォーマット（CLAUDE.md方針：計算はC#側で実行）
+        /// </summary>
+        private string FormatNumberWithNegativeSymbol(decimal value, int decimalPlaces)
+        {
+            if (value < 0)
+            {
+                return Math.Abs(value).ToString($"N{decimalPlaces}") + "▲";
+            }
+            else
+            {
+                return value.ToString($"N{decimalPlaces}");
+            }
         }
 
         // ヘルパーメソッド
