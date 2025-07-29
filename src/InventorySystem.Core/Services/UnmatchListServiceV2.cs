@@ -408,8 +408,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
             }
             else
             {
-                item.CustomerName = $"得意先({item.CustomerCode})";
-                _logger.LogInformation("得意先名補完(デフォルト): {Code} -> {Name}", item.CustomerCode, item.CustomerName);
+                // マスタに存在しない場合は何もしない（伝票の値をそのまま使用）
             }
         }
         
@@ -426,8 +425,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
                 }
                 else
                 {
-                    item.CustomerName = $"仕入先({item.CustomerCode})";
-                    _logger.LogInformation("仕入先名補完(デフォルト): {Code} -> {Name}", item.CustomerCode, item.CustomerName);
+                    // マスタに存在しない場合は何もしない（伝票の値をそのまま使用）
                 }
             }
         }
@@ -461,8 +459,7 @@ public class UnmatchListServiceV2 : BatchProcessBase, IUnmatchListService
                 }
                 else
                 {
-                    item.ProductName = $"商品({item.Key.ProductCode})";
-                    _logger.LogInformation("商品名補完(デフォルト): {Code} -> {Name}", item.Key.ProductCode, item.ProductName);
+                    // マスタに存在しない場合は何もしない（伝票の値をそのまま使用）
                 }
             }
         }

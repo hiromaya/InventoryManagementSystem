@@ -63,7 +63,6 @@
       <TextObject Name="Header14" Left="1246" Width="102" Height="40" Text="粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header15" Left="1348" Width="164" Height="40" Text="取　引　先　名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </ColumnHeaderBand>
-    <GroupHeaderBand Name="GroupHeader1" Top="147.68" Width="1512"/>
     <DataBand Name="Data1" Top="150.24" Width="1512" Height="18" DataSource="ProductAccount">
       <TextObject Name="Data1" Width="150" Height="18" Text="[ProductAccount.ProductName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="Data2" Left="150" Width="144" Height="18" Text="[ProductAccount.ShippingMarkName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>

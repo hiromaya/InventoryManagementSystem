@@ -353,7 +353,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogInformation("レポートテンプレートを読み込んでいます...");
                 report.Load(_templatePath);
                 
-                // .NET 8対応: ScriptLanguageを強制的にNoneに設定（UnmatchListと同じパターン）
+                // .NET 8対応: ScriptLanguageを強制的にNoneに設定（スクリプトコンパイルを無効化）
                 try
                 {
                     // リフレクションを使用してScriptLanguageプロパティを取得
@@ -368,7 +368,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             if (noneValue != null)
                             {
                                 scriptLanguageProperty.SetValue(report, noneValue);
-                                _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                                _logger.LogInformation("ScriptLanguageをNoneに設定しました（スクリプトコンパイル無効化）");
                             }
                         }
                     }
