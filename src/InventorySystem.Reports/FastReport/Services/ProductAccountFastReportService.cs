@@ -822,9 +822,23 @@ namespace FastReport
                     report.Prepare();
                     _logger.LogInformation("✅ 通常のPrepare()が成功しました");
                 }
-                catch (System.PlatformNotSupportedException)
+                catch (Exception prepareEx)
                 {
-                    _logger.LogWarning("⚠️ Prepare()でコンパイルエラー、手動処理に切り替え");
+                    _logger.LogWarning("⚠️ Prepare()でエラー、手動処理に切り替え: {Error}", prepareEx.Message);
+                    
+                    // エラーの詳細を記録
+                    if (prepareEx is System.PlatformNotSupportedException)
+                    {
+                        _logger.LogDebug("PlatformNotSupportedException detected");
+                    }
+                    else if (prepareEx.Message.Contains("ReportScript"))
+                    {
+                        _logger.LogDebug("ReportScript error detected");
+                    }
+                    else
+                    {
+                        _logger.LogDebug($"Other error type: {prepareEx.GetType().Name}");
+                    }
                     
                     // 4. Prepare()が失敗した場合のみ手動データバインディング
                     var dataSource = report.GetDataSource("ProductAccount");
@@ -836,6 +850,19 @@ namespace FastReport
                     
                     // データバンドにデータを手動で設定
                     ManuallyPrepareDataBand(report);
+                    
+                    // 手動処理後にもう一度Prepare()を試行（データが設定された状態で）
+                    try
+                    {
+                        _logger.LogDebug("🔄 手動設定後にPrepare()を再試行...");
+                        report.Prepare();
+                        _logger.LogInformation("✅ 手動設定後のPrepare()が成功しました");
+                    }
+                    catch (Exception retryEx)
+                    {
+                        _logger.LogWarning("⚠️ 手動設定後のPrepare()も失敗: {Error}", retryEx.Message);
+                        // 続行（Export時にデータが正しく処理される可能性がある）
+                    }
                 }
                 
                 _logger.LogDebug("✅ コンパイル回避モードでPrepare完了");
@@ -853,13 +880,30 @@ namespace FastReport
         }
         
         /// <summary>
-        /// データバンドを手動で準備（Prepare()の代替処理）
+        /// データバンドを手動で準備（DailyReportパターンを適用）
         /// </summary>    
         private void ManuallyPrepareDataBand(FR.Report report)
         {
             try
             {
-                _logger.LogDebug("手動データバンド準備開始");
+                _logger.LogDebug("手動データバンド準備開始（DailyReportパターン適用）");
+                
+                // DataTableからデータソースを再作成
+                var dataSource = report.GetDataSource("ProductAccount");
+                if (dataSource?.DataSet?.Tables?.Count > 0)
+                {
+                    var dataTable = dataSource.DataSet.Tables[0];
+                    _logger.LogDebug($"✅ DataTable確認: {dataTable.Rows.Count}行");
+                    
+                    // データソースを再登録
+                    report.RegisterData(dataTable, "ProductAccount");
+                    var newDataSource = report.GetDataSource("ProductAccount");
+                    if (newDataSource != null)
+                    {
+                        newDataSource.Enabled = true;
+                        _logger.LogDebug("✅ データソースを再登録・有効化");
+                    }
+                }
                 
                 // データバンドを検索
                 var dataBand = report.FindObject("Data1") as FR.DataBand;
@@ -867,17 +911,40 @@ namespace FastReport
                 {
                     _logger.LogDebug("✅ Data1バンドを発見");
                     
-                    // データソースを設定
-                    var dataSource = report.GetDataSource("ProductAccount");
-                    if (dataSource != null)
+                    // DataBandのデータソース設定を確認・修正
+                    var currentDataSource = report.GetDataSource("ProductAccount");
+                    if (currentDataSource != null)
                     {
-                        dataBand.DataSource = dataSource;
+                        dataBand.DataSource = currentDataSource;
                         _logger.LogDebug("✅ Data1にデータソースを設定");
+                        
+                        // データソースの接続状態を確認
+                        try
+                        {
+                            currentDataSource.Init();
+                            currentDataSource.First();
+                            var hasData = !currentDataSource.Eof;
+                            _logger.LogDebug($"✅ データソース接続確認: HasData={hasData}");
+                        }
+                        catch (Exception dsEx)
+                        {
+                            _logger.LogWarning($"データソース接続エラー: {dsEx.Message}");
+                        }
                     }
                 }
                 else
                 {
                     _logger.LogWarning("⚠️ Data1バンドが見つかりません");
+                    
+                    // 利用可能なオブジェクトを列挙
+                    _logger.LogDebug("利用可能なオブジェクト:");
+                    foreach (var obj in report.AllObjects)
+                    {
+                        if (obj != null)
+                        {
+                            _logger.LogDebug($"- {obj.GetType().Name}: {obj.ToString()}");
+                        }
+                    }
                 }
                 
                 _logger.LogDebug("✅ 手動データバンド準備完了");
