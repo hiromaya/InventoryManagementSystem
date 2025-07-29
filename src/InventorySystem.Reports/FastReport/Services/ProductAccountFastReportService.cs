@@ -336,106 +336,100 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private byte[] GeneratePdfReport(IEnumerable<ProductAccountReportModel> reportData, DateTime jobDate)
         {
-            var report = new FR.Report();
+            // テンプレートファイルの存在確認
+            if (!File.Exists(_templatePath))
+            {
+                throw new FileNotFoundException($"テンプレートファイルが見つかりません: {_templatePath}");
+            }
+
+            using var report = new FR.Report();
             
+            // FastReportの設定
+            report.ReportResourceString = "";  // リソース文字列をクリア
+            report.FileName = _templatePath;   // ファイル名を設定
+            
+            // テンプレートファイルを読み込む
+            _logger.LogInformation("レポートテンプレートを読み込んでいます...");
+            report.Load(_templatePath);
+            
+            // .NET 8対応: ScriptLanguageを強制的にNoneに設定（スクリプトコンパイルを無効化）
             try
             {
-                // テンプレートファイルの存在確認
-                if (!File.Exists(_templatePath))
+                // リフレクションを使用してScriptLanguageプロパティを取得
+                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                if (scriptLanguageProperty != null)
                 {
-                    throw new FileNotFoundException($"テンプレートファイルが見つかりません: {_templatePath}");
-                }
-
-                // アンマッチリストと同じ初期化処理
-                report.ReportResourceString = "";
-                report.FileName = _templatePath;
-                
-                _logger.LogInformation("レポートテンプレートを読み込んでいます...");
-                report.Load(_templatePath);
-                
-                // .NET 8対応: ScriptLanguageを強制的にNoneに設定（スクリプトコンパイルを無効化）
-                try
-                {
-                    // リフレクションを使用してScriptLanguageプロパティを取得
-                    var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
-                    if (scriptLanguageProperty != null)
+                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                    if (scriptLanguageType.IsEnum)
                     {
-                        var scriptLanguageType = scriptLanguageProperty.PropertyType;
-                        if (scriptLanguageType.IsEnum)
+                        // FastReport.ScriptLanguage.None を設定
+                        var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
+                        if (noneValue != null)
                         {
-                            // FastReport.ScriptLanguage.None を設定
-                            var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
-                            if (noneValue != null)
-                            {
-                                scriptLanguageProperty.SetValue(report, noneValue);
-                                _logger.LogInformation("ScriptLanguageをNoneに設定しました（スクリプトコンパイル無効化）");
-                            }
+                            scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("ScriptLanguageをNoneに設定しました（スクリプトコンパイル無効化）");
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
-                    // エラーが発生しても処理を継続
-                }
-
-                // データテーブル作成
-                var dataTable = CreateDataTable(reportData);
-                report.RegisterData(dataTable, "ProductAccount");
-                
-                // データソースを明示的に取得して設定
-                var dataSource = report.GetDataSource("ProductAccount");
-                if (dataSource != null)
-                {
-                    dataSource.Enabled = true;
-                    _logger.LogInformation("データソースを有効化しました");
-                }
-                else
-                {
-                    _logger.LogWarning("データソース 'ProductAccount' が見つかりません");
-                }
-
-                // レポートパラメータ設定
-                _logger.LogInformation("レポートパラメータを設定しています...");
-                report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
-                report.SetParameterValue("GeneratedAt", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
-
-                // レポート準備・生成（UnmatchListと同じシンプルなパターン）
-                _logger.LogInformation("レポートを生成しています...");
-                report.Prepare();
-
-                // PDF出力設定（アンマッチリストと同じパターン）
-                using var pdfExport = new PDFExport
-                {
-                    // 日本語フォントの埋め込み（重要）
-                    EmbeddingFonts = true,
-                    
-                    // PDFのメタデータ
-                    Title = $"商品勘定帳票_{jobDate:yyyyMMdd}",
-                    Subject = "商品勘定帳票",
-                    Creator = "在庫管理システム",
-                    Author = "在庫管理システム",
-                    
-                    // 文字エンコーディング設定
-                    TextInCurves = false,  // テキストをパスに変換しない
-                    
-                    // 画質設定
-                    JpegQuality = 95,
-                    
-                    // セキュリティ設定なし
-                    OpenAfterExport = false
-                };
-                
-                using var stream = new MemoryStream();
-                pdfExport.Export(report, stream);
-                
-                _logger.LogInformation($"商品勘定帳票PDF生成完了: {stream.Length} bytes");
-                return stream.ToArray();
             }
-            finally
+            catch (Exception ex)
             {
-                report?.Dispose();
+                _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+                // エラーが発生しても処理を継続
             }
+
+            // データテーブル作成
+            var dataTable = CreateDataTable(reportData);
+            report.RegisterData(dataTable, "ProductAccount");
+            
+            // データソースを明示的に取得して設定
+            var dataSource = report.GetDataSource("ProductAccount");
+            if (dataSource != null)
+            {
+                dataSource.Enabled = true;
+                _logger.LogInformation("データソースを有効化しました");
+            }
+            else
+            {
+                _logger.LogWarning("データソース 'ProductAccount' が見つかりません");
+            }
+
+            // レポートパラメータ設定
+            _logger.LogInformation("レポートパラメータを設定しています...");
+            report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
+            report.SetParameterValue("GeneratedAt", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
+
+            // レポート準備・生成（UnmatchListと同じシンプルなパターン）
+            _logger.LogInformation("レポートを生成しています...");
+            report.Prepare();
+
+            // PDF出力設定（アンマッチリストと同じパターン）
+            using var pdfExport = new PDFExport
+            {
+                // 日本語フォントの埋め込み（重要）
+                EmbeddingFonts = true,
+                
+                // PDFのメタデータ
+                Title = $"商品勘定帳票_{jobDate:yyyyMMdd}",
+                Subject = "商品勘定帳票",
+                Creator = "在庫管理システム",
+                Author = "在庫管理システム",
+                
+                // 文字エンコーディング設定
+                TextInCurves = false,  // テキストをパスに変換しない
+                
+                // 画質設定
+                JpegQuality = 95,
+                
+                // セキュリティ設定なし
+                OpenAfterExport = false
+            };
+            
+            using var stream = new MemoryStream();
+            pdfExport.Export(report, stream);
+            
+            _logger.LogInformation($"商品勘定帳票PDF生成完了: {stream.Length} bytes");
+            return stream.ToArray();
         }
 
         /// <summary>
