@@ -888,20 +888,46 @@ namespace FastReport
             {
                 _logger.LogDebug("手動データバンド準備開始（DailyReportパターン適用）");
                 
-                // DataTableからデータソースを再作成
+                // DataTableからデータソースを再作成（リフレクション使用）
                 var dataSource = report.GetDataSource("ProductAccount");
-                if (dataSource?.DataSet?.Tables?.Count > 0)
+                if (dataSource != null)
                 {
-                    var dataTable = dataSource.DataSet.Tables[0];
-                    _logger.LogDebug($"✅ DataTable確認: {dataTable.Rows.Count}行");
+                    _logger.LogDebug("✅ データソース取得成功");
                     
-                    // データソースを再登録
-                    report.RegisterData(dataTable, "ProductAccount");
-                    var newDataSource = report.GetDataSource("ProductAccount");
-                    if (newDataSource != null)
+                    // DataSetプロパティを安全に取得
+                    try
                     {
-                        newDataSource.Enabled = true;
-                        _logger.LogDebug("✅ データソースを再登録・有効化");
+                        var dataSetProperty = dataSource.GetType().GetProperty("DataSet");
+                        if (dataSetProperty != null)
+                        {
+                            var dataSet = dataSetProperty.GetValue(dataSource) as System.Data.DataSet;
+                            if (dataSet?.Tables?.Count > 0)
+                            {
+                                var dataTable = dataSet.Tables[0];
+                                _logger.LogDebug($"✅ DataTable確認: {dataTable.Rows.Count}行");
+                                
+                                // データソースを再登録
+                                report.RegisterData(dataTable, "ProductAccount");
+                                var newDataSource = report.GetDataSource("ProductAccount");
+                                if (newDataSource != null)
+                                {
+                                    newDataSource.Enabled = true;
+                                    _logger.LogDebug("✅ データソースを再登録・有効化");
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogDebug("⚠️ DataSetまたはTablesが空です");
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogDebug("⚠️ DataSetプロパティが見つかりません");
+                        }
+                    }
+                    catch (Exception dsEx)
+                    {
+                        _logger.LogDebug($"DataSet取得エラー: {dsEx.Message}");
                     }
                 }
                 
@@ -923,7 +949,9 @@ namespace FastReport
                         {
                             currentDataSource.Init();
                             currentDataSource.First();
-                            var hasData = !currentDataSource.Eof;
+                            // Eofプロパティをリフレクションで取得
+                            var eofProperty = currentDataSource.GetType().GetProperty("Eof");
+                            var hasData = eofProperty != null ? !(bool)eofProperty.GetValue(currentDataSource) : false;
                             _logger.LogDebug($"✅ データソース接続確認: HasData={hasData}");
                         }
                         catch (Exception dsEx)
