@@ -5,445 +5,243 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using FastReport;
 using FastReport.Export.Pdf;
-using InventorySystem.Core.Entities;
-using InventorySystem.Core.Entities.Masters;
-using InventorySystem.Core.Interfaces;
-using InventorySystem.Core.Interfaces.Masters;
-using InventorySystem.Reports.Models;
 using InventorySystem.Reports.Interfaces;
+using InventorySystem.Reports.Models;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
-using InventorySystem.Core.Models;
 using FR = global::FastReport;
 
 namespace InventorySystem.Reports.FastReport.Services
 {
-    /// <summary>
-    /// 商品勘定帳票のFastReportサービス
-    /// </summary>
     public class ProductAccountFastReportService : IProductAccountReportService
     {
         private readonly ILogger<ProductAccountFastReportService> _logger;
-        private readonly IConfiguration _configuration;
-        private readonly ISalesVoucherRepository _salesVoucherRepository;
-        private readonly IPurchaseVoucherRepository _purchaseVoucherRepository;
-        private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
-        private readonly IInventoryRepository _inventoryRepository;
-        private readonly ICustomerMasterRepository _customerMasterRepository;
-        private readonly IUnmatchCheckValidationService _unmatchCheckValidationService;
         private readonly string _templatePath;
         
-        public ProductAccountFastReportService(
-            ILogger<ProductAccountFastReportService> logger,
-            IConfiguration configuration,
-            ISalesVoucherRepository salesVoucherRepository,
-            IPurchaseVoucherRepository purchaseVoucherRepository,
-            IInventoryAdjustmentRepository inventoryAdjustmentRepository,
-            IInventoryRepository inventoryRepository,
-            ICustomerMasterRepository customerMasterRepository,
-            IUnmatchCheckValidationService unmatchCheckValidationService)
+        public ProductAccountFastReportService(ILogger<ProductAccountFastReportService> logger)
         {
             _logger = logger;
-            _configuration = configuration;
-            _salesVoucherRepository = salesVoucherRepository;
-            _purchaseVoucherRepository = purchaseVoucherRepository;
-            _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
-            _inventoryRepository = inventoryRepository;
-            _customerMasterRepository = customerMasterRepository;
-            _unmatchCheckValidationService = unmatchCheckValidationService;
             
             // テンプレートファイルのパス設定
             var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
             _templatePath = Path.Combine(baseDirectory, "FastReport", "Templates", "ProductAccount.frx");
             
-            _logger.LogInformation("商品勘定帳票テンプレートパス: {Path}", _templatePath);
+            _logger.LogInformation("商品勘定テンプレートパス: {Path}", _templatePath);
+        }
+        
+        public byte[] GenerateProductAccountReport(DateTime jobDate, string? departmentCode = null)
+        {
+            try
+            {
+                // ===== FastReport診断情報 開始 =====
+                _logger.LogInformation("=== 商品勘定帳票 FastReport Service Diagnostics ===");
+                _logger.LogInformation("商品勘定帳票 service is being executed");
+                _logger.LogInformation($"Job date: {jobDate:yyyy-MM-dd}");
+                _logger.LogInformation($"Department code: {departmentCode ?? "全部門"}");
+
+                // FastReportのバージョン情報を取得
+                try
+                {
+                    var fastReportAssembly = typeof(FR.Report).Assembly;
+                    _logger.LogInformation($"FastReport Version: {fastReportAssembly.GetName().Version}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to get FastReport version");
+                }
+                // ===== FastReport診断情報 終了 =====
+                
+                // テンプレートファイルの存在確認
+                if (!File.Exists(_templatePath))
+                {
+                    var errorMessage = $"商品勘定レポートテンプレートが見つかりません: {_templatePath}";
+                    _logger.LogError(errorMessage);
+                    throw new FileNotFoundException(errorMessage, _templatePath);
+                }
+                
+                // 商品勘定データを取得（一時的にダミーデータで実装）
+                var reportData = GetProductAccountData(jobDate, departmentCode);
+                
+                using var report = new FR.Report();
+                
+                // FastReportの設定（アンマッチリストと同じ）
+                report.ReportResourceString = "";  // リソース文字列をクリア
+                report.FileName = _templatePath;   // ファイル名を設定
+                
+                // テンプレートファイルを読み込む
+                _logger.LogInformation("商品勘定レポートテンプレートを読み込んでいます...");
+                report.Load(_templatePath);
+                
+                // .NET 8対応: ScriptLanguageを強制的にNoneに設定（アンマッチリストと同じ方法）
+                try
+                {
+                    // リフレクションを使用してScriptLanguageプロパティを取得
+                    var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                    if (scriptLanguageProperty != null)
+                    {
+                        var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                        if (scriptLanguageType.IsEnum)
+                        {
+                            // FastReport.ScriptLanguage.None を設定
+                            var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
+                            if (noneValue != null)
+                            {
+                                scriptLanguageProperty.SetValue(report, noneValue);
+                                _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+                    // エラーが発生しても処理を継続
+                }
+                
+                // PDF生成処理
+                var pdfBytes = GeneratePdfReport(reportData, jobDate);
+                
+                _logger.LogInformation("商品勘定帳票PDF生成完了。サイズ: {Size} bytes", pdfBytes.Length);
+                
+                return pdfBytes;
+            }
+            catch (FileNotFoundException ex)
+            {
+                _logger.LogError(ex, "商品勘定テンプレートファイルが見つかりません");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "商品勘定帳票の生成中にエラーが発生しました");
+                throw new InvalidOperationException("商品勘定帳票PDFの生成に失敗しました", ex);
+            }
         }
         
         /// <summary>
-        /// 商品勘定帳票を生成（旧式 - アンマッチチェックなし）
+        /// 商品勘定データの取得（一時的な実装）
         /// </summary>
-        public byte[] GenerateProductAccountReport(DateTime jobDate, string? departmentCode = null)
+        private IList<ProductAccountReportModel> GetProductAccountData(DateTime jobDate, string? departmentCode)
         {
-            return GenerateProductAccountReportWithValidation(jobDate, departmentCode, null, skipUnmatchCheck: true);
-        }
-
-        /// <summary>
-        /// 商品勘定帳票を生成（DataSetId指定・アンマッチチェックあり）
-        /// </summary>
-        public async Task<byte[]> GenerateProductAccountReportAsync(DateTime jobDate, string dataSetId, string? departmentCode = null, bool skipUnmatchCheck = false)
-        {
-            return await Task.Run(() => GenerateProductAccountReportWithValidation(jobDate, departmentCode, dataSetId, skipUnmatchCheck));
-        }
-
-        /// <summary>
-        /// 商品勘定帳票を生成（内部実装）
-        /// </summary>
-        private byte[] GenerateProductAccountReportWithValidation(DateTime jobDate, string? departmentCode, string? dataSetId, bool skipUnmatchCheck)
-        {
-            try
+            // 実際の実装では、ストアドプロシージャsp_CreateProductLedgerDataから取得
+            // ここではテスト用のダミーデータを返す
+            var data = new List<ProductAccountReportModel>();
+            
+            // サンプルデータを3件作成
+            for (int i = 1; i <= 3; i++)
             {
-                _logger.LogInformation("=== 商品勘定帳票生成開始 ===");
-                _logger.LogInformation($"対象日: {jobDate:yyyy-MM-dd}");
-                _logger.LogInformation($"部門: {departmentCode ?? "全部門"}");
-                _logger.LogInformation($"DataSetId: {dataSetId ?? "未指定"}");
-                _logger.LogInformation($"アンマッチチェックスキップ: {skipUnmatchCheck}");
-
-                // アンマッチチェック検証（DataSetId指定時のみ）
-                if (!string.IsNullOrEmpty(dataSetId) && !skipUnmatchCheck)
+                var item = new ProductAccountReportModel
                 {
-                    _logger.LogInformation("アンマッチチェック検証開始 - DataSetId: {DataSetId}", dataSetId);
-                    var validation = _unmatchCheckValidationService.ValidateForReportExecutionAsync(
-                        dataSetId, ReportType.ProductAccount).GetAwaiter().GetResult();
-
-                    if (!validation.CanExecute)
-                    {
-                        _logger.LogError("❌ 商品勘定帳票実行不可 - {ErrorMessage}", validation.ErrorMessage);
-                        throw new InvalidOperationException($"商品勘定帳票を実行できません。{validation.ErrorMessage}");
-                    }
-
-                    _logger.LogInformation("✅ アンマッチチェック検証合格 - 商品勘定帳票実行を継続します");
-                }
-
-                // データを取得・計算
-                var reportData = PrepareReportData(jobDate, departmentCode);
-                _logger.LogInformation($"レポートデータ件数: {reportData.Count()}");
-
-                // FastReportでPDF生成
-                return GeneratePdfReport(reportData, jobDate);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "商品勘定帳票の生成に失敗しました");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// レポート用データを準備（ストアドプロシージャ使用）
-        /// Gemini CLI戦略: データ準備とレポート描画の役割分離
-        /// </summary>
-        private IEnumerable<ProductAccountReportModel> PrepareReportData(DateTime jobDate, string? departmentCode)
-        {
-            _logger.LogInformation("ストアドプロシージャによるレポートデータ準備開始");
-
-            var reportModels = new List<ProductAccountReportModel>();
-
-            try
-            {
-                // ストアドプロシージャ実行でデータを取得
-                var connectionString = GetConnectionString();
+                    ProductCode = $"P{i:D4}",
+                    ProductName = $"テスト商品{i}",
+                    ShippingMarkCode = $"S{i:D3}",
+                    ShippingMarkName = $"テスト荷印{i}",
+                    ManualShippingMark = $"MAN{i:D3}  ",
+                    GradeCode = $"G{i:D2}",
+                    GradeName = $"等級{i}",
+                    ClassCode = $"C{i:D2}",
+                    ClassName = $"階級{i}",
+                    VoucherNumber = $"V{i:D6}",
+                    VoucherCategory = i % 2 == 0 ? "51" : "11",
+                    RecordType = i == 1 ? "Previous" : (i % 2 == 0 ? "Sales" : "Purchase"),
+                    TransactionDate = jobDate,
+                    PurchaseQuantity = i % 2 == 1 ? 100.50m : 0,
+                    SalesQuantity = i % 2 == 0 ? 80.25m : 0,
+                    RemainingQuantity = 120.75m - (i * 10),
+                    UnitPrice = 1500.50m + (i * 100),
+                    Amount = 180750m + (i * 10000),
+                    GrossProfit = i % 3 == 0 ? -15000m : 25000m + (i * 5000),
+                    CustomerSupplierName = $"取引先{i}株式会社",
+                    GroupKey = $"P{i:D4}_S{i:D3}_G{i:D2}_C{i:D2}"
+                };
                 
-                using var connection = new System.Data.SqlClient.SqlConnection(connectionString);
-                connection.Open();
+                // DisplayCategoryを設定
+                item.DisplayCategory = GetDisplayCategory(item.VoucherCategory, item.RecordType);
                 
-                using var command = new System.Data.SqlClient.SqlCommand("sp_CreateProductLedgerData", connection);
-                command.CommandType = System.Data.CommandType.StoredProcedure;
-                command.CommandTimeout = 300; // 5分タイムアウト
-                
-                // パラメータ設定
-                command.Parameters.AddWithValue("@JobDate", jobDate);
-                if (!string.IsNullOrEmpty(departmentCode))
-                {
-                    command.Parameters.AddWithValue("@DepartmentCode", departmentCode);
-                }
-                else
-                {
-                    command.Parameters.AddWithValue("@DepartmentCode", DBNull.Value);
-                }
-
-                using var reader = command.ExecuteReader();
-                
-                while (reader.Read())
-                {
-                    var model = new ProductAccountReportModel
-                    {
-                        ProductCode = reader.GetString("ProductCode"),
-                        ProductName = reader.GetString("ProductName"),
-                        ShippingMarkCode = reader.GetString("ShippingMarkCode"),
-                        ShippingMarkName = reader.GetString("ShippingMarkName"),
-                        ManualShippingMark = reader.GetString("ManualShippingMark"),
-                        GradeCode = reader.GetString("GradeCode"),
-                        GradeName = reader.IsDBNull("GradeName") ? "" : reader.GetString("GradeName"),
-                        ClassCode = reader.GetString("ClassCode"),
-                        ClassName = reader.IsDBNull("ClassName") ? "" : reader.GetString("ClassName"),
-                        VoucherNumber = reader.GetString("VoucherNumber"),
-                        DisplayCategory = reader.GetString("DisplayCategory"),
-                        TransactionDate = reader.GetDateTime("TransactionDate"),
-                        PurchaseQuantity = reader.GetDecimal("PurchaseQuantity"),
-                        SalesQuantity = reader.GetDecimal("SalesQuantity"),
-                        RemainingQuantity = reader.GetDecimal("RemainingQuantity"),
-                        UnitPrice = reader.GetDecimal("UnitPrice"),
-                        Amount = reader.GetDecimal("Amount"),
-                        GrossProfit = reader.GetDecimal("GrossProfit"),
-                        WalkingDiscount = reader.GetDecimal("WalkingDiscount"),
-                        CustomerSupplierName = reader.GetString("CustomerSupplierName"),
-                        GroupKey = reader.GetString("GroupKey"),
-                        ProductCategory1 = reader.IsDBNull("ProductCategory1") ? null : reader.GetString("ProductCategory1"),
-                        ProductCategory5 = reader.IsDBNull("ProductCategory5") ? null : reader.GetString("ProductCategory5"),
-                        
-                        // 集計用データ（ストアドプロシージャで計算済み）
-                        PreviousBalanceQuantity = reader.GetDecimal("PreviousBalance"),
-                        TotalPurchaseQuantity = reader.GetDecimal("TotalPurchaseQuantity"),
-                        TotalSalesQuantity = reader.GetDecimal("TotalSalesQuantity"),
-                        CurrentBalanceQuantity = reader.GetDecimal("CurrentBalance"),
-                        InventoryUnitPrice = reader.GetDecimal("InventoryUnitPrice"),
-                        InventoryAmount = reader.GetDecimal("InventoryAmount"),
-                        TotalGrossProfit = reader.GetDecimal("TotalGrossProfit"),
-                        GrossProfitRate = reader.GetDecimal("GrossProfitRate")
-                    };
-
-                    // 月日表示を設定
-                    model.MonthDayDisplay = reader.GetString("MonthDay");
-                    
-                    reportModels.Add(model);
-                }
-
-                _logger.LogInformation($"ストアドプロシージャから{reportModels.Count}件のデータを取得");
-                return reportModels;
+                data.Add(item);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "ストアドプロシージャの実行に失敗しました");
-                throw;
-            }
+            
+            _logger.LogInformation("商品勘定テストデータを生成しました。件数: {Count}", data.Count);
+            
+            return data;
         }
-
+        
         /// <summary>
-        /// 接続文字列を取得
-        /// </summary>
-        private string GetConnectionString()
-        {
-            return _configuration.GetConnectionString("DefaultConnection") 
-                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-        }
-
-        /// <summary>
-        /// 粗利益・歩引き金を計算（非推奨：ストアドプロシージャで計算済み）
-        /// </summary>
-        private void CalculateGrossProfitAndDiscount(ProductAccountReportModel model, Dictionary<string, CustomerMaster> customers)
-        {
-            // 商品分類5=99999の場合は例外処理
-            if (model.IsExceptionCase())
-            {
-                model.GrossProfit = 0;
-                model.WalkingDiscount = 0;
-                _logger.LogDebug($"商品分類5=99999の例外処理適用: {model.ProductCode}");
-                return;
-            }
-
-            // 通常の計算処理
-            if (model.RecordType == "Sales")
-            {
-                // 粗利益 = 売上金額 - (売上数量 × 在庫単価)
-                var costAmount = model.SalesQuantity * model.InventoryUnitPrice;
-                model.GrossProfit = model.Amount - costAmount;
-
-                // 歩引き金 = 売上金額 × 歩引き率
-                if (customers.TryGetValue(model.CustomerSupplierName, out var customer) && customer.WalkingRate.HasValue)
-                {
-                    model.WalkingDiscount = model.Amount * (customer.WalkingRate.Value / 100);
-                }
-            }
-        }
-
-        /// <summary>
-        /// レポートモデルを作成
-        /// </summary>
-        private ProductAccountReportModel CreateReportModel(object record, string recordType, string? voucherCategory, Dictionary<string, CustomerMaster> customers)
-        {
-            var model = new ProductAccountReportModel();
-
-            switch (record)
-            {
-                case SalesVoucher sales:
-                    model.ProductCode = sales.ProductCode;
-                    model.ProductName = sales.ProductName ?? "";
-                    model.ShippingMarkCode = sales.ShippingMarkCode;
-                    model.ShippingMarkName = sales.ShippingMarkName;
-                    model.ManualShippingMark = sales.ShippingMarkName.PadRight(8).Substring(0, 8);
-                    model.GradeCode = sales.GradeCode;
-                    model.ClassCode = sales.ClassCode;
-                    model.VoucherNumber = sales.VoucherNumber;
-                    model.VoucherCategory = sales.VoucherType;
-                    model.TransactionDate = sales.VoucherDate;
-                    model.SalesQuantity = sales.Quantity;
-                    model.UnitPrice = sales.UnitPrice;
-                    model.Amount = sales.Amount;
-                    model.CustomerSupplierName = sales.CustomerName ?? "";
-                    model.ProductCategory1 = sales.ProductCategory1;
-                    model.ProductCategory5 = sales.ProductCategory5;
-                    model.InventoryUnitPrice = sales.InventoryUnitPrice;
-                    model.RecordType = "Sales";
-                    break;
-
-                case PurchaseVoucher purchase:
-                    model.ProductCode = purchase.ProductCode;
-                    model.ProductName = purchase.ProductName ?? "";
-                    model.ShippingMarkCode = purchase.ShippingMarkCode;
-                    model.ShippingMarkName = purchase.ShippingMarkName;
-                    model.ManualShippingMark = purchase.ShippingMarkName.PadRight(8).Substring(0, 8);
-                    model.GradeCode = purchase.GradeCode;
-                    model.ClassCode = purchase.ClassCode;
-                    model.VoucherNumber = purchase.VoucherNumber;
-                    model.VoucherCategory = purchase.VoucherType;
-                    model.TransactionDate = purchase.VoucherDate;
-                    model.PurchaseQuantity = purchase.Quantity;
-                    model.UnitPrice = purchase.UnitPrice;
-                    model.Amount = purchase.Amount;
-                    model.CustomerSupplierName = purchase.SupplierName ?? "";
-                    model.RecordType = "Purchase";
-                    break;
-
-                case InventoryAdjustment adjustment:
-                    model.ProductCode = adjustment.ProductCode;
-                    model.ProductName = adjustment.ProductName ?? "";
-                    model.ShippingMarkCode = adjustment.ShippingMarkCode;
-                    model.ShippingMarkName = adjustment.ShippingMarkName;
-                    model.ManualShippingMark = adjustment.ShippingMarkName.PadRight(8).Substring(0, 8);
-                    model.GradeCode = adjustment.GradeCode;
-                    model.ClassCode = adjustment.ClassCode;
-                    model.VoucherNumber = adjustment.VoucherNumber;
-                    model.VoucherCategory = "71";
-                    model.TransactionDate = adjustment.VoucherDate;
-                    model.UnitPrice = adjustment.UnitPrice;
-                    model.Amount = adjustment.Amount;
-                    model.RecordType = GetAdjustmentType(adjustment);
-                    
-                    // 在庫調整の数量は調整区分により売上・仕入のどちらかに設定
-                    if (adjustment.AdjustmentCategory == "1" || adjustment.AdjustmentCategory == "6") // ロス・調整
-                    {
-                        model.SalesQuantity = Math.Abs(adjustment.Quantity); // 出庫として扱う
-                    }
-                    else
-                    {
-                        model.PurchaseQuantity = adjustment.Quantity; // 入庫として扱う
-                    }
-                    break;
-            }
-
-            model.GenerateGroupKey();
-            model.GenerateSortKey();
-            model.DisplayCategory = model.GetDisplayCategory();
-
-            return model;
-        }
-
-        /// <summary>
-        /// PDFレポートを生成
+        /// PDF生成処理（アンマッチリストのパターンを踏襲）
         /// </summary>
         private byte[] GeneratePdfReport(IEnumerable<ProductAccountReportModel> reportData, DateTime jobDate)
         {
-            // テンプレートファイルの存在確認を強化
-            if (!File.Exists(_templatePath))
-            {
-                var searchPaths = new[]
-                {
-                    _templatePath,
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "ProductAccount.frx"),
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "Templates", "ProductAccount.frx"),
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FastReport", "Templates", "ProductAccount.frx")
-                };
-                
-                _logger.LogError("テンプレートファイルが見つかりません。検索パス:");
-                foreach (var path in searchPaths)
-                {
-                    _logger.LogError("- {Path} (存在: {Exists})", path, File.Exists(path));
-                }
-                
-                // ディレクトリの内容も確認
-                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                _logger.LogError("ベースディレクトリ内容:");
-                if (Directory.Exists(baseDir))
-                {
-                    foreach (var dir in Directory.GetDirectories(baseDir))
-                    {
-                        _logger.LogError("- ディレクトリ: {Dir}", Path.GetFileName(dir));
-                    }
-                }
-                
-                var fastReportDir = Path.Combine(baseDir, "FastReport");
-                if (Directory.Exists(fastReportDir))
-                {
-                    _logger.LogError("FastReportディレクトリ内容:");
-                    foreach (var subDir in Directory.GetDirectories(fastReportDir))
-                    {
-                        _logger.LogError("- サブディレクトリ: {SubDir}", Path.GetFileName(subDir));
-                    }
-                }
-                
-                var templatesDir = Path.Combine(baseDir, "FastReport", "Templates");
-                if (Directory.Exists(templatesDir))
-                {
-                    _logger.LogError("Templatesディレクトリ内容:");
-                    foreach (var file in Directory.GetFiles(templatesDir, "*.frx"))
-                    {
-                        _logger.LogError("- テンプレートファイル: {File}", Path.GetFileName(file));
-                    }
-                }
-                
-                throw new FileNotFoundException($"テンプレートファイルが見つかりません: {_templatePath}");
-            }
-
             using var report = new FR.Report();
             
-            // FastReportの設定
-            report.ReportResourceString = "";  // リソース文字列をクリア
-            report.FileName = _templatePath;   // ファイル名を設定
+            // FastReportの設定（アンマッチリストと同じ）
+            report.ReportResourceString = "";
+            report.FileName = _templatePath;
             
-            // テンプレートファイルを読み込む
-            _logger.LogDebug("テンプレートファイルを読み込んでいます: {TemplatePath}", _templatePath);
+            // テンプレート読込
             report.Load(_templatePath);
             
-            // スクリプトを完全に無効化（.NET 8.0対応）
-            DisableScriptCompilation(report);
-
-            // データテーブル作成
-            var dataTable = CreateDataTable(reportData);
-            report.RegisterData(dataTable, "ProductAccount");
-            
-            // データソースを明示的に取得して設定
-            var dataSource = report.GetDataSource("ProductAccount");
-            if (dataSource != null)
-            {
-                dataSource.Enabled = true;
-                _logger.LogInformation("データソースを有効化しました");
-            }
-            else
-            {
-                _logger.LogWarning("データソース 'ProductAccount' が見つかりません");
-            }
-
-            // レポートパラメータ設定
-            _logger.LogInformation("レポートパラメータを設定しています...");
-            report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
-            report.SetParameterValue("GeneratedAt", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
-
-            // レポート準備・生成（.NET 8.0コンパイル回避）
-            _logger.LogInformation("レポートを生成しています...");
+            // スクリプト無効化（アンマッチリストと完全に同じ方法）
             try
             {
-                // コンパイル処理を明示的に回避してPrepareを実行
-                PrepareSafelyWithoutCompilation(report);
-                _logger.LogInformation("レポート生成成功");
+                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                if (scriptLanguageProperty != null)
+                {
+                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                    if (scriptLanguageType.IsEnum)
+                    {
+                        var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>()
+                            .FirstOrDefault(v => v.ToString() == "None");
+                        if (noneValue != null)
+                        {
+                            scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "report.Prepare()でエラーが発生しました");
-                throw;
+                _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+                // エラーが発生しても処理を継続
             }
-
-            // PDF出力設定（アンマッチリストと同じパターン）
+            
+            // データ設定
+            var dataTable = CreateDataTable(reportData);
+            report.RegisterData(dataTable, "ProductAccount");
+            
+            // データソース検証
+            var registeredDataSource = report.GetDataSource("ProductAccount");
+            if (registeredDataSource != null)
+            {
+                _logger.LogInformation("データソース登録確認 OK: {Name}", registeredDataSource.Name);
+                _logger.LogInformation("データソース行数確認: {Count}", registeredDataSource.RowCount);
+                registeredDataSource.Enabled = true;
+            }
+            else
+            {
+                _logger.LogError("データソース登録失敗: 'ProductAccount' が見つかりません");
+                throw new InvalidOperationException("データソースの登録に失敗しました");
+            }
+            
+            // レポートパラメータを設定
+            _logger.LogInformation("レポートパラメータを設定しています...");
+            report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日HH時mm分ss秒"));
+            report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
+            report.SetParameterValue("TotalCount", dataTable.Rows.Count.ToString("0000"));
+            
+            // レポートを準備
+            _logger.LogInformation("レポートを生成しています...");
+            report.Prepare();
+            
+            // PDF出力設定（アンマッチリストと同じ設定）
             using var pdfExport = new PDFExport
             {
                 // 日本語フォントの埋め込み（重要）
                 EmbeddingFonts = true,
                 
                 // PDFのメタデータ
-                Title = $"商品勘定帳票_{jobDate:yyyyMMdd}",
+                Title = $"商品勘定_{jobDate:yyyyMMdd}",
                 Subject = "商品勘定帳票",
                 Creator = "在庫管理システム",
                 Author = "在庫管理システム",
@@ -454,90 +252,29 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 画質設定
                 JpegQuality = 95,
                 
-                // セキュリティ設定なし
+                // セキュリティ設定なし（内部文書のため）
                 OpenAfterExport = false
             };
             
+            // PDFをメモリストリームに出力
             using var stream = new MemoryStream();
             report.Export(pdfExport, stream);
             
-            var pdfBytes = stream.ToArray();
-            _logger.LogInformation($"商品勘定帳票PDF生成完了: {pdfBytes.Length} bytes");
-            
-            // PDF生成チェック
-            if (pdfBytes.Length == 0)
-            {
-                _logger.LogError("❌ PDFファイルのサイズが0バイトです");
-                _logger.LogDebug("レポート診断情報:");
-                _logger.LogDebug($"- Report.Pages.Count: {report.Pages.Count}");
-                
-                // ReportInfoのプロパティを安全に取得
-                try
-                {
-                    var reportInfoType = report.ReportInfo.GetType();
-                    var totalPagesProperty = reportInfoType.GetProperty("TotalPages");
-                    if (totalPagesProperty != null)
-                    {
-                        var totalPages = totalPagesProperty.GetValue(report.ReportInfo);
-                        _logger.LogDebug($"- Report.ReportInfo.TotalPages: {totalPages}");
-                    }
-                    else
-                    {
-                        _logger.LogDebug("- Report.ReportInfo.TotalPages: プロパティが存在しません");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug($"- ReportInfo診断エラー: {ex.Message}");
-                }
-                
-                // レポートページを確認（型安全にキャスト）
-                try
-                {
-                    foreach (var pageObj in report.Pages)
-                    {
-                        if (pageObj != null)
-                        {
-                            var pageType = pageObj.GetType();
-                            var nameProperty = pageType.GetProperty("Name");
-                            var heightProperty = pageType.GetProperty("Height");
-                            
-                            var name = nameProperty?.GetValue(pageObj)?.ToString() ?? "不明";
-                            var height = heightProperty?.GetValue(pageObj)?.ToString() ?? "不明";
-                            
-                            _logger.LogDebug($"- ページ: {name}, 高さ: {height}");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug($"- Pages診断エラー: {ex.Message}");
-                }
-                
-                throw new InvalidOperationException(
-                    "PDF生成に失敗しました。ファイルサイズが0バイトです。" +
-                    "データが正しく処理されていない可能性があります。");
-            }
-            
-            return pdfBytes;
+            return stream.ToArray();
         }
-
+        
         /// <summary>
-        /// レポート用データテーブルを作成
+        /// DataTable作成（文字列フィールドとして処理、フォーマット済み）
         /// </summary>
         private DataTable CreateDataTable(IEnumerable<ProductAccountReportModel> reportData)
         {
             var table = new DataTable("ProductAccount");
-
-            // カラム定義
-            table.Columns.Add("ProductCode", typeof(string));
+            
+            // すべて文字列型で定義（フォーマット済み）
             table.Columns.Add("ProductName", typeof(string));
-            table.Columns.Add("ShippingMarkCode", typeof(string));
             table.Columns.Add("ShippingMarkName", typeof(string));
             table.Columns.Add("ManualShippingMark", typeof(string));
-            table.Columns.Add("GradeCode", typeof(string));
             table.Columns.Add("GradeName", typeof(string));
-            table.Columns.Add("ClassCode", typeof(string));
             table.Columns.Add("ClassName", typeof(string));
             table.Columns.Add("VoucherNumber", typeof(string));
             table.Columns.Add("DisplayCategory", typeof(string));
@@ -548,442 +285,122 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("UnitPrice", typeof(string));
             table.Columns.Add("Amount", typeof(string));
             table.Columns.Add("GrossProfit", typeof(string));
-            table.Columns.Add("WalkingDiscount", typeof(decimal));
             table.Columns.Add("CustomerSupplierName", typeof(string));
-            table.Columns.Add("GroupKey", typeof(string));
+            table.Columns.Add("GroupKey", typeof(string));  // グループ化用
             
-            // 集計用カラム追加（仕様書対応）
-            table.Columns.Add("PreviousBalance", typeof(decimal));
-            table.Columns.Add("TotalPurchaseQuantity", typeof(decimal));
-            table.Columns.Add("TotalSalesQuantity", typeof(decimal));
-            table.Columns.Add("CurrentBalance", typeof(decimal));
-            table.Columns.Add("InventoryUnitPrice", typeof(decimal));
-            table.Columns.Add("InventoryAmount", typeof(decimal));
-            table.Columns.Add("TotalGrossProfit", typeof(decimal));
-            table.Columns.Add("GrossProfitRate", typeof(decimal));
-
-            // データ行追加
+            // データ追加時のフォーマット処理
             foreach (var item in reportData)
             {
                 var row = table.NewRow();
-                row["ProductCode"] = item.ProductCode;
+                
+                // 文字列フィールドはそのまま
                 row["ProductName"] = item.ProductName;
-                row["ShippingMarkCode"] = item.ShippingMarkCode;
                 row["ShippingMarkName"] = item.ShippingMarkName;
                 row["ManualShippingMark"] = item.ManualShippingMark;
-                row["GradeCode"] = item.GradeCode;
                 row["GradeName"] = item.GradeName;
-                row["ClassCode"] = item.ClassCode;
                 row["ClassName"] = item.ClassName;
                 row["VoucherNumber"] = item.VoucherNumber;
                 row["DisplayCategory"] = item.DisplayCategory;
-                row["MonthDay"] = item.MonthDayDisplay;
-                row["PurchaseQuantity"] = FormatNumberWithNegativeSymbol(item.PurchaseQuantity, 2);
-                row["SalesQuantity"] = FormatNumberWithNegativeSymbol(item.SalesQuantity, 2);
-                row["RemainingQuantity"] = FormatNumberWithNegativeSymbol(item.RemainingQuantity, 2);
-                row["UnitPrice"] = FormatNumberWithNegativeSymbol(item.UnitPrice, 0);
-                row["Amount"] = FormatNumberWithNegativeSymbol(item.Amount, 0);
-                row["GrossProfit"] = FormatNumberWithNegativeSymbol(item.GrossProfit, 0);
-                row["WalkingDiscount"] = item.WalkingDiscount;
+                row["MonthDay"] = item.TransactionDate.ToString("MM/dd");
                 row["CustomerSupplierName"] = item.CustomerSupplierName;
                 row["GroupKey"] = item.GroupKey;
                 
-                // 集計用データ（仕様書対応）
-                row["PreviousBalance"] = item.PreviousBalanceQuantity;
-                row["TotalPurchaseQuantity"] = item.TotalPurchaseQuantity;
-                row["TotalSalesQuantity"] = item.TotalSalesQuantity;
-                row["CurrentBalance"] = item.CurrentBalanceQuantity;
-                row["InventoryUnitPrice"] = item.InventoryUnitPrice;
-                row["InventoryAmount"] = item.InventoryAmount;
-                row["TotalGrossProfit"] = item.TotalGrossProfit;
-                row["GrossProfitRate"] = item.GrossProfitRate;
+                // 数値フィールドのフォーマット
+                row["PurchaseQuantity"] = FormatQuantity(item.PurchaseQuantity);
+                row["SalesQuantity"] = FormatQuantity(item.SalesQuantity);
+                row["RemainingQuantity"] = FormatQuantity(item.RemainingQuantity);
+                row["UnitPrice"] = FormatUnitPrice(item.UnitPrice);
+                row["Amount"] = FormatAmount(item.Amount);
+                row["GrossProfit"] = FormatGrossProfit(item.GrossProfit);  // ▲処理含む
                 
                 table.Rows.Add(row);
             }
-
-            _logger.LogInformation($"DataTable作成完了: {table.Rows.Count}行");
+            
             return table;
         }
-
+        
         /// <summary>
-        /// 負の値に▲記号を付けて数値をフォーマット（CLAUDE.md方針：計算はC#側で実行）
+        /// 数量フォーマット（小数2桁、0の場合は空文字）
         /// </summary>
-        private string FormatNumberWithNegativeSymbol(decimal value, int decimalPlaces)
+        private string FormatQuantity(decimal value)
         {
+            return value == 0 ? "" : value.ToString("#,##0.00");
+        }
+        
+        /// <summary>
+        /// 単価フォーマット（小数2桁）
+        /// </summary>
+        private string FormatUnitPrice(decimal value)
+        {
+            return value == 0 ? "" : value.ToString("#,##0.00");
+        }
+        
+        /// <summary>
+        /// 金額フォーマット（整数、カンマ区切り）
+        /// </summary>
+        private string FormatAmount(decimal value)
+        {
+            return value == 0 ? "" : value.ToString("#,##0");
+        }
+        
+        /// <summary>
+        /// 粗利益フォーマット（負の値は▲記号）
+        /// </summary>
+        private string FormatGrossProfit(decimal value)
+        {
+            if (value == 0) return "";
             if (value < 0)
             {
-                return Math.Abs(value).ToString($"N{decimalPlaces}") + "▲";
+                // 負の値は絶対値に▲を付ける
+                return Math.Abs(value).ToString("#,##0") + "▲";
             }
-            else
-            {
-                return value.ToString($"N{decimalPlaces}");
-            }
-        }
-
-        // ヘルパーメソッド
-        private string GenerateGroupKey(string productCode, string shippingMarkCode, string gradeCode, string classCode)
-        {
-            return $"{productCode}_{shippingMarkCode}_{gradeCode}_{classCode}";
-        }
-
-        private InventoryKey GetInventoryKeyFromRecord(object record)
-        {
-            return record switch
-            {
-                SalesVoucher s => s.GetInventoryKey(),
-                PurchaseVoucher p => p.GetInventoryKey(),
-                InventoryAdjustment a => a.GetInventoryKey(),
-                _ => throw new ArgumentException("Unsupported record type")
-            };
-        }
-
-        private DateTime GetTransactionDate(object record)
-        {
-            return record switch
-            {
-                SalesVoucher s => s.VoucherDate,
-                PurchaseVoucher p => p.VoucherDate,
-                InventoryAdjustment a => a.VoucherDate,
-                _ => DateTime.MinValue
-            };
-        }
-
-        private (decimal quantity, decimal amount) GetPreviousBalance(InventoryKey key, DateTime jobDate)
-        {
-            // 在庫マスタから前日残高を取得（実装詳細は省略）
-            // 実際の実装では InventoryRepository を使用
-            return (0, 0);
-        }
-
-        private string GetAdjustmentType(InventoryAdjustment adjustment)
-        {
-            return adjustment.AdjustmentCategory switch
-            {
-                "1" => "Loss",
-                "4" => "Transfer", 
-                "6" => "Adjustment",
-                _ => "Other"
-            };
-        }
-
-        private void CalculateRunningBalances(List<ProductAccountReportModel> models)
-        {
-            // グループ別の累積残高計算（実装詳細は省略）
-            // 各グループで前残高から開始して取引ごとに残高を更新
-        }
-
-        /// <summary>
-        /// FastReportのスクリプトコンパイルを完全に無効化（.NET 8.0対応）
-        /// </summary>
-        private void DisableScriptCompilation(FR.Report report)
-        {
-            try
-            {
-                _logger.LogInformation("FastReportスクリプトコンパイル無効化開始");
-                
-                // 1. ScriptLanguageをNoneに設定
-                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
-                if (scriptLanguageProperty != null)
-                {
-                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
-                    if (scriptLanguageType.IsEnum)
-                    {
-                        var noneValue = Enum.GetValues(scriptLanguageType)
-                            .Cast<object>()
-                            .FirstOrDefault(v => v.ToString() == "None");
-                        
-                        if (noneValue != null)
-                        {
-                            scriptLanguageProperty.SetValue(report, noneValue);
-                            _logger.LogDebug("✅ ScriptLanguage = None");
-                        }
-                    }
-                }
-                
-                // 2. ScriptTextを完全に削除
-                var scriptTextProperty = report.GetType().GetProperty("ScriptText");
-                if (scriptTextProperty != null)
-                {
-                    scriptTextProperty.SetValue(report, "");
-                    _logger.LogDebug("✅ ScriptText = \"\"");
-                }
-                
-                // 3. Compileメソッドを無効化（内部コンパイルを防ぐ）
-                var compileEnabledProperty = report.GetType().GetProperty("CompileEnabled", 
-                    BindingFlags.NonPublic | BindingFlags.Instance);
-                if (compileEnabledProperty != null)
-                {
-                    compileEnabledProperty.SetValue(report, false);
-                    _logger.LogDebug("✅ CompileEnabled = false");
-                }
-                
-                // 4. Scriptオブジェクトをnullに設定
-                var scriptProperty = report.GetType().GetProperty("Script", 
-                    BindingFlags.NonPublic | BindingFlags.Instance);
-                if (scriptProperty != null)
-                {
-                    scriptProperty.SetValue(report, null);
-                    _logger.LogDebug("✅ Script = null");
-                }
-                
-                // 5. すべてのReportオブジェクトでイベントハンドラーを削除
-                RemoveEventHandlers(report);
-                
-                _logger.LogInformation("✅ FastReportスクリプトコンパイル無効化完了");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning("スクリプト無効化時の警告（処理は継続）: {Message}", ex.Message);
-                // エラーが発生しても処理を継続
-            }
+            return value.ToString("#,##0");
         }
         
         /// <summary>
-        /// すべてのReportオブジェクトのイベントハンドラーを削除
+        /// 区分表示ルール実装
         /// </summary>
-        private void RemoveEventHandlers(FR.Report report)
+        private string GetDisplayCategory(string voucherCategory, string recordType)
         {
-            try
+            // 前日残高
+            if (recordType == "Previous") return "前残";
+            
+            // 伝票区分による表示
+            return voucherCategory switch
             {
-                var allObjects = report.AllObjects;
-                int removedEvents = 0;
-                
-                foreach (var obj in allObjects)
-                {
-                    if (obj != null)
-                    {
-                        var objType = obj.GetType();
-                        
-                        // よくあるイベントプロパティをnullに設定
-                        var eventProps = new[] { 
-                            "BeforePrintEvent", "AfterPrintEvent", "BeforeDataEvent", "AfterDataEvent",
-                            "ClickEvent", "DoubleClickEvent", "MouseEnterEvent", "MouseLeaveEvent"
-                        };
-                        
-                        foreach (var eventProp in eventProps)
-                        {
-                            var prop = objType.GetProperty(eventProp);
-                            if (prop != null && prop.CanWrite)
-                            {
-                                prop.SetValue(obj, "");
-                                removedEvents++;
-                            }
-                        }
-                    }
-                }
-                
-                _logger.LogDebug("✅ イベントハンドラー削除: {Count}個", removedEvents);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug("イベントハンドラー削除時の警告: {Message}", ex.Message);
-            }
+                "11" => "掛仕",
+                "12" => "現仕",
+                "51" => "掛売",
+                "52" => "現売",
+                "71" => GetAdjustmentDisplay(recordType),
+                _ => voucherCategory
+            };
         }
         
         /// <summary>
-        /// コンパイル処理を回避してレポートを安全にPrepareする（.NET 8.0対応）
+        /// 在庫調整の表示区分取得
         /// </summary>
-        private void PrepareSafelyWithoutCompilation(FR.Report report)
+        private string GetAdjustmentDisplay(string recordType)
         {
-            try
+            return recordType switch
             {
-                _logger.LogDebug("コンパイル回避モードでPrepare実行");
-                
-                // 1. コンパイル処理を強制的に無効化
-                var reportType = report.GetType();
-                
-                // CompileEnabledプロパティを探して無効化
-                var compileEnabledField = reportType.GetField("FCompileEnabled", 
-                    BindingFlags.NonPublic | BindingFlags.Instance);
-                if (compileEnabledField != null)
-                {
-                    compileEnabledField.SetValue(report, false);
-                    _logger.LogDebug("✅ FCompileEnabled = false");
-                }
-                
-                // 2. ScriptTextに最小限のReportScriptクラスを設定
-                var minimalScript = @"
-using System;
-using FastReport;
-
-namespace FastReport
-{
-    public class ReportScript
-    {
+                "Loss" => "ロス",
+                "Spoilage" => "腐り", 
+                "Transfer" => "振替",
+                "Processing" => "加工",
+                "Adjustment" => "調整",
+                _ => "調整"
+            };
+        }
     }
-}";
-                report.ScriptText = minimalScript;
-                _logger.LogDebug("✅ ScriptTextに最小限のReportScriptクラスを設定");
-                
-                // 3. まず通常のPrepare()を試行（スクリプト無効化後なので安全なはず）
-                try 
-                {
-                    _logger.LogDebug("🔄 スクリプト無効化後のPrepare()を試行...");
-                    report.Prepare();
-                    _logger.LogInformation("✅ 通常のPrepare()が成功しました");
-                }
-                catch (Exception prepareEx)
-                {
-                    _logger.LogWarning("⚠️ Prepare()でエラー、手動処理に切り替え: {Error}", prepareEx.Message);
-                    
-                    // エラーの詳細を記録
-                    if (prepareEx is System.PlatformNotSupportedException)
-                    {
-                        _logger.LogDebug("PlatformNotSupportedException detected");
-                    }
-                    else if (prepareEx.Message.Contains("ReportScript"))
-                    {
-                        _logger.LogDebug("ReportScript error detected");
-                    }
-                    else
-                    {
-                        _logger.LogDebug($"Other error type: {prepareEx.GetType().Name}");
-                    }
-                    
-                    // 4. Prepare()が失敗した場合のみ手動データバインディング
-                    var dataSource = report.GetDataSource("ProductAccount");
-                    if (dataSource != null)
-                    {
-                        dataSource.Enabled = true;
-                        _logger.LogDebug("✅ データソースを手動で有効化");
-                    }
-                    
-                    // データバンドにデータを手動で設定
-                    ManuallyPrepareDataBand(report);
-                    
-                    // 手動処理後にもう一度Prepare()を試行（データが設定された状態で）
-                    try
-                    {
-                        _logger.LogDebug("🔄 手動設定後にPrepare()を再試行...");
-                        report.Prepare();
-                        _logger.LogInformation("✅ 手動設定後のPrepare()が成功しました");
-                    }
-                    catch (Exception retryEx)
-                    {
-                        _logger.LogWarning("⚠️ 手動設定後のPrepare()も失敗: {Error}", retryEx.Message);
-                        // 続行（Export時にデータが正しく処理される可能性がある）
-                    }
-                }
-                
-                _logger.LogDebug("✅ コンパイル回避モードでPrepare完了");
-            }
-            catch (System.PlatformNotSupportedException ex)
-            {
-                _logger.LogError("❌ .NET 8.0 C#コンパイルエラーが発生: {Message}", ex.Message);
-                
-                // 最後の手段：データバンドを直接操作してPDF生成を試行
-                _logger.LogWarning("⚠️ コンパイル回避に失敗、代替手段を試行中...");
-                throw new InvalidOperationException(
-                    ".NET 8.0環境でFastReportのC#コンパイル機能が利用できません。" +
-                    "テンプレートファイルにスクリプトが含まれている可能性があります。", ex);
-            }
-        }
-        
-        /// <summary>
-        /// データバンドを手動で準備（DailyReportパターンを適用）
-        /// </summary>    
-        private void ManuallyPrepareDataBand(FR.Report report)
-        {
-            try
-            {
-                _logger.LogDebug("手動データバンド準備開始（DailyReportパターン適用）");
-                
-                // DataTableからデータソースを再作成（リフレクション使用）
-                var dataSource = report.GetDataSource("ProductAccount");
-                if (dataSource != null)
-                {
-                    _logger.LogDebug("✅ データソース取得成功");
-                    
-                    // DataSetプロパティを安全に取得
-                    try
-                    {
-                        var dataSetProperty = dataSource.GetType().GetProperty("DataSet");
-                        if (dataSetProperty != null)
-                        {
-                            var dataSet = dataSetProperty.GetValue(dataSource) as System.Data.DataSet;
-                            if (dataSet?.Tables?.Count > 0)
-                            {
-                                var dataTable = dataSet.Tables[0];
-                                _logger.LogDebug($"✅ DataTable確認: {dataTable.Rows.Count}行");
-                                
-                                // データソースを再登録
-                                report.RegisterData(dataTable, "ProductAccount");
-                                var newDataSource = report.GetDataSource("ProductAccount");
-                                if (newDataSource != null)
-                                {
-                                    newDataSource.Enabled = true;
-                                    _logger.LogDebug("✅ データソースを再登録・有効化");
-                                }
-                            }
-                            else
-                            {
-                                _logger.LogDebug("⚠️ DataSetまたはTablesが空です");
-                            }
-                        }
-                        else
-                        {
-                            _logger.LogDebug("⚠️ DataSetプロパティが見つかりません");
-                        }
-                    }
-                    catch (Exception dsEx)
-                    {
-                        _logger.LogDebug($"DataSet取得エラー: {dsEx.Message}");
-                    }
-                }
-                
-                // データバンドを検索
-                var dataBand = report.FindObject("Data1") as FR.DataBand;
-                if (dataBand != null)
-                {
-                    _logger.LogDebug("✅ Data1バンドを発見");
-                    
-                    // DataBandのデータソース設定を確認・修正
-                    var currentDataSource = report.GetDataSource("ProductAccount");
-                    if (currentDataSource != null)
-                    {
-                        dataBand.DataSource = currentDataSource;
-                        _logger.LogDebug("✅ Data1にデータソースを設定");
-                        
-                        // データソースの接続状態を確認
-                        try
-                        {
-                            currentDataSource.Init();
-                            currentDataSource.First();
-                            // Eofプロパティをリフレクションで取得
-                            var eofProperty = currentDataSource.GetType().GetProperty("Eof");
-                            var hasData = eofProperty != null ? !(bool)eofProperty.GetValue(currentDataSource) : false;
-                            _logger.LogDebug($"✅ データソース接続確認: HasData={hasData}");
-                        }
-                        catch (Exception dsEx)
-                        {
-                            _logger.LogWarning($"データソース接続エラー: {dsEx.Message}");
-                        }
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning("⚠️ Data1バンドが見つかりません");
-                    
-                    // 利用可能なオブジェクトを列挙
-                    _logger.LogDebug("利用可能なオブジェクト:");
-                    foreach (var obj in report.AllObjects)
-                    {
-                        if (obj != null)
-                        {
-                            _logger.LogDebug($"- {obj.GetType().Name}: {obj.ToString()}");
-                        }
-                    }
-                }
-                
-                _logger.LogDebug("✅ 手動データバンド準備完了");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning("手動データバンド準備時の警告: {Message}", ex.Message);
-            }
-        }
-
+}
+#else
+namespace InventorySystem.Reports.FastReport.Services
+{
+    // Linux環境用のプレースホルダークラス
+    public class ProductAccountFastReportService
+    {
+        public ProductAccountFastReportService(object logger) { }
     }
 }
 #endif
-#pragma warning restore CA1416
