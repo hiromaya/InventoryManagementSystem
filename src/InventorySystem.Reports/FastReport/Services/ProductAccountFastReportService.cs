@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -11,6 +12,8 @@ using FastReport.Export.Pdf;
 using InventorySystem.Reports.Interfaces;
 using InventorySystem.Reports.Models;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using Dapper;
 using FR = global::FastReport;
 
 namespace InventorySystem.Reports.FastReport.Services
@@ -18,11 +21,15 @@ namespace InventorySystem.Reports.FastReport.Services
     public class ProductAccountFastReportService : IProductAccountReportService
     {
         private readonly ILogger<ProductAccountFastReportService> _logger;
+        private readonly IConfiguration _configuration;
         private readonly string _templatePath;
         
-        public ProductAccountFastReportService(ILogger<ProductAccountFastReportService> logger)
+        public ProductAccountFastReportService(
+            ILogger<ProductAccountFastReportService> logger,
+            IConfiguration configuration)
         {
             _logger = logger;
+            _configuration = configuration;
             
             // テンプレートファイルのパス設定
             var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -61,8 +68,8 @@ namespace InventorySystem.Reports.FastReport.Services
                     throw new FileNotFoundException(errorMessage, _templatePath);
                 }
                 
-                // 商品勘定データを取得（一時的にダミーデータで実装）
-                var reportData = GetProductAccountData(jobDate, departmentCode);
+                // 商品勘定データを取得
+                var reportData = PrepareReportData(jobDate, departmentCode);
                 
                 using var report = new FR.Report();
                 
@@ -120,51 +127,262 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
-        /// 商品勘定データの取得（一時的な実装）
+        /// 商品勘定データの準備
         /// </summary>
-        private IList<ProductAccountReportModel> GetProductAccountData(DateTime jobDate, string? departmentCode)
+        private IEnumerable<ProductAccountReportModel> PrepareReportData(DateTime jobDate, string? departmentCode)
         {
-            // 実際の実装では、ストアドプロシージャsp_CreateProductLedgerDataから取得
-            // ここではテスト用のダミーデータを返す
-            var data = new List<ProductAccountReportModel>();
-            
-            // サンプルデータを3件作成
-            for (int i = 1; i <= 3; i++)
+            _logger.LogInformation("商品勘定データ準備開始 - JobDate: {JobDate}, Department: {Dept}", 
+                jobDate, departmentCode ?? "全部門");
+
+            var reportModels = new List<ProductAccountReportModel>();
+
+            try
             {
-                var item = new ProductAccountReportModel
+                // まずストアドプロシージャの実行を試行
+                try
                 {
-                    ProductCode = $"P{i:D4}",
-                    ProductName = $"テスト商品{i}",
-                    ShippingMarkCode = $"S{i:D3}",
-                    ShippingMarkName = $"テスト荷印{i}",
-                    ManualShippingMark = $"MAN{i:D3}  ",
-                    GradeCode = $"G{i:D2}",
-                    GradeName = $"等級{i}",
-                    ClassCode = $"C{i:D2}",
-                    ClassName = $"階級{i}",
-                    VoucherNumber = $"V{i:D6}",
-                    VoucherCategory = i % 2 == 0 ? "51" : "11",
-                    RecordType = i == 1 ? "Previous" : (i % 2 == 0 ? "Sales" : "Purchase"),
-                    TransactionDate = jobDate,
-                    PurchaseQuantity = i % 2 == 1 ? 100.50m : 0,
-                    SalesQuantity = i % 2 == 0 ? 80.25m : 0,
-                    RemainingQuantity = 120.75m - (i * 10),
-                    UnitPrice = 1500.50m + (i * 100),
-                    Amount = 180750m + (i * 10000),
-                    GrossProfit = i % 3 == 0 ? -15000m : 25000m + (i * 5000),
-                    CustomerSupplierName = $"取引先{i}株式会社",
-                    GroupKey = $"P{i:D4}_S{i:D3}_G{i:D2}_C{i:D2}"
+                    return ExecuteStoredProcedure(jobDate, departmentCode);
+                }
+                catch (SqlException sqlEx) when (sqlEx.Number == 2812)
+                {
+                    _logger.LogWarning("ストアドプロシージャ sp_CreateProductLedgerData が見つかりません。直接データ取得にフォールバックします。");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "ストアドプロシージャ実行エラー。直接データ取得にフォールバックします。");
+                }
+
+                // 直接データ取得にフォールバック
+                return GetReportDataDirectly(jobDate, departmentCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "商品勘定データ準備中にエラーが発生しました");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// ストアドプロシージャによるデータ取得
+        /// </summary>
+        private IEnumerable<ProductAccountReportModel> ExecuteStoredProcedure(DateTime jobDate, string? departmentCode)
+        {
+            var reportModels = new List<ProductAccountReportModel>();
+            
+            using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            connection.Open();
+            
+            using var command = new SqlCommand("sp_CreateProductLedgerData", connection);
+            command.CommandType = CommandType.StoredProcedure;
+            command.CommandTimeout = 300; // 5分タイムアウト
+            
+            // パラメータ設定
+            command.Parameters.AddWithValue("@JobDate", jobDate);
+            command.Parameters.AddWithValue("@DepartmentCode", 
+                string.IsNullOrEmpty(departmentCode) ? DBNull.Value : departmentCode);
+
+            using var reader = command.ExecuteReader();
+            
+            while (reader.Read())
+            {
+                var model = new ProductAccountReportModel
+                {
+                    // 基本情報
+                    ProductCode = reader["ProductCode"]?.ToString() ?? "",
+                    ProductName = reader["ProductName"]?.ToString() ?? "",
+                    ShippingMarkCode = reader["ShippingMarkCode"]?.ToString() ?? "",
+                    ShippingMarkName = reader["ShippingMarkName"]?.ToString() ?? "",
+                    ManualShippingMark = reader["ManualShippingMark"]?.ToString() ?? "",
+                    GradeCode = reader["GradeCode"]?.ToString() ?? "",
+                    GradeName = reader["GradeName"]?.ToString() ?? "",
+                    ClassCode = reader["ClassCode"]?.ToString() ?? "",
+                    ClassName = reader["ClassName"]?.ToString() ?? "",
+                    
+                    // 担当者情報（重要）
+                    ProductCategory1 = reader["ProductCategory1"]?.ToString() ?? "",
+                    
+                    // 伝票情報
+                    VoucherNumber = reader.GetInt32(reader.GetOrdinal("VoucherNumber")).ToString(),
+                    VoucherCategory = reader["VoucherCategory"]?.ToString() ?? "",
+                    DisplayCategory = reader["DisplayCategory"]?.ToString() ?? "",
+                    TransactionDate = reader.GetDateTime(reader.GetOrdinal("TransactionDate")),
+                    
+                    // 数量・金額
+                    PurchaseQuantity = reader.GetDecimal(reader.GetOrdinal("PurchaseQuantity")),
+                    SalesQuantity = reader.GetDecimal(reader.GetOrdinal("SalesQuantity")),
+                    RemainingQuantity = reader.GetDecimal(reader.GetOrdinal("RemainingQuantity")),
+                    UnitPrice = reader.GetDecimal(reader.GetOrdinal("UnitPrice")),
+                    Amount = reader.GetDecimal(reader.GetOrdinal("Amount")),
+                    GrossProfit = reader.GetDecimal(reader.GetOrdinal("GrossProfit")),
+                    
+                    // 取引先情報
+                    CustomerSupplierName = reader["CustomerSupplierName"]?.ToString() ?? "",
+                    
+                    // その他
+                    RecordType = reader["RecordType"]?.ToString() ?? "",
+                    GroupKey = reader["GroupKey"]?.ToString() ?? "",
+                    SortKey = reader["SortKey"]?.ToString() ?? ""
                 };
                 
-                // DisplayCategoryを設定
-                item.DisplayCategory = GetDisplayCategory(item.VoucherCategory, item.RecordType);
+                // 担当者名を取得（商品分類1マスタから）
+                if (!string.IsNullOrEmpty(model.ProductCategory1))
+                {
+                    var staffName = GetStaffName(model.ProductCategory1);
+                    model.SetAdditionalInfo("ProductCategory1Name", staffName);
+                }
                 
-                data.Add(item);
+                reportModels.Add(model);
             }
             
-            _logger.LogInformation("商品勘定テストデータを生成しました。件数: {Count}", data.Count);
+            _logger.LogInformation("ストアドプロシージャから{Count}件のデータを取得", reportModels.Count);
+            return reportModels;
+        }
+
+        /// <summary>
+        /// 直接データ取得メソッド（フォールバック用）
+        /// </summary>
+        private IEnumerable<ProductAccountReportModel> GetReportDataDirectly(DateTime jobDate, string? departmentCode)
+        {
+            _logger.LogInformation("直接データ取得モードで商品勘定データを準備します");
             
-            return data;
+            var reportModels = new List<ProductAccountReportModel>();
+            
+            try
+            {
+                // 簡易的な実装 - 販売伝票データから取得
+                var connectionString = _configuration.GetConnectionString("DefaultConnection");
+                using var connection = new SqlConnection(connectionString);
+                
+                var sql = @"
+                    WITH ProductAccount AS (
+                        -- 売上伝票データ
+                        SELECT 
+                            s.ProductCode,
+                            pm.ProductName,
+                            pm.ProductCategory1,
+                            s.ShippingMarkCode,
+                            s.ShippingMarkName,
+                            s.ShippingMarkName as ManualShippingMark,
+                            s.GradeCode,
+                            '' as GradeName,
+                            s.ClassCode,
+                            '' as ClassName,
+                            s.VoucherNumber,
+                            s.VoucherCategory,
+                            CASE s.VoucherCategory
+                                WHEN '51' THEN '掛売'
+                                WHEN '52' THEN '現売'
+                                ELSE s.VoucherCategory
+                            END as DisplayCategory,
+                            s.VoucherDate as TransactionDate,
+                            0 as PurchaseQuantity,
+                            s.Quantity as SalesQuantity,
+                            0 as RemainingQuantity,
+                            s.UnitPrice,
+                            s.Amount,
+                            0 as GrossProfit,
+                            cm.CustomerName as CustomerSupplierName,
+                            'Sales' as RecordType
+                        FROM SalesVoucher s
+                        LEFT JOIN ProductMaster pm ON s.ProductCode = pm.ProductCode
+                        LEFT JOIN CustomerMaster cm ON s.CustomerCode = cm.CustomerCode
+                        WHERE s.JobDate = @JobDate
+                          AND s.DetailType = '1'
+                          AND (@DepartmentCode IS NULL OR pm.ProductCategory1 = @DepartmentCode)
+                        
+                        UNION ALL
+                        
+                        -- 仕入伝票データ
+                        SELECT 
+                            p.ProductCode,
+                            pm.ProductName,
+                            pm.ProductCategory1,
+                            p.ShippingMarkCode,
+                            p.ShippingMarkName,
+                            p.ShippingMarkName as ManualShippingMark,
+                            p.GradeCode,
+                            '' as GradeName,
+                            p.ClassCode,
+                            '' as ClassName,
+                            p.VoucherNumber,
+                            p.VoucherCategory,
+                            CASE p.VoucherCategory
+                                WHEN '11' THEN '掛仕'
+                                WHEN '12' THEN '現仕'
+                                ELSE p.VoucherCategory
+                            END as DisplayCategory,
+                            p.VoucherDate as TransactionDate,
+                            p.Quantity as PurchaseQuantity,
+                            0 as SalesQuantity,
+                            0 as RemainingQuantity,
+                            p.UnitPrice,
+                            p.Amount,
+                            0 as GrossProfit,
+                            sm.SupplierName as CustomerSupplierName,
+                            'Purchase' as RecordType
+                        FROM PurchaseVoucher p
+                        LEFT JOIN ProductMaster pm ON p.ProductCode = pm.ProductCode
+                        LEFT JOIN SupplierMaster sm ON p.SupplierCode = sm.SupplierCode
+                        WHERE p.JobDate = @JobDate
+                          AND p.DetailType = '1'
+                          AND (@DepartmentCode IS NULL OR pm.ProductCategory1 = @DepartmentCode)
+                    )
+                    SELECT * FROM ProductAccount
+                    ORDER BY ProductCategory1, ProductCode, ShippingMarkCode, ManualShippingMark, 
+                             GradeCode, ClassCode, TransactionDate, VoucherNumber";
+                
+                var results = connection.Query<ProductAccountReportModel>(sql, new { 
+                    JobDate = jobDate, 
+                    DepartmentCode = departmentCode 
+                });
+                
+                foreach (var model in results)
+                {
+                    // 担当者名を取得
+                    if (!string.IsNullOrEmpty(model.ProductCategory1))
+                    {
+                        var staffName = GetStaffName(model.ProductCategory1);
+                        model.SetAdditionalInfo("ProductCategory1Name", staffName);
+                    }
+                    
+                    // GroupKeyの生成
+                    model.GroupKey = $"{model.ProductCode}_{model.ShippingMarkCode}_{model.GradeCode}_{model.ClassCode}";
+                    
+                    reportModels.Add(model);
+                }
+                
+                _logger.LogInformation("直接取得で{Count}件のデータを準備しました", reportModels.Count);
+                
+                return reportModels;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "直接データ取得中にエラーが発生しました");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 担当者名取得メソッド
+        /// </summary>
+        private string GetStaffName(string staffCode)
+        {
+            try
+            {
+                var sql = @"
+                    SELECT Name 
+                    FROM ProductClassification1 
+                    WHERE Code = @Code";
+                    
+                using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+                var name = connection.QueryFirstOrDefault<string>(sql, new { Code = staffCode });
+                
+                return name ?? $"担当者{staffCode}";
+            }
+            catch
+            {
+                return $"担当者{staffCode}";
+            }
         }
         
         /// <summary>
@@ -271,6 +489,9 @@ namespace InventorySystem.Reports.FastReport.Services
             var table = new DataTable("ProductAccount");
             
             // すべて文字列型で定義（フォーマット済み）
+            table.Columns.Add("ProductCategory1", typeof(string));       // 担当者コード
+            table.Columns.Add("ProductCategory1Name", typeof(string));   // 担当者名
+            table.Columns.Add("ProductCode", typeof(string));
             table.Columns.Add("ProductName", typeof(string));
             table.Columns.Add("ShippingMarkName", typeof(string));
             table.Columns.Add("ManualShippingMark", typeof(string));
@@ -293,7 +514,12 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 var row = table.NewRow();
                 
+                // 担当者情報
+                row["ProductCategory1"] = item.ProductCategory1 ?? "";
+                row["ProductCategory1Name"] = item.GetAdditionalInfo("ProductCategory1Name") ?? "";
+                
                 // 文字列フィールドはそのまま
+                row["ProductCode"] = item.ProductCode;
                 row["ProductName"] = item.ProductName;
                 row["ShippingMarkName"] = item.ShippingMarkName;
                 row["ManualShippingMark"] = item.ManualShippingMark;

@@ -57,7 +57,8 @@
       "Bash(awk:*)",
       "Bash(nkf:*)",
       "Bash(iconv:*)",
-      "Bash(dotnet tool install:*)"
+      "Bash(dotnet tool install:*)",
+      "Bash(xmllint:*)"
     ],
     "deny": []
   }

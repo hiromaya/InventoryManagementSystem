@@ -289,4 +289,23 @@ public class ProductAccountReportModel
     {
         return ProductCategory5 == "99999";
     }
+
+    // 追加情報格納用
+    private Dictionary<string, string> _additionalInfo = new Dictionary<string, string>();
+    
+    /// <summary>
+    /// 追加情報を設定
+    /// </summary>
+    public void SetAdditionalInfo(string key, string value)
+    {
+        _additionalInfo[key] = value;
+    }
+    
+    /// <summary>
+    /// 追加情報を取得
+    /// </summary>
+    public string? GetAdditionalInfo(string key)
+    {
+        return _additionalInfo.TryGetValue(key, out var value) ? value : null;
+    }
 }
