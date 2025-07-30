@@ -330,6 +330,7 @@ BEGIN
             GrossProfit,
             WalkingDiscount,
             CustomerSupplierName,
+            RecordType,  -- 重要：RecordTypeを追加（IndexOutOfRangeException対策）
             GroupKey,
             ProductCategory1,
             ProductCategory5,

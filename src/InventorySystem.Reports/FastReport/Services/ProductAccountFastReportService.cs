@@ -255,6 +255,39 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 var sql = @"
                     WITH ProductAccount AS (
+                        -- 前残高データ（CP在庫マスタから）
+                        SELECT 
+                            cp.ProductCode,
+                            ISNULL(cp.ProductName, '') as ProductName,
+                            ISNULL(cp.ProductCategory1, '') as ProductCategory1,
+                            cp.ShippingMarkCode,
+                            cp.ShippingMarkName,
+                            cp.ShippingMarkName as ManualShippingMark,
+                            cp.GradeCode,
+                            ISNULL(g.GradeName, '') as GradeName,
+                            cp.ClassCode,
+                            ISNULL(c.ClassName, '') as ClassName,
+                            '' as VoucherNumber,
+                            '' as VoucherType,
+                            '前残' as DisplayCategory,
+                            @JobDate as TransactionDate,
+                            0 as PurchaseQuantity,
+                            0 as SalesQuantity,
+                            cp.PreviousDayStock as RemainingQuantity,
+                            cp.PreviousDayUnitPrice as UnitPrice,
+                            cp.PreviousDayStockAmount as Amount,
+                            0 as GrossProfit,
+                            '' as CustomerSupplierName,
+                            'Previous' as RecordType  -- 重要：前残高のRecordType
+                        FROM CpInventoryMaster cp
+                        LEFT JOIN GradeMaster g ON cp.GradeCode = g.GradeCode
+                        LEFT JOIN ClassMaster c ON cp.ClassCode = c.ClassCode
+                        WHERE cp.JobDate = @JobDate
+                          AND (@DepartmentCode IS NULL OR cp.ProductCategory1 = @DepartmentCode)
+                          AND cp.PreviousDayStock <> 0
+                        
+                        UNION ALL
+                        
                         -- 売上伝票データ
                         SELECT 
                             s.ProductCode,
