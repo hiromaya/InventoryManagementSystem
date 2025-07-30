@@ -541,6 +541,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 table.Rows.Add(row);
             }
             
+            // デバッグログを追加
+            _logger.LogInformation("CreateDataTable完了: {Count}件のデータを追加", table.Rows.Count);
+            
             return table;
         }
         
