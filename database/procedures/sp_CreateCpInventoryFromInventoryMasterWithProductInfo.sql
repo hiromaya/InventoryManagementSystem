@@ -6,7 +6,6 @@
 -- ====================================================================
 
 CREATE OR ALTER PROCEDURE sp_CreateCpInventoryFromInventoryMasterWithProductInfo
-    @DataSetId NVARCHAR(50),
     @JobDate DATE
 AS
 BEGIN
@@ -18,7 +17,6 @@ BEGIN
         -- CP在庫マスタに在庫マスタのデータを挿入（ProductMasterなし）
         INSERT INTO dbo.CpInventoryMaster (
             ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-            DataSetId,
             ProductName, Unit, StandardPrice,
             ProductCategory1, ProductCategory2,
             JobDate,
@@ -48,7 +46,6 @@ BEGIN
         )
         SELECT 
             ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-            @DataSetId,
             ProductName, Unit, StandardPrice,
             -- 特殊処理ルール: 荷印名による商品分類1の変更（ProductMasterなし）
             CASE 

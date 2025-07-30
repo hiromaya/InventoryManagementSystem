@@ -83,8 +83,7 @@ public class CpInventoryMaster
     public decimal MonthlyWalkingAmount { get; set; }           // 月計歩引き額
     public decimal MonthlyIncentiveAmount { get; set; }         // 月計奨励金
     
-    // データセットID管理
-    public string DataSetId { get; set; } = string.Empty;       // データセットID
+    // DataSetId管理を廃止（仮テーブル設計のため）
     
     // 部門コード
     public string DepartmentCode { get; set; } = "DeptA";

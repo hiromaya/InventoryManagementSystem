@@ -13,7 +13,6 @@ END
 GO
 
 CREATE PROCEDURE sp_CreateCpInventoryFromInventoryMasterCumulative
-    @DataSetId NVARCHAR(50),
     @JobDate DATE = NULL  -- NULLの場合は全期間対象
 AS
 BEGIN
@@ -25,15 +24,15 @@ BEGIN
     BEGIN TRANSACTION;
     
     BEGIN TRY
-        -- 既存のCP在庫マスタを削除
-        DELETE FROM CpInventoryMaster WHERE DataSetId = @DataSetId;
+        -- 既存のCP在庫マスタを全削除（仮テーブル設計）
+        TRUNCATE TABLE CpInventoryMaster;
         
         -- 在庫マスタから伝票に関連する商品をCP在庫マスタに挿入
         INSERT INTO CpInventoryMaster (
             -- 5項目キー
             ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
             -- 管理項目
-            DataSetId, ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+            ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
             JobDate, CreatedDate, UpdatedDate,
             -- 前日在庫（在庫マスタのCurrentStockをコピー）
             PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice,
@@ -67,7 +66,6 @@ BEGIN
             -- 5項目キー
             im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ShippingMarkName,
             -- 管理項目
-            @DataSetId,
             ISNULL(pm.ProductName, ''),
             ISNULL(u.UnitName, ''),  -- UnitMasterから単位名を取得
             ISNULL(pm.StandardPrice, 0),
@@ -85,21 +83,8 @@ BEGIN
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
             -- 月計17個の0
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            -- 部門コード（DataSetIdから抽出）
-            -- 修正版：アンダースコアがない場合も考慮
-            CASE 
-                WHEN @DataSetId LIKE 'DS_%' THEN 
-                    CASE
-                        WHEN CHARINDEX('_', @DataSetId, 4) > 0 THEN
-                            -- アンダースコアがある場合：DS_YYYYMMDD_xxx の形式
-                            SUBSTRING(@DataSetId, 4, CHARINDEX('_', @DataSetId, 4) - 4)
-                        ELSE
-                            -- アンダースコアがない場合：DS_YYYYMMDD の形式（全体を使用）
-                            @DataSetId
-                    END
-                ELSE 
-                    'DeptA' 
-            END
+            -- 部門コード（固定値：DataSetId管理廃止）
+            'DeptA'
         FROM InventoryMaster im
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
         LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode  -- 正しい結合

@@ -95,6 +95,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "038_Create_UnInventoryMaster.sql",            // UnInventoryMasterテーブル作成（DataSetIdなし設計）
         "038_RecreateDailyCloseManagementIdealStructure.sql", // DailyCloseManagement理想的構造移行
         "039_DropDataSetIdFromUnInventoryMaster.sql", // UN在庫マスタのDataSetId列削除（使い捨てテーブル設計）
+        "041_RemoveDataSetIdFromCpInventory.sql",    // CP在庫マスタのDataSetId列削除（仮テーブル設計）
         
         // === ストアドプロシージャ作成（Gemini推奨順序） ===
         "procedures/sp_MergeInitialInventory.sql",                              // 初期在庫マージ（最優先）

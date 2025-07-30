@@ -156,8 +156,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             cpInventory.DailyIncentiveAmount, cpInventory.DailyDiscountAmount,
             cpInventory.DailyPurchaseDiscountAmount,
             cpInventory.Key.ProductCode, cpInventory.Key.GradeCode, cpInventory.Key.ClassCode,
-            cpInventory.Key.ShippingMarkCode, cpInventory.Key.ShippingMarkName,
-            cpInventory.DataSetId
+            cpInventory.Key.ShippingMarkCode, cpInventory.Key.ShippingMarkName
         });
     }
 
@@ -184,8 +183,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             cp.DailyStock, cp.DailyStockAmount, cp.DailyUnitPrice,
             cp.DailyFlag, cp.UpdatedDate,
             cp.Key.ProductCode, cp.Key.GradeCode, cp.Key.ClassCode,
-            cp.Key.ShippingMarkCode, cp.Key.ShippingMarkName,
-            cp.DataSetId
+            cp.Key.ShippingMarkCode, cp.Key.ShippingMarkName
         }));
     }
 
@@ -592,8 +590,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             MonthlyPurchaseAmount = row.MonthlyPurchaseAmount ?? 0m,
             MonthlyGrossProfit = row.MonthlyGrossProfit ?? 0m,
             MonthlyWalkingAmount = row.MonthlyWalkingAmount ?? 0m,
-            MonthlyIncentiveAmount = row.MonthlyIncentiveAmount ?? 0m,
-            DataSetId = row.DataSetId ?? string.Empty
+            MonthlyIncentiveAmount = row.MonthlyIncentiveAmount ?? 0m
         };
     }
     

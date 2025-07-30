@@ -65,7 +65,6 @@ BEGIN
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL,     -- 荷印コード
         ShippingMarkName NVARCHAR(50) NOT NULL,     -- 荷印名
-        DataSetId NVARCHAR(100) NOT NULL,           -- データセットID
         ProductName NVARCHAR(100) NOT NULL,         -- 商品名
         Unit NVARCHAR(10) NOT NULL,                 -- 単位
         StandardPrice DECIMAL(12,4) NOT NULL DEFAULT 0,    -- 標準単価
@@ -148,12 +147,11 @@ BEGIN
         MonthlyWalkingAmount DECIMAL(18,4) NOT NULL DEFAULT 0,        -- 月計歩引き額
         MonthlyIncentiveAmount DECIMAL(18,4) NOT NULL DEFAULT 0,      -- 月計奨励金
         
-        CONSTRAINT PK_CpInventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, DataSetId)
+        CONSTRAINT PK_CpInventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName)
     );
     PRINT 'CpInventoryMaster テーブルを作成しました';
     
     -- インデックス作成
-    CREATE INDEX IX_CpInventoryMaster_DataSetId ON CpInventoryMaster(DataSetId);
     CREATE INDEX IX_CpInventoryMaster_JobDate ON CpInventoryMaster(JobDate);
     CREATE INDEX IX_CpInventoryMaster_DailyFlag ON CpInventoryMaster(DailyFlag);
     CREATE INDEX IX_CpInventoryMaster_ProductCode ON CpInventoryMaster(ProductCode);
