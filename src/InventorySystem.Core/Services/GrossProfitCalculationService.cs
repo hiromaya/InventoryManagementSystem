@@ -63,7 +63,7 @@ namespace InventorySystem.Core.Services
 
                 // 1. 売上伝票を取得（DataSetIdManagerで解決したIDを使用）
                 var allSalesVouchers = await _salesVoucherRepository
-                    .GetByJobDateAndDataSetIdAsync(jobDate, salesVoucherDataSetId);
+                    .GetByJobDateAsync(jobDate); // 仮テーブル設計
                 
                 _logger.LogInformation("売上伝票件数: {Count}", allSalesVouchers.Count());
 
@@ -226,7 +226,7 @@ namespace InventorySystem.Core.Services
         private async Task<Dictionary<string, CpInventoryMaster>> GetCpInventoryDictionaryAsync(
             DateTime jobDate, string dataSetId)
         {
-            var cpInventories = await _cpInventoryRepository.GetByJobDateAndDataSetIdAsync(jobDate, dataSetId);
+            var cpInventories = await _cpInventoryRepository.GetByJobDateAsync(jobDate); // 仮テーブル設計
             
             _logger.LogDebug("CP在庫マスタ取得: {Count}件", cpInventories.Count());
             
@@ -280,7 +280,7 @@ namespace InventorySystem.Core.Services
         {
             // CP在庫マスタの当日粗利益、当日歩引き金額に集計値を加算
             await _cpInventoryRepository.UpdateDailyTotalsAsync(
-                jobDate, dataSetId, totalGrossProfit, totalDiscountAmount);
+                jobDate, totalGrossProfit, totalDiscountAmount); // 仮テーブル設計
         }
     }
 }

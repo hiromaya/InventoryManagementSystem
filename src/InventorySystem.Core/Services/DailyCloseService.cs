@@ -714,7 +714,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         _logger.LogInformation("更新対象在庫マスタ: {Count}件", inventoryCount);
         
         // CP在庫マスタの統計情報
-        var cpInventoryStats = await _cpInventoryRepository.GetAggregationResultAsync(result.DataSetId);
+        var cpInventoryStats = await _cpInventoryRepository.GetAggregationResultAsync(); // 仮テーブル設計
         _logger.LogInformation("CP在庫マスタ統計:");
         _logger.LogInformation("  - 総件数: {Total}", cpInventoryStats.TotalCount);
         _logger.LogInformation("  - 集計済み: {Aggregated}", cpInventoryStats.AggregatedCount);
@@ -799,7 +799,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             
             // UN在庫マスタの削除（日次終了処理完了後）
             _logger.LogInformation("UN在庫マスタ削除を開始");
-            var deletedUnCount = await _unInventoryRepository.DeleteByDataSetIdAsync(dailyReportDataSetId);
+            var deletedUnCount = await _unInventoryRepository.TruncateAllAsync(); // 仮テーブル設計：全削除
             _logger.LogInformation("UN在庫マスタ削除完了: {Count}件", deletedUnCount);
             
             // ステップ5: 在庫ゼロ商品の非アクティブ化
@@ -860,7 +860,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
                 jobDate, datasetId);
             
             // 使用したCP在庫マスタを削除
-            var deletedCount = await _cpInventoryRepository.DeleteByDataSetIdAsync(datasetId);
+            var deletedCount = await _cpInventoryRepository.DeleteAllAsync(); // 仮テーブル設計：全削除
             _logger.LogInformation("CP在庫マスタのクリーンアップ完了 - 削除件数: {Count}", deletedCount);
             
             // 古いCP在庫マスタも削除（7日以上前）

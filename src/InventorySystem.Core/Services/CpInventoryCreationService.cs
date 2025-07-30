@@ -37,31 +37,31 @@ namespace InventorySystem.Core.Services
             _logger = logger;
         }
 
-        public async Task<CpInventoryCreationResult> CreateCpInventoryFromInventoryMasterAsync(DateTime jobDate, string dataSetId)
+        public async Task<CpInventoryCreationResult> CreateCpInventoryFromInventoryMasterAsync(DateTime jobDate)
         {
             var result = new CpInventoryCreationResult
             {
                 JobDate = jobDate,
-                DataSetId = dataSetId
+                DataSetId = "DISPOSABLE_TABLE" // 仮テーブル設計のため固定値
             };
 
             try
             {
-                _logger.LogInformation("CP在庫マスタ作成開始: JobDate={JobDate}, DataSetId={DataSetId}", jobDate, dataSetId);
+                _logger.LogInformation("CP在庫マスタ作成開始: JobDate={JobDate} (仮テーブル設計)", jobDate);
 
                 // CP在庫マスタの削除を保留（日次終了処理まで保持）
                 // Phase 1改修: 削除タイミングを日次終了処理後に変更
-                _logger.LogInformation("CP在庫マスタを保持します（削除は日次終了処理後） - データセットID: {DataSetId}", dataSetId);
+                _logger.LogInformation("CP在庫マスタは仮テーブル設計で管理します");
                 result.DeletedCount = 0; // 削除はスキップ
                 
                 /*
                 // 1. 既存CP在庫マスタの削除
-                result.DeletedCount = await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+                result.DeletedCount = await _cpInventoryRepository.DeleteAllAsync() // 仮テーブル設計：全削除;
                 _logger.LogInformation("既存CP在庫マスタ削除: {Count}件", result.DeletedCount);
                 */
 
                 // 2. 在庫マスタからのコピー
-                result.CopiedCount = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(dataSetId, jobDate);
+                result.CopiedCount = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(jobDate);
                 _logger.LogInformation("在庫マスタからコピー: {Count}件", result.CopiedCount);
 
                 result.Success = true;

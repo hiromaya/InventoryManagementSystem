@@ -13,20 +13,20 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     {
     }
 
-    public async Task<int> CreateCpInventoryFromInventoryMasterAsync(string dataSetId, DateTime? jobDate)
+    public async Task<int> CreateCpInventoryFromInventoryMasterAsync(DateTime? jobDate)
     {
         // 累積管理対応版：在庫マスタのレコードをCP在庫マスタにコピー
         // jobDateがnullの場合は全期間対象
         using var connection = new SqlConnection(_connectionString);
         var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
             "sp_CreateCpInventoryFromInventoryMasterCumulative",
-            new { DataSetId = dataSetId, JobDate = jobDate },
+            new { JobDate = jobDate },
             commandType: CommandType.StoredProcedure);
         
         return result?.CreatedCount ?? 0;
     }
 
-    public async Task<int> ClearDailyAreaAsync(string dataSetId)
+    public async Task<int> ClearDailyAreaAsync()
     {
         const string sql = """
             UPDATE CpInventoryMaster 
@@ -57,14 +57,14 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 MonthlyGrossProfit = 0, MonthlyWalkingAmount = 0,
                 MonthlyIncentiveAmount = 0,
                 UpdatedDate = GETDATE()
-            WHERE DataSetId = @DataSetId
+            -- 仮テーブル設計：全レコード対象
             """;
 
         using var connection = new SqlConnection(_connectionString);
-        return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+        return await connection.ExecuteAsync(sql);
     }
 
-    public async Task<CpInventoryMaster?> GetByKeyAsync(InventoryKey key, string dataSetId)
+    public async Task<CpInventoryMaster?> GetByKeyAsync(InventoryKey key)
     {
         const string sql = """
             SELECT * FROM CpInventoryMaster 
@@ -73,7 +73,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
                 AND ShippingMarkName COLLATE Japanese_CI_AS = @ShippingMarkName COLLATE Japanese_CI_AS
-                AND DataSetId = @DataSetId
+                -- 仮テーブル設計：5項目複合キーで検索
             """;
 
         using var connection = new SqlConnection(_connectionString);
@@ -83,8 +83,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             key.GradeCode, 
             key.ClassCode, 
             key.ShippingMarkCode, 
-            key.ShippingMarkName,
-            DataSetId = dataSetId 
+            key.ShippingMarkName
         });
 
         if (result == null) return null;
@@ -92,12 +91,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         return MapToCpInventoryMaster(result);
     }
 
-    public async Task<IEnumerable<CpInventoryMaster>> GetAllAsync(string dataSetId)
+    public async Task<IEnumerable<CpInventoryMaster>> GetAllAsync()
     {
-        const string sql = "SELECT * FROM CpInventoryMaster WHERE DataSetId = @DataSetId";
+        const string sql = "SELECT * FROM CpInventoryMaster -- 仮テーブル設計：全レコード取得";
 
         using var connection = new SqlConnection(_connectionString);
-        var results = await connection.QueryAsync<dynamic>(sql, new { DataSetId = dataSetId });
+        var results = await connection.QueryAsync<dynamic>(sql);
 
         return results.Select(MapToCpInventoryMaster);
     }
@@ -131,7 +130,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
                 AND ShippingMarkName COLLATE Japanese_CI_AS = @ShippingMarkName COLLATE Japanese_CI_AS
-                AND DataSetId = @DataSetId
+                -- 仮テーブル設計：5項目複合キーで更新
             """;
 
         using var connection = new SqlConnection(_connectionString);
@@ -174,7 +173,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
                 AND ShippingMarkName COLLATE Japanese_CI_AS = @ShippingMarkName COLLATE Japanese_CI_AS
-                AND DataSetId = @DataSetId
+                -- 仮テーブル設計：5項目複合キーで更新
             """;
 
         using var connection = new SqlConnection(_connectionString);
@@ -187,7 +186,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         }));
     }
 
-    public async Task<int> AggregateSalesDataAsync(string dataSetId, DateTime? jobDate)
+    public async Task<int> AggregateSalesDataAsync(DateTime? jobDate)
     {
         // jobDateがnullの場合は全期間対象
         var dateCondition = jobDate.HasValue ? "WHERE JobDate = @JobDate" : "";
@@ -221,14 +220,14 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ClassCode = sales.ClassCode 
                 AND cp.ShippingMarkCode = sales.ShippingMarkCode
                 AND cp.ShippingMarkName COLLATE Japanese_CI_AS = sales.ShippingMarkName COLLATE Japanese_CI_AS
-            WHERE cp.DataSetId = @DataSetId
+            -- 仮テーブル設計：全レコード対象
             """;
 
         using var connection = new SqlConnection(_connectionString);
-        return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId, JobDate = jobDate });
+        return await connection.ExecuteAsync(sql, new { JobDate = jobDate });
     }
 
-    public async Task<int> AggregatePurchaseDataAsync(string dataSetId, DateTime? jobDate)
+    public async Task<int> AggregatePurchaseDataAsync(DateTime? jobDate)
     {
         // jobDateがnullの場合は全期間対象
         var dateCondition = jobDate.HasValue ? "WHERE JobDate = @JobDate" : "";
@@ -262,14 +261,14 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ClassCode = purchase.ClassCode 
                 AND cp.ShippingMarkCode = purchase.ShippingMarkCode
                 AND cp.ShippingMarkName COLLATE Japanese_CI_AS = purchase.ShippingMarkName COLLATE Japanese_CI_AS
-            WHERE cp.DataSetId = @DataSetId
+            -- 仮テーブル設計：全レコード対象
             """;
 
         using var connection = new SqlConnection(_connectionString);
-        return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId, JobDate = jobDate });
+        return await connection.ExecuteAsync(sql, new { JobDate = jobDate });
     }
 
-    public async Task<int> AggregateInventoryAdjustmentDataAsync(string dataSetId, DateTime? jobDate)
+    public async Task<int> AggregateInventoryAdjustmentDataAsync(DateTime? jobDate)
     {
         using var connection = new SqlConnection(_connectionString);
         int totalUpdated = 0;
@@ -308,10 +307,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ClassCode = adj.ClassCode 
                 AND cp.ShippingMarkCode = adj.ShippingMarkCode
                 AND cp.ShippingMarkName COLLATE Japanese_CI_AS = adj.ShippingMarkName COLLATE Japanese_CI_AS
-            WHERE cp.DataSetId = @DataSetId
+            -- 仮テーブル設計：全レコード対象
             """;
         
-        var adjustmentResult = await connection.ExecuteAsync(adjustmentSql, new { DataSetId = dataSetId, JobDate = jobDate });
+        var adjustmentResult = await connection.ExecuteAsync(adjustmentSql, new { JobDate = jobDate });
         totalUpdated += adjustmentResult;
         
         // 2. 加工費（単位コード: 02, 05）
@@ -345,10 +344,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ClassCode = adj.ClassCode 
                 AND cp.ShippingMarkCode = adj.ShippingMarkCode
                 AND cp.ShippingMarkName COLLATE Japanese_CI_AS = adj.ShippingMarkName COLLATE Japanese_CI_AS
-            WHERE cp.DataSetId = @DataSetId
+            -- 仮テーブル設計：全レコード対象
             """;
         
-        var processingResult = await connection.ExecuteAsync(processingSql, new { DataSetId = dataSetId, JobDate = jobDate });
+        var processingResult = await connection.ExecuteAsync(processingSql, new { JobDate = jobDate });
         totalUpdated += processingResult;
         
         // 3. 振替（単位コード: 04）
@@ -382,16 +381,16 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ClassCode = adj.ClassCode 
                 AND cp.ShippingMarkCode = adj.ShippingMarkCode
                 AND cp.ShippingMarkName COLLATE Japanese_CI_AS = adj.ShippingMarkName COLLATE Japanese_CI_AS
-            WHERE cp.DataSetId = @DataSetId
+            -- 仮テーブル設計：全レコード対象
             """;
         
-        var transferResult = await connection.ExecuteAsync(transferSql, new { DataSetId = dataSetId, JobDate = jobDate });
+        var transferResult = await connection.ExecuteAsync(transferSql, new { JobDate = jobDate });
         totalUpdated += transferResult;
         
         return totalUpdated;
     }
 
-    public async Task<int> CalculateDailyStockAsync(string dataSetId)
+    public async Task<int> CalculateDailyStockAsync()
     {
         const string sql = @"
             UPDATE CpInventoryMaster
@@ -428,27 +427,27 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                                    NULLIF(PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity, 0), 4)
                     END, 4),
                 UpdatedDate = GETDATE()
-            WHERE DataSetId = @DataSetId";
+            -- 仮テーブル設計：全レコード対象";
 
         using var connection = new SqlConnection(_connectionString);
-        return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+        return await connection.ExecuteAsync(sql, new { });
     }
 
-    public async Task<int> SetDailyFlagToProcessedAsync(string dataSetId)
+    public async Task<int> SetDailyFlagToProcessedAsync()
     {
         // このメソッドは使用しないため無効化
         return 0;
     }
 
-    public async Task<int> DeleteByDataSetIdAsync(string dataSetId)
+    public async Task<int> DeleteAllAsync()
     {
-        const string sql = "DELETE FROM CpInventoryMaster WHERE DataSetId = @DataSetId";
+        const string sql = "DELETE FROM CpInventoryMaster -- 仮テーブル設計：全レコード対象";
 
         using var connection = new SqlConnection(_connectionString);
-        return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+        return await connection.ExecuteAsync(sql, new { });
     }
 
-    public async Task<int> RepairShippingMarkNamesAsync(string dataSetId)
+    public async Task<int> RepairShippingMarkNamesAsync()
     {
         const string sql = """
             UPDATE cp
@@ -459,47 +458,29 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 cp.GradeCode = im.GradeCode AND
                 cp.ClassCode = im.ClassCode AND
                 cp.ShippingMarkCode = im.ShippingMarkCode
-            WHERE cp.DataSetId = @DataSetId
+            -- 仮テーブル設計：全レコード対象
                 AND cp.ShippingMarkName LIKE '%?%'
             """;
         
         using var connection = new SqlConnection(_connectionString);
-        return await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+        return await connection.ExecuteAsync(sql, new { });
     }
 
-    public async Task<int> CountGarbledShippingMarkNamesAsync(string dataSetId)
+    public async Task<int> CountGarbledShippingMarkNamesAsync()
     {
         const string sql = """
             SELECT COUNT(*)
             FROM CpInventoryMaster
-            WHERE DataSetId = @DataSetId
+            -- 仮テーブル設計：全レコード対象
                 AND ShippingMarkName LIKE '%?%'
             """;
         
         using var connection = new SqlConnection(_connectionString);
-        return await connection.ExecuteScalarAsync<int>(sql, new { DataSetId = dataSetId });
+        return await connection.ExecuteScalarAsync<int>(sql, new { });
     }
 
-    public async Task<int> DeleteAllAsync()
-    {
-        const string sql = "DELETE FROM CpInventoryMaster";
-        
-        try
-        {
-            using var connection = new SqlConnection(_connectionString);
-            var deletedCount = await connection.ExecuteAsync(sql);
-            
-            _logger.LogInformation("CP在庫マスタ全削除完了: {Count}件", deletedCount);
-            return deletedCount;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "CP在庫マスタ全削除エラー");
-            throw;
-        }
-    }
 
-    public async Task<InventorySystem.Core.Models.AggregationResult> GetAggregationResultAsync(string dataSetId)
+    public async Task<InventorySystem.Core.Models.AggregationResult> GetAggregationResultAsync()
     {
         const string sql = """
             SELECT 
@@ -508,13 +489,13 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 SUM(CASE WHEN DailyFlag = '9' THEN 1 ELSE 0 END) as NotAggregatedCount,
                 SUM(CASE WHEN DailyFlag = '0' AND DailyPurchaseQuantity = 0 AND DailySalesQuantity = 0 THEN 1 ELSE 0 END) as ZeroTransactionCount
             FROM CpInventoryMaster
-            WHERE DataSetId = @DataSetId
+            -- 仮テーブル設計：全レコード対象
             """;
         
         try
         {
             using var connection = new SqlConnection(_connectionString);
-            var result = await connection.QuerySingleAsync<dynamic>(sql, new { DataSetId = dataSetId });
+            var result = await connection.QuerySingleAsync<dynamic>(sql, new { });
             
             return new InventorySystem.Core.Models.AggregationResult
             {
@@ -526,7 +507,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "集計結果取得エラー: DataSetId={DataSetId}", dataSetId);
+            _logger.LogError(ex, "集計結果取得エラー（仮テーブル処理）");
             throw;
         }
     }
@@ -760,7 +741,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     /// <summary>
     /// 仕入値引を集計する
     /// </summary>
-    public async Task<int> CalculatePurchaseDiscountAsync(string dataSetId, DateTime jobDate)
+    public async Task<int> CalculatePurchaseDiscountAsync(DateTime jobDate)
     {
         const string sql = @"
             UPDATE cp
@@ -780,16 +761,16 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ClassCode = pv.ClassCode 
                 AND cp.ShippingMarkCode = pv.ShippingMarkCode 
                 AND cp.ShippingMarkName = pv.ShippingMarkName
-            WHERE cp.DataSetId = @dataSetId";
+            -- 仮テーブル設計：全レコード対象";
         
         using var connection = CreateConnection();
-        return await connection.ExecuteAsync(sql, new { dataSetId, jobDate });
+        return await connection.ExecuteAsync(sql, new { jobDate });
     }
 
     /// <summary>
     /// 奨励金を計算する（仕入先分類1='01'の場合、仕入金額の1%）
     /// </summary>
-    public async Task<int> CalculateIncentiveAsync(string dataSetId, DateTime jobDate)
+    public async Task<int> CalculateIncentiveAsync(DateTime jobDate)
     {
         const string sql = @"
             UPDATE cp
@@ -810,16 +791,16 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ClassCode = pv.ClassCode 
                 AND cp.ShippingMarkCode = pv.ShippingMarkCode 
                 AND cp.ShippingMarkName = pv.ShippingMarkName
-            WHERE cp.DataSetId = @dataSetId";
+            -- 仮テーブル設計：全レコード対象";
         
         using var connection = CreateConnection();
-        return await connection.ExecuteAsync(sql, new { dataSetId, jobDate });
+        return await connection.ExecuteAsync(sql, new { jobDate });
     }
 
     /// <summary>
     /// 歩引き金を計算する（得意先マスタの歩引き率×売上金額）
     /// </summary>
-    public async Task<int> CalculateWalkingAmountAsync(string dataSetId, DateTime jobDate)
+    public async Task<int> CalculateWalkingAmountAsync(DateTime jobDate)
     {
         const string sql = @"
             UPDATE cp
@@ -840,16 +821,16 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ClassCode = sv.ClassCode 
                 AND cp.ShippingMarkCode = sv.ShippingMarkCode 
                 AND cp.ShippingMarkName = sv.ShippingMarkName
-            WHERE cp.DataSetId = @dataSetId";
+            -- 仮テーブル設計：全レコード対象";
         
         using var connection = CreateConnection();
-        return await connection.ExecuteAsync(sql, new { dataSetId, jobDate });
+        return await connection.ExecuteAsync(sql, new { jobDate });
     }
 
     /// <summary>
     /// 在庫単価を計算する（移動平均法）
     /// </summary>
-    public async Task<int> CalculateInventoryUnitPriceAsync(string dataSetId)
+    public async Task<int> CalculateInventoryUnitPriceAsync()
     {
         const string sql = @"
             UPDATE CpInventoryMaster
@@ -885,21 +866,21 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                                    (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity), 4)
                     END, 4),
                 UpdatedDate = GETDATE()
-            WHERE DataSetId = @DataSetId";
+            -- 仮テーブル設計：全レコード対象";
         
         using var connection = CreateConnection();
         
         // 在庫単価計算
-        var updateCount = await connection.ExecuteAsync(sql, new { DataSetId = dataSetId });
+        var updateCount = await connection.ExecuteAsync(sql, new { });
         
         // 粗利益の調整（在庫調整金額と加工費を減算）
         const string adjustGrossProfitSql = @"
             UPDATE CpInventoryMaster
             SET DailyGrossProfit = DailyGrossProfit - DailyInventoryAdjustmentAmount - DailyProcessingAmount,
                 UpdatedDate = GETDATE()
-            WHERE DataSetId = @DataSetId";
+            -- 仮テーブル設計：全レコード対象";
         
-        await connection.ExecuteAsync(adjustGrossProfitSql, new { DataSetId = dataSetId });
+        await connection.ExecuteAsync(adjustGrossProfitSql, new { });
         
         return updateCount;
     }
@@ -907,7 +888,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     /// <summary>
     /// 粗利益を計算する（売上伝票1行ごと）
     /// </summary>
-    public async Task<int> CalculateGrossProfitAsync(string dataSetId, DateTime jobDate)
+    public async Task<int> CalculateGrossProfitAsync(DateTime jobDate)
     {
         using var connection = CreateConnection();
         
@@ -934,11 +915,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 sv.ShippingMarkCode = cp.ShippingMarkCode AND
                 sv.ShippingMarkName COLLATE Japanese_CI_AS = cp.ShippingMarkName COLLATE Japanese_CI_AS
             WHERE sv.JobDate = @JobDate 
-                AND cp.DataSetId = @DataSetId
+                -- 仮テーブル設計：全レコード対象
                 AND sv.VoucherType IN ('51', '52')
                 AND sv.DetailType IN ('1', '2', '3')";
         
-        await connection.ExecuteAsync(calculateGrossProfitSql, new { JobDate = jobDate, DataSetId = dataSetId });
+        await connection.ExecuteAsync(calculateGrossProfitSql, new { JobDate = jobDate });
         
         // Step 3: CP在庫Mの当日粗利益に集計
         const string aggregateGrossProfitSql = @"
@@ -961,9 +942,9 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 cp.ClassCode = profit.ClassCode AND
                 cp.ShippingMarkCode = profit.ShippingMarkCode AND
                 cp.ShippingMarkName COLLATE Japanese_CI_AS = profit.ShippingMarkName COLLATE Japanese_CI_AS
-            WHERE cp.DataSetId = @DataSetId";
+            -- 仮テーブル設計：全レコード対象";
         
-        var updateCount = await connection.ExecuteAsync(aggregateGrossProfitSql, new { JobDate = jobDate, DataSetId = dataSetId });
+        var updateCount = await connection.ExecuteAsync(aggregateGrossProfitSql, new { JobDate = jobDate });
         
         // Step 4: 歩引き金額計算
         const string calculateWalkingAmountSql = @"
@@ -987,9 +968,9 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 cp.ClassCode = walk.ClassCode AND
                 cp.ShippingMarkCode = walk.ShippingMarkCode AND
                 cp.ShippingMarkName COLLATE Japanese_CI_AS = walk.ShippingMarkName COLLATE Japanese_CI_AS
-            WHERE cp.DataSetId = @DataSetId";
+            -- 仮テーブル設計：全レコード対象";
         
-        await connection.ExecuteAsync(calculateWalkingAmountSql, new { JobDate = jobDate, DataSetId = dataSetId });
+        await connection.ExecuteAsync(calculateWalkingAmountSql, new { JobDate = jobDate });
         
         // Step 5: 奨励金計算
         const string calculateIncentiveAmountSql = @"
@@ -1014,9 +995,9 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 cp.ClassCode = inc.ClassCode AND
                 cp.ShippingMarkCode = inc.ShippingMarkCode AND
                 cp.ShippingMarkName COLLATE Japanese_CI_AS = inc.ShippingMarkName COLLATE Japanese_CI_AS
-            WHERE cp.DataSetId = @DataSetId";
+            -- 仮テーブル設計：全レコード対象";
         
-        await connection.ExecuteAsync(calculateIncentiveAmountSql, new { JobDate = jobDate, DataSetId = dataSetId });
+        await connection.ExecuteAsync(calculateIncentiveAmountSql, new { JobDate = jobDate });
         
         // Step 6: 仕入値引き計算は CalculatePurchaseDiscountAsync で実施済みのため削除
         // DailyDiscountAmount への重複設定を回避
@@ -1027,7 +1008,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     /// <summary>
     /// 前日の在庫マスタから前日在庫を引き継ぐ
     /// </summary>
-    public async Task<int> InheritPreviousDayStockAsync(string dataSetId, DateTime jobDate, DateTime previousDate)
+    public async Task<int> InheritPreviousDayStockAsync(DateTime jobDate, DateTime previousDate)
     {
         using var connection = CreateConnection();
         
@@ -1052,7 +1033,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ShippingMarkCode = im.ShippingMarkCode
                 AND cp.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
                 -- 累積管理：JobDateの条件を削除（最新の在庫情報を使用）
-            WHERE cp.DataSetId = @DataSetId;
+            -- 仮テーブル設計：全レコード対象;
             
             -- DailyStockも前日在庫で初期化（後の集計処理で正しい値に更新される）
             UPDATE CpInventoryMaster
@@ -1060,11 +1041,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 DailyStockAmount = PreviousDayStockAmount,
                 DailyUnitPrice = PreviousDayUnitPrice,
                 UpdatedDate = GETDATE()
-            WHERE DataSetId = @DataSetId;";
+            -- 仮テーブル設計：全レコード対象;";
 
         return await connection.ExecuteAsync(sql, new 
         { 
-            DataSetId = dataSetId, 
             PreviousDate = previousDate  // パラメータは保持するが使用しない（後方互換性のため）
         });
     }
@@ -1072,7 +1052,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     /// <summary>
     /// 月計合計を計算する
     /// </summary>
-    public async Task<int> CalculateMonthlyTotalsAsync(string dataSetId, DateTime jobDate)
+    public async Task<int> CalculateMonthlyTotalsAsync(DateTime jobDate)
     {
         using var connection = CreateConnection();
         
@@ -1100,10 +1080,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 cp.ClassCode = profit.ClassCode AND
                 cp.ShippingMarkCode = profit.ShippingMarkCode AND
                 cp.ShippingMarkName COLLATE Japanese_CI_AS = profit.ShippingMarkName COLLATE Japanese_CI_AS
-            WHERE cp.DataSetId = @DataSetId";
+            -- 仮テーブル設計：全レコード対象";
         
         var updateCount = await connection.ExecuteAsync(calculateMonthlyGrossProfitSql, 
-            new { MonthStartDate = monthStartDate, JobDate = jobDate, DataSetId = dataSetId });
+            new { MonthStartDate = monthStartDate, JobDate = jobDate });
         
         // 月計歩引き金額計算
         const string calculateMonthlyWalkingAmountSql = @"
@@ -1127,10 +1107,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 cp.ClassCode = walk.ClassCode AND
                 cp.ShippingMarkCode = walk.ShippingMarkCode AND
                 cp.ShippingMarkName COLLATE Japanese_CI_AS = walk.ShippingMarkName COLLATE Japanese_CI_AS
-            WHERE cp.DataSetId = @DataSetId";
+            -- 仮テーブル設計：全レコード対象";
         
         await connection.ExecuteAsync(calculateMonthlyWalkingAmountSql, 
-            new { MonthStartDate = monthStartDate, JobDate = jobDate, DataSetId = dataSetId });
+            new { MonthStartDate = monthStartDate, JobDate = jobDate });
         
         // 月計奨励金計算
         const string calculateMonthlyIncentiveAmountSql = @"
@@ -1155,10 +1135,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 cp.ClassCode = inc.ClassCode AND
                 cp.ShippingMarkCode = inc.ShippingMarkCode AND
                 cp.ShippingMarkName COLLATE Japanese_CI_AS = inc.ShippingMarkName COLLATE Japanese_CI_AS
-            WHERE cp.DataSetId = @DataSetId";
+            -- 仮テーブル設計：全レコード対象";
         
         await connection.ExecuteAsync(calculateMonthlyIncentiveAmountSql, 
-            new { MonthStartDate = monthStartDate, JobDate = jobDate, DataSetId = dataSetId });
+            new { MonthStartDate = monthStartDate, JobDate = jobDate });
         
         return updateCount;
     }
@@ -1187,7 +1167,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     /// <summary>
     /// Process 2-5: CP在庫マスタの当日粗利益・歩引き金額を更新
     /// </summary>
-    public async Task<int> UpdateDailyTotalsAsync(DateTime jobDate, string dataSetId, decimal totalGrossProfit, decimal totalDiscountAmount)
+    public async Task<int> UpdateDailyTotalsAsync(DateTime jobDate, decimal totalGrossProfit, decimal totalDiscountAmount)
     {
         using var connection = CreateConnection();
         
@@ -1197,13 +1177,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 DailyGrossProfit = DailyGrossProfit + @TotalGrossProfit,
                 DailyWalkingAmount = DailyWalkingAmount + @TotalDiscountAmount,
                 UpdatedDate = GETDATE()
-            WHERE DataSetId = @DataSetId";
+            -- 仮テーブル設計：全レコード対象";
         
         var updatedCount = await connection.ExecuteAsync(updateSql, new 
         { 
             TotalGrossProfit = totalGrossProfit,
-            TotalDiscountAmount = totalDiscountAmount,
-            DataSetId = dataSetId
+            TotalDiscountAmount = totalDiscountAmount
         });
         
         _logger.LogInformation("CP在庫マスタの当日粗利益・歩引き金額を更新しました - 更新件数: {Count}, 粗利益: {GrossProfit}, 歩引き金額: {DiscountAmount}", 
@@ -1213,13 +1192,13 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
     }
     
     /// <summary>
-    /// Process 2-5: JobDateとDataSetIdでCP在庫マスタを取得
+    /// Process 2-5: JobDateでCP在庫マスタを取得（仮テーブル設計）
     /// </summary>
-    public async Task<IEnumerable<CpInventoryMaster>> GetByJobDateAndDataSetIdAsync(DateTime jobDate, string dataSetId)
+    public async Task<IEnumerable<CpInventoryMaster>> GetByJobDateAsync(DateTime jobDate)
     {
         const string selectSql = @"
             SELECT * FROM CpInventoryMaster 
-            WHERE DataSetId = @DataSetId 
+            -- 仮テーブル設計：全レコード対象 
             AND JobDate = @JobDate
             ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
 
@@ -1228,23 +1207,22 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             using var connection = new SqlConnection(_connectionString);
             var cpInventories = await connection.QueryAsync<dynamic>(selectSql, new 
             { 
-                DataSetId = dataSetId,
-                JobDate = jobDate  // JobDateパラメータを追加
+                    JobDate = jobDate  // JobDateパラメータを追加
             });
 
             var result = cpInventories.Select(MapToCpInventoryMaster).ToList();
             
             _logger.LogInformation(
-                "CP在庫マスタ取得完了: JobDate={JobDate}, DataSetId={DataSetId}, 件数={Count}", 
-                jobDate, dataSetId, result.Count);
+                "CP在庫マスタ取得完了: JobDate={JobDate}, 件数={Count}", 
+                jobDate, result.Count);
             
             return result;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, 
-                "CP在庫マスタ取得エラー: JobDate={JobDate}, DataSetId={DataSetId}", 
-                jobDate, dataSetId);
+                "CP在庫マスタ取得エラー: JobDate={JobDate}", 
+                jobDate);
             throw;
         }
     }

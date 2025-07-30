@@ -67,25 +67,25 @@ public class InventoryListService : IInventoryListService
 
             // 1. CP在庫M作成
             _logger.LogInformation("CP在庫マスタ作成開始");
-            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(finalDataSetId, reportDate);
+            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(reportDate);
             _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
 
             // 2. 当日エリアクリア
             _logger.LogInformation("当日エリアクリア開始");
-            await _cpInventoryRepository.ClearDailyAreaAsync(finalDataSetId);
+            await _cpInventoryRepository.ClearDailyAreaAsync();
             _logger.LogInformation("当日エリアクリア完了");
 
             // 3. 当日データ集計
             _logger.LogInformation("当日データ集計開始");
-            await _cpInventoryRepository.AggregateSalesDataAsync(finalDataSetId, reportDate);
-            await _cpInventoryRepository.AggregatePurchaseDataAsync(finalDataSetId, reportDate);
-            await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(finalDataSetId, reportDate);
+            await _cpInventoryRepository.AggregateSalesDataAsync(reportDate);
+            await _cpInventoryRepository.AggregatePurchaseDataAsync(reportDate);
+            await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(reportDate);
             _logger.LogInformation("当日データ集計完了");
 
             // 4. 当日在庫計算
             _logger.LogInformation("当日在庫計算開始");
-            await _cpInventoryRepository.CalculateDailyStockAsync(finalDataSetId);
-            await _cpInventoryRepository.SetDailyFlagToProcessedAsync(finalDataSetId);
+            await _cpInventoryRepository.CalculateDailyStockAsync();
+            await _cpInventoryRepository.SetDailyFlagToProcessedAsync();
             _logger.LogInformation("当日在庫計算完了");
 
             // 5. 担当者別在庫表データ生成
@@ -120,7 +120,7 @@ public class InventoryListService : IInventoryListService
             /*
             try
             {
-                await _cpInventoryRepository.DeleteByDataSetIdAsync(dataSetId);
+                await _cpInventoryRepository.DeleteAllAsync() // 仮テーブル設計：全削除;
             }
             catch (Exception cleanupEx)
             {
@@ -148,7 +148,7 @@ public class InventoryListService : IInventoryListService
         var tempDataSetId = Guid.NewGuid().ToString();
         
         // 仮実装：CP在庫Mからデータを取得してInventoryListItemに変換
-        var cpInventories = await _cpInventoryRepository.GetAllAsync(tempDataSetId);
+        var cpInventories = await _cpInventoryRepository.GetAllAsync(); // 仮テーブル設計：全レコード取得
 
         foreach (var cpInventory in cpInventories)
         {
