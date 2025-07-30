@@ -389,7 +389,6 @@ END";
 
         var procedureSql = @"
 CREATE PROCEDURE sp_CreateCpInventoryFromInventoryMasterWithProductInfoV2
-    @DataSetId NVARCHAR(50),
     @JobDate DATE
 AS
 BEGIN
@@ -399,8 +398,7 @@ BEGIN
     DECLARE @InitialInventoryDate DATE;
     DECLARE @ErrorMessage NVARCHAR(MAX);
     
-    PRINT 'CP在庫マスタ作成処理V2を開始します...';
-    PRINT 'データセットID: ' + @DataSetId;
+    PRINT 'CP在庫マスタ作成処理V2を開始します（仮テーブル設計）...';
     PRINT 'ジョブ日付: ' + CONVERT(VARCHAR(10), @JobDate, 120);
     
     BEGIN TRANSACTION;
@@ -421,11 +419,14 @@ BEGIN
         
         PRINT '初期在庫基準日: ' + CONVERT(VARCHAR(10), @InitialInventoryDate, 120);
         
+        -- 仮テーブル設計：全データを削除してから再作成
+        TRUNCATE TABLE CpInventoryMaster;
+        
         -- CP在庫マスタの作成
         INSERT INTO CpInventoryMaster (
             ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
             ProductName, ProductCategory1, ProductCategory2, Unit, StandardPrice,
-            JobDate, DataSetId, DepartmentCode,
+            JobDate, DepartmentCode,
             PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice, DailyFlag,
             -- 日計売上関連
             DailySalesQuantity, DailySalesAmount, DailySalesReturnQuantity, DailySalesReturnAmount,
@@ -469,7 +470,7 @@ BEGIN
             ISNULL(pm.ProductCategory2, '00') AS ProductCategory2,
             ISNULL(pm.UnitCode, im.Unit) AS Unit, 
             ISNULL(pm.StandardPrice, im.StandardPrice) AS StandardPrice,
-            @JobDate AS JobDate, @DataSetId AS DataSetId, 'DeptA' AS DepartmentCode,
+            @JobDate AS JobDate, 'DeptA' AS DepartmentCode,
             im.CurrentStock AS PreviousDayStock, 
             im.CurrentStockAmount AS PreviousDayStockAmount, 
             CASE 
@@ -556,19 +557,18 @@ END";
     }
 
     /// <summary>
-    /// CP在庫マスタ作成テスト用メソッド
+    /// CP在庫マスタ作成テスト用メソッド（仮テーブル設計）
     /// </summary>
-    public async Task<int> TestCpInventoryCreationAsync(string dataSetId, DateTime jobDate)
+    public async Task<int> TestCpInventoryCreationAsync(DateTime jobDate)
     {
         using var connection = new SqlConnection(_connectionString);
         
-        _logger.LogInformation("CP在庫マスタ作成テストを開始します - データセットID: {DataSetId}, ジョブ日付: {JobDate}", 
-            dataSetId, jobDate.ToString("yyyy-MM-dd"));
+        _logger.LogInformation("CP在庫マスタ作成テストを開始します（仮テーブル設計） - ジョブ日付: {JobDate}", 
+            jobDate.ToString("yyyy-MM-dd"));
         
         // 作成前の件数を確認
         var beforeCount = await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM CpInventoryMaster WHERE DataSetId = @DataSetId", 
-            new { DataSetId = dataSetId });
+            "SELECT COUNT(*) FROM CpInventoryMaster");
         
         _logger.LogInformation("作成前のCP在庫マスタ件数: {Count}件", beforeCount);
         
@@ -585,10 +585,10 @@ END";
             return 0;
         }
         
-        // ストアドプロシージャV2を実行
+        // ストアドプロシージャV2を実行（仮テーブル設計）
         var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
-            "EXEC sp_CreateCpInventoryFromInventoryMasterWithProductInfoV2 @DataSetId, @JobDate",
-            new { DataSetId = dataSetId, JobDate = jobDate });
+            "EXEC sp_CreateCpInventoryFromInventoryMasterWithProductInfoV2 @JobDate",
+            new { JobDate = jobDate });
         
         var createdCount = result?.CreatedCount ?? 0;
         var initialInventoryDate = result?.InitialInventoryDate;
@@ -596,10 +596,9 @@ END";
         _logger.LogInformation("CP在庫マスタ作成完了: {CreatedCount}件作成", (object)createdCount);
         _logger.LogInformation("初期在庫基準日: {InitialInventoryDate}", (object)(initialInventoryDate?.ToString("yyyy-MM-dd") ?? "null"));
         
-        // 作成後の件数を確認
+        // 作成後の件数を確認（仮テーブル設計：全レコード）
         var afterCount = await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM CpInventoryMaster WHERE DataSetId = @DataSetId", 
-            new { DataSetId = dataSetId });
+            "SELECT COUNT(*) FROM CpInventoryMaster");
         
         _logger.LogInformation("作成後のCP在庫マスタ件数: {Count}件", afterCount);
         
