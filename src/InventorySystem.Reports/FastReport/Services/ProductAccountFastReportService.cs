@@ -203,7 +203,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     
                     // 伝票情報
                     VoucherNumber = reader["VoucherNumber"]?.ToString() ?? "",
-                    VoucherCategory = reader["VoucherCategory"]?.ToString() ?? "",
+                    VoucherType = reader["VoucherType"]?.ToString() ?? "",
                     DisplayCategory = reader["DisplayCategory"]?.ToString() ?? "",
                     TransactionDate = reader.IsDBNull(reader.GetOrdinal("TransactionDate")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("TransactionDate")),
                     
@@ -258,8 +258,8 @@ namespace InventorySystem.Reports.FastReport.Services
                         -- 売上伝票データ
                         SELECT 
                             s.ProductCode,
-                            pm.ProductName,
-                            pm.ProductCategory1,
+                            s.ProductName,  -- JOINは不要、直接カラムを使用
+                            '' as ProductCategory1,  -- 商品マスタからの取得が必要な場合は後で対応
                             s.ShippingMarkCode,
                             s.ShippingMarkName,
                             s.ShippingMarkName as ManualShippingMark,
@@ -268,11 +268,11 @@ namespace InventorySystem.Reports.FastReport.Services
                             s.ClassCode,
                             '' as ClassName,
                             s.VoucherNumber,
-                            s.VoucherCategory,
-                            CASE s.VoucherCategory
+                            s.VoucherType,  -- VoucherCategoryではない
+                            CASE s.VoucherType
                                 WHEN '51' THEN '掛売'
                                 WHEN '52' THEN '現売'
-                                ELSE s.VoucherCategory
+                                ELSE s.VoucherType
                             END as DisplayCategory,
                             s.VoucherDate as TransactionDate,
                             0 as PurchaseQuantity,
@@ -281,22 +281,20 @@ namespace InventorySystem.Reports.FastReport.Services
                             s.UnitPrice,
                             s.Amount,
                             0 as GrossProfit,
-                            cm.CustomerName as CustomerSupplierName,
+                            s.CustomerName as CustomerSupplierName,  -- JOINは不要
                             'Sales' as RecordType
-                        FROM SalesVouchers s
-                        LEFT JOIN ProductMaster pm ON s.ProductCode = pm.ProductCode
-                        LEFT JOIN CustomerMaster cm ON s.CustomerCode = cm.CustomerCode
+                        FROM SalesVouchers s  -- 複数形
                         WHERE s.JobDate = @JobDate
                           AND s.DetailType = '1'
-                          AND (@DepartmentCode IS NULL OR pm.ProductCategory1 = @DepartmentCode)
+                          AND s.IsActive = 1  -- アクティブなレコードのみ
                         
                         UNION ALL
                         
                         -- 仕入伝票データ
                         SELECT 
                             p.ProductCode,
-                            pm.ProductName,
-                            pm.ProductCategory1,
+                            '' as ProductName,  -- PurchaseVouchersにはProductNameがない
+                            '' as ProductCategory1,
                             p.ShippingMarkCode,
                             p.ShippingMarkName,
                             p.ShippingMarkName as ManualShippingMark,
@@ -305,11 +303,11 @@ namespace InventorySystem.Reports.FastReport.Services
                             p.ClassCode,
                             '' as ClassName,
                             p.VoucherNumber,
-                            p.VoucherCategory,
-                            CASE p.VoucherCategory
+                            p.VoucherType,  -- VoucherCategoryではない
+                            CASE p.VoucherType
                                 WHEN '11' THEN '掛仕'
                                 WHEN '12' THEN '現仕'
-                                ELSE p.VoucherCategory
+                                ELSE p.VoucherType
                             END as DisplayCategory,
                             p.VoucherDate as TransactionDate,
                             p.Quantity as PurchaseQuantity,
@@ -318,14 +316,12 @@ namespace InventorySystem.Reports.FastReport.Services
                             p.UnitPrice,
                             p.Amount,
                             0 as GrossProfit,
-                            sm.SupplierName as CustomerSupplierName,
+                            p.SupplierName as CustomerSupplierName,  -- JOINは不要
                             'Purchase' as RecordType
-                        FROM PurchaseVouchers p
-                        LEFT JOIN ProductMaster pm ON p.ProductCode = pm.ProductCode
-                        LEFT JOIN SupplierMaster sm ON p.SupplierCode = sm.SupplierCode
+                        FROM PurchaseVouchers p  -- 複数形
                         WHERE p.JobDate = @JobDate
                           AND p.DetailType = '1'
-                          AND (@DepartmentCode IS NULL OR pm.ProductCategory1 = @DepartmentCode)
+                          AND p.IsActive = 1  -- アクティブなレコードのみ
                     )
                     SELECT * FROM ProductAccount
                     ORDER BY ProductCategory1, ProductCode, ShippingMarkCode, ManualShippingMark, 
@@ -586,20 +582,20 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// 区分表示ルール実装
         /// </summary>
-        private string GetDisplayCategory(string voucherCategory, string recordType)
+        private string GetDisplayCategory(string voucherType, string recordType)
         {
             // 前日残高
             if (recordType == "Previous") return "前残";
             
             // 伝票区分による表示
-            return voucherCategory switch
+            return voucherType switch
             {
                 "11" => "掛仕",
                 "12" => "現仕",
                 "51" => "掛売",
                 "52" => "現売",
                 "71" => GetAdjustmentDisplay(recordType),
-                _ => voucherCategory
+                _ => voucherType
             };
         }
         

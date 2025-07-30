@@ -78,7 +78,7 @@ public class ProductAccountReportModel
     /// 伝票種別（11,12,51,52,71等）
     /// </summary>
     [MaxLength(5)]
-    public string VoucherCategory { get; set; } = string.Empty;
+    public string VoucherType { get; set; } = string.Empty;
 
     /// <summary>
     /// 画面表示用区分（前残、掛仕、掛売等）
@@ -267,7 +267,7 @@ public class ProductAccountReportModel
     /// </summary>
     public string GetDisplayCategory()
     {
-        return (VoucherCategory, RecordType) switch
+        return (VoucherType, RecordType) switch
         {
             ("11", _) => "掛仕",
             ("12", _) => "現仕",
