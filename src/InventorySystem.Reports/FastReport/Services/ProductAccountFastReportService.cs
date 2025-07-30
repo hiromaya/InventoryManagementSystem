@@ -258,15 +258,15 @@ namespace InventorySystem.Reports.FastReport.Services
                         -- 売上伝票データ
                         SELECT 
                             s.ProductCode,
-                            s.ProductName,  -- JOINは不要、直接カラムを使用
-                            '' as ProductCategory1,  -- 商品マスタからの取得が必要な場合は後で対応
+                            ISNULL(s.ProductName, pm.ProductName) as ProductName,  -- 伝票の商品名、またはマスタから取得
+                            ISNULL(pm.ProductCategory1, '') as ProductCategory1,  -- 商品マスタから担当者取得
                             s.ShippingMarkCode,
                             s.ShippingMarkName,
                             s.ShippingMarkName as ManualShippingMark,
                             s.GradeCode,
-                            '' as GradeName,
+                            ISNULL(g.GradeName, '') as GradeName,
                             s.ClassCode,
-                            '' as ClassName,
+                            ISNULL(c.ClassName, '') as ClassName,
                             s.VoucherNumber,
                             s.VoucherType,  -- VoucherCategoryではない
                             CASE s.VoucherType
@@ -281,27 +281,30 @@ namespace InventorySystem.Reports.FastReport.Services
                             s.UnitPrice,
                             s.Amount,
                             0 as GrossProfit,
-                            s.CustomerName as CustomerSupplierName,  -- JOINは不要
+                            s.CustomerName as CustomerSupplierName,
                             'Sales' as RecordType
-                        FROM SalesVouchers s  -- 複数形
+                        FROM SalesVouchers s
+                        LEFT JOIN ProductMaster pm ON s.ProductCode = pm.ProductCode
+                        LEFT JOIN GradeMaster g ON s.GradeCode = g.GradeCode
+                        LEFT JOIN ClassMaster c ON s.ClassCode = c.ClassCode
                         WHERE s.JobDate = @JobDate
                           AND s.DetailType = '1'
-                          AND s.IsActive = 1  -- アクティブなレコードのみ
+                          AND s.IsActive = 1
                         
                         UNION ALL
                         
                         -- 仕入伝票データ
                         SELECT 
                             p.ProductCode,
-                            '' as ProductName,  -- PurchaseVouchersにはProductNameがない
-                            '' as ProductCategory1,
+                            ISNULL(p.ProductName, pm.ProductName) as ProductName,  -- 伝票の商品名、またはマスタから取得
+                            ISNULL(pm.ProductCategory1, '') as ProductCategory1,
                             p.ShippingMarkCode,
                             p.ShippingMarkName,
                             p.ShippingMarkName as ManualShippingMark,
                             p.GradeCode,
-                            '' as GradeName,
+                            ISNULL(g.GradeName, '') as GradeName,
                             p.ClassCode,
-                            '' as ClassName,
+                            ISNULL(c.ClassName, '') as ClassName,
                             p.VoucherNumber,
                             p.VoucherType,  -- VoucherCategoryではない
                             CASE p.VoucherType
@@ -316,12 +319,53 @@ namespace InventorySystem.Reports.FastReport.Services
                             p.UnitPrice,
                             p.Amount,
                             0 as GrossProfit,
-                            p.SupplierName as CustomerSupplierName,  -- JOINは不要
+                            p.SupplierName as CustomerSupplierName,
                             'Purchase' as RecordType
-                        FROM PurchaseVouchers p  -- 複数形
+                        FROM PurchaseVouchers p
+                        LEFT JOIN ProductMaster pm ON p.ProductCode = pm.ProductCode
+                        LEFT JOIN GradeMaster g ON p.GradeCode = g.GradeCode
+                        LEFT JOIN ClassMaster c ON p.ClassCode = c.ClassCode
                         WHERE p.JobDate = @JobDate
                           AND p.DetailType = '1'
-                          AND p.IsActive = 1  -- アクティブなレコードのみ
+                          AND p.IsActive = 1
+                        
+                        UNION ALL
+                        
+                        -- 在庫調整データ
+                        SELECT 
+                            ia.ProductCode,
+                            ISNULL(ia.ProductName, pm.ProductName) as ProductName,  -- 伝票の商品名、またはマスタから取得
+                            ISNULL(pm.ProductCategory1, '') as ProductCategory1,
+                            ia.ShippingMarkCode,
+                            ia.ShippingMarkName,
+                            ia.ShippingMarkName as ManualShippingMark,
+                            ia.GradeCode,
+                            ISNULL(g.GradeName, '') as GradeName,
+                            ia.ClassCode,
+                            ISNULL(c.ClassName, '') as ClassName,
+                            ia.VoucherNumber,
+                            ia.VoucherType,
+                            CASE ia.CategoryCode
+                                WHEN 1 THEN 'ロス'
+                                WHEN 4 THEN '振替'
+                                WHEN 6 THEN '調整'
+                                ELSE 'その他'
+                            END as DisplayCategory,
+                            ia.VoucherDate as TransactionDate,
+                            CASE WHEN ia.Quantity > 0 THEN ia.Quantity ELSE 0 END as PurchaseQuantity,
+                            CASE WHEN ia.Quantity < 0 THEN ABS(ia.Quantity) ELSE 0 END as SalesQuantity,
+                            0 as RemainingQuantity,
+                            ia.UnitPrice,
+                            ia.Amount,
+                            0 as GrossProfit,
+                            '' as CustomerSupplierName,
+                            'Adjustment' as RecordType
+                        FROM InventoryAdjustments ia
+                        LEFT JOIN ProductMaster pm ON ia.ProductCode = pm.ProductCode
+                        LEFT JOIN GradeMaster g ON ia.GradeCode = g.GradeCode
+                        LEFT JOIN ClassMaster c ON ia.ClassCode = c.ClassCode
+                        WHERE ia.JobDate = @JobDate
+                          AND ia.IsActive = 1
                     )
                     SELECT * FROM ProductAccount
                     ORDER BY ProductCategory1, ProductCode, ShippingMarkCode, ManualShippingMark, 

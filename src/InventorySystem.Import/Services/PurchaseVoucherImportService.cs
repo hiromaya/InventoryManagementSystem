@@ -10,6 +10,8 @@ using System.Text;
 using InventorySystem.Core.Models;
 using InventorySystem.Core.Services;
 using InventorySystem.Import.Helpers;
+using System.Data.SqlClient;
+using Dapper;
 // using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus; // 削除済み
 
 namespace InventorySystem.Import.Services;
@@ -158,6 +160,17 @@ public class PurchaseVoucherImportService
                 filePath,
                 dataSetId); // 生成済みのDataSetIdを渡す
 
+            // 商品マスタを事前に読み込む（パフォーマンス向上のため）
+            var productMasterDict = new Dictionary<string, string>();
+            using (var productConnection = new SqlConnection(_connectionString))
+            {
+                var products = await productConnection.QueryAsync<(string ProductCode, string ProductName)>(
+                    "SELECT ProductCode, ISNULL(ProductName, '') as ProductName FROM ProductMaster"
+                );
+                productMasterDict = products.ToDictionary(p => p.ProductCode, p => p.ProductName ?? "");
+                _logger.LogInformation("商品マスタ読み込み完了: {Count}件", productMasterDict.Count);
+            }
+
             // CSV読み込み処理（販売大臣フォーマット対応）
             var purchaseVouchers = new List<PurchaseVoucher>();
 
@@ -193,6 +206,17 @@ public class PurchaseVoucherImportService
                     }
 
                     var purchaseVoucher = record.ToEntity(dataSetId);
+                    
+                    // 商品名を商品マスタから設定
+                    if (productMasterDict.TryGetValue(purchaseVoucher.ProductCode, out var productName))
+                    {
+                        purchaseVoucher.ProductName = productName;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("行{index}: 商品マスタに商品コード {ProductCode} が存在しません", index, purchaseVoucher.ProductCode);
+                        purchaseVoucher.ProductName = "";
+                    }
                     
                     // 明細種別3（単品値引）の特別ログ
                     if (record.DetailType == "3" && record.Quantity == 0)

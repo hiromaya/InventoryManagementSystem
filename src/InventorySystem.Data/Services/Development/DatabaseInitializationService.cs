@@ -34,6 +34,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "000_CreateMigrationHistory.sql",
         
         // === データベース構造追加 ===
+        "003_AddProductNameColumn.sql",              // 伝票テーブルへのProductName追加（最優先）
         "005_AddDailyCloseProtectionColumns.sql",
         "006_AddDataSetManagement.sql",
         "007_AddDeactivationIndexes.sql",

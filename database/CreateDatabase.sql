@@ -169,6 +169,7 @@ BEGIN
         VoucherId NVARCHAR(100) NOT NULL,            -- 伝票ID
         LineNumber INT NOT NULL,                    -- 行番号
         ProductCode NVARCHAR(15) NOT NULL,          -- 商品コード
+        ProductName NVARCHAR(100) NULL,             -- 商品名
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL,     -- 荷印コード
@@ -209,6 +210,7 @@ BEGIN
         VoucherId NVARCHAR(100) NOT NULL,            -- 伝票ID
         LineNumber INT NOT NULL,                    -- 行番号
         ProductCode NVARCHAR(15) NOT NULL,          -- 商品コード
+        ProductName NVARCHAR(100) NULL,             -- 商品名
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL,     -- 荷印コード
@@ -246,6 +248,7 @@ BEGIN
         VoucherId NVARCHAR(100) NOT NULL,            -- 伝票ID
         LineNumber INT NOT NULL,                    -- 行番号
         ProductCode NVARCHAR(15) NOT NULL,          -- 商品コード
+        ProductName NVARCHAR(100) NULL,             -- 商品名
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL,     -- 荷印コード
