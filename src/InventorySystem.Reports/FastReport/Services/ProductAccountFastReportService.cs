@@ -202,18 +202,18 @@ namespace InventorySystem.Reports.FastReport.Services
                     ProductCategory1 = reader["ProductCategory1"]?.ToString() ?? "",
                     
                     // 伝票情報
-                    VoucherNumber = reader.GetInt32(reader.GetOrdinal("VoucherNumber")).ToString(),
+                    VoucherNumber = reader["VoucherNumber"]?.ToString() ?? "",
                     VoucherCategory = reader["VoucherCategory"]?.ToString() ?? "",
                     DisplayCategory = reader["DisplayCategory"]?.ToString() ?? "",
-                    TransactionDate = reader.GetDateTime(reader.GetOrdinal("TransactionDate")),
+                    TransactionDate = reader.IsDBNull(reader.GetOrdinal("TransactionDate")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("TransactionDate")),
                     
                     // 数量・金額
-                    PurchaseQuantity = reader.GetDecimal(reader.GetOrdinal("PurchaseQuantity")),
-                    SalesQuantity = reader.GetDecimal(reader.GetOrdinal("SalesQuantity")),
-                    RemainingQuantity = reader.GetDecimal(reader.GetOrdinal("RemainingQuantity")),
-                    UnitPrice = reader.GetDecimal(reader.GetOrdinal("UnitPrice")),
-                    Amount = reader.GetDecimal(reader.GetOrdinal("Amount")),
-                    GrossProfit = reader.GetDecimal(reader.GetOrdinal("GrossProfit")),
+                    PurchaseQuantity = reader.IsDBNull(reader.GetOrdinal("PurchaseQuantity")) ? 0 : reader.GetDecimal(reader.GetOrdinal("PurchaseQuantity")),
+                    SalesQuantity = reader.IsDBNull(reader.GetOrdinal("SalesQuantity")) ? 0 : reader.GetDecimal(reader.GetOrdinal("SalesQuantity")),
+                    RemainingQuantity = reader.IsDBNull(reader.GetOrdinal("RemainingQuantity")) ? 0 : reader.GetDecimal(reader.GetOrdinal("RemainingQuantity")),
+                    UnitPrice = reader.IsDBNull(reader.GetOrdinal("UnitPrice")) ? 0 : reader.GetDecimal(reader.GetOrdinal("UnitPrice")),
+                    Amount = reader.IsDBNull(reader.GetOrdinal("Amount")) ? 0 : reader.GetDecimal(reader.GetOrdinal("Amount")),
+                    GrossProfit = reader.IsDBNull(reader.GetOrdinal("GrossProfit")) ? 0 : reader.GetDecimal(reader.GetOrdinal("GrossProfit")),
                     
                     // 取引先情報
                     CustomerSupplierName = reader["CustomerSupplierName"]?.ToString() ?? "",
@@ -283,7 +283,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             0 as GrossProfit,
                             cm.CustomerName as CustomerSupplierName,
                             'Sales' as RecordType
-                        FROM SalesVoucher s
+                        FROM SalesVouchers s
                         LEFT JOIN ProductMaster pm ON s.ProductCode = pm.ProductCode
                         LEFT JOIN CustomerMaster cm ON s.CustomerCode = cm.CustomerCode
                         WHERE s.JobDate = @JobDate
@@ -320,7 +320,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             0 as GrossProfit,
                             sm.SupplierName as CustomerSupplierName,
                             'Purchase' as RecordType
-                        FROM PurchaseVoucher p
+                        FROM PurchaseVouchers p
                         LEFT JOIN ProductMaster pm ON p.ProductCode = pm.ProductCode
                         LEFT JOIN SupplierMaster sm ON p.SupplierCode = sm.SupplierCode
                         WHERE p.JobDate = @JobDate
