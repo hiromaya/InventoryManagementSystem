@@ -1,7 +1,9 @@
 -- =============================================
--- InventoryMaster 主キー変更マイグレーションスクリプト
+-- InventoryMaster 主キー変更マイグレーションスクリプト（修正版）
 -- 作成日: 2025-07-20
+-- 修正日: 2025-07-30
 -- 目的: 主キーを6項目から5項目に変更（JobDateを除外）
+-- 修正内容: 存在しないカラムのエラーハンドリング
 -- =============================================
 
 USE InventoryManagementDB;
@@ -46,6 +48,8 @@ BEGIN TRY
     -- 1. 一時テーブルの作成（最新JobDateのデータのみを保持）
     PRINT '1. 一時テーブルを作成します...';
     
+    -- 現在のテーブル構造を確認して動的に一時テーブルを作成
+    DECLARE @CreateTempTableSQL NVARCHAR(MAX) = '
     CREATE TABLE #TempInventoryMaster (
         ProductCode NVARCHAR(15) NOT NULL,
         GradeCode NVARCHAR(15) NOT NULL,
@@ -65,18 +69,36 @@ BEGIN TRY
         DailyStock DECIMAL(18,4) NOT NULL,
         DailyStockAmount DECIMAL(18,4) NOT NULL,
         DailyFlag CHAR(1) NOT NULL,
+        DataSetId NVARCHAR(50) NOT NULL';
+
+    -- 粗利計算関連カラムの確認と追加
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('InventoryMaster') AND name = 'DailyGrossProfit')
+    BEGIN
+        SET @CreateTempTableSQL = @CreateTempTableSQL + ',
         DailyGrossProfit DECIMAL(18,4) NOT NULL,
         DailyAdjustmentAmount DECIMAL(18,4) NOT NULL,
         DailyProcessingCost DECIMAL(18,4) NOT NULL,
-        FinalGrossProfit DECIMAL(18,4) NOT NULL,
-        DataSetId NVARCHAR(50) NOT NULL,
+        FinalGrossProfit DECIMAL(18,4) NOT NULL';
+    END
+
+    -- 前月繰越関連カラムの確認と追加
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('InventoryMaster') AND name = 'PreviousMonthQuantity')
+    BEGIN
+        SET @CreateTempTableSQL = @CreateTempTableSQL + ',
         PreviousMonthQuantity DECIMAL(18,4) NOT NULL DEFAULT 0,
-        PreviousMonthAmount DECIMAL(18,4) NOT NULL DEFAULT 0
-    );
+        PreviousMonthAmount DECIMAL(18,4) NOT NULL DEFAULT 0';
+    END
+
+    SET @CreateTempTableSQL = @CreateTempTableSQL + ');';
+
+    -- 一時テーブルを作成
+    EXEC sp_executesql @CreateTempTableSQL;
 
     -- 2. 最新JobDateのデータを一時テーブルに移行
     PRINT '2. 最新JobDateのデータを抽出します...';
     
+    -- 動的SQLでデータを挿入
+    DECLARE @InsertSQL NVARCHAR(MAX) = '
     INSERT INTO #TempInventoryMaster
     SELECT 
         im.ProductCode,
@@ -91,19 +113,32 @@ BEGIN TRY
         im.ProductCategory2,
         im.JobDate,
         im.CreatedDate,
-        GETDATE() as UpdatedDate,  -- 更新日時を現在時刻に設定
+        GETDATE() as UpdatedDate,
         im.CurrentStock,
         im.CurrentStockAmount,
         im.DailyStock,
         im.DailyStockAmount,
         im.DailyFlag,
+        im.DataSetId';
+
+    -- カラムが存在する場合のみ追加
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('InventoryMaster') AND name = 'DailyGrossProfit')
+    BEGIN
+        SET @InsertSQL = @InsertSQL + ',
         im.DailyGrossProfit,
         im.DailyAdjustmentAmount,
         im.DailyProcessingCost,
-        im.FinalGrossProfit,
-        im.DataSetId,
+        im.FinalGrossProfit';
+    END
+
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('InventoryMaster') AND name = 'PreviousMonthQuantity')
+    BEGIN
+        SET @InsertSQL = @InsertSQL + ',
         im.PreviousMonthQuantity,
-        im.PreviousMonthAmount
+        im.PreviousMonthAmount';
+    END
+
+    SET @InsertSQL = @InsertSQL + '
     FROM InventoryMaster im
     INNER JOIN (
         SELECT 
@@ -121,7 +156,10 @@ BEGIN TRY
         AND im.ClassCode = latest.ClassCode
         AND im.ShippingMarkCode = latest.ShippingMarkCode
         AND im.ShippingMarkName = latest.ShippingMarkName
-        AND im.JobDate = latest.LatestJobDate;
+        AND im.JobDate = latest.LatestJobDate;';
+
+    -- 動的SQLを実行
+    EXEC sp_executesql @InsertSQL;
 
     DECLARE @TempCount INT;
     SELECT @TempCount = COUNT(*) FROM #TempInventoryMaster;
@@ -182,8 +220,13 @@ BEGIN TRY
 
     -- 8. 一時テーブルからデータを戻す
     PRINT '8. データを新しい構造に移行します...';
+    
+    -- 動的SQLでデータを戻す
+    DECLARE @InsertBackSQL NVARCHAR(MAX) = '
     INSERT INTO InventoryMaster
-    SELECT * FROM #TempInventoryMaster;
+    SELECT * FROM #TempInventoryMaster;';
+    
+    EXEC sp_executesql @InsertBackSQL;
 
     DECLARE @FinalCount INT;
     SELECT @FinalCount = COUNT(*) FROM InventoryMaster;
@@ -196,14 +239,46 @@ BEGIN TRY
     PRINT '';
     PRINT '========== 移行結果 ==========';
     
-    -- レコード数の比較
-    DECLARE @OriginalCount INT;
-    SELECT @OriginalCount = COUNT(*) FROM InventoryMaster_Backup_20250720;
-    
-    PRINT 'バックアップテーブルのレコード数: ' + CAST(@OriginalCount AS NVARCHAR(20));
-    PRINT '新しいテーブルのレコード数: ' + CAST(@FinalCount AS NVARCHAR(20));
-    PRINT '削減されたレコード数: ' + CAST(@OriginalCount - @FinalCount AS NVARCHAR(20));
-    PRINT '削減率: ' + CAST(CAST((@OriginalCount - @FinalCount) AS FLOAT) / @OriginalCount * 100 AS NVARCHAR(10)) + '%';
+    -- バックアップテーブルが存在する場合のみ比較
+    IF EXISTS (SELECT * FROM sys.tables WHERE name = 'InventoryMaster_Backup_20250720')
+    BEGIN
+        DECLARE @OriginalCount INT;
+        SELECT @OriginalCount = COUNT(*) FROM InventoryMaster_Backup_20250720;
+        
+        PRINT 'バックアップテーブルのレコード数: ' + CAST(@OriginalCount AS NVARCHAR(20));
+        PRINT '新しいテーブルのレコード数: ' + CAST(@FinalCount AS NVARCHAR(20));
+        
+        IF @OriginalCount > 0
+        BEGIN
+            PRINT '削減されたレコード数: ' + CAST(@OriginalCount - @FinalCount AS NVARCHAR(20));
+            PRINT '削減率: ' + CAST(CAST((@OriginalCount - @FinalCount) AS FLOAT) / @OriginalCount * 100 AS NVARCHAR(10)) + '%';
+        END
+    END
+    ELSE
+    BEGIN
+        PRINT '新しいテーブルのレコード数: ' + CAST(@FinalCount AS NVARCHAR(20));
+        PRINT '注意: バックアップテーブルが存在しないため、比較できません';
+    END
+
+    -- 現在のテーブル構造を表示
+    PRINT '';
+    PRINT '現在のInventoryMasterテーブル構造:';
+    SELECT 
+        c.COLUMN_NAME,
+        c.DATA_TYPE,
+        c.CHARACTER_MAXIMUM_LENGTH,
+        c.IS_NULLABLE,
+        CASE 
+            WHEN kcu.COLUMN_NAME IS NOT NULL THEN 'PRIMARY KEY' 
+            ELSE '' 
+        END as KEY_TYPE
+    FROM INFORMATION_SCHEMA.COLUMNS c
+    LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+        ON c.TABLE_NAME = kcu.TABLE_NAME 
+        AND c.COLUMN_NAME = kcu.COLUMN_NAME
+        AND kcu.CONSTRAINT_NAME = 'PK_InventoryMaster'
+    WHERE c.TABLE_NAME = 'InventoryMaster'
+    ORDER BY c.ORDINAL_POSITION;
 
     -- コミット
     COMMIT TRANSACTION;
