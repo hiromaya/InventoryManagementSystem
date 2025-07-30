@@ -9,6 +9,20 @@
 USE InventoryManagementDB;
 GO
 
+-- Step 0: UnInventoryMasterテーブルの存在確認
+PRINT '=== UnInventoryMasterテーブル存在確認 ===';
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UnInventoryMaster]') AND type in (N'U'))
+BEGIN
+    PRINT '⚠️ UnInventoryMasterテーブルが存在しません。';
+    PRINT '   038_Create_UnInventoryMaster.sqlで作成される予定です。';
+    PRINT '   このマイグレーションをスキップします。';
+    RETURN;
+END
+ELSE
+BEGIN
+    PRINT '✓ UnInventoryMasterテーブルが存在します。DataSetId削除処理を続行します。';
+END
+
 -- Step 1: UnInventoryMasterテーブルの現在の構造を確認
 PRINT '=== UnInventoryMasterテーブルの現在の構造 ===';
 SELECT 

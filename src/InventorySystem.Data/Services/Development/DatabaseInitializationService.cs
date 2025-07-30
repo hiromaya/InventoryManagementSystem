@@ -92,6 +92,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         // === DataSetManagement統合マイグレーション ===
         "036_MigrateDataSetsToDataSetManagement.sql", // DataSetsからDataSetManagementへの完全統合
         "037_FixDataSetManagementDefaultConstraints.sql", // UpdatedAtデフォルト制約追加（プレースホルダー）
+        "038_Create_UnInventoryMaster.sql",            // UnInventoryMasterテーブル作成（DataSetIdなし設計）
         "038_RecreateDailyCloseManagementIdealStructure.sql", // DailyCloseManagement理想的構造移行
         "039_DropDataSetIdFromUnInventoryMaster.sql", // UN在庫マスタのDataSetId列削除（使い捨てテーブル設計）
         
