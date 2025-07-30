@@ -424,13 +424,16 @@ namespace InventorySystem.Reports.FastReport.Services
             var dataTable = CreateDataTable(reportData);
             report.RegisterData(dataTable, "ProductAccount");
             
-            // データソース検証
+            // データソース検証と有効化
             var registeredDataSource = report.GetDataSource("ProductAccount");
             if (registeredDataSource != null)
             {
+                // データソースを有効化
+                registeredDataSource.Enabled = true;
+                
                 _logger.LogInformation("データソース登録確認 OK: {Name}", registeredDataSource.Name);
                 _logger.LogInformation("データソース行数確認: {Count}", registeredDataSource.RowCount);
-                registeredDataSource.Enabled = true;
+                _logger.LogInformation("データソース有効状態: {Enabled}", registeredDataSource.Enabled);
             }
             else
             {
