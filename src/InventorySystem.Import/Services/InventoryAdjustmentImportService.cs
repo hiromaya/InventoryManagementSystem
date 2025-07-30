@@ -9,8 +9,9 @@ using System.Text;
 using InventorySystem.Core.Models;
 using InventorySystem.Core.Services;
 using InventorySystem.Import.Helpers;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using Dapper;
+using Microsoft.Extensions.Configuration;
 // using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus; // 削除済み
 
 namespace InventorySystem.Import.Services;
@@ -25,19 +26,22 @@ public class InventoryAdjustmentImportService
     private readonly IDataSetService _unifiedDataSetService;
     private readonly ILogger<InventoryAdjustmentImportService> _logger;
     private readonly IDataSetIdManager _dataSetIdManager;
+    private readonly string _connectionString;
     
     public InventoryAdjustmentImportService(
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
         IDataSetManagementRepository dataSetManagementRepository,
         IDataSetService unifiedDataSetService,
         ILogger<InventoryAdjustmentImportService> logger,
-        IDataSetIdManager dataSetIdManager)
+        IDataSetIdManager dataSetIdManager,
+        IConfiguration configuration)
     {
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
         _dataSetManagementRepository = dataSetManagementRepository;
         _unifiedDataSetService = unifiedDataSetService;
         _logger = logger;
         _dataSetIdManager = dataSetIdManager;
+        _connectionString = configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
     }
 
     /// <summary>

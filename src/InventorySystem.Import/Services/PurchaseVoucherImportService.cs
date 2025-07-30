@@ -10,8 +10,9 @@ using System.Text;
 using InventorySystem.Core.Models;
 using InventorySystem.Core.Services;
 using InventorySystem.Import.Helpers;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using Dapper;
+using Microsoft.Extensions.Configuration;
 // using DataSetStatus = InventorySystem.Core.Interfaces.DataSetStatus; // 削除済み
 
 namespace InventorySystem.Import.Services;
@@ -27,6 +28,7 @@ public class PurchaseVoucherImportService
     private readonly ILogger<PurchaseVoucherImportService> _logger;
     private readonly IInventoryRepository _inventoryRepository;
     private readonly IDataSetIdManager _dataSetIdManager;
+    private readonly string _connectionString;
     
     public PurchaseVoucherImportService(
         PurchaseVoucherCsvRepository purchaseVoucherRepository,
@@ -34,7 +36,8 @@ public class PurchaseVoucherImportService
         IDataSetService unifiedDataSetService,
         ILogger<PurchaseVoucherImportService> logger,
         IInventoryRepository inventoryRepository,
-        IDataSetIdManager dataSetIdManager)
+        IDataSetIdManager dataSetIdManager,
+        IConfiguration configuration)
     {
         _purchaseVoucherRepository = purchaseVoucherRepository;
         _dataSetManagementRepository = dataSetManagementRepository;
@@ -42,6 +45,7 @@ public class PurchaseVoucherImportService
         _logger = logger;
         _inventoryRepository = inventoryRepository;
         _dataSetIdManager = dataSetIdManager;
+        _connectionString = configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
     }
 
     /// <summary>
