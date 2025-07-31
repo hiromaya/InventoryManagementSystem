@@ -98,9 +98,9 @@ BEGIN
                 cp.ShippingMarkName,
                 cp.ShippingMarkName as ManualShippingMark,
                 cp.GradeCode,
-                '' as GradeName,
+                ISNULL(gm.GradeName, '') as GradeName,
                 cp.ClassCode,
-                '' as ClassName,
+                ISNULL(cm.ClassName, '') as ClassName,
                 '' as VoucherNumber,
                 'Previous' as RecordType,
                 '' as VoucherCategory,
@@ -122,6 +122,8 @@ BEGIN
                 cp.SortKeyPart3 as SortKeyPart3,
                 1 as SortOrder
             FROM #CPInventoryMaster cp
+            LEFT JOIN GradeMaster gm ON cp.GradeCode = gm.GradeCode
+            LEFT JOIN ClassMaster cm ON cp.ClassCode = cm.ClassCode
             WHERE cp.PreviousDayStock <> 0 OR cp.PreviousDayStockAmount <> 0
             
             UNION ALL
@@ -134,9 +136,9 @@ BEGIN
                 s.ShippingMarkName,
                 RIGHT('        ' + ISNULL(s.ShippingMarkName, ''), 8) as ManualShippingMark,
                 s.GradeCode,
-                '' as GradeName,
+                ISNULL(gm.GradeName, '') as GradeName,
                 s.ClassCode,
-                '' as ClassName,
+                ISNULL(cm.ClassName, '') as ClassName,
                 s.VoucherNumber,
                 'Sales' as RecordType,
                 s.VoucherType as VoucherCategory,
@@ -169,6 +171,8 @@ BEGIN
                 s.ClassCode = cp.ClassCode AND
                 s.ShippingMarkCode = cp.ShippingMarkCode AND
                 s.ShippingMarkName = cp.ShippingMarkName
+            LEFT JOIN GradeMaster gm ON s.GradeCode = gm.GradeCode
+            LEFT JOIN ClassMaster cm ON s.ClassCode = cm.ClassCode
             WHERE s.JobDate = @JobDate
               AND (@DepartmentCode IS NULL OR cp.ProductCategory1 = @DepartmentCode)
             
@@ -182,9 +186,9 @@ BEGIN
                 p.ShippingMarkName,
                 RIGHT('        ' + ISNULL(p.ShippingMarkName, ''), 8) as ManualShippingMark,
                 p.GradeCode,
-                '' as GradeName,
+                ISNULL(gm.GradeName, '') as GradeName,
                 p.ClassCode,
-                '' as ClassName,
+                ISNULL(cm.ClassName, '') as ClassName,
                 p.VoucherNumber,
                 'Purchase' as RecordType,
                 p.VoucherType as VoucherCategory,
@@ -216,6 +220,8 @@ BEGIN
                 p.ClassCode = cp.ClassCode AND
                 p.ShippingMarkCode = cp.ShippingMarkCode AND
                 p.ShippingMarkName = cp.ShippingMarkName
+            LEFT JOIN GradeMaster gm ON p.GradeCode = gm.GradeCode
+            LEFT JOIN ClassMaster cm ON p.ClassCode = cm.ClassCode
             WHERE p.JobDate = @JobDate
               AND (@DepartmentCode IS NULL OR cp.ProductCategory1 = @DepartmentCode)
             
@@ -229,9 +235,9 @@ BEGIN
                 a.ShippingMarkName,
                 RIGHT('        ' + ISNULL(a.ShippingMarkName, ''), 8) as ManualShippingMark,
                 a.GradeCode,
-                '' as GradeName,
+                ISNULL(gm.GradeName, '') as GradeName,
                 a.ClassCode,
-                '' as ClassName,
+                ISNULL(cm.ClassName, '') as ClassName,
                 a.VoucherNumber,
                 CASE 
                     WHEN a.CategoryCode = 1 THEN 'Loss'
@@ -269,6 +275,8 @@ BEGIN
                 a.ClassCode = cp.ClassCode AND
                 a.ShippingMarkCode = cp.ShippingMarkCode AND
                 a.ShippingMarkName = cp.ShippingMarkName
+            LEFT JOIN GradeMaster gm ON a.GradeCode = gm.GradeCode
+            LEFT JOIN ClassMaster cm ON a.ClassCode = cm.ClassCode
             WHERE a.JobDate = @JobDate
               AND (@DepartmentCode IS NULL OR cp.ProductCategory1 = @DepartmentCode)
         ),
