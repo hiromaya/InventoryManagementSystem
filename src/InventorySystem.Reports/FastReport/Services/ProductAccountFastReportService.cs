@@ -221,7 +221,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     // その他
                     RecordType = reader["RecordType"]?.ToString() ?? "",
                     GroupKey = reader["GroupKey"]?.ToString() ?? "",
-                    SortKey = reader["SortKey"]?.ToString() ?? ""
+                    SortKey = ""
                 };
                 
                 // 担当者名を取得（商品分類1マスタから）
