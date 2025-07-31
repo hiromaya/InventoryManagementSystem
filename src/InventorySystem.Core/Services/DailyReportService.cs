@@ -242,7 +242,15 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         }
     }
 
-    public async Task<List<DailyReportItem>> GetDailyReportDataAsync(DateTime reportDate)
+    public async Task<List<DailyReportItem>> GetDailyReportDataAsync(DateTime reportDate, string dataSetId)
+    {
+        _logger.LogInformation("商品日報データ取得開始 - レポート日付: {ReportDate}", reportDate);
+        // dataSetId は CP在庫マスタ仮テーブル設計により使用しない
+        
+        return await GetDailyReportDataAsync(reportDate);
+    }
+
+    private async Task<List<DailyReportItem>> GetDailyReportDataAsync(DateTime reportDate)
     {
         _logger.LogInformation("商品日報データ取得開始 - レポート日付: {ReportDate}", reportDate);
 
