@@ -1199,7 +1199,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         const string selectSql = @"
             SELECT * FROM CpInventoryMaster 
             -- 仮テーブル設計：全レコード対象 
-            AND JobDate = @JobDate
+            WHERE JobDate = @JobDate
             ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
 
         try
