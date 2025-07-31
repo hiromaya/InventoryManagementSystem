@@ -68,8 +68,8 @@
       <TextObject Name="Data1" Width="150" Height="20" Text="[ProductAccount.ProductName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="Data2" Left="150" Width="144" Height="20" Text="[ProductAccount.ShippingMarkName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="Data3" Left="294" Width="86" Height="20" Text="[ProductAccount.ManualShippingMark]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data4" Left="380" Width="75" Height="20" Text="[ProductAccount.GradeName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data5" Left="455" Width="75" Height="20" Text="[ProductAccount.ClassName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data4" Left="380" Width="75" Height="20" Text="[ProductAccount.GradeCode]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="Data5" Left="455" Width="75" Height="20" Text="[ProductAccount.ClassCode]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data6" Left="530" Width="91" Height="20" Text="[ProductAccount.VoucherNumber]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data7" Left="621" Width="59" Height="20" Text="[ProductAccount.DisplayCategory]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data8" Left="680" Width="64" Height="20" Text="[ProductAccount.MonthDay]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
