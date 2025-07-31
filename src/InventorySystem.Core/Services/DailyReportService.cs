@@ -167,7 +167,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
 
             // 5. 商品日報データ生成
             _logger.LogInformation("商品日報データ生成開始");
-            var reportItems = await GetDailyReportDataAsync(reportDate, dataSetId);
+            var reportItems = await GetDailyReportDataAsync(reportDate);
             _logger.LogInformation("商品日報データ生成完了 - データ件数: {Count}", reportItems.Count);
 
             // 6. 集計データ作成
@@ -242,9 +242,9 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         }
     }
 
-    public async Task<List<DailyReportItem>> GetDailyReportDataAsync(DateTime reportDate, string dataSetId)
+    public async Task<List<DailyReportItem>> GetDailyReportDataAsync(DateTime reportDate)
     {
-        _logger.LogInformation("商品日報データ取得開始 - レポート日付: {ReportDate}, データセットID: {DataSetId}", reportDate, dataSetId);
+        _logger.LogInformation("商品日報データ取得開始 - レポート日付: {ReportDate}", reportDate);
 
         var reportItems = new List<DailyReportItem>();
         
