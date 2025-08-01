@@ -2,7 +2,7 @@
 #if WINDOWS
 
 using FastReport;
-using FastReport.Export.PdfSimple;
+using FastReport.Export.Pdf;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Reports.Interfaces;
@@ -53,7 +53,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 report.Prepare();
 
                 // PDF出力
-                using var pdfExport = new PDFSimpleExport();
+                using var pdfExport = new PDFExport();
                 using var stream = new MemoryStream();
                 
                 // PDF設定
