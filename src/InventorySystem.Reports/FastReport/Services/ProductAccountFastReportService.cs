@@ -660,13 +660,11 @@ namespace InventorySystem.Reports.FastReport.Services
                 // エラーが発生しても処理を継続
             }
             
-            // データ加工：グループ化とフラット化
-            _logger.LogInformation("データ加工開始：グループ化とフラット化処理");
-            var processedData = ProcessReportDataForFlatTable(reportData);
-            _logger.LogInformation("データ加工完了：{Count}行生成", processedData.Count());
+            // データ加工：従来のGroupHeaderBand方式（新実装では使用しない）
+            _logger.LogInformation("データ設定：従来形式（GroupHeaderBand対応）");
             
             // データ設定
-            var dataTable = CreateDataTable(processedData);
+            var dataTable = CreateDataTable(reportData);
             report.RegisterData(dataTable, "ProductAccount");
             
             // データソース検証と有効化
@@ -1040,9 +1038,9 @@ namespace InventorySystem.Reports.FastReport.Services
                     
                     var firstItem = productItems.First();
                     
-                    // 3. GroupHeader行を追加
-                    var groupHeaderRow = CreateGroupHeaderRow(firstItem, sequence++);
-                    result.Add(groupHeaderRow);
+                    // 3. GroupHeader行を追加（新しい実装では不要のため削除）
+                    // var groupHeaderRow = CreateGroupHeaderRow(firstItem, sequence++);
+                    // result.Add(groupHeaderRow);
                     
                     // 4. Detail行を追加
                     foreach (var item in productItems)
