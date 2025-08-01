@@ -206,13 +206,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             LEFT JOIN (
                 SELECT 
                     ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-                    SUM(Quantity) as SalesQuantity,
-                    SUM(Amount) as SalesAmount
+                    SUM(CASE WHEN DetailType = '1' AND Quantity > 0 THEN Quantity ELSE 0 END) as SalesQuantity,
+                    SUM(CASE WHEN DetailType = '1' AND Quantity > 0 THEN Amount ELSE 0 END) as SalesAmount
                 FROM SalesVouchers 
                 {dateCondition}
                     {(jobDate.HasValue ? "AND" : "WHERE")} VoucherType IN ('51', '52')
                     AND DetailType IN ('1', '2')
-                    AND Quantity < 0  -- 修正: 売上返品（入荷データ）のみ集計
                     AND ProductCode != '00000'
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) sales ON cp.ProductCode = sales.ProductCode 
@@ -641,6 +640,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     SUM(CASE WHEN DetailType = '2' THEN Amount ELSE 0 END) as ReturnAmount
                 FROM SalesVouchers
                 WHERE JobDate >= @monthStartDate AND JobDate <= @jobDate
+                    AND VoucherType IN ('51', '52')
+                    AND ProductCode != '00000'
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) s ON cp.ProductCode = s.ProductCode 
                 AND cp.GradeCode = s.GradeCode 
@@ -672,6 +673,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     SUM(Amount) as Amount
                 FROM PurchaseVouchers
                 WHERE JobDate >= @monthStartDate AND JobDate <= @jobDate
+                    AND VoucherType IN ('11', '12')
+                    AND ProductCode != '00000'
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
             ) p ON cp.ProductCode = p.ProductCode 
                 AND cp.GradeCode = p.GradeCode 

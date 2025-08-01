@@ -68,47 +68,18 @@ namespace InventorySystem.Reports.FastReport.Services
                     throw new FileNotFoundException(errorMessage, _templatePath);
                 }
                 
-                // 商品勘定データを取得
-                var reportData = PrepareReportData(jobDate, departmentCode);
+                // 商品勘定フラットデータを生成（C#側完全制御）
+                var flatData = GenerateFlatData(jobDate, departmentCode);
                 
-                using var report = new FR.Report();
-                
-                // FastReportの設定（アンマッチリストと同じ）
-                report.ReportResourceString = "";  // リソース文字列をクリア
-                report.FileName = _templatePath;   // ファイル名を設定
-                
-                // テンプレートファイルを読み込む
-                _logger.LogInformation("商品勘定レポートテンプレートを読み込んでいます...");
-                report.Load(_templatePath);
-                
-                // .NET 8対応: ScriptLanguageを強制的にNoneに設定（アンマッチリストと同じ方法）
-                try
+                if (!flatData.Any())
                 {
-                    // リフレクションを使用してScriptLanguageプロパティを取得
-                    var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
-                    if (scriptLanguageProperty != null)
-                    {
-                        var scriptLanguageType = scriptLanguageProperty.PropertyType;
-                        if (scriptLanguageType.IsEnum)
-                        {
-                            // FastReport.ScriptLanguage.None を設定
-                            var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
-                            if (noneValue != null)
-                            {
-                                scriptLanguageProperty.SetValue(report, noneValue);
-                                _logger.LogInformation("ScriptLanguageをNoneに設定しました");
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
-                    // エラーが発生しても処理を継続
+                    _logger.LogWarning("商品勘定フラットデータが0件です");
+                    // 空のPDFを返す or 例外を投げる
+                    throw new InvalidOperationException("商品勘定データが存在しません");
                 }
                 
                 // PDF生成処理
-                var pdfBytes = GeneratePdfReport(reportData, jobDate);
+                var pdfBytes = GeneratePdfReportFromFlatData(flatData, jobDate);
                 
                 _logger.LogInformation("商品勘定帳票PDF生成完了。サイズ: {Size} bytes", pdfBytes.Length);
                 
@@ -126,6 +97,125 @@ namespace InventorySystem.Reports.FastReport.Services
             }
         }
         
+        /// <summary>
+        /// 商品勘定フラットデータの生成（C#側完全制御）
+        /// </summary>
+        private List<ProductAccountFlatRow> GenerateFlatData(DateTime jobDate, string? departmentCode)
+        {
+            _logger.LogInformation("商品勘定フラットデータ生成開始 - JobDate: {JobDate}", jobDate);
+            
+            // 元データを取得
+            var sourceData = PrepareReportData(jobDate, departmentCode).ToList();
+            
+            if (!sourceData.Any())
+            {
+                _logger.LogWarning("商品勘定の元データが0件です");
+                return new List<ProductAccountFlatRow>();
+            }
+            
+            var flatRows = new List<ProductAccountFlatRow>();
+            int sequence = 0;
+            
+            // 担当者でグループ化（ProductCategory1）
+            var staffGroups = sourceData
+                .GroupBy(x => new { 
+                    StaffCode = x.ProductCategory1 ?? "999", 
+                    StaffName = x.GetAdditionalInfo("ProductCategory1Name") ?? "未設定"
+                })
+                .OrderBy(g => g.Key.StaffCode);
+            
+            bool isFirstStaff = true;
+            
+            foreach (var staffGroup in staffGroups)
+            {
+                _logger.LogInformation("担当者処理中: {Code} {Name} ({Count}件)", 
+                    staffGroup.Key.StaffCode, staffGroup.Key.StaffName, staffGroup.Count());
+                
+                // 改ページ制御（最初の担当者以外）
+                if (!isFirstStaff)
+                {
+                    flatRows.Add(CreatePageBreakRow(sequence++));
+                }
+                isFirstStaff = false;
+                
+                // 商品でグループ化（5項目複合キー）
+                var productGroups = staffGroup
+                    .GroupBy(x => new 
+                    { 
+                        x.ProductCode, 
+                        x.ProductName,
+                        x.ShippingMarkCode,
+                        x.ShippingMarkName,
+                        x.ManualShippingMark,
+                        x.GradeCode,
+                        x.GradeName,
+                        x.ClassCode,
+                        x.ClassName
+                    })
+                    .OrderBy(g => g.Key.ProductCode)
+                    .ThenBy(g => g.Key.ShippingMarkCode)
+                    .ThenBy(g => g.Key.GradeCode)
+                    .ThenBy(g => g.Key.ClassCode);
+                
+                foreach (var productGroup in productGroups)
+                {
+                    // 商品グループヘッダー（灰色背景）
+                    flatRows.Add(CreateProductGroupHeader(productGroup.Key, sequence++));
+                    
+                    // 明細行（日付・伝票番号順）
+                    var details = productGroup
+                        .OrderBy(x => x.TransactionDate)
+                        .ThenBy(x => x.VoucherNumber)
+                        .ThenBy(x => x.RecordType == "Previous" ? 0 : 1); // 前残を最初に
+                    
+                    // 集計用変数
+                    decimal subtotalPurchase = 0;
+                    decimal subtotalSales = 0;
+                    decimal subtotalAmount = 0;
+                    decimal subtotalGrossProfit = 0;
+                    
+                    foreach (var detail in details)
+                    {
+                        flatRows.Add(CreateDetailRow(detail, sequence++));
+                        
+                        // 小計集計（前残は除く）
+                        if (detail.RecordType != "Previous")
+                        {
+                            subtotalPurchase += detail.PurchaseQuantity;
+                            subtotalSales += detail.SalesQuantity;
+                            subtotalAmount += detail.Amount;
+                            subtotalGrossProfit += detail.GrossProfit;
+                        }
+                    }
+                    
+                    // 商品別小計
+                    if (subtotalPurchase != 0 || subtotalSales != 0 || subtotalAmount != 0)
+                    {
+                        flatRows.Add(CreateProductSubtotal(
+                            subtotalPurchase, 
+                            subtotalSales, 
+                            subtotalAmount, 
+                            subtotalGrossProfit, 
+                            sequence++));
+                    }
+                    
+                    // 空行
+                    flatRows.Add(CreateBlankRow(sequence++));
+                }
+                
+                // 担当者別合計
+                var staffTotals = CalculateStaffTotals(staffGroup);
+                flatRows.Add(CreateStaffSubtotal(staffGroup.Key, staffTotals, sequence++));
+            }
+            
+            // 総合計
+            var grandTotals = CalculateGrandTotals(sourceData);
+            flatRows.Add(CreateGrandTotal(grandTotals, sequence++));
+            
+            _logger.LogInformation("フラットデータ生成完了: {Count}行", flatRows.Count);
+            return flatRows;
+        }
+
         /// <summary>
         /// 商品勘定データの準備
         /// </summary>
@@ -461,6 +551,79 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// PDF生成処理（アンマッチリストのパターンを踏襲）
         /// </summary>
+        /// <summary>
+        /// PDFレポート生成（フラットデータ用、C#側完全制御）
+        /// </summary>
+        private byte[] GeneratePdfReportFromFlatData(List<ProductAccountFlatRow> flatData, DateTime jobDate)
+        {
+            using var report = new FR.Report();
+            
+            // FastReportの設定
+            report.ReportResourceString = "";
+            report.FileName = _templatePath;
+            
+            // テンプレートファイルを読み込む
+            _logger.LogInformation("商品勘定レポートテンプレートを読み込んでいます...");
+            report.Load(_templatePath);
+            
+            // .NET 8対応: ScriptLanguageを強制的にNoneに設定
+            try
+            {
+                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                if (scriptLanguageProperty != null)
+                {
+                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                    if (scriptLanguageType.IsEnum)
+                    {
+                        var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>()
+                            .FirstOrDefault(v => v.ToString() == "None");
+                        if (noneValue != null)
+                        {
+                            scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+            }
+            
+            // フラットデータをDataTableに変換
+            var dataTable = CreateFlatDataTable(flatData);
+            
+            // FastReportにデータソースを登録
+            report.RegisterData(dataTable, "ProductAccount");
+            
+            // パラメータ設定
+            report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
+            report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
+            report.SetParameterValue("TotalCount", flatData.Count(x => x.RowType == RowTypes.Detail).ToString());
+            
+            _logger.LogInformation("レポートを準備中...");
+            report.Prepare();
+            
+            // PDF出力設定
+            using var pdfExport = new PDFExport
+            {
+                EmbeddingFonts = true,
+                Title = $"商品勘定_{jobDate:yyyyMMdd}",
+                Subject = "商品勘定帳票",
+                Creator = "在庫管理システム",
+                Author = "在庫管理システム",
+                TextInCurves = false,
+                JpegQuality = 95,
+                OpenAfterExport = false
+            };
+            
+            // PDFをメモリストリームに出力
+            using var stream = new MemoryStream();
+            report.Export(pdfExport, stream);
+            
+            return stream.ToArray();
+        }
+
         private byte[] GeneratePdfReport(IEnumerable<ProductAccountReportModel> reportData, DateTime jobDate)
         {
             using var report = new FR.Report();
@@ -619,6 +782,79 @@ namespace InventorySystem.Reports.FastReport.Services
             return stream.ToArray();
         }
         
+        /// <summary>
+        /// フラットデータからDataTable作成（C#側完全制御）
+        /// </summary>
+        private DataTable CreateFlatDataTable(List<ProductAccountFlatRow> flatData)
+        {
+            var table = new DataTable("ProductAccount");
+            
+            // フラットデータの全フィールドを文字列型で定義
+            table.Columns.Add("ProductCategory1", typeof(string));
+            table.Columns.Add("ProductCategory1Name", typeof(string));
+            table.Columns.Add("ProductCode", typeof(string));
+            table.Columns.Add("ProductName", typeof(string));
+            table.Columns.Add("ShippingMarkName", typeof(string));
+            table.Columns.Add("ManualShippingMark", typeof(string));
+            table.Columns.Add("GradeName", typeof(string));
+            table.Columns.Add("ClassName", typeof(string));
+            table.Columns.Add("VoucherNumber", typeof(string));
+            table.Columns.Add("DisplayCategory", typeof(string));
+            table.Columns.Add("MonthDay", typeof(string));
+            table.Columns.Add("PurchaseQuantity", typeof(string));
+            table.Columns.Add("SalesQuantity", typeof(string));
+            table.Columns.Add("RemainingQuantity", typeof(string));
+            table.Columns.Add("UnitPrice", typeof(string));
+            table.Columns.Add("Amount", typeof(string));
+            table.Columns.Add("GrossProfit", typeof(string));
+            table.Columns.Add("CustomerSupplierName", typeof(string));
+            
+            // 制御用フィールド
+            table.Columns.Add("RowType", typeof(string));
+            table.Columns.Add("IsGrayBackground", typeof(string));    // "1"/"0"
+            table.Columns.Add("IsPageBreak", typeof(string));         // "1"/"0"
+            table.Columns.Add("IsBold", typeof(string));              // "1"/"0"
+            table.Columns.Add("RowSequence", typeof(string));
+            
+            // データ追加
+            foreach (var item in flatData)
+            {
+                var row = table.NewRow();
+                
+                // 基本フィールド（既にフォーマット済み）
+                row["ProductCategory1"] = item.ProductCategory1;
+                row["ProductCategory1Name"] = item.ProductCategory1Name;
+                row["ProductCode"] = item.ProductCode;
+                row["ProductName"] = item.ProductName;
+                row["ShippingMarkName"] = item.ShippingMarkName;
+                row["ManualShippingMark"] = item.ManualShippingMark;
+                row["GradeName"] = item.GradeName;
+                row["ClassName"] = item.ClassName;
+                row["VoucherNumber"] = item.VoucherNumber;
+                row["DisplayCategory"] = item.DisplayCategory;
+                row["MonthDay"] = item.MonthDay;
+                row["PurchaseQuantity"] = item.PurchaseQuantity;
+                row["SalesQuantity"] = item.SalesQuantity;
+                row["RemainingQuantity"] = item.RemainingQuantity;
+                row["UnitPrice"] = item.UnitPrice;
+                row["Amount"] = item.Amount;
+                row["GrossProfit"] = item.GrossProfit;
+                row["CustomerSupplierName"] = item.CustomerSupplierName;
+                
+                // 制御フィールド
+                row["RowType"] = item.RowType;
+                row["IsGrayBackground"] = item.GrayBackgroundFlag;    // "1"/"0"
+                row["IsPageBreak"] = item.PageBreakFlag;              // "1"/"0"
+                row["IsBold"] = item.BoldFlag;                        // "1"/"0"
+                row["RowSequence"] = item.RowSequence.ToString();
+                
+                table.Rows.Add(row);
+            }
+            
+            _logger.LogInformation("フラットDataTable作成完了: {Count}行", table.Rows.Count);
+            return table;
+        }
+
         /// <summary>
         /// DataTable作成（文字列フィールドとして処理、フォーマット済み）
         /// </summary>
@@ -827,49 +1063,194 @@ namespace InventorySystem.Reports.FastReport.Services
             return result;
         }
         
+        // === 行作成ヘルパーメソッド（C#側完全制御用） ===
+        
         /// <summary>
-        /// GroupHeader行を作成
+        /// 改ページ制御行作成
         /// </summary>
-        private ProductAccountReportModel CreateGroupHeaderRow(ProductAccountReportModel baseItem, int sequence)
+        private ProductAccountFlatRow CreatePageBreakRow(int sequence)
         {
-            return new ProductAccountReportModel
+            return new ProductAccountFlatRow
             {
-                // 基本キー情報をコピー
-                ProductCategory1 = baseItem.ProductCategory1,
-                ProductCode = baseItem.ProductCode,
-                GroupKey = baseItem.GroupKey,
-                
-                // GroupHeader専用表示
-                ProductName = $"【{baseItem.ProductName}】 荷印：{baseItem.ShippingMarkName} 手入力：{baseItem.ManualShippingMark} 等級：{baseItem.GradeName} 階級：{baseItem.ClassName}",
-                
-                // 他のフィールドは空文字
-                ShippingMarkName = "",
-                ManualShippingMark = "",
-                GradeName = "",
-                ClassName = "",
+                RowType = RowTypes.StaffHeader,
+                RowSequence = sequence,
+                IsPageBreak = true,
+                IsGrayBackground = false,
+                ProductName = "" // 改ページ専用なので表示内容なし
+            };
+        }
+        
+        /// <summary>
+        /// 商品グループヘッダー作成
+        /// </summary>
+        private ProductAccountFlatRow CreateProductGroupHeader(dynamic productKey, int sequence)
+        {
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.ProductGroupHeader,
+                RowSequence = sequence,
+                IsGrayBackground = true,
+                IsBold = true,
+                ProductName = $"【{productKey.ProductName}】 荷印：{productKey.ShippingMarkName} " +
+                             $"手入力：{productKey.ManualShippingMark} 等級：{productKey.GradeName} " +
+                             $"階級：{productKey.ClassName}",
+                // その他のフィールドは空
+                ProductCategory1 = "",
                 VoucherNumber = "",
                 DisplayCategory = "",
-                MonthDayDisplay = "",
-                CustomerSupplierName = "",
-                
-                // 数値フィールドは0
-                PurchaseQuantity = 0,
-                SalesQuantity = 0,
-                RemainingQuantity = 0,
-                UnitPrice = 0,
-                Amount = 0,
-                GrossProfit = 0,
-                
-                // 新規プロパティ
-                RowType = "GroupHeader",
-                IsGrayBackground = true,
-                IsPageBreak = false,
+                MonthDay = "",
+                PurchaseQuantity = "",
+                SalesQuantity = "",
+                RemainingQuantity = "",
+                UnitPrice = "",
+                Amount = "",
+                GrossProfit = "",
+                CustomerSupplierName = ""
+            };
+        }
+        
+        /// <summary>
+        /// 明細行作成
+        /// </summary>
+        private ProductAccountFlatRow CreateDetailRow(ProductAccountReportModel data, int sequence)
+        {
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.Detail,
                 RowSequence = sequence,
+                IsGrayBackground = false,
+                IsBold = false,
                 
-                // その他必須フィールド
-                TransactionDate = baseItem.TransactionDate,
-                RecordType = "GroupHeader",
-                VoucherType = ""
+                // 基本情報
+                ProductCategory1 = data.ProductCategory1 ?? "",
+                ProductCategory1Name = data.GetAdditionalInfo("ProductCategory1Name") ?? "",
+                ProductCode = data.ProductCode,
+                ProductName = data.ProductName,
+                ShippingMarkName = data.ShippingMarkName,
+                ManualShippingMark = data.ManualShippingMark,
+                GradeName = data.GradeName,
+                ClassName = data.ClassName,
+                VoucherNumber = data.VoucherNumber,
+                DisplayCategory = data.DisplayCategory,
+                MonthDay = data.TransactionDate.ToString("MM/dd"),
+                CustomerSupplierName = data.CustomerSupplierName,
+                
+                // フォーマット済み数値
+                PurchaseQuantity = FormatQuantity(data.PurchaseQuantity),
+                SalesQuantity = FormatQuantity(data.SalesQuantity),
+                RemainingQuantity = FormatQuantity(data.RemainingQuantity),
+                UnitPrice = FormatUnitPrice(data.UnitPrice),
+                Amount = FormatAmount(data.Amount),
+                GrossProfit = FormatGrossProfit(data.GrossProfit)
+            };
+        }
+        
+        /// <summary>
+        /// 商品別小計行作成
+        /// </summary>
+        private ProductAccountFlatRow CreateProductSubtotal(
+            decimal purchase, decimal sales, decimal amount, decimal profit, int sequence)
+        {
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.ProductSubtotal,
+                RowSequence = sequence,
+                IsSubtotal = true,
+                IsBold = true,
+                DisplayCategory = "小計",
+                PurchaseQuantity = FormatQuantity(purchase),
+                SalesQuantity = FormatQuantity(sales),
+                Amount = FormatAmount(amount),
+                GrossProfit = FormatGrossProfit(profit),
+                // その他のフィールドは空
+                ProductName = "",
+                VoucherNumber = "",
+                MonthDay = "",
+                UnitPrice = "",
+                RemainingQuantity = "",
+                CustomerSupplierName = ""
+            };
+        }
+        
+        /// <summary>
+        /// 担当者別合計行作成
+        /// </summary>
+        private ProductAccountFlatRow CreateStaffSubtotal(dynamic staffKey, dynamic totals, int sequence)
+        {
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.StaffSubtotal,
+                RowSequence = sequence,
+                IsSubtotal = true,
+                IsBold = true,
+                SubtotalLabel = $"担当者合計：{staffKey.StaffCode} {staffKey.StaffName}",
+                DisplayCategory = "担当者計",
+                PurchaseQuantity = FormatQuantity(totals.TotalPurchase),
+                SalesQuantity = FormatQuantity(totals.TotalSales),
+                Amount = FormatAmount(totals.TotalAmount),
+                GrossProfit = FormatGrossProfit(totals.TotalGrossProfit)
+            };
+        }
+        
+        /// <summary>
+        /// 総合計行作成
+        /// </summary>
+        private ProductAccountFlatRow CreateGrandTotal(dynamic totals, int sequence)
+        {
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.GrandTotal,
+                RowSequence = sequence,
+                IsGrandTotal = true,
+                IsBold = true,
+                SubtotalLabel = "総合計",
+                DisplayCategory = "総計",
+                PurchaseQuantity = FormatQuantity(totals.GrandTotalPurchase),
+                SalesQuantity = FormatQuantity(totals.GrandTotalSales),
+                Amount = FormatAmount(totals.GrandTotalAmount),
+                GrossProfit = FormatGrossProfit(totals.GrandTotalGrossProfit)
+            };
+        }
+        
+        /// <summary>
+        /// 空行作成
+        /// </summary>
+        private ProductAccountFlatRow CreateBlankRow(int sequence)
+        {
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.BlankLine,
+                RowSequence = sequence
+            };
+        }
+        
+        // === 集計計算メソッド ===
+        
+        /// <summary>
+        /// 担当者別集計計算
+        /// </summary>
+        private dynamic CalculateStaffTotals(IGrouping<dynamic, ProductAccountReportModel> staffGroup)
+        {
+            return new
+            {
+                TotalPurchase = staffGroup.Sum(x => x.PurchaseQuantity),
+                TotalSales = staffGroup.Sum(x => x.SalesQuantity),
+                TotalAmount = staffGroup.Sum(x => x.Amount),
+                TotalGrossProfit = staffGroup.Sum(x => x.GrossProfit)
+            };
+        }
+        
+        /// <summary>
+        /// 総合計計算
+        /// </summary>
+        private dynamic CalculateGrandTotals(List<ProductAccountReportModel> sourceData)
+        {
+            return new
+            {
+                GrandTotalPurchase = sourceData.Sum(x => x.PurchaseQuantity),
+                GrandTotalSales = sourceData.Sum(x => x.SalesQuantity),
+                GrandTotalAmount = sourceData.Sum(x => x.Amount),
+                GrandTotalGrossProfit = sourceData.Sum(x => x.GrossProfit)
             };
         }
     }
