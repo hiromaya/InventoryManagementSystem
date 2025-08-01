@@ -497,8 +497,13 @@ namespace InventorySystem.Reports.FastReport.Services
                 // エラーが発生しても処理を継続
             }
             
+            // データ加工：グループ化とフラット化
+            _logger.LogInformation("データ加工開始：グループ化とフラット化処理");
+            var processedData = ProcessReportDataForFlatTable(reportData);
+            _logger.LogInformation("データ加工完了：{Count}行生成", processedData.Count());
+            
             // データ設定
-            var dataTable = CreateDataTable(reportData);
+            var dataTable = CreateDataTable(processedData);
             report.RegisterData(dataTable, "ProductAccount");
             
             // データソース検証と有効化
@@ -642,6 +647,12 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("CustomerSupplierName", typeof(string));
             table.Columns.Add("GroupKey", typeof(string));  // グループ化用
             
+            // C#側データ加工用の新規列
+            table.Columns.Add("RowType", typeof(string));             // 行タイプ
+            table.Columns.Add("IsGrayBackground", typeof(string));    // 灰色背景フラグ（"1"/"0"）
+            table.Columns.Add("IsPageBreak", typeof(string));         // 改ページフラグ（"1"/"0"）
+            table.Columns.Add("RowSequence", typeof(string));         // 表示順序
+            
             // データ追加時のフォーマット処理
             foreach (var item in reportData)
             {
@@ -671,6 +682,12 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["UnitPrice"] = FormatUnitPrice(item.UnitPrice);
                 row["Amount"] = FormatAmount(item.Amount);
                 row["GrossProfit"] = FormatGrossProfit(item.GrossProfit);  // ▲処理含む
+                
+                // 新規プロパティの設定
+                row["RowType"] = item.RowType;
+                row["IsGrayBackground"] = item.IsGrayBackground ? "1" : "0";
+                row["IsPageBreak"] = item.IsPageBreak ? "1" : "0";
+                row["RowSequence"] = item.RowSequence.ToString();
                 
                 table.Rows.Add(row);
             }
@@ -752,6 +769,107 @@ namespace InventorySystem.Reports.FastReport.Services
                 "Processing" => "加工",
                 "Adjustment" => "調整",
                 _ => "調整"
+            };
+        }
+        
+        /// <summary>
+        /// データをフラットテーブル用に加工（GroupHeaderBand廃止対応）
+        /// </summary>
+        private IEnumerable<ProductAccountReportModel> ProcessReportDataForFlatTable(IEnumerable<ProductAccountReportModel> reportData)
+        {
+            var result = new List<ProductAccountReportModel>();
+            var sequence = 0;
+            
+            // 1. 担当者（ProductCategory1）でグループ化
+            var staffGroups = reportData
+                .GroupBy(x => x.ProductCategory1 ?? "")
+                .OrderBy(g => g.Key);
+            
+            foreach (var staffGroup in staffGroups)
+            {
+                _logger.LogInformation("担当者グループ処理開始：{StaffCode}", staffGroup.Key);
+                
+                // 2. 各担当者内で商品（GroupKey）でグループ化
+                var productGroups = staffGroup
+                    .GroupBy(x => x.GroupKey)
+                    .OrderBy(g => g.Key);
+                
+                foreach (var productGroup in productGroups)
+                {
+                    var productItems = productGroup.OrderBy(x => x.TransactionDate)
+                                                  .ThenBy(x => x.VoucherNumber)
+                                                  .ToList();
+                    
+                    if (!productItems.Any()) continue;
+                    
+                    var firstItem = productItems.First();
+                    
+                    // 3. GroupHeader行を追加
+                    var groupHeaderRow = CreateGroupHeaderRow(firstItem, sequence++);
+                    result.Add(groupHeaderRow);
+                    
+                    // 4. Detail行を追加
+                    foreach (var item in productItems)
+                    {
+                        item.RowType = "Detail";
+                        item.IsGrayBackground = false;
+                        item.RowSequence = sequence++;
+                        result.Add(item);
+                    }
+                    
+                    // TODO: GroupFooter行（小計）は後回し
+                }
+                
+                // TODO: StaffFooter行（担当者合計）は後回し 
+            }
+            
+            _logger.LogInformation("フラットテーブル生成完了：{Count}行", result.Count);
+            return result;
+        }
+        
+        /// <summary>
+        /// GroupHeader行を作成
+        /// </summary>
+        private ProductAccountReportModel CreateGroupHeaderRow(ProductAccountReportModel baseItem, int sequence)
+        {
+            return new ProductAccountReportModel
+            {
+                // 基本キー情報をコピー
+                ProductCategory1 = baseItem.ProductCategory1,
+                ProductCode = baseItem.ProductCode,
+                GroupKey = baseItem.GroupKey,
+                
+                // GroupHeader専用表示
+                ProductName = $"【{baseItem.ProductName}】 荷印：{baseItem.ShippingMarkName} 手入力：{baseItem.ManualShippingMark} 等級：{baseItem.GradeName} 階級：{baseItem.ClassName}",
+                
+                // 他のフィールドは空文字
+                ShippingMarkName = "",
+                ManualShippingMark = "",
+                GradeName = "",
+                ClassName = "",
+                VoucherNumber = "",
+                DisplayCategory = "",
+                MonthDayDisplay = "",
+                CustomerSupplierName = "",
+                
+                // 数値フィールドは0
+                PurchaseQuantity = 0,
+                SalesQuantity = 0,
+                RemainingQuantity = 0,
+                UnitPrice = 0,
+                Amount = 0,
+                GrossProfit = 0,
+                
+                // 新規プロパティ
+                RowType = "GroupHeader",
+                IsGrayBackground = true,
+                IsPageBreak = false,
+                RowSequence = sequence,
+                
+                // その他必須フィールド
+                TransactionDate = baseItem.TransactionDate,
+                RecordType = "GroupHeader",
+                VoucherType = ""
             };
         }
     }

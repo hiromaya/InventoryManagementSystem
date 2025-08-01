@@ -222,6 +222,29 @@ public class ProductAccountReportModel
     /// </summary>
     public string MonthDayDisplay { get; set; } = string.Empty;
 
+    // === C#側データ加工用の新規プロパティ ===
+    
+    /// <summary>
+    /// 行タイプ（GroupHeader, Detail, GroupFooter, StaffFooter）
+    /// </summary>
+    [MaxLength(20)]
+    public string RowType { get; set; } = "Detail";
+    
+    /// <summary>
+    /// 灰色背景フラグ（GroupHeaderの場合true）
+    /// </summary>
+    public bool IsGrayBackground { get; set; } = false;
+    
+    /// <summary>
+    /// 改ページフラグ（担当者変更時true）
+    /// </summary>
+    public bool IsPageBreak { get; set; } = false;
+    
+    /// <summary>
+    /// 行の表示順序
+    /// </summary>
+    public int RowSequence { get; set; } = 0;
+
     /// <summary>
     /// 負の値を▲付きで表示（単価以外）
     /// </summary>

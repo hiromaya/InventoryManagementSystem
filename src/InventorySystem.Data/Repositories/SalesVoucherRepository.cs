@@ -385,8 +385,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
             SET 
                 InventoryUnitPrice = @InventoryUnitPrice,
                 GrossProfit = @GrossProfit,
-                WalkingDiscount = @WalkingDiscount,
-                UpdatedDate = GETDATE()
+                WalkingDiscount = @WalkingDiscount
             WHERE VoucherId = @VoucherId AND LineNumber = @LineNumber";
 
         try
@@ -424,8 +423,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
     {
         const string sql = @"
             UPDATE SalesVouchers 
-            SET IsActive = @IsActive, 
-                UpdatedDate = GETDATE()
+            SET IsActive = @IsActive
             WHERE DataSetId = @DataSetId";
 
         try

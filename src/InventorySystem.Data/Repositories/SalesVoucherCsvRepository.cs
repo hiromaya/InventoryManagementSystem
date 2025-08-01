@@ -446,8 +446,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
     {
         const string sql = @"
             UPDATE SalesVouchers 
-            SET IsActive = @IsActive, 
-                UpdatedDate = GETDATE()
+            SET IsActive = @IsActive
             WHERE DataSetId = @DataSetId";
 
         try
@@ -506,8 +505,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
     {
         string sql = @"
             UPDATE SalesVouchers 
-            SET IsActive = 0, 
-                UpdatedDate = GETDATE()
+            SET IsActive = 0
             WHERE JobDate = @JobDate";
 
         object parameters;
