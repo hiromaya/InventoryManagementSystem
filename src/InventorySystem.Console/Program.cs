@@ -546,8 +546,15 @@ try
             await ExecuteRepairDataSetIdAsync(host.Services, args);
             break;
         
+        case "help":
+        case "-h":
+        case "--help":
+            DisplayHelp(args);
+            return 0;
+        
         default:
             Console.WriteLine($"不明なコマンド: {command}");
+            DisplayHelp(args);
             return 1;
     }
     
@@ -5029,6 +5036,223 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
                 logger.LogError(ex, "在庫表処理（開発用）でエラーが発生しました");
             }
         }
+    
+    private static void DisplayHelp(string[] args)
+    {
+        if (args.Length > 1)
+        {
+            // 特定のコマンドのヘルプを表示
+            var commandName = args[1].ToLower();
+            DisplayCommandHelp(commandName);
+            return;
+        }
+
+        // 一般的なヘルプを表示
+        Console.WriteLine("📋 在庫管理システム - コマンド一覧");
+        Console.WriteLine("=".PadRight(50, '='));
+        Console.WriteLine();
+
+        Console.WriteLine("🔍 基本コマンド:");
+        Console.WriteLine("  help                                         - このヘルプを表示");
+        Console.WriteLine("  help <command>                               - 特定のコマンドの詳細ヘルプ");
+        Console.WriteLine("  test-connection                              - データベース接続テスト");
+        Console.WriteLine("  test-fastreport                              - FastReportテスト（DB不要）");
+        Console.WriteLine();
+
+        Console.WriteLine("📊 帳票・レポート生成:");
+        Console.WriteLine("  unmatch-list [YYYY-MM-DD]                   - アンマッチリスト処理を実行");
+        Console.WriteLine("  daily-report [YYYY-MM-DD] [--dataset-id ID] - 商品日報を生成（アンマッチ0件必須）");
+        Console.WriteLine("  product-account [YYYY-MM-DD] [--dataset-id ID] - 商品勘定を生成（アンマッチ0件必須）");
+        Console.WriteLine("  inventory-list [YYYY-MM-DD]                 - 在庫表を生成（アンマッチ0件必須）");
+        Console.WriteLine();
+
+        Console.WriteLine("📥 データ取込:");
+        Console.WriteLine("  import-sales <file> [YYYY-MM-DD]            - 売上伝票CSVを取込");
+        Console.WriteLine("  import-purchase <file> [YYYY-MM-DD]         - 仕入伝票CSVを取込");
+        Console.WriteLine("  import-adjustment <file> [YYYY-MM-DD]       - 在庫調整CSVを取込");
+        Console.WriteLine("  import-folder <dept> [YYYY-MM-DD]           - 部門フォルダから一括取込");
+        Console.WriteLine();
+
+        Console.WriteLine("🗂️ マスタ管理:");
+        Console.WriteLine("  import-customers <file>                     - 得意先マスタCSVを取込");
+        Console.WriteLine("  import-products <file>                      - 商品マスタCSVを取込");
+        Console.WriteLine("  import-suppliers <file>                     - 仕入先マスタCSVを取込");
+        Console.WriteLine("  import-masters                              - 等級・階級マスタをインポート");
+        Console.WriteLine("  check-masters                               - 等級・階級マスタの登録状況を確認");
+        Console.WriteLine();
+
+        Console.WriteLine("⚙️ システム管理:");
+        Console.WriteLine("  init-folders                                - フォルダ構造を初期化");
+        Console.WriteLine("  init-inventory <dept>                       - 初期在庫設定（前月末在庫.csv取込）");
+        Console.WriteLine("  import-with-carryover <dept>                - 前日在庫を引き継いでインポート");
+        Console.WriteLine("  optimize-inventory <日付>                   - 在庫マスタ最適化");
+        Console.WriteLine();
+
+        Console.WriteLine("🔧 開発・デバッグ用:");
+        Console.WriteLine("  init-database [--force]                     - データベース初期化");
+        Console.WriteLine("  reset-daily-close <YYYY-MM-DD> [--all]      - 日次終了処理リセット");
+        Console.WriteLine("  check-data-status <YYYY-MM-DD>              - データ状態確認");
+        Console.WriteLine("  debug-csv-structure <file>                  - CSV構造を分析");
+        Console.WriteLine("  simulate-daily <dept> <YYYY-MM-DD> [--dry-run] - 日次処理シミュレーション");
+        Console.WriteLine();
+
+        Console.WriteLine("💡 使用例:");
+        Console.WriteLine("  dotnet run help                             - 全コマンド一覧");
+        Console.WriteLine("  dotnet run help import-folder               - import-folderコマンドの詳細");
+        Console.WriteLine("  dotnet run unmatch-list 2025-06-16          - 2025年6月16日のアンマッチリスト");
+        Console.WriteLine("  dotnet run daily-report 2025-06-16          - 2025年6月16日の商品日報");
+        Console.WriteLine("  dotnet run import-folder DeptA 2025-06-16   - 部門Aの2025年6月16日データを取込");
+        Console.WriteLine();
+
+        Console.WriteLine("📋 詳細なヘルプが必要な場合は: dotnet run help <command>");
+        Console.WriteLine("例: dotnet run help import-folder");
+    }
+
+    private static void DisplayCommandHelp(string commandName)
+    {
+        Console.WriteLine($"📋 コマンド詳細ヘルプ: {commandName}");
+        Console.WriteLine("=".PadRight(50, '='));
+        Console.WriteLine();
+
+        switch (commandName)
+        {
+            case "import-folder":
+                Console.WriteLine("📁 import-folder - 部門フォルダから一括データ取込");
+                Console.WriteLine();
+                Console.WriteLine("説明:");
+                Console.WriteLine("  指定した部門フォルダ内のすべてのCSVファイルを適切な順序で一括インポートします。");
+                Console.WriteLine("  マスタファイル → 前月末在庫 → 伝票ファイルの順序で処理されます。");
+                Console.WriteLine();
+                Console.WriteLine("使用方法:");
+                Console.WriteLine("  dotnet run import-folder <部門名> [ジョブ日付]");
+                Console.WriteLine("  dotnet run import-folder <部門名> <開始日> <終了日>");
+                Console.WriteLine("  dotnet run import-folder <部門名>                    # 全期間");
+                Console.WriteLine();
+                Console.WriteLine("引数:");
+                Console.WriteLine("  部門名     - DeptA, DeptB, DeptC のいずれか");
+                Console.WriteLine("  ジョブ日付 - YYYY-MM-DD 形式（省略時は全期間）");
+                Console.WriteLine("  開始日     - 期間指定時の開始日（YYYY-MM-DD）");
+                Console.WriteLine("  終了日     - 期間指定時の終了日（YYYY-MM-DD）");
+                Console.WriteLine();
+                Console.WriteLine("例:");
+                Console.WriteLine("  dotnet run import-folder DeptA 2025-06-30");
+                Console.WriteLine("  dotnet run import-folder DeptA 2025-06-01 2025-06-30");
+                Console.WriteLine("  dotnet run import-folder DeptA");
+                Console.WriteLine();
+                Console.WriteLine("注意:");
+                Console.WriteLine("  - 対象フォルダ: D:\\InventoryImport\\<部門名>\\Import\\");
+                Console.WriteLine("  - エラーファイルは D:\\InventoryImport\\<部門名>\\Error\\ に移動");
+                Console.WriteLine("  - 処理後は別途アンマッチリストの実行を推奨");
+                break;
+
+            case "unmatch-list":
+                Console.WriteLine("🔍 unmatch-list - アンマッチリスト処理");
+                Console.WriteLine();
+                Console.WriteLine("説明:");
+                Console.WriteLine("  在庫データと伝票データの整合性をチェックし、不整合データを検出します。");
+                Console.WriteLine("  商品日報・在庫表作成の前に必ず実行し、アンマッチ0件を確認してください。");
+                Console.WriteLine();
+                Console.WriteLine("使用方法:");
+                Console.WriteLine("  dotnet run unmatch-list [YYYY-MM-DD]");
+                Console.WriteLine();
+                Console.WriteLine("例:");
+                Console.WriteLine("  dotnet run unmatch-list 2025-06-30");
+                Console.WriteLine("  dotnet run unmatch-list                              # 最新データで処理");
+                Console.WriteLine();
+                Console.WriteLine("チェック項目:");
+                Console.WriteLine("  - 在庫マスタ未登録商品の検出");
+                Console.WriteLine("  - 在庫不足による出荷不可データの検出");
+                Console.WriteLine("  - 5項目複合キー（商品・等級・階級・荷印コード・荷印名）の整合性");
+                break;
+
+            case "daily-report":
+                Console.WriteLine("📊 daily-report - 商品日報生成");
+                Console.WriteLine();
+                Console.WriteLine("説明:");
+                Console.WriteLine("  指定日の商品日報をPDF形式で出力します。");
+                Console.WriteLine("  事前にアンマッチリストを実行し、アンマッチ0件を確認してください。");
+                Console.WriteLine();
+                Console.WriteLine("使用方法:");
+                Console.WriteLine("  dotnet run daily-report <YYYY-MM-DD> [--dataset-id ID]");
+                Console.WriteLine();
+                Console.WriteLine("引数:");
+                Console.WriteLine("  YYYY-MM-DD  - 対象日付（必須）");
+                Console.WriteLine("  --dataset-id - 特定のデータセットIDを指定（省略可能）");
+                Console.WriteLine();
+                Console.WriteLine("例:");
+                Console.WriteLine("  dotnet run daily-report 2025-06-30");
+                Console.WriteLine("  dotnet run daily-report 2025-06-30 --dataset-id ABC123");
+                Console.WriteLine();
+                Console.WriteLine("出力先:");
+                Console.WriteLine("  D:\\InventoryBackup\\Reports\\DailyReport_YYYYMMDD.pdf");
+                break;
+
+            case "product-account":
+                Console.WriteLine("📈 product-account - 商品勘定帳票生成");
+                Console.WriteLine();
+                Console.WriteLine("説明:");
+                Console.WriteLine("  指定日の商品勘定帳票をPDF形式で出力します。");
+                Console.WriteLine("  移動平均法による在庫単価計算と粗利益・粗利率を表示します。");
+                Console.WriteLine();
+                Console.WriteLine("使用方法:");
+                Console.WriteLine("  dotnet run product-account <YYYY-MM-DD> [--dataset-id ID]");
+                Console.WriteLine();
+                Console.WriteLine("例:");
+                Console.WriteLine("  dotnet run product-account 2025-06-30");
+                Console.WriteLine();
+                Console.WriteLine("レイアウト:");
+                Console.WriteLine("  - A3横向き（420mm × 297mm）");
+                Console.WriteLine("  - 1512px幅での詳細表示");
+                Console.WriteLine("  - 取引明細、残高、粗利益の一覧表示");
+                break;
+
+            case "init-database":
+                Console.WriteLine("🔧 init-database - データベース初期化");
+                Console.WriteLine();
+                Console.WriteLine("説明:");
+                Console.WriteLine("  データベースを初期化し、全テーブルとストアドプロシージャを作成します。");
+                Console.WriteLine("  開発環境での初期セットアップや完全リセット時に使用します。");
+                Console.WriteLine();
+                Console.WriteLine("使用方法:");
+                Console.WriteLine("  dotnet run init-database [--force]");
+                Console.WriteLine();
+                Console.WriteLine("オプション:");
+                Console.WriteLine("  --force     - 既存データを削除して強制的に初期化");
+                Console.WriteLine();
+                Console.WriteLine("例:");
+                Console.WriteLine("  dotnet run init-database --force");
+                Console.WriteLine();
+                Console.WriteLine("⚠️ 注意:");
+                Console.WriteLine("  --forceオプションは既存データをすべて削除します。");
+                Console.WriteLine("  本番環境では絶対に使用しないでください。");
+                break;
+
+            case "test-connection":
+                Console.WriteLine("🔌 test-connection - データベース接続テスト");
+                Console.WriteLine();
+                Console.WriteLine("説明:");
+                Console.WriteLine("  データベースへの接続をテストし、基本的な動作確認を行います。");
+                Console.WriteLine();
+                Console.WriteLine("使用方法:");
+                Console.WriteLine("  dotnet run test-connection");
+                Console.WriteLine();
+                Console.WriteLine("確認項目:");
+                Console.WriteLine("  - データベース接続の可否");
+                Console.WriteLine("  - 基本テーブルの存在確認");
+                Console.WriteLine("  - 読み書き権限の確認");
+                break;
+
+            default:
+                Console.WriteLine($"❌ コマンド '{commandName}' の詳細ヘルプは見つかりません。");
+                Console.WriteLine();
+                Console.WriteLine("利用可能なコマンド:");
+                Console.WriteLine("  import-folder, unmatch-list, daily-report, product-account");
+                Console.WriteLine("  init-database, test-connection");
+                Console.WriteLine();
+                Console.WriteLine("全コマンド一覧: dotnet run help");
+                break;
+        }
+    }
     }
 
 } // Program クラスの終了
