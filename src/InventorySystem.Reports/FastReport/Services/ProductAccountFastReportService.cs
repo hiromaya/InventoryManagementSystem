@@ -526,6 +526,31 @@ namespace InventorySystem.Reports.FastReport.Services
             
             // レポートを準備
             _logger.LogInformation("レポートを生成しています...");
+            
+            // ScriptLanguage設定（Prepare直前の追加設定）
+            try
+            {
+                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                if (scriptLanguageProperty != null)
+                {
+                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                    if (scriptLanguageType.IsEnum)
+                    {
+                        var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>()
+                            .FirstOrDefault(v => v.ToString() == "None");
+                        if (noneValue != null)
+                        {
+                            scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("GeneratePdfReport: ScriptLanguageをNoneに設定しました");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"GeneratePdfReport: ScriptLanguage設定時の警告: {ex.Message}");
+            }
+            
             report.Prepare();
             
             // PDF出力設定（アンマッチリストと同じ設定）

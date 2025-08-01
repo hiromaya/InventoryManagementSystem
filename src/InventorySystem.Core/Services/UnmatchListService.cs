@@ -82,71 +82,17 @@ public class UnmatchListService : IUnmatchListService
         var stopwatch = Stopwatch.StartNew();
         var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
         
-        // DataSetIdをメソッドスコープで定義（初期値設定）
-        string dataSetId = Guid.NewGuid().ToString();
-        
         try
         {
             // 在庫マスタから最新JobDateを取得（表示用）
             var latestJobDate = await _inventoryRepository.GetMaxJobDateAsync();
             
-            // 既存の伝票データからDataSetIdを取得（優先順位: 売上→仕入→在庫調整）
-            string? existingDataSetId = null;
-            if (targetDate.HasValue)
-            {
-                _logger.LogCritical("既存DataSetId検索開始...");
-                
-                // 売上伝票から検索
-                existingDataSetId = await _salesVoucherRepository.GetDataSetIdByJobDateAsync(targetDate.Value);
-                _logger.LogCritical("売上伝票からのDataSetId: {DataSetId}", existingDataSetId ?? "NULL");
-                
-                // 仕入伝票から検索
-                if (string.IsNullOrEmpty(existingDataSetId))
-                {
-                    existingDataSetId = await _purchaseVoucherRepository.GetDataSetIdByJobDateAsync(targetDate.Value);
-                    _logger.LogCritical("仕入伝票からのDataSetId: {DataSetId}", existingDataSetId ?? "NULL");
-                }
-                
-                // 在庫調整から検索
-                if (string.IsNullOrEmpty(existingDataSetId))
-                {
-                    existingDataSetId = await _inventoryAdjustmentRepository.GetDataSetIdByJobDateAsync(targetDate.Value);
-                    _logger.LogCritical("在庫調整からのDataSetId: {DataSetId}", existingDataSetId ?? "NULL");
-                }
-            }
-            else
-            {
-                _logger.LogCritical("targetDateがNULLのため、既存DataSetId検索をスキップ");
-            }
-            
-            // DataSetId決定部分
-            var originalDataSetId = dataSetId;
-            dataSetId = !string.IsNullOrEmpty(existingDataSetId) 
-                ? existingDataSetId 
-                : Guid.NewGuid().ToString();
-            
-            _logger.LogCritical("===== DataSetId決定結果 =====");
-            _logger.LogCritical("既存DataSetId: {ExistingDataSetId}", existingDataSetId ?? "NULL");
-            _logger.LogCritical("最終DataSetId: {DataSetId}", dataSetId);
-            _logger.LogCritical("新規生成: {IsNew}", string.IsNullOrEmpty(existingDataSetId));
-            _logger.LogCritical("===============================");
-            
-            // 既存DataSetIdが見つかった場合は置き換える
-            if (!string.IsNullOrEmpty(existingDataSetId))
-            {
-                _logger.LogInformation("既存のDataSetIdを使用します: {DataSetId}", dataSetId);
-            }
-            else
-            {
-                _logger.LogWarning("指定日の既存DataSetIdが見つからないため新規生成したDataSetIdを使用: {DataSetId}", dataSetId);
-            }
-            
-            _logger.LogInformation("アンマッチリスト処理開始 - {ProcessType}, 最新JobDate: {JobDate}, データセットID: {DataSetId}", 
-                processType, latestJobDate, dataSetId);
+            _logger.LogInformation("アンマッチリスト処理開始 - {ProcessType}, 最新JobDate: {JobDate}", 
+                processType, latestJobDate);
 
             // 在庫マスタ最適化処理
             _logger.LogInformation("在庫マスタの最適化を開始します（{ProcessType}）", processType);
-            await OptimizeInventoryMasterAsync(dataSetId);
+            await OptimizeInventoryMasterAsync();
             _logger.LogInformation("在庫マスタの最適化が完了しました");
 
             // UN在庫マスタ作成前：使い捨てテーブルとして全削除
@@ -156,7 +102,7 @@ public class UnmatchListService : IUnmatchListService
 
             // ⚠️ 重要：CP在庫マスタはアンマッチ処理では削除しない
             // CP在庫マスタは商品勘定作成時のみ作成・削除される（2025年7月27日仕様確認済み）
-            _logger.LogInformation("CP在庫マスタは保持します（アンマッチ処理では削除しない） - DataSetId: {DataSetId}", dataSetId);
+            _logger.LogInformation("CP在庫マスタは保持します（アンマッチ処理では削除しない）");
 
             // 処理1-1: UN在庫M作成（指定日以前のアクティブな在庫マスタから）
             _logger.LogCritical("=== UN在庫マスタ作成処理 詳細デバッグ ===");
@@ -207,7 +153,7 @@ public class UnmatchListService : IUnmatchListService
 
             // データ集計と検証
             _logger.LogCritical("=== {ProcessType}データ集計開始 ===", processType);
-            await AggregateDailyDataWithValidationAsync(dataSetId, targetDate);
+            await AggregateDailyDataWithValidationAsync(targetDate);
             _logger.LogCritical("=== {ProcessType}データ集計完了 ===", processType);
             
             // 集計後のUN在庫マスタの状態を確認（使い捨てテーブル設計）
@@ -238,7 +184,7 @@ public class UnmatchListService : IUnmatchListService
             _logger.LogInformation("{ProcessType}対象のため、月計データ集計はスキップします", processType);
 
             // 集計結果の検証
-            var aggregationResult = await ValidateAggregationResultAsync(dataSetId);
+            var aggregationResult = await ValidateAggregationResultAsync();
             _logger.LogInformation("集計結果 - 総数: {TotalCount}, 集計済み: {AggregatedCount}, 未集計: {NotAggregatedCount}, 取引なし: {ZeroTransactionCount}",
                 aggregationResult.TotalCount, aggregationResult.AggregatedCount, aggregationResult.NotAggregatedCount, aggregationResult.ZeroTransactionCount);
 
@@ -248,12 +194,12 @@ public class UnmatchListService : IUnmatchListService
             }
 
             // 処理1-6: アンマッチリスト生成
-            _logger.LogInformation("アンマッチリスト生成開始（{ProcessType}） - DataSetId: {DataSetId}", processType, dataSetId);
+            _logger.LogInformation("アンマッチリスト生成開始（{ProcessType}）", processType);
             var unmatchItems = targetDate.HasValue 
-                ? await GenerateUnmatchListAsync(dataSetId, targetDate.Value)
-                : await GenerateUnmatchListAsync(dataSetId);
+                ? await GenerateUnmatchListAsync(targetDate.Value)
+                : await GenerateUnmatchListAsync();
             var unmatchList = unmatchItems.ToList();
-            _logger.LogInformation("アンマッチリスト生成完了 - アンマッチ件数: {Count}, DataSetId: {DataSetId}", unmatchList.Count, dataSetId);
+            _logger.LogInformation("アンマッチリスト生成完了 - アンマッチ件数: {Count}", unmatchList.Count);
 
             stopwatch.Stop();
 
@@ -265,7 +211,7 @@ public class UnmatchListService : IUnmatchListService
 
             // 最終確認ログ
             _logger.LogCritical("===== UnmatchListService 最終結果確認 =====");
-            _logger.LogCritical("処理完了 - データセットID: {DataSetId}", dataSetId);
+            _logger.LogCritical("処理完了");
             _logger.LogCritical("検出されたアンマッチ項目数: {Count}", unmatchList.Count);
             _logger.LogCritical("処理時間: {ProcessingTime}", stopwatch.Elapsed);
             
@@ -296,21 +242,21 @@ public class UnmatchListService : IUnmatchListService
             var result = new UnmatchListResult
             {
                 Success = true,
-                DataSetId = dataSetId,
+                DataSetId = targetDate?.ToString("yyyyMMdd") ?? DateTime.Now.ToString("yyyyMMdd"),
                 UnmatchCount = unmatchList.Count,
                 UnmatchItems = unmatchList,
                 ProcessingTime = stopwatch.Elapsed
             };
 
             // アンマッチチェック結果を保存
-            await SaveUnmatchCheckResultAsync(dataSetId, result);
+            await SaveUnmatchCheckResultAsync(result.DataSetId, result);
 
             return result;
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "アンマッチリスト処理でエラーが発生しました - データセットID: {DataSetId}", dataSetId);
+            _logger.LogError(ex, "アンマッチリスト処理でエラーが発生しました");
             
             // エラー時もUN在庫マスタは保持する（仕様準拠）
             // 自身が作成したUN在庫マスタは削除しない
@@ -321,38 +267,37 @@ public class UnmatchListService : IUnmatchListService
             }
             catch (Exception countEx)
             {
-                _logger.LogError(countEx, "UN在庫マスタ件数確認に失敗しました - DataSetId: {DataSetId}", dataSetId);
+                _logger.LogError(countEx, "UN在庫マスタ件数確認に失敗しました");
             }
 
             var errorResult = new UnmatchListResult
             {
                 Success = false,
-                DataSetId = dataSetId,
+                DataSetId = targetDate?.ToString("yyyyMMdd") ?? DateTime.Now.ToString("yyyyMMdd"),
                 ErrorMessage = ex.Message,
                 ProcessingTime = stopwatch.Elapsed
             };
 
-            // エラー結果も保存
-            await SaveUnmatchCheckResultAsync(dataSetId, errorResult);
+                    // エラー結果も保存
+            await SaveUnmatchCheckResultAsync(errorResult.DataSetId, errorResult);
 
             return errorResult;
         }
     }
 
-    public async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId)
+    public async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync()
     {
-        return await GenerateUnmatchListInternalAsync(dataSetId, null);
+        return await GenerateUnmatchListInternalAsync(null);
     }
 
-    public async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId, DateTime targetDate)
+    public async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(DateTime targetDate)
     {
-        return await GenerateUnmatchListInternalAsync(dataSetId, targetDate);
+        return await GenerateUnmatchListInternalAsync(targetDate);
     }
 
-    private async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListInternalAsync(string dataSetId, DateTime? targetDate)
+    private async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListInternalAsync(DateTime? targetDate)
     {
         _logger.LogCritical("===== GenerateUnmatchListInternalAsync 開始 =====");
-        _logger.LogCritical("DataSetId: {DataSetId}", dataSetId);
         _logger.LogCritical("TargetDate: {TargetDate}", targetDate?.ToString("yyyy-MM-dd") ?? "NULL");
         
         var unmatchItems = new List<UnmatchItem>();
@@ -360,19 +305,19 @@ public class UnmatchListService : IUnmatchListService
 
         // 売上伝票のアンマッチチェック
         _logger.LogCritical("売上伝票アンマッチチェック開始...");
-        var salesUnmatches = await CheckSalesUnmatchAsync(dataSetId, targetDate);
+        var salesUnmatches = await CheckSalesUnmatchAsync(targetDate);
         _logger.LogCritical("売上伝票アンマッチ件数: {Count}", salesUnmatches.Count());
         unmatchItems.AddRange(salesUnmatches);
 
         // 仕入伝票のアンマッチチェック
         _logger.LogCritical("仕入伝票アンマッチチェック開始...");
-        var purchaseUnmatches = await CheckPurchaseUnmatchAsync(dataSetId, targetDate);
+        var purchaseUnmatches = await CheckPurchaseUnmatchAsync(targetDate);
         _logger.LogCritical("仕入伝票アンマッチ件数: {Count}", purchaseUnmatches.Count());
         unmatchItems.AddRange(purchaseUnmatches);
 
         // 在庫調整のアンマッチチェック
         _logger.LogCritical("在庫調整アンマッチチェック開始...");
-        var adjustmentUnmatches = await CheckInventoryAdjustmentUnmatchAsync(dataSetId, targetDate);
+        var adjustmentUnmatches = await CheckInventoryAdjustmentUnmatchAsync(targetDate);
         _logger.LogCritical("在庫調整アンマッチ件数: {Count}", adjustmentUnmatches.Count());
         unmatchItems.AddRange(adjustmentUnmatches);
 
