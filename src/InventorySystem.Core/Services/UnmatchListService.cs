@@ -342,40 +342,29 @@ public class UnmatchListService : IUnmatchListService
             .ThenBy(x => x.Key.ClassCode);
     }
 
-    private async Task<IEnumerable<UnmatchItem>> CheckSalesUnmatchAsync(string dataSetId, DateTime? targetDate)
+    private async Task<IEnumerable<UnmatchItem>> CheckSalesUnmatchAsync(DateTime? targetDate)
     {
         _logger.LogCritical("===== CheckSalesUnmatchAsync 詳細デバッグ開始 =====");
-        _logger.LogCritical("引数 - DataSetId: {DataSetId}", dataSetId);
         _logger.LogCritical("引数 - TargetDate: {TargetDate}", targetDate?.ToString("yyyy-MM-dd") ?? "NULL");
         
         var unmatchItems = new List<UnmatchItem>();
         var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
 
-        // 売上伝票取得（DataSetIdフィルタリング対応）
+        // 売上伝票取得（targetDateフィルタリング対応）
         IEnumerable<SalesVoucher> salesVouchers;
         
-        _logger.LogCritical("条件判定: DataSetId={HasDataSetId}, TargetDate={HasTargetDate}", 
-            !string.IsNullOrEmpty(dataSetId), targetDate.HasValue);
-
-        if (!string.IsNullOrEmpty(dataSetId) && targetDate.HasValue)
+        if (targetDate.HasValue)
         {
-            _logger.LogCritical("★★★ GetByDataSetIdAsync を実行 ★★★");
-            salesVouchers = await _salesVoucherRepository.GetByDataSetIdAsync(dataSetId);
-            _logger.LogCritical("GetByDataSetIdAsync 結果: {Count}件", salesVouchers.Count());
-            
-            // 最初の5件のDataSetIdを表示
-            var first5 = salesVouchers.Take(5);
-            foreach (var sv in first5)
-            {
-                _logger.LogCritical("  - VoucherNumber: {VoucherNumber}, DataSetId: {DataSetId}", 
-                    sv.VoucherNumber, sv.DataSetId);
-            }
+            _logger.LogCritical("指定日以前で売上伝票をフィルタリング");
+            salesVouchers = await _salesVoucherRepository.GetAllAsync();
+            salesVouchers = salesVouchers.Where(s => s.JobDate <= targetDate.Value);
+            _logger.LogCritical("フィルタリング結果: {Count}件", salesVouchers.Count());
         }
         else
         {
-            _logger.LogCritical("！！！ GetAllAsync を実行（警告：全件取得） ！！！");
+            _logger.LogCritical("全期間で売上伝票を取得");
             salesVouchers = await _salesVoucherRepository.GetAllAsync();
-            _logger.LogCritical("GetAllAsync 結果: {Count}件", salesVouchers.Count());
+            _logger.LogCritical("全件取得結果: {Count}件", salesVouchers.Count());
         }
         
         // フィルタリング前後の件数
@@ -465,19 +454,20 @@ public class UnmatchListService : IUnmatchListService
         return unmatchItems;
     }
 
-    private async Task<IEnumerable<UnmatchItem>> CheckPurchaseUnmatchAsync(string dataSetId, DateTime? targetDate)
+    private async Task<IEnumerable<UnmatchItem>> CheckPurchaseUnmatchAsync(DateTime? targetDate)
     {
         var unmatchItems = new List<UnmatchItem>();
 
-        // 仕入伝票取得（DataSetIdフィルタリング対応）
+        // 仕入伝票取得（targetDateフィルタリング対応）
         var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
         IEnumerable<PurchaseVoucher> purchaseVouchers;
-        if (!string.IsNullOrEmpty(dataSetId) && targetDate.HasValue)
+        if (targetDate.HasValue)
         {
-            // 指定日処理：DataSetIdでフィルタリング
-            purchaseVouchers = await _purchaseVoucherRepository.GetByDataSetIdAsync(dataSetId);
-            _logger.LogInformation("仕入伝票取得（DataSetIdフィルタ）: DataSetId={DataSetId}, 件数={Count}", 
-                dataSetId, purchaseVouchers.Count());
+            // 指定日以前でフィルタリング
+            purchaseVouchers = await _purchaseVoucherRepository.GetAllAsync();
+            purchaseVouchers = purchaseVouchers.Where(p => p.JobDate <= targetDate.Value);
+            _logger.LogInformation("仕入伝票取得（指定日フィルタ）: 件数={Count}", 
+                purchaseVouchers.Count());
         }
         else
         {
@@ -584,19 +574,20 @@ public class UnmatchListService : IUnmatchListService
         return className ?? $"階{classCode}";
     }
 
-    private async Task<IEnumerable<UnmatchItem>> CheckInventoryAdjustmentUnmatchAsync(string dataSetId, DateTime? targetDate)
+    private async Task<IEnumerable<UnmatchItem>> CheckInventoryAdjustmentUnmatchAsync(DateTime? targetDate)
     {
         var unmatchItems = new List<UnmatchItem>();
 
-        // 在庫調整伝票取得（DataSetIdフィルタリング対応）
+        // 在庫調整伝票取得（targetDateフィルタリング対応）
         var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
         IEnumerable<InventoryAdjustment> adjustments;
-        if (!string.IsNullOrEmpty(dataSetId) && targetDate.HasValue)
+        if (targetDate.HasValue)
         {
-            // 指定日処理：DataSetIdでフィルタリング
-            adjustments = await _inventoryAdjustmentRepository.GetByDataSetIdAsync(dataSetId);
-            _logger.LogInformation("在庫調整取得（DataSetIdフィルタ）: DataSetId={DataSetId}, 件数={Count}", 
-                dataSetId, adjustments.Count());
+            // 指定日以前でフィルタリング
+            adjustments = await _inventoryAdjustmentRepository.GetAllAsync();
+            adjustments = adjustments.Where(a => a.JobDate <= targetDate.Value);
+            _logger.LogInformation("在庫調整取得（指定日フィルタ）: 件数={Count}", 
+                adjustments.Count());
         }
         else
         {
@@ -757,7 +748,7 @@ public class UnmatchListService : IUnmatchListService
     /// <summary>
     /// 在庫マスタ最適化処理（累積管理対応版）
     /// </summary>
-    private async Task OptimizeInventoryMasterAsync(string dataSetId)
+    private async Task OptimizeInventoryMasterAsync()
     {
         try
         {
@@ -813,7 +804,7 @@ public class UnmatchListService : IUnmatchListService
             int processedCount = 0;
             try
             {
-                processedCount = await _inventoryRepository.UpdateOrCreateFromVouchersAsync(latestJobDate, dataSetId);
+                processedCount = await _inventoryRepository.UpdateOrCreateFromVouchersAsync(latestJobDate);
                 _logger.LogInformation("在庫マスタの更新または作成完了: {Count}件", processedCount);
             }
             catch (Exception ex)
@@ -899,29 +890,28 @@ public class UnmatchListService : IUnmatchListService
     /// <summary>
     /// 当日データ集計と検証処理
     /// </summary>
-    private async Task AggregateDailyDataWithValidationAsync(string dataSetId, DateTime? targetDate)
+    private async Task AggregateDailyDataWithValidationAsync(DateTime? targetDate)
     {
         try
         {
             var processType = targetDate.HasValue ? $"指定日以前（{targetDate:yyyy-MM-dd}）" : "全期間";
             
             _logger.LogCritical("=== 入荷データ集計処理 詳細デバッグ ===");
-            _logger.LogCritical("DataSetId: {DataSetId}", dataSetId);
             _logger.LogCritical("TargetDate: {TargetDate}", targetDate?.ToString("yyyy-MM-dd") ?? "NULL");
             
             // 1. 仕入データの集計（通常仕入のみ = 数量 > 0）
             _logger.LogCritical("1. 仕入データ集計開始...");
-            var purchaseCount = await _unInventoryRepository.AggregatePurchaseDataAsync(dataSetId, targetDate);
+            var purchaseCount = await _unInventoryRepository.AggregatePurchaseDataAsync(targetDate);
             _logger.LogCritical("仕入データ集計完了: {Count}件更新", purchaseCount);
             
             // 2. 売上データの集計（売上返品のみ = 数量 < 0）
             _logger.LogCritical("2. 売上返品データ集計開始...");
-            var salesCount = await _unInventoryRepository.AggregateSalesDataAsync(dataSetId, targetDate);
+            var salesCount = await _unInventoryRepository.AggregateSalesDataAsync(targetDate);
             _logger.LogCritical("売上返品データ集計完了: {Count}件更新", salesCount);
             
             // 3. 在庫調整データの集計（入荷調整のみ = 数量 > 0）
             _logger.LogCritical("3. 在庫調整データ集計開始...");
-            var adjustmentCount = await _unInventoryRepository.AggregateInventoryAdjustmentDataAsync(dataSetId, targetDate);
+            var adjustmentCount = await _unInventoryRepository.AggregateInventoryAdjustmentDataAsync(targetDate);
             _logger.LogCritical("在庫調整データ集計完了: {Count}件更新", adjustmentCount);
             
             // 4. 当日在庫計算（使い捨てテーブル設計で全テーブル対象）
@@ -988,7 +978,7 @@ public class UnmatchListService : IUnmatchListService
     /// <summary>
     /// 集計結果の検証
     /// </summary>
-    private async Task<AggregationResult> ValidateAggregationResultAsync(string dataSetId)
+    private async Task<AggregationResult> ValidateAggregationResultAsync()
     {
         try
         {
