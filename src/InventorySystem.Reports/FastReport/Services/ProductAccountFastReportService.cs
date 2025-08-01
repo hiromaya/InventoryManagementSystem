@@ -120,7 +120,8 @@ namespace InventorySystem.Reports.FastReport.Services
             var staffGroups = sourceData
                 .GroupBy(x => new { 
                     StaffCode = x.ProductCategory1 ?? "999", 
-                    StaffName = x.GetAdditionalInfo("ProductCategory1Name") ?? "未設定"
+                    // まずAdditionalInfoから取得を試み、なければGetStaffNameメソッドで取得
+                    StaffName = x.GetAdditionalInfo("ProductCategory1Name") ?? GetStaffName(x.ProductCategory1 ?? "999")
                 })
                 .OrderBy(g => g.Key.StaffCode);
             
@@ -526,24 +527,38 @@ namespace InventorySystem.Reports.FastReport.Services
         }
 
         /// <summary>
-        /// 担当者名取得メソッド
+        /// 担当者名取得メソッド（StaffMasterテーブルから）
         /// </summary>
         private string GetStaffName(string staffCode)
         {
             try
             {
+                // ProductCategory1が数値に変換できるかチェック
+                if (!int.TryParse(staffCode, out int staffCodeInt))
+                {
+                    _logger.LogWarning("担当者コードが数値に変換できません: {StaffCode}", staffCode);
+                    return $"担当者{staffCode}";
+                }
+
                 var sql = @"
-                    SELECT Name 
-                    FROM ProductClassification1 
-                    WHERE Code = @Code";
+                    SELECT StaffName 
+                    FROM StaffMaster 
+                    WHERE StaffCode = @StaffCode";
                     
                 using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
-                var name = connection.QueryFirstOrDefault<string>(sql, new { Code = staffCode });
+                var staffName = connection.QueryFirstOrDefault<string>(sql, new { StaffCode = staffCodeInt });
                 
-                return name ?? $"担当者{staffCode}";
+                if (string.IsNullOrEmpty(staffName))
+                {
+                    _logger.LogWarning("担当者名が見つかりません。担当者コード: {StaffCode}", staffCodeInt);
+                    return $"担当者{staffCode}";
+                }
+                
+                return staffName;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "担当者名の取得に失敗しました。担当者コード: {StaffCode}", staffCode);
                 return $"担当者{staffCode}";
             }
         }
@@ -1173,20 +1188,50 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// 担当者別合計行作成
         /// </summary>
+        /// <summary>
+        /// 担当者別合計行作成（修正版）
+        /// </summary>
         private ProductAccountFlatRow CreateStaffSubtotal(dynamic staffKey, dynamic totals, int sequence)
         {
+            // 担当者名を確実に取得
+            var staffCode = staffKey.StaffCode?.ToString() ?? "";
+            var staffName = staffKey.StaffName?.ToString();
+            
+            // staffNameが空の場合はGetStaffNameメソッドで取得
+            if (string.IsNullOrEmpty(staffName))
+            {
+                staffName = GetStaffName(staffCode);
+            }
+            
             return new ProductAccountFlatRow
             {
                 RowType = RowTypes.StaffSubtotal,
                 RowSequence = sequence,
                 IsSubtotal = true,
                 IsBold = true,
-                SubtotalLabel = $"担当者合計：{staffKey.StaffCode} {staffKey.StaffName}",
-                DisplayCategory = "担当者計",
+                IsPageBreak = false,
+                
+                // "担当者01 山田太郎 計" のような形式で表示
+                DisplayCategory = $"担当者{staffCode} {staffName} 計",
+                SubtotalLabel = $"担当者合計：{staffCode} {staffName}",
+                
+                // 集計値を設定
                 PurchaseQuantity = FormatQuantity(totals.TotalPurchase),
                 SalesQuantity = FormatQuantity(totals.TotalSales),
                 Amount = FormatAmount(totals.TotalAmount),
-                GrossProfit = FormatGrossProfit(totals.TotalGrossProfit)
+                GrossProfit = FormatGrossProfit(totals.TotalGrossProfit),
+                
+                // 担当者情報も保持
+                ProductCategory1 = staffCode,
+                ProductCategory1Name = staffName,
+                
+                // 他のフィールドは空
+                ProductName = "",
+                VoucherNumber = "",
+                MonthDay = "",
+                UnitPrice = "",
+                RemainingQuantity = "",
+                CustomerSupplierName = ""
             };
         }
         
