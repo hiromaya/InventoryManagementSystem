@@ -295,6 +295,19 @@ public class UnmatchListService : IUnmatchListService
         return await GenerateUnmatchListInternalAsync(targetDate);
     }
 
+    // DataSetId互換用メソッド（後方互換性のため保持）
+    public async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId)
+    {
+        _logger.LogWarning("DataSetIdパラメータは無視されます。使い捨て設計に移行済み。");
+        return await GenerateUnmatchListInternalAsync(null);
+    }
+
+    public async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId, DateTime targetDate)
+    {
+        _logger.LogWarning("DataSetIdパラメータは無視されます。使い捨て設計に移行済み。");
+        return await GenerateUnmatchListInternalAsync(targetDate);
+    }
+
     private async Task<IEnumerable<UnmatchItem>> GenerateUnmatchListInternalAsync(DateTime? targetDate)
     {
         _logger.LogCritical("===== GenerateUnmatchListInternalAsync 開始 =====");

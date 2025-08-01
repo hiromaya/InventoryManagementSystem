@@ -17,10 +17,20 @@ public interface IUnmatchListService
     /// <summary>
     /// アンマッチリストを生成する（全期間対象）
     /// </summary>
-    Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId);
+    Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync();
     
     /// <summary>
     /// アンマッチリストを生成する（指定日以前対象）
+    /// </summary>
+    Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(DateTime targetDate);
+    
+    /// <summary>
+    /// アンマッチリストを生成する（全期間対象・DataSetId互換用）
+    /// </summary>
+    Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId);
+    
+    /// <summary>
+    /// アンマッチリストを生成する（指定日以前対象・DataSetId互換用）
     /// </summary>
     Task<IEnumerable<UnmatchItem>> GenerateUnmatchListAsync(string dataSetId, DateTime targetDate);
 }
