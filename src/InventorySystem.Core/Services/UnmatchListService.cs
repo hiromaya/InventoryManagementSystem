@@ -817,7 +817,7 @@ public class UnmatchListService : IUnmatchListService
             int processedCount = 0;
             try
             {
-                processedCount = await _inventoryRepository.UpdateOrCreateFromVouchersAsync(latestJobDate);
+                processedCount = await _inventoryRepository.UpdateOrCreateFromVouchersAsync(latestJobDate, "unmatch-list");
                 _logger.LogInformation("在庫マスタの更新または作成完了: {Count}件", processedCount);
             }
             catch (Exception ex)
@@ -914,17 +914,17 @@ public class UnmatchListService : IUnmatchListService
             
             // 1. 仕入データの集計（通常仕入のみ = 数量 > 0）
             _logger.LogCritical("1. 仕入データ集計開始...");
-            var purchaseCount = await _unInventoryRepository.AggregatePurchaseDataAsync(targetDate);
+            var purchaseCount = await _unInventoryRepository.AggregatePurchaseDataAsync("", targetDate);
             _logger.LogCritical("仕入データ集計完了: {Count}件更新", purchaseCount);
             
             // 2. 売上データの集計（売上返品のみ = 数量 < 0）
             _logger.LogCritical("2. 売上返品データ集計開始...");
-            var salesCount = await _unInventoryRepository.AggregateSalesDataAsync(targetDate);
+            var salesCount = await _unInventoryRepository.AggregateSalesDataAsync("", targetDate);
             _logger.LogCritical("売上返品データ集計完了: {Count}件更新", salesCount);
             
             // 3. 在庫調整データの集計（入荷調整のみ = 数量 > 0）
             _logger.LogCritical("3. 在庫調整データ集計開始...");
-            var adjustmentCount = await _unInventoryRepository.AggregateInventoryAdjustmentDataAsync(targetDate);
+            var adjustmentCount = await _unInventoryRepository.AggregateInventoryAdjustmentDataAsync("", targetDate);
             _logger.LogCritical("在庫調整データ集計完了: {Count}件更新", adjustmentCount);
             
             // 4. 当日在庫計算（使い捨てテーブル設計で全テーブル対象）
