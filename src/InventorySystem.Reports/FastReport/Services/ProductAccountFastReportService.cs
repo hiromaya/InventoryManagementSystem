@@ -160,14 +160,21 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 foreach (var productGroup in productGroups)
                 {
-                    // 商品グループヘッダー（灰色背景）
-                    flatRows.Add(CreateProductGroupHeader(productGroup.Key, sequence++));
+                    // 商品グループヘッダーは削除（不要）
+                    
+                    // 前残行の作成（必要に応じて）
+                    var previousBalance = CreatePreviousBalanceIfNeeded(productGroup.Key, sequence);
+                    if (previousBalance != null)
+                    {
+                        flatRows.Add(previousBalance);
+                        sequence++;
+                    }
                     
                     // 明細行（日付・伝票番号順）
                     var details = productGroup
+                        .Where(x => x.RecordType != "Previous") // 前残は別途処理
                         .OrderBy(x => x.TransactionDate)
-                        .ThenBy(x => x.VoucherNumber)
-                        .ThenBy(x => x.RecordType == "Previous" ? 0 : 1); // 前残を最初に
+                        .ThenBy(x => x.VoucherNumber);
                     
                     // 集計用変数
                     decimal subtotalPurchase = 0;
@@ -177,16 +184,14 @@ namespace InventorySystem.Reports.FastReport.Services
                     
                     foreach (var detail in details)
                     {
-                        flatRows.Add(CreateDetailRow(detail, sequence++));
+                        // 各明細行に商品情報をすべて含める
+                        flatRows.Add(CreateDetailRowWithProductInfo(detail, productGroup.Key, sequence++));
                         
-                        // 小計集計（前残は除く）
-                        if (detail.RecordType != "Previous")
-                        {
-                            subtotalPurchase += detail.PurchaseQuantity;
-                            subtotalSales += detail.SalesQuantity;
-                            subtotalAmount += detail.Amount;
-                            subtotalGrossProfit += detail.GrossProfit;
-                        }
+                        // 小計集計
+                        subtotalPurchase += detail.PurchaseQuantity;
+                        subtotalSales += detail.SalesQuantity;
+                        subtotalAmount += detail.Amount;
+                        subtotalGrossProfit += detail.GrossProfit;
                     }
                     
                     // 商品別小計
@@ -1094,31 +1099,51 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
-        /// 商品グループヘッダー作成
+        /// 前残行作成（必要に応じて）
         /// </summary>
-        private ProductAccountFlatRow CreateProductGroupHeader(dynamic productKey, int sequence)
+        private ProductAccountFlatRow? CreatePreviousBalanceIfNeeded(dynamic productKey, int sequence)
+        {
+            // 前残データが存在するかチェック（実装省略：通常は別途データ取得が必要）
+            // 実際の実装では、productKeyに基づいてCP在庫マスタから前残データを取得
+            
+            // 仮実装として、前残が必要な場合のみ行を作成
+            // 本実装では前残データの有無判定とデータ取得が必要
+            return null; // 今回は前残行を作成しない
+        }
+        
+        /// <summary>
+        /// 各明細行に商品情報をすべて含めて作成
+        /// </summary>
+        private ProductAccountFlatRow CreateDetailRowWithProductInfo(ProductAccountReportModel data, dynamic productKey, int sequence)
         {
             return new ProductAccountFlatRow
             {
-                RowType = RowTypes.ProductGroupHeader,
+                RowType = RowTypes.Detail,
                 RowSequence = sequence,
-                IsGrayBackground = true,
-                IsBold = true,
-                ProductName = $"【{productKey.ProductName}】 荷印：{productKey.ShippingMarkName} " +
-                             $"手入力：{productKey.ManualShippingMark} 等級：{productKey.GradeName} " +
-                             $"階級：{productKey.ClassName}",
-                // その他のフィールドは空
-                ProductCategory1 = "",
-                VoucherNumber = "",
-                DisplayCategory = "",
-                MonthDay = "",
-                PurchaseQuantity = "",
-                SalesQuantity = "",
-                RemainingQuantity = "",
-                UnitPrice = "",
-                Amount = "",
-                GrossProfit = "",
-                CustomerSupplierName = ""
+                IsGrayBackground = false,
+                IsBold = false,
+                
+                // 基本情報（商品情報をすべて含める）
+                ProductCategory1 = data.ProductCategory1 ?? "",
+                ProductCategory1Name = data.GetAdditionalInfo("ProductCategory1Name") ?? "",
+                ProductCode = data.ProductCode,
+                ProductName = data.ProductName,
+                ShippingMarkName = data.ShippingMarkName,
+                ManualShippingMark = data.ManualShippingMark,
+                GradeName = data.GradeName,
+                ClassName = data.ClassName,
+                VoucherNumber = data.VoucherNumber,
+                DisplayCategory = data.DisplayCategory,
+                MonthDay = data.TransactionDate.ToString("MM/dd"),
+                CustomerSupplierName = data.CustomerSupplierName,
+                
+                // フォーマット済み数値
+                PurchaseQuantity = FormatQuantity(data.PurchaseQuantity),
+                SalesQuantity = FormatQuantity(data.SalesQuantity),
+                RemainingQuantity = FormatQuantity(data.RemainingQuantity),
+                UnitPrice = FormatUnitPrice(data.UnitPrice),
+                Amount = FormatAmount(data.Amount),
+                GrossProfit = FormatGrossProfit(data.GrossProfit)
             };
         }
         

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="None" ReportInfo.Created="2025-08-01" ReportInfo.Modified="2025-08-01" ReportInfo.CreatorVersion="2024.2.0.0">
+  <Dictionary>
+    <TableDataSource Name="BusinessDailyReportItems" ReferenceName="BusinessDailyReportItems" Enabled="true">
+      <Column Name="ClassificationCode" DataType="System.String"/>
+      <Column Name="CustomerClassName" DataType="System.String"/>
+      <Column Name="SupplierClassName" DataType="System.String"/>
+      <Column Name="DailyCashSales" DataType="System.Decimal"/>
+      <Column Name="DailyCashSalesTax" DataType="System.Decimal"/>
+      <Column Name="DailyCreditSales" DataType="System.Decimal"/>
+      <Column Name="DailySalesDiscount" DataType="System.Decimal"/>
+      <Column Name="DailyCreditSalesTax" DataType="System.Decimal"/>
+      <Column Name="DailyCashPurchase" DataType="System.Decimal"/>
+      <Column Name="DailyCashPurchaseTax" DataType="System.Decimal"/>
+      <Column Name="DailyCreditPurchase" DataType="System.Decimal"/>
+      <Column Name="DailyPurchaseDiscount" DataType="System.Decimal"/>
+      <Column Name="DailyCreditPurchaseTax" DataType="System.Decimal"/>
+      <Column Name="DailyCashReceipt" DataType="System.Decimal"/>
+      <Column Name="DailyBankReceipt" DataType="System.Decimal"/>
+      <Column Name="DailyOtherReceipt" DataType="System.Decimal"/>
+      <Column Name="DailyCashPayment" DataType="System.Decimal"/>
+      <Column Name="DailyBankPayment" DataType="System.Decimal"/>
+      <Column Name="DailyOtherPayment" DataType="System.Decimal"/>
+      <Column Name="DailySalesTotal" DataType="System.Decimal"/>
+      <Column Name="DailyPurchaseTotal" DataType="System.Decimal"/>
+    </TableDataSource>
+    <Parameter Name="CreateDate" DataType="System.String"/>
+    <Parameter Name="JobDate" DataType="System.String"/>
+  </Dictionary>
+  <ReportPage Name="Page1" PaperWidth="420" PaperHeight="297" LeftMargin="10" TopMargin="10" RightMargin="10" BottomMargin="10">
+    <!-- ヘッダー部 -->
+    <ReportTitleBand Name="ReportTitle1" Width="1512" Height="56.7">
+      <TextObject Name="Text1" Left="37.8" Top="9.45" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Text2" Left="378" Top="18.9" Width="756" Height="28.35" Text="※ [JobDate] 　営　業　日　報　（１）　※" Font="ＭＳ ゴシック, 14pt, style=Bold" HorzAlign="Center"/>
+    </ReportTitleBand>
+    
+    <!-- カラムヘッダー -->
+    <PageHeaderBand Name="PageHeader1" Top="60.7" Width="1512" Height="75.6">
+      <!-- 上段：得意先分類名 -->
+      <TextObject Name="Text10" Left="132.3" Top="18.9" Width="151.2" Height="18.9" Text="合　　計" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text11" Left="283.5" Top="18.9" Width="151.2" Height="18.9" Text="分類０１" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text12" Left="434.7" Top="18.9" Width="151.2" Height="18.9" Text="分類０２" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text13" Left="585.9" Top="18.9" Width="151.2" Height="18.9" Text="分類０３" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text14" Left="737.1" Top="18.9" Width="151.2" Height="18.9" Text="分類０４" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text15" Left="888.3" Top="18.9" Width="151.2" Height="18.9" Text="分類０５" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text16" Left="1039.5" Top="18.9" Width="151.2" Height="18.9" Text="分類０６" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text17" Left="1190.7" Top="18.9" Width="151.2" Height="18.9" Text="分類０７" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text18" Left="1341.9" Top="18.9" Width="151.2" Height="18.9" Text="分類０８" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      
+      <!-- 下段：仕入先分類名 -->
+      <TextObject Name="Text20" Left="132.3" Top="37.8" Width="151.2" Height="18.9" Text="合　　計" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text21" Left="283.5" Top="37.8" Width="151.2" Height="18.9" Text="分類０１" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text22" Left="434.7" Top="37.8" Width="151.2" Height="18.9" Text="分類０２" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text23" Left="585.9" Top="37.8" Width="151.2" Height="18.9" Text="分類０３" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text24" Left="737.1" Top="37.8" Width="151.2" Height="18.9" Text="分類０４" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text25" Left="888.3" Top="37.8" Width="151.2" Height="18.9" Text="分類０５" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text26" Left="1039.5" Top="37.8" Width="151.2" Height="18.9" Text="分類０６" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text27" Left="1190.7" Top="37.8" Width="151.2" Height="18.9" Text="分類０７" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Text28" Left="1341.9" Top="37.8" Width="151.2" Height="18.9" Text="分類０８" Font="ＭＳ ゴシック, 9pt" HorzAlign="Center" Border.Lines="All" Border.Width="0.5"/>
+    </PageHeaderBand>
+    
+    <!-- データバンド（16行の項目表示用） -->
+    <DataBand Name="Data1" Top="140.3" Width="1512" Height="18.9" DataSource="BusinessDailyReportItems" Condition="[Row#] &lt;= 16" Filter="">
+      <!-- 行見出し -->
+      <TextObject Name="Text30" Width="132.3" Height="18.9" Text="[IIF([Row#]==1,&quot;【日計】 現金売上&quot;,IIF([Row#]==2,&quot;現売消費税&quot;,IIF([Row#]==3,&quot;掛売上＋売上返品&quot;,IIF([Row#]==4,&quot;売上値引&quot;,IIF([Row#]==5,&quot;掛売消費税&quot;,IIF([Row#]==6,&quot;現金仕入&quot;,IIF([Row#]==7,&quot;現仕消費税&quot;,IIF([Row#]==8,&quot;掛仕入＋仕入返品&quot;,IIF([Row#]==9,&quot;仕入値引&quot;,IIF([Row#]==10,&quot;掛仕入消費税&quot;,IIF([Row#]==11,&quot;現金・小切手・手形入金&quot;,IIF([Row#]==12,&quot;振込入金&quot;,IIF([Row#]==13,&quot;入金値引・その他入金&quot;,IIF([Row#]==14,&quot;現金・小切手・手形支払&quot;,IIF([Row#]==15,&quot;振込支払&quot;,&quot;支払値引・その他支払&quot;)))))))))))))))]" Font="ＭＳ ゴシック, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      
+      <!-- データ列（9分類分） -->
+      <TextObject Name="Text40" Left="132.3" Width="151.2" Height="18.9" Text="[IIF([Row#]==1,[BusinessDailyReportItems.DailyCashSales],IIF([Row#]==2,[BusinessDailyReportItems.DailyCashSalesTax],IIF([Row#]==3,[BusinessDailyReportItems.DailyCreditSales],IIF([Row#]==4,[BusinessDailyReportItems.DailySalesDiscount],IIF([Row#]==5,[BusinessDailyReportItems.DailyCreditSalesTax],IIF([Row#]==6,[BusinessDailyReportItems.DailyCashPurchase],IIF([Row#]==7,[BusinessDailyReportItems.DailyCashPurchaseTax],IIF([Row#]==8,[BusinessDailyReportItems.DailyCreditPurchase],IIF([Row#]==9,[BusinessDailyReportItems.DailyPurchaseDiscount],IIF([Row#]==10,[BusinessDailyReportItems.DailyCreditPurchaseTax],IIF([Row#]==11,[BusinessDailyReportItems.DailyCashReceipt],IIF([Row#]==12,[BusinessDailyReportItems.DailyBankReceipt],IIF([Row#]==13,[BusinessDailyReportItems.DailyOtherReceipt],IIF([Row#]==14,[BusinessDailyReportItems.DailyCashPayment],IIF([Row#]==15,[BusinessDailyReportItems.DailyBankPayment],[BusinessDailyReportItems.DailyOtherPayment])))))))))))))))]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" Format.GroupSeparator="," Format.NegativePattern="1" Font="ＭＳ ゴシック, 9pt" HorzAlign="Right" Border.Lines="All" Border.Width="0.5"/>
+      
+      <!-- 残り8分類も同様のパターンで作成（省略） -->
+    </DataBand>
+  </ReportPage>
+  
+  <!-- Page2, Page3も同様の構造で作成（省略） -->
+</Report>

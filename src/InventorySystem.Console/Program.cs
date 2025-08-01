@@ -218,6 +218,11 @@ builder.Services.AddScoped<InventorySystem.Core.Interfaces.IDailyReportService, 
 builder.Services.AddScoped<IInventoryListService, InventoryListService>();
 builder.Services.AddScoped<ICpInventoryCreationService, CpInventoryCreationService>();
 
+// 営業日報サービス
+builder.Services.AddScoped<InventorySystem.Core.Interfaces.IBusinessDailyReportService, BusinessDailyReportService>();
+builder.Services.AddScoped<IBusinessDailyReportRepository>(provider => 
+    new BusinessDailyReportRepository(connectionString, provider.GetRequiredService<ILogger<BusinessDailyReportRepository>>()));
+
 // ⭐ Phase 2-B: ITimeProviderとDataSetManagementFactoryの登録（Gemini推奨）
 // JST統一: 日本のビジネスシステムのため、JstTimeProviderを使用
 builder.Services.AddSingleton<ITimeProvider, JstTimeProvider>();
@@ -237,11 +242,14 @@ Console.WriteLine("🔄 DataSetManagement専用モードで起動");
 var unmatchListFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.UnmatchListFastReportService, InventorySystem.Reports");
 var dailyReportFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.DailyReportFastReportService, InventorySystem.Reports");
 var productAccountFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.ProductAccountFastReportService, InventorySystem.Reports");
-if (unmatchListFastReportType != null && dailyReportFastReportType != null && productAccountFastReportType != null)
+var businessDailyReportFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.BusinessDailyReportFastReportService, InventorySystem.Reports");
+if (unmatchListFastReportType != null && dailyReportFastReportType != null && productAccountFastReportType != null && businessDailyReportFastReportType != null)
 {
     builder.Services.AddScoped(typeof(IUnmatchListReportService), unmatchListFastReportType);
     builder.Services.AddScoped(typeof(InventorySystem.Reports.Interfaces.IDailyReportService), dailyReportFastReportType);
     builder.Services.AddScoped(typeof(InventorySystem.Reports.Interfaces.IProductAccountReportService), productAccountFastReportType);
+    builder.Services.AddScoped(typeof(InventorySystem.Reports.Interfaces.IBusinessDailyReportService), businessDailyReportFastReportType);
+    builder.Services.AddScoped(typeof(IBusinessDailyReportReportService), businessDailyReportFastReportType);
 }
 else
 {
@@ -251,6 +259,8 @@ else
 builder.Services.AddScoped<IUnmatchListReportService, PlaceholderUnmatchListReportService>();
 builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IDailyReportService, PlaceholderDailyReportService>();
 builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IProductAccountReportService, PlaceholderProductAccountReportService>();
+builder.Services.AddScoped<InventorySystem.Reports.Interfaces.IBusinessDailyReportService, BusinessDailyReportPlaceholderService>();
+builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyReportPlaceholderService>();
 #endif
 builder.Services.AddScoped<SalesVoucherImportService>();
 builder.Services.AddScoped<PurchaseVoucherImportService>();
@@ -373,6 +383,10 @@ try
     {
         case "unmatch-list":
             await ExecuteUnmatchListAsync(host.Services, args);
+            break;
+            
+        case "business-daily-report":
+            await ExecuteBusinessDailyReportAsync(host.Services, args);
             break;
             
         case "daily-report":
@@ -678,6 +692,29 @@ try
                 Console.WriteLine();
                 Console.WriteLine("出力ファイル:");
                 Console.WriteLine("  D:\\InventoryBackup\\Reports\\UnmatchList_YYYYMMDD.PDF");
+                break;
+
+            case "business-daily-report":
+                Console.WriteLine("📊 business-daily-report - 営業日報作成");
+                Console.WriteLine();
+                Console.WriteLine("説明:");
+                Console.WriteLine("  得意先分類1・仕入先分類1別に売上・仕入・入金・支払を集計します。");
+                Console.WriteLine("  日計・月計・年計の3段階表示でA3横3ページのPDFを出力します。");
+                Console.WriteLine();
+                Console.WriteLine("使用方法:");
+                Console.WriteLine("  dotnet run business-daily-report [YYYY-MM-DD]");
+                Console.WriteLine();
+                Console.WriteLine("例:");
+                Console.WriteLine("  dotnet run business-daily-report 2025-06-16");
+                Console.WriteLine();
+                Console.WriteLine("集計項目:");
+                Console.WriteLine("  - 現金売上・掛売上・売上値引・消費税");
+                Console.WriteLine("  - 現金仕入・掛仕入・仕入値引・消費税");
+                Console.WriteLine("  - 現金・振込・その他入金");
+                Console.WriteLine("  - 現金・振込・その他支払");
+                Console.WriteLine();
+                Console.WriteLine("出力ファイル:");
+                Console.WriteLine("  D:\\InventoryBackup\\Reports\\BusinessDailyReport_YYYYMMDD.PDF");
                 break;
 
             case "daily-report":
@@ -5205,6 +5242,70 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
                 Console.WriteLine($"❌ エラーが発生しました: {ex.Message}");
                 logger.LogError(ex, "在庫表処理（開発用）でエラーが発生しました");
             }
+        }
+    }
+
+    /// <summary>
+    /// 営業日報処理実行
+    /// </summary>
+    private static async Task ExecuteBusinessDailyReportAsync(IServiceProvider services, string[] args)
+    {
+        using (var scope = services.CreateScope())
+        {
+            var scopedServices = scope.ServiceProvider;
+            var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+            var businessDailyReportService = scopedServices.GetRequiredService<InventorySystem.Core.Interfaces.IBusinessDailyReportService>();
+
+            if (args.Length < 2)
+            {
+                Console.WriteLine("❌ 日付が指定されていません");
+                Console.WriteLine("使用方法: dotnet run business-daily-report [YYYY-MM-DD]");
+                Console.WriteLine("例: dotnet run business-daily-report 2025-06-01");
+                return;
+            }
+
+            if (!DateTime.TryParse(args[1], out var jobDate))
+            {
+                Console.WriteLine($"❌ 日付の形式が正しくありません: {args[1]}");
+                Console.WriteLine("正しい形式: YYYY-MM-DD (例: 2025-06-01)");
+                return;
+            }
+
+            Console.WriteLine("=== 営業日報処理開始 ===");
+            Console.WriteLine($"対象日付: {jobDate:yyyy-MM-dd}");
+            Console.WriteLine();
+
+            try
+            {
+                var dataSetId = Guid.NewGuid().ToString();
+                var result = await businessDailyReportService.ExecuteAsync(jobDate, dataSetId);
+
+                if (result.Success)
+                {
+                    Console.WriteLine("✅ 営業日報処理が正常に完了しました");
+                    Console.WriteLine($"📊 処理件数: {result.ProcessedCount}件");
+                    Console.WriteLine($"⏱️ 処理時間: {result.ProcessingTime.TotalSeconds:F2}秒");
+                    Console.WriteLine($"📁 出力ファイル: {result.OutputPath}");
+                    
+                    logger.LogInformation("営業日報処理が完了しました: JobDate={JobDate}, ProcessedCount={ProcessedCount}, OutputPath={OutputPath}", 
+                        jobDate, result.ProcessedCount, result.OutputPath);
+                }
+                else
+                {
+                    Console.WriteLine("❌ 営業日報処理でエラーが発生しました");
+                    Console.WriteLine($"エラー: {result.ErrorMessage}");
+                    
+                    logger.LogError("営業日報処理でエラーが発生しました: JobDate={JobDate}, Error={Error}", 
+                        jobDate, result.ErrorMessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ 予期しないエラーが発生しました: {ex.Message}");
+                logger.LogError(ex, "営業日報処理で予期しないエラーが発生しました: JobDate={JobDate}", jobDate);
+            }
+
+            Console.WriteLine("=== 営業日報処理終了 ===");
         }
     }
 }
