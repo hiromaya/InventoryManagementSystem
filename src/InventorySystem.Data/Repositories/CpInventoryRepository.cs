@@ -472,7 +472,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             SELECT COUNT(*)
             FROM CpInventoryMaster
             -- 仮テーブル設計：全レコード対象
-                AND ShippingMarkName LIKE '%?%'
+            WHERE ShippingMarkName LIKE '%?%'
             """;
         
         using var connection = new SqlConnection(_connectionString);

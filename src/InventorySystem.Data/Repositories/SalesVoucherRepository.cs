@@ -387,7 +387,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
                 GrossProfit = @GrossProfit,
                 WalkingDiscount = @WalkingDiscount,
                 UpdatedDate = GETDATE()
-            WHERE Id = @Id";
+            WHERE VoucherId = @VoucherId AND LineNumber = @LineNumber";
 
         try
         {
@@ -395,7 +395,8 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
             
             var updateParams = vouchers.Select(v => new
             {
-                Id = v.Id,
+                VoucherId = v.VoucherId,
+                LineNumber = v.LineNumber,
                 InventoryUnitPrice = v.InventoryUnitPrice,
                 GrossProfit = v.GrossProfit,      // 粗利益
                 WalkingDiscount = v.WalkingDiscount // 歩引き金

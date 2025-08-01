@@ -551,6 +551,38 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogWarning($"GeneratePdfReport: ScriptLanguage設定時の警告: {ex.Message}");
             }
             
+            // GroupHeaderBandの条件式を無効化（PlatformNotSupportedException対策）
+            try
+            {
+                // GroupHeaderBandの検索と無効化
+                var pageBase = report.Pages[0] as FR.ReportPage;
+                if (pageBase != null)
+                {
+                    foreach (var obj in pageBase.AllObjects)
+                    {
+                        if (obj is FR.GroupHeaderBand groupHeader)
+                        {
+                            _logger.LogInformation($"GroupHeaderBand '{groupHeader.Name}' found. Condition: '{groupHeader.Condition}'");
+                            
+                            // 条件式をクリア
+                            groupHeader.Condition = "";
+                            if (groupHeader.GetType().GetProperty("Expression") != null)
+                            {
+                                var expProp = groupHeader.GetType().GetProperty("Expression");
+                                expProp?.SetValue(groupHeader, "");
+                            }
+                            
+                            _logger.LogInformation($"GroupHeaderBand '{groupHeader.Name}' の条件式をクリアしました");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"GroupHeaderBand処理中の警告: {ex.Message}");
+                // エラーが発生しても処理を継続
+            }
+            
             report.Prepare();
             
             // PDF出力設定（アンマッチリストと同じ設定）
