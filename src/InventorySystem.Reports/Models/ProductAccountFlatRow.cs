@@ -204,6 +204,11 @@ public static class RowTypes
     public const string Detail = "DETAIL";
 
     /// <summary>
+    /// 商品別小計見出し
+    /// </summary>
+    public const string ProductSubtotalHeader = "PRODUCT_SUBTOTAL_HEADER";
+    
+    /// <summary>
     /// 商品別小計
     /// </summary>
     public const string ProductSubtotal = "PRODUCT_SUBTOTAL";

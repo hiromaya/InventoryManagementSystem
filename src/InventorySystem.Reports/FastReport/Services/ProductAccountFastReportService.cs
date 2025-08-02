@@ -177,10 +177,22 @@ namespace InventorySystem.Reports.FastReport.Services
                         .ThenBy(x => x.VoucherNumber);
                     
                     // 集計用変数
+                    decimal subtotalPreviousBalance = 0;  // 追加
                     decimal subtotalPurchase = 0;
                     decimal subtotalSales = 0;
-                    decimal subtotalAmount = 0;
+                    decimal subtotalCurrentBalance = 0;   // 追加
+                    decimal subtotalInventoryUnitPrice = 0; // 追加
+                    decimal subtotalInventoryAmount = 0;
                     decimal subtotalGrossProfit = 0;
+                    
+                    // CP在庫マスタから前日残と在庫単価を取得
+                    var cpInventoryData = GetCpInventoryData(productGroup.Key, jobDate);
+                    if (cpInventoryData != null)
+                    {
+                        subtotalPreviousBalance = cpInventoryData.PreviousDayStock ?? 0;
+                        subtotalInventoryUnitPrice = cpInventoryData.CurrentStockUnitPrice ?? 0;
+                        subtotalInventoryAmount = cpInventoryData.CurrentStockAmount ?? 0;
+                    }
                     
                     foreach (var detail in details)
                     {
@@ -190,19 +202,39 @@ namespace InventorySystem.Reports.FastReport.Services
                         // 小計集計
                         subtotalPurchase += detail.PurchaseQuantity;
                         subtotalSales += detail.SalesQuantity;
-                        subtotalAmount += detail.Amount;
                         subtotalGrossProfit += detail.GrossProfit;
                     }
                     
-                    // 商品別小計
-                    if (subtotalPurchase != 0 || subtotalSales != 0 || subtotalAmount != 0)
+                    // 当日残を計算
+                    subtotalCurrentBalance = subtotalPreviousBalance + subtotalPurchase - subtotalSales;
+                    
+                    // 粗利率を計算
+                    decimal grossProfitRate = 0;
+                    if (subtotalSales != 0 && subtotalInventoryUnitPrice != 0)
                     {
+                        decimal salesAmount = subtotalSales * subtotalInventoryUnitPrice;
+                        if (salesAmount != 0)
+                        {
+                            grossProfitRate = Math.Round((subtotalGrossProfit / salesAmount) * 100, 2);
+                        }
+                    }
+                    
+                    // 商品別小計（2行構成）
+                    if (subtotalPurchase != 0 || subtotalSales != 0 || subtotalInventoryAmount != 0)
+                    {
+                        // 見出し行
+                        flatRows.Add(CreateProductSubtotalHeader(sequence++));
+                        
+                        // 数値行
                         flatRows.Add(CreateProductSubtotal(
-                            productGroup.Key,  // productKeyを渡すように変更
+                            subtotalPreviousBalance,
                             subtotalPurchase, 
-                            subtotalSales, 
-                            subtotalAmount, 
-                            subtotalGrossProfit, 
+                            subtotalSales,
+                            subtotalCurrentBalance,
+                            subtotalInventoryUnitPrice,
+                            subtotalInventoryAmount,
+                            subtotalGrossProfit,
+                            grossProfitRate,
                             sequence++));
                     }
                     
@@ -566,6 +598,45 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 _logger.LogError(ex, "担当者名の取得に失敗しました。担当者コード: {StaffCode}", staffCode);
                 return $"担当者{staffCode}";
+            }
+        }
+        
+        /// <summary>
+        /// CP在庫マスタからデータ取得
+        /// </summary>
+        private dynamic GetCpInventoryData(dynamic productKey, DateTime jobDate)
+        {
+            try
+            {
+                var sql = @"
+                    SELECT 
+                        PreviousDayStock,
+                        CurrentStockUnitPrice,
+                        CurrentStock,
+                        CurrentStockAmount
+                    FROM CpInventoryMaster
+                    WHERE ProductCode = @ProductCode
+                      AND GradeCode = @GradeCode
+                      AND ClassCode = @ClassCode
+                      AND ShippingMarkCode = @ShippingMarkCode
+                      AND ShippingMarkName = @ShippingMarkName
+                      AND JobDate = @JobDate";
+                      
+                using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+                return connection.QueryFirstOrDefault(sql, new
+                {
+                    ProductCode = (string)productKey.ProductCode,
+                    GradeCode = (string)productKey.GradeCode,
+                    ClassCode = (string)productKey.ClassCode,
+                    ShippingMarkCode = (string)productKey.ShippingMarkCode,
+                    ShippingMarkName = (string)productKey.ShippingMarkName,
+                    JobDate = jobDate
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "CP在庫マスタデータの取得に失敗しました");
+                return null;
             }
         }
         
@@ -1010,6 +1081,22 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
+        /// パーセンテージフォーマット
+        /// </summary>
+        private string FormatPercentage(decimal value)
+        {
+            if (value == 0) return "";
+            if (value < 0)
+            {
+                return $"{Math.Abs(value):0.00}▲ %";
+            }
+            else
+            {
+                return $"{value:0.00} %";
+            }
+        }
+        
+        /// <summary>
         /// 区分表示ルール実装
         /// </summary>
         private string GetDisplayCategory(string voucherType, string recordType)
@@ -1203,49 +1290,78 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
-        /// 商品別小計行作成
+        /// 商品別小計見出し行作成
+        /// </summary>
+        private ProductAccountFlatRow CreateProductSubtotalHeader(int sequence)
+        {
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.ProductSubtotalHeader,
+                RowSequence = sequence,
+                IsBold = false,
+                IsGrayBackground = false,
+                
+                // 見出しを適切な位置に配置
+                // 「伝票NO」から「取引先名」の間に表示（右寄せ）
+                VoucherNumber = "【前日残】",
+                DisplayCategory = "【仕入計】",
+                MonthDay = "【売上計】",
+                PurchaseQuantity = "【当日残】",
+                SalesQuantity = "【在庫単価】",
+                RemainingQuantity = "【在庫金額】",
+                UnitPrice = "【粗利益】",
+                Amount = "【粗利率】",
+                
+                // その他のフィールドは空
+                ProductName = "",
+                ShippingMarkName = "",
+                ManualShippingMark = "",
+                GradeName = "",
+                ClassName = "",
+                GrossProfit = "",
+                CustomerSupplierName = ""
+            };
+        }
+        
+        /// <summary>
+        /// 商品別小計数値行作成（修正版）
         /// </summary>
         private ProductAccountFlatRow CreateProductSubtotal(
-            dynamic productKey, decimal purchase, decimal sales, decimal amount, decimal profit, int sequence)
+            decimal previousBalance,      // 前日残（追加）
+            decimal purchase,             // 仕入計
+            decimal sales,                // 売上計
+            decimal currentBalance,       // 当日残（追加）
+            decimal inventoryUnitPrice,   // 在庫単価（追加）
+            decimal inventoryAmount,      // 在庫金額
+            decimal grossProfit,          // 粗利益
+            decimal grossProfitRate,      // 粗利率（追加）
+            int sequence)
         {
-            // 各項目を個別に【】で囲んで表示
-            // 【商品CD】 【荷印CD】 【手入力】【荷印名】【 等級CD】 【階級CD】
-            var productKeyDisplay = $"【{productKey.ProductCode}】 【{productKey.ShippingMarkCode}】 【{productKey.ManualShippingMark}】【{productKey.ShippingMarkName}】【 {productKey.GradeCode}】 【{productKey.ClassCode}】";
-            
-            _logger.LogInformation("小計行作成: 商品={ProductCode}, 荷印={ShippingMarkCode}, 手入力={ManualShippingMark}, 等級={GradeCode}, 階級={ClassCode}",
-                (string)productKey.ProductCode, (string)productKey.ShippingMarkCode, (string)productKey.ManualShippingMark, 
-                (string)productKey.GradeCode, (string)productKey.ClassCode);
-            _logger.LogInformation("小計表示文字列: {Display}", productKeyDisplay);
-            
             return new ProductAccountFlatRow
             {
                 RowType = RowTypes.ProductSubtotal,
                 RowSequence = sequence,
                 IsSubtotal = true,
                 IsBold = true,
-                IsGrayBackground = true,  // 小計行は背景をグレーに
+                IsGrayBackground = true,
                 
-                // ProductNameフィールドに5項目キーを【】付きで表示
-                ProductName = productKeyDisplay,
+                // 数値を適切な位置に配置
+                VoucherNumber = FormatQuantity(previousBalance),     // 前日残
+                DisplayCategory = FormatQuantity(purchase),          // 仕入計
+                MonthDay = FormatQuantity(sales),                   // 売上計
+                PurchaseQuantity = FormatQuantity(currentBalance),  // 当日残
+                SalesQuantity = FormatUnitPrice(inventoryUnitPrice),// 在庫単価
+                RemainingQuantity = FormatAmount(inventoryAmount),  // 在庫金額
+                UnitPrice = FormatGrossProfit(grossProfit),        // 粗利益
+                Amount = FormatPercentage(grossProfitRate),         // 粗利率
                 
-                // DisplayCategoryは空にする（「小計」と表示しない）
-                DisplayCategory = "",
-                
-                // 小計値をフォーマット済みで設定
-                PurchaseQuantity = FormatQuantity(purchase),
-                SalesQuantity = FormatQuantity(sales),
-                Amount = FormatAmount(amount),
-                GrossProfit = FormatGrossProfit(profit),
-                
-                // その他のフィールドは空文字
+                // その他のフィールドは空
+                ProductName = "",
                 ShippingMarkName = "",
                 ManualShippingMark = "",
                 GradeName = "",
                 ClassName = "",
-                VoucherNumber = "",
-                MonthDay = "",
-                UnitPrice = "",
-                RemainingQuantity = "",
+                GrossProfit = "",
                 CustomerSupplierName = "",
                 ProductCategory1 = "",
                 ProductCategory1Name = ""
