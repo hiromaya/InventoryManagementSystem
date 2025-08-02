@@ -1115,50 +1115,48 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
-        /// 右揃え用のパディング処理
+        /// 右揃え用のパディング処理（改良版）
         /// </summary>
         /// <param name="text">表示テキスト</param>
         /// <param name="columnWidth">列幅（ピクセル）</param>
         /// <returns>右揃えされたテキスト</returns>
         private string PadLeftForAlignment(string text, int columnWidth)
         {
-            // MS UI Gothic 9ptの場合、半角文字は約6ピクセル、全角文字は約12ピクセル
-            // 列幅164ピクセルの場合、約27文字分（半角換算）
-            const int charWidthInPixels = 6;
-            int totalChars = columnWidth / charWidthInPixels;
+            // MS UI Gothic 9ptでの文字幅を考慮
+            // 半角文字：約6ピクセル、全角文字：約12ピクセル
+            const int halfWidthCharPixels = 6;
+            const int fullWidthCharPixels = 12;
             
-            // テキストの実際の文字幅を計算（全角は2文字分として計算）
-            int textWidth = CalculateTextWidth(text);
-            
-            // パディング数を計算
-            int paddingCount = totalChars - textWidth;
-            if (paddingCount > 0)
-            {
-                return new string(' ', paddingCount) + text;
-            }
-            
-            return text;
-        }
-        
-        /// <summary>
-        /// テキストの表示幅を計算（全角文字は2文字分として計算）
-        /// </summary>
-        private int CalculateTextWidth(string text)
-        {
-            int width = 0;
+            // テキストの実際のピクセル幅を計算
+            int textPixelWidth = 0;
             foreach (char c in text)
             {
-                // 全角文字の判定（簡易版）
-                if (c >= 0x3000 && c <= 0x9FFF || c >= 0xFF00 && c <= 0xFFEF)
+                if (IsFullWidth(c))
                 {
-                    width += 2; // 全角は2文字分
+                    textPixelWidth += fullWidthCharPixels;
                 }
                 else
                 {
-                    width += 1; // 半角は1文字分
+                    textPixelWidth += halfWidthCharPixels;
                 }
             }
-            return width;
+            
+            // 必要なパディングスペース数を計算
+            int remainingPixels = columnWidth - textPixelWidth;
+            int paddingSpaces = Math.Max(0, remainingPixels / halfWidthCharPixels);
+            
+            return new string(' ', paddingSpaces) + text;
+        }
+        
+        /// <summary>
+        /// 全角文字判定
+        /// </summary>
+        private bool IsFullWidth(char c)
+        {
+            // 全角文字の範囲（日本語、全角記号など）
+            return (c >= 0x3000 && c <= 0x9FFF) || // CJK統合漢字など
+                   (c >= 0xFF00 && c <= 0xFFEF) || // 全角英数・記号
+                   (c == '【' || c == '】' || c == '▲'); // 特定の全角記号
         }
         
         /// <summary>
@@ -1375,7 +1373,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 VoucherNumber = "",                     // 伝票NO列は空
                 
                 // 小計見出しの配置
-                DisplayCategory = "【前日残】",         // 区分列（月日列と結合）
+                DisplayCategory = PadLeftForAlignment("【前日残】", 123), // 区分〜月日の2列分で右揃え
                 MonthDay = "",                          // 空（前日残で使用）
                 PurchaseQuantity = "【仕入計】",        // 仕入数量列
                 SalesQuantity = "【売上計】",           // 売上数量列
@@ -1418,7 +1416,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 VoucherNumber = "",
                 
                 // 小計数値の配置
-                DisplayCategory = FormatQuantity(previousBalance),     // 前日残
+                DisplayCategory = PadLeftForAlignment(FormatQuantity(previousBalance), 123), // 右揃え
                 MonthDay = "",                                         // 空
                 PurchaseQuantity = FormatQuantity(purchase),           // 仕入計
                 SalesQuantity = FormatQuantity(sales),                 // 売上計
