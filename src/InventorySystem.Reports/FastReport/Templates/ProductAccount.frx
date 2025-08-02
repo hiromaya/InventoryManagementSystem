@@ -62,7 +62,7 @@
       <TextObject Name="Data5" Left="455" Width="75" Height="20" Text="[ProductAccount.ClassName]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
       <TextObject Name="Data6" Left="530" Width="91" Height="20" Text="[ProductAccount.VoucherNumber]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
       <TextObject Name="Data7" Left="621" Width="59" Height="20" Text="[ProductAccount.DisplayCategory]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data8" Left="680" Width="64" Height="20" Text="[ProductAccount.MonthDay]" HorzAlign="Center" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data8" Left="680" Width="64" Height="20" Text="[ProductAccount.MonthDay]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
       <TextObject Name="Data9" Left="744" Width="96" Height="20" Text="[ProductAccount.PurchaseQuantity]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
       <TextObject Name="Data10" Left="840" Width="96" Height="20" Text="[ProductAccount.SalesQuantity]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
       <TextObject Name="Data11" Left="936" Width="96" Height="20" Text="[ProductAccount.RemainingQuantity]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
