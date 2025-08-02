@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="None" TextQuality="Regular" ReportInfo.Description="商品勘定" ReportInfo.Created="07/29/2025 22:00:00" ReportInfo.Modified="07/29/2025 22:00:00" ReportInfo.CreatorVersion="2024.1.3.0">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" TextQuality="Regular" ReportInfo.Description="商品勘定" ReportInfo.Created="07/29/2025 22:00:00" ReportInfo.Modified="08/02/2025 09:07:37" ReportInfo.CreatorVersion="2024.1.3.0">
   <Dictionary>
     <TableDataSource Name="ProductAccount" ReferenceName="ProductAccount" DataType="System.Int32" Enabled="true">
       <Column Name="ProductCategory1" DataType="System.String"/>
@@ -29,14 +29,15 @@
     <Parameter Name="CreateDate" DataType="System.String" AsString=""/>
     <Parameter Name="JobDate" DataType="System.String" AsString=""/>
     <Parameter Name="TotalCount" DataType="System.String" AsString=""/>
+    <Parameter Name="StaffCode" DataType="System.String" AsString=""/>
+    <Parameter Name="StaffName" DataType="System.String" AsString=""/>
   </Dictionary>
   <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" Watermark.Font="Arial, 60pt">
     <PageHeaderBand Name="PageHeader1" Width="1512" Height="80">
       <TextObject Name="CreateDate" Width="300" Height="20" Text="作成日：[CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="PageNumber" Left="1212" Width="300" Height="20" Text="[Page#] / [TotalPages#] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="StaffText" Top="20" Width="300" Height="20" Text="担当者：[StaffCode] [StaffName]" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Title" Top="20" Width="1512" Height="25" Text="※　[JobDate]　商品勘定　※" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 14pt"/>
-      
-      <!-- ヘッダー行の定義（仕様通りの列幅とLeft位置） -->
       <TextObject Name="Header1" Top="50" Width="150" Height="30" Text="商品名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header2" Left="150" Top="50" Width="144" Height="30" Text="荷印名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header3" Left="294" Top="50" Width="86" Height="30" Text="手入力" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -44,7 +45,7 @@
       <TextObject Name="Header5" Left="455" Top="50" Width="75" Height="30" Text="階級" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header6" Left="530" Top="50" Width="91" Height="30" Text="伝票NO" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header7" Left="621" Top="50" Width="59" Height="30" Text="区分" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header8" Left="680" Top="50" Width="64" Height="30" Text="月日" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header8" Left="680" Top="50" Width="64" Height="30" Text="月日" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header9" Left="744" Top="50" Width="96" Height="30" Text="仕入数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header10" Left="840" Top="50" Width="96" Height="30" Text="売上数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header11" Left="936" Top="50" Width="96" Height="30" Text="残数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -53,32 +54,27 @@
       <TextObject Name="Header14" Left="1246" Top="50" Width="102" Height="30" Text="粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header15" Left="1348" Top="50" Width="164" Height="30" Text="取引先名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    
-    
-    <DataBand Name="Data1" Top="81.96" Width="1512" Height="20" DataSource="ProductAccount" StartNewPage="[ProductAccount.IsPageBreak] == &quot;1&quot;">
-      <!-- データ行の定義（C#側完全制御対応） -->
-      <TextObject Name="Data1" Width="1512" Height="20" Text="[ProductAccount.ProductName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Trimming="None" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data2" Left="150" Width="144" Height="20" Text="[ProductAccount.ShippingMarkName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Trimming="EllipsisCharacter" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data3" Left="294" Width="86" Height="20" Text="[ProductAccount.ManualShippingMark]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data4" Left="380" Width="75" Height="20" Text="[ProductAccount.GradeName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data5" Left="455" Width="75" Height="20" Text="[ProductAccount.ClassName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data6" Left="530" Width="91" Height="20" Text="[ProductAccount.VoucherNumber]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data7" Left="621" Width="59" Height="20" Text="[ProductAccount.DisplayCategory]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data8" Left="680" Width="64" Height="20" Text="[ProductAccount.MonthDay]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data9" Left="744" Width="96" Height="20" Text="[ProductAccount.PurchaseQuantity]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data10" Left="840" Width="96" Height="20" Text="[ProductAccount.SalesQuantity]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data11" Left="936" Width="96" Height="20" Text="[ProductAccount.RemainingQuantity]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data12" Left="1032" Width="96" Height="20" Text="[ProductAccount.UnitPrice]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data13" Left="1128" Width="118" Height="20" Text="[ProductAccount.Amount]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data14" Left="1246" Width="102" Height="20" Text="[ProductAccount.GrossProfit]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
-      <TextObject Name="Data15" Left="1348" Width="164" Height="20" Text="[ProductAccount.CustomerSupplierName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt, [IIf([ProductAccount.IsBold] == &quot;1&quot;, style=Bold, style=Regular)]" Trimming="EllipsisCharacter" Fill.Color="[IIf([ProductAccount.IsGrayBackground] == &quot;1&quot;, LightGray, White)]"/>
+    <DataBand Name="Data1" Top="82.56" Width="1512" Height="20" DataSource="ProductAccount">
+      <TextObject Name="Data1" Width="1512" Height="20" Text="[ProductAccount.ProductName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data2" Left="150" Width="144" Height="20" Text="[ProductAccount.ShippingMarkName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
+      <TextObject Name="Data3" Left="294" Width="86" Height="20" Text="[ProductAccount.ManualShippingMark]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data4" Left="380" Width="75" Height="20" Text="[ProductAccount.GradeName]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data5" Left="455" Width="75" Height="20" Text="[ProductAccount.ClassName]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data6" Left="530" Width="91" Height="20" Text="[ProductAccount.VoucherNumber]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data7" Left="621" Width="59" Height="20" Text="[ProductAccount.DisplayCategory]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data8" Left="680" Width="64" Height="20" Text="[ProductAccount.MonthDay]" HorzAlign="Center" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data9" Left="744" Width="96" Height="20" Text="[ProductAccount.PurchaseQuantity]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data10" Left="840" Width="96" Height="20" Text="[ProductAccount.SalesQuantity]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data11" Left="936" Width="96" Height="20" Text="[ProductAccount.RemainingQuantity]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data12" Left="1032" Width="96" Height="20" Text="[ProductAccount.UnitPrice]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data13" Left="1128" Width="118" Height="20" Text="[ProductAccount.Amount]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data14" Left="1246" Width="102" Height="20" Text="[ProductAccount.GrossProfit]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data15" Left="1348" Width="164" Height="20" Text="[ProductAccount.CustomerSupplierName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
     </DataBand>
-    
-    <ReportSummaryBand Name="ReportSummary1" Top="103.92" Width="1512" Height="40">
+    <ReportSummaryBand Name="ReportSummary1" Top="105.12" Width="1512" Height="40">
       <TextObject Name="SummaryText" Top="10" Width="300" Height="20" Text="総レコード件数＝[TotalCount]" Font="ＭＳ ゴシック, 11pt"/>
     </ReportSummaryBand>
-    
-    <PageFooterBand Name="PageFooter1" Top="145.88" Width="1512" Height="20">
+    <PageFooterBand Name="PageFooter1" Top="147.68" Width="1512" Height="20">
       <TextObject Name="Footer" Width="1512" Height="20" Text="在庫管理システム - 商品勘定" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
     </PageFooterBand>
   </ReportPage>

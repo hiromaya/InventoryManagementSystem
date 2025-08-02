@@ -198,6 +198,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     if (subtotalPurchase != 0 || subtotalSales != 0 || subtotalAmount != 0)
                     {
                         flatRows.Add(CreateProductSubtotal(
+                            productGroup.Key,  // productKeyを渡すように変更
                             subtotalPurchase, 
                             subtotalSales, 
                             subtotalAmount, 
@@ -620,6 +621,24 @@ namespace InventorySystem.Reports.FastReport.Services
             report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
             report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
             report.SetParameterValue("TotalCount", flatData.Count(x => x.RowType == RowTypes.Detail).ToString());
+            
+            // 担当者情報パラメータを追加
+            // 最初のデータ行から担当者情報を取得（Detail行のみ対象）
+            var firstDetailRow = flatData.FirstOrDefault(x => x.RowType == RowTypes.Detail);
+            if (firstDetailRow != null && !string.IsNullOrEmpty(firstDetailRow.ProductCategory1))
+            {
+                report.SetParameterValue("StaffCode", firstDetailRow.ProductCategory1);
+                report.SetParameterValue("StaffName", firstDetailRow.ProductCategory1Name ?? "");
+            }
+            else
+            {
+                // デフォルト値を設定
+                report.SetParameterValue("StaffCode", "");
+                report.SetParameterValue("StaffName", "");
+            }
+            
+            _logger.LogInformation("PDFパラメータ設定: StaffCode={StaffCode}, StaffName={StaffName}", 
+                report.GetParameterValue("StaffCode"), report.GetParameterValue("StaffName"));
             
             _logger.LogInformation("レポートを準備中...");
             report.Prepare();
@@ -1187,26 +1206,49 @@ namespace InventorySystem.Reports.FastReport.Services
         /// 商品別小計行作成
         /// </summary>
         private ProductAccountFlatRow CreateProductSubtotal(
-            decimal purchase, decimal sales, decimal amount, decimal profit, int sequence)
+            dynamic productKey, decimal purchase, decimal sales, decimal amount, decimal profit, int sequence)
         {
+            // 各項目を個別に【】で囲んで表示
+            // 【商品CD】 【荷印CD】 【手入力】【荷印名】【 等級CD】 【階級CD】
+            var productKeyDisplay = $"【{productKey.ProductCode}】 【{productKey.ShippingMarkCode}】 【{productKey.ManualShippingMark}】【{productKey.ShippingMarkName}】【 {productKey.GradeCode}】 【{productKey.ClassCode}】";
+            
+            _logger.LogInformation("小計行作成: 商品={ProductCode}, 荷印={ShippingMarkCode}, 手入力={ManualShippingMark}, 等級={GradeCode}, 階級={ClassCode}",
+                productKey.ProductCode, productKey.ShippingMarkCode, productKey.ManualShippingMark, 
+                productKey.GradeCode, productKey.ClassCode);
+            _logger.LogInformation("小計表示文字列: {Display}", productKeyDisplay);
+            
             return new ProductAccountFlatRow
             {
                 RowType = RowTypes.ProductSubtotal,
                 RowSequence = sequence,
                 IsSubtotal = true,
                 IsBold = true,
-                DisplayCategory = "小計",
+                IsGrayBackground = true,  // 小計行は背景をグレーに
+                
+                // ProductNameフィールドに5項目キーを【】付きで表示
+                ProductName = productKeyDisplay,
+                
+                // DisplayCategoryは空にする（「小計」と表示しない）
+                DisplayCategory = "",
+                
+                // 小計値をフォーマット済みで設定
                 PurchaseQuantity = FormatQuantity(purchase),
                 SalesQuantity = FormatQuantity(sales),
                 Amount = FormatAmount(amount),
                 GrossProfit = FormatGrossProfit(profit),
-                // その他のフィールドは空
-                ProductName = "",
+                
+                // その他のフィールドは空文字
+                ShippingMarkName = "",
+                ManualShippingMark = "",
+                GradeName = "",
+                ClassName = "",
                 VoucherNumber = "",
                 MonthDay = "",
                 UnitPrice = "",
                 RemainingQuantity = "",
-                CustomerSupplierName = ""
+                CustomerSupplierName = "",
+                ProductCategory1 = "",
+                ProductCategory1Name = ""
             };
         }
         

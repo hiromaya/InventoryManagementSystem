@@ -108,6 +108,9 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         // === UN在庫マスタ作成（アンマッチチェック専用） ===
         "060_CreateUnInventoryMaster.sql",                                     // UN在庫マスタテーブル作成
         
+        // === 営業日報テーブル作成（SE1担当） ===
+        "042_CreateBusinessDailyReport.sql",                                   // 営業日報テーブル作成
+        
         // === DataSets完全削除（DataSetManagement完全移行のため） ===
         "999_DropDataSetsTable.sql",                                           // DataSetsテーブル削除
         
