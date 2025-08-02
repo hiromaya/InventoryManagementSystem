@@ -46,13 +46,21 @@ namespace InventorySystem.Reports.FastReport.Services
                 // .NET 8対応: ScriptLanguageを強制的にNoneに設定
                 try
                 {
+                    _logger.LogInformation("ScriptLanguage設定を開始します");
+                    
                     // リフレクションを使用してScriptLanguageプロパティを取得
                     var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
                     if (scriptLanguageProperty != null)
                     {
+                        _logger.LogInformation($"ScriptLanguageプロパティが見つかりました: {scriptLanguageProperty.PropertyType}");
+                        
                         var scriptLanguageType = scriptLanguageProperty.PropertyType;
                         if (scriptLanguageType.IsEnum)
                         {
+                            // 現在の値をログ出力
+                            var currentValue = scriptLanguageProperty.GetValue(report);
+                            _logger.LogInformation($"現在のScriptLanguage値: {currentValue}");
+                            
                             // FastReport.ScriptLanguage.None を設定
                             var noneValue = Enum.GetValues(scriptLanguageType)
                                 .Cast<object>()
@@ -61,15 +69,46 @@ namespace InventorySystem.Reports.FastReport.Services
                             if (noneValue != null)
                             {
                                 scriptLanguageProperty.SetValue(report, noneValue);
-                                _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                                var newValue = scriptLanguageProperty.GetValue(report);
+                                _logger.LogInformation($"ScriptLanguageをNoneに設定しました: {currentValue} → {newValue}");
+                            }
+                            else
+                            {
+                                _logger.LogWarning("ScriptLanguage.Noneが見つかりませんでした");
+                                var enumValues = Enum.GetValues(scriptLanguageType).Cast<object>().Select(v => v.ToString()).ToArray();
+                                _logger.LogInformation($"利用可能な値: {string.Join(", ", enumValues)}");
                             }
                         }
+                        else
+                        {
+                            _logger.LogWarning($"ScriptLanguageプロパティがEnum型ではありません: {scriptLanguageType}");
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("ScriptLanguageプロパティが見つかりませんでした");
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+                    _logger.LogWarning($"スタックトレース: {ex.StackTrace}");
                     // エラーが発生しても処理を継続
+                }
+
+                // 追加の.NET 8対応: スクリプトテキストをクリア
+                try
+                {
+                    var scriptTextProperty = report.GetType().GetProperty("ScriptText");
+                    if (scriptTextProperty != null && scriptTextProperty.CanWrite)
+                    {
+                        scriptTextProperty.SetValue(report, "");
+                        _logger.LogInformation("ScriptTextをクリアしました");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"ScriptTextクリア時の警告: {ex.Message}");
                 }
 
                 // データソース作成
