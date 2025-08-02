@@ -193,7 +193,7 @@ namespace InventorySystem.Data.Repositories
         {
             await ExecuteInTransactionAsync(async (connection, transaction) =>
             {
-                // 現金・小切手・手形入金（伝票種52、明細種12）
+                // 現金・小切手・手形入金（PaymentType 1,2,4）
                 await AggregateField(connection, transaction, jobDate, "DailyCashReceipt", @"
                     SELECT 
                         COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
@@ -201,12 +201,10 @@ namespace InventorySystem.Data.Repositories
                     FROM ReceiptVouchers rv
                     LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
                     WHERE rv.JobDate = @JobDate
-                      AND rv.VoucherType = 52
-                      AND rv.DetailType = 12
-                      AND rv.IsActive = 1
+                      AND rv.PaymentType IN (1,2,4)
                     GROUP BY c.CustomerCategory1");
 
-                // 振込入金（伝票種52、明細種13）
+                // 振込入金（PaymentType 3）
                 await AggregateField(connection, transaction, jobDate, "DailyBankReceipt", @"
                     SELECT 
                         COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
@@ -214,12 +212,10 @@ namespace InventorySystem.Data.Repositories
                     FROM ReceiptVouchers rv
                     LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
                     WHERE rv.JobDate = @JobDate
-                      AND rv.VoucherType = 52
-                      AND rv.DetailType = 13
-                      AND rv.IsActive = 1
+                      AND rv.PaymentType = 3
                     GROUP BY c.CustomerCategory1");
 
-                // 入金値引・その他入金（伝票種52、明細種14）
+                // その他入金（PaymentType 5,6,7,8,9）
                 await AggregateField(connection, transaction, jobDate, "DailyOtherReceipt", @"
                     SELECT 
                         COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
@@ -227,9 +223,7 @@ namespace InventorySystem.Data.Repositories
                     FROM ReceiptVouchers rv
                     LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
                     WHERE rv.JobDate = @JobDate
-                      AND rv.VoucherType = 52
-                      AND rv.DetailType = 14
-                      AND rv.IsActive = 1
+                      AND rv.PaymentType IN (5,6,7,8,9)
                     GROUP BY c.CustomerCategory1");
 
                 _logger.LogInformation("入金伝票データの集計が完了しました: {JobDate}", jobDate);
@@ -240,7 +234,7 @@ namespace InventorySystem.Data.Repositories
         {
             await ExecuteInTransactionAsync(async (connection, transaction) =>
             {
-                // 現金・小切手・手形支払（伝票種52、明細種15）
+                // 現金・小切手・手形支払（PaymentType 1,2,4）
                 await AggregateField(connection, transaction, jobDate, "DailyCashPayment", @"
                     SELECT 
                         COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
@@ -248,12 +242,10 @@ namespace InventorySystem.Data.Repositories
                     FROM PaymentVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
-                      AND pv.VoucherType = 52
-                      AND pv.DetailType = 15
-                      AND pv.IsActive = 1
+                      AND pv.PaymentType IN (1,2,4)
                     GROUP BY s.SupplierCategory1");
 
-                // 振込支払（伝票種52、明細種16）
+                // 振込支払（PaymentType 3）
                 await AggregateField(connection, transaction, jobDate, "DailyBankPayment", @"
                     SELECT 
                         COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
@@ -261,12 +253,10 @@ namespace InventorySystem.Data.Repositories
                     FROM PaymentVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
-                      AND pv.VoucherType = 52
-                      AND pv.DetailType = 16
-                      AND pv.IsActive = 1
+                      AND pv.PaymentType = 3
                     GROUP BY s.SupplierCategory1");
 
-                // 支払値引・その他支払（伝票種52、明細種17）
+                // その他支払（PaymentType 5,6,7,8,9）
                 await AggregateField(connection, transaction, jobDate, "DailyOtherPayment", @"
                     SELECT 
                         COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
@@ -274,9 +264,7 @@ namespace InventorySystem.Data.Repositories
                     FROM PaymentVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
-                      AND pv.VoucherType = 52
-                      AND pv.DetailType = 17
-                      AND pv.IsActive = 1
+                      AND pv.PaymentType IN (5,6,7,8,9)
                     GROUP BY s.SupplierCategory1");
 
                 _logger.LogInformation("支払伝票データの集計が完了しました: {JobDate}", jobDate);
