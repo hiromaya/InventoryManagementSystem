@@ -50,7 +50,7 @@ namespace InventorySystem.Data.Repositories
                 // 現金売上（伝票種52、明細種1-4）
                 await AggregateField(connection, transaction, jobDate, "DailyCashSales", @"
                     SELECT 
-                        COALESCE(c.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
                         SUM(sv.Amount) AS TotalAmount
                     FROM SalesVouchers sv
                     LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
@@ -58,12 +58,12 @@ namespace InventorySystem.Data.Repositories
                       AND sv.VoucherType = 52
                       AND sv.DetailType IN (1,2,3,4)
                       AND sv.IsActive = 1
-                    GROUP BY c.Classification1Code");
+                    GROUP BY c.CustomerCategory1");
 
                 // 現売消費税（伝票種52、明細種18）
                 await AggregateField(connection, transaction, jobDate, "DailyCashSalesTax", @"
                     SELECT 
-                        COALESCE(c.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
                         SUM(sv.Amount) AS TotalAmount
                     FROM SalesVouchers sv
                     LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
@@ -71,12 +71,12 @@ namespace InventorySystem.Data.Repositories
                       AND sv.VoucherType = 52
                       AND sv.DetailType = 18
                       AND sv.IsActive = 1
-                    GROUP BY c.Classification1Code");
+                    GROUP BY c.CustomerCategory1");
 
                 // 掛売上（伝票種51、明細種1-2）
                 await AggregateField(connection, transaction, jobDate, "DailyCreditSales", @"
                     SELECT 
-                        COALESCE(c.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
                         SUM(sv.Amount) AS TotalAmount
                     FROM SalesVouchers sv
                     LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
@@ -84,12 +84,12 @@ namespace InventorySystem.Data.Repositories
                       AND sv.VoucherType = 51
                       AND sv.DetailType IN (1,2)
                       AND sv.IsActive = 1
-                    GROUP BY c.Classification1Code");
+                    GROUP BY c.CustomerCategory1");
 
                 // 売上値引（伝票種51、明細種3-4）
                 await AggregateField(connection, transaction, jobDate, "DailySalesDiscount", @"
                     SELECT 
-                        COALESCE(c.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
                         SUM(sv.Amount) AS TotalAmount
                     FROM SalesVouchers sv
                     LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
@@ -97,12 +97,12 @@ namespace InventorySystem.Data.Repositories
                       AND sv.VoucherType = 51
                       AND sv.DetailType IN (3,4)
                       AND sv.IsActive = 1
-                    GROUP BY c.Classification1Code");
+                    GROUP BY c.CustomerCategory1");
 
                 // 掛売消費税（伝票種51、明細種18）
                 await AggregateField(connection, transaction, jobDate, "DailyCreditSalesTax", @"
                     SELECT 
-                        COALESCE(c.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
                         SUM(sv.Amount) AS TotalAmount
                     FROM SalesVouchers sv
                     LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
@@ -110,7 +110,7 @@ namespace InventorySystem.Data.Repositories
                       AND sv.VoucherType = 51
                       AND sv.DetailType = 18
                       AND sv.IsActive = 1
-                    GROUP BY c.Classification1Code");
+                    GROUP BY c.CustomerCategory1");
 
                 _logger.LogInformation("売上伝票データの集計が完了しました: {JobDate}", jobDate);
             });
@@ -123,7 +123,7 @@ namespace InventorySystem.Data.Repositories
                 // 現金仕入（伝票種12、明細種1）
                 await AggregateField(connection, transaction, jobDate, "DailyCashPurchase", @"
                     SELECT 
-                        COALESCE(s.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PurchaseVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
@@ -131,12 +131,12 @@ namespace InventorySystem.Data.Repositories
                       AND pv.VoucherType = 12
                       AND pv.DetailType = 1
                       AND pv.IsActive = 1
-                    GROUP BY s.Classification1Code");
+                    GROUP BY s.SupplierCategory1");
 
                 // 現仕消費税（伝票種12、明細種18）
                 await AggregateField(connection, transaction, jobDate, "DailyCashPurchaseTax", @"
                     SELECT 
-                        COALESCE(s.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PurchaseVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
@@ -144,12 +144,12 @@ namespace InventorySystem.Data.Repositories
                       AND pv.VoucherType = 12
                       AND pv.DetailType = 18
                       AND pv.IsActive = 1
-                    GROUP BY s.Classification1Code");
+                    GROUP BY s.SupplierCategory1");
 
                 // 掛仕入（伝票種11、明細種1-2）
                 await AggregateField(connection, transaction, jobDate, "DailyCreditPurchase", @"
                     SELECT 
-                        COALESCE(s.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PurchaseVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
@@ -157,12 +157,12 @@ namespace InventorySystem.Data.Repositories
                       AND pv.VoucherType = 11
                       AND pv.DetailType IN (1,2)
                       AND pv.IsActive = 1
-                    GROUP BY s.Classification1Code");
+                    GROUP BY s.SupplierCategory1");
 
                 // 仕入値引（伝票種11、明細種3-4）
                 await AggregateField(connection, transaction, jobDate, "DailyPurchaseDiscount", @"
                     SELECT 
-                        COALESCE(s.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PurchaseVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
@@ -170,12 +170,12 @@ namespace InventorySystem.Data.Repositories
                       AND pv.VoucherType = 11
                       AND pv.DetailType IN (3,4)
                       AND pv.IsActive = 1
-                    GROUP BY s.Classification1Code");
+                    GROUP BY s.SupplierCategory1");
 
                 // 掛仕入消費税（伝票種11、明細種18）
                 await AggregateField(connection, transaction, jobDate, "DailyCreditPurchaseTax", @"
                     SELECT 
-                        COALESCE(s.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PurchaseVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
@@ -183,7 +183,7 @@ namespace InventorySystem.Data.Repositories
                       AND pv.VoucherType = 11
                       AND pv.DetailType = 18
                       AND pv.IsActive = 1
-                    GROUP BY s.Classification1Code");
+                    GROUP BY s.SupplierCategory1");
 
                 _logger.LogInformation("仕入伝票データの集計が完了しました: {JobDate}", jobDate);
             });
@@ -196,7 +196,7 @@ namespace InventorySystem.Data.Repositories
                 // 現金・小切手・手形入金（伝票種52、明細種12）
                 await AggregateField(connection, transaction, jobDate, "DailyCashReceipt", @"
                     SELECT 
-                        COALESCE(c.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
                         SUM(rv.Amount) AS TotalAmount
                     FROM ReceiptVouchers rv
                     LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
@@ -204,12 +204,12 @@ namespace InventorySystem.Data.Repositories
                       AND rv.VoucherType = 52
                       AND rv.DetailType = 12
                       AND rv.IsActive = 1
-                    GROUP BY c.Classification1Code");
+                    GROUP BY c.CustomerCategory1");
 
                 // 振込入金（伝票種52、明細種13）
                 await AggregateField(connection, transaction, jobDate, "DailyBankReceipt", @"
                     SELECT 
-                        COALESCE(c.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
                         SUM(rv.Amount) AS TotalAmount
                     FROM ReceiptVouchers rv
                     LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
@@ -217,12 +217,12 @@ namespace InventorySystem.Data.Repositories
                       AND rv.VoucherType = 52
                       AND rv.DetailType = 13
                       AND rv.IsActive = 1
-                    GROUP BY c.Classification1Code");
+                    GROUP BY c.CustomerCategory1");
 
                 // 入金値引・その他入金（伝票種52、明細種14）
                 await AggregateField(connection, transaction, jobDate, "DailyOtherReceipt", @"
                     SELECT 
-                        COALESCE(c.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
                         SUM(rv.Amount) AS TotalAmount
                     FROM ReceiptVouchers rv
                     LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
@@ -230,7 +230,7 @@ namespace InventorySystem.Data.Repositories
                       AND rv.VoucherType = 52
                       AND rv.DetailType = 14
                       AND rv.IsActive = 1
-                    GROUP BY c.Classification1Code");
+                    GROUP BY c.CustomerCategory1");
 
                 _logger.LogInformation("入金伝票データの集計が完了しました: {JobDate}", jobDate);
             });
@@ -243,7 +243,7 @@ namespace InventorySystem.Data.Repositories
                 // 現金・小切手・手形支払（伝票種52、明細種15）
                 await AggregateField(connection, transaction, jobDate, "DailyCashPayment", @"
                     SELECT 
-                        COALESCE(s.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PaymentVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
@@ -251,12 +251,12 @@ namespace InventorySystem.Data.Repositories
                       AND pv.VoucherType = 52
                       AND pv.DetailType = 15
                       AND pv.IsActive = 1
-                    GROUP BY s.Classification1Code");
+                    GROUP BY s.SupplierCategory1");
 
                 // 振込支払（伝票種52、明細種16）
                 await AggregateField(connection, transaction, jobDate, "DailyBankPayment", @"
                     SELECT 
-                        COALESCE(s.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PaymentVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
@@ -264,12 +264,12 @@ namespace InventorySystem.Data.Repositories
                       AND pv.VoucherType = 52
                       AND pv.DetailType = 16
                       AND pv.IsActive = 1
-                    GROUP BY s.Classification1Code");
+                    GROUP BY s.SupplierCategory1");
 
                 // 支払値引・その他支払（伝票種52、明細種17）
                 await AggregateField(connection, transaction, jobDate, "DailyOtherPayment", @"
                     SELECT 
-                        COALESCE(s.Classification1Code, '999') AS ClassificationCode,
+                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PaymentVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
@@ -277,7 +277,7 @@ namespace InventorySystem.Data.Repositories
                       AND pv.VoucherType = 52
                       AND pv.DetailType = 17
                       AND pv.IsActive = 1
-                    GROUP BY s.Classification1Code");
+                    GROUP BY s.SupplierCategory1");
 
                 _logger.LogInformation("支払伝票データの集計が完了しました: {JobDate}", jobDate);
             });
@@ -321,10 +321,10 @@ namespace InventorySystem.Data.Repositories
                 // 得意先分類1名の更新
                 const string updateCustomerSql = @"
                     UPDATE br
-                    SET br.CustomerClassName = COALESCE(cc.ClassName, ''),
+                    SET br.CustomerClassName = COALESCE(cc.CategoryName, ''),
                         br.UpdatedDate = GETDATE()
                     FROM BusinessDailyReport br
-                    LEFT JOIN CustomerClassification1Master cc ON br.ClassificationCode = cc.ClassificationCode
+                    LEFT JOIN CustomerCategory1Master cc ON br.ClassificationCode = CAST(cc.CategoryCode AS NVARCHAR(3))
                     WHERE br.ClassificationCode != '000'";
 
                 await connection.ExecuteAsync(updateCustomerSql, transaction: transaction);
@@ -332,10 +332,10 @@ namespace InventorySystem.Data.Repositories
                 // 仕入先分類1名の更新
                 const string updateSupplierSql = @"
                     UPDATE br
-                    SET br.SupplierClassName = COALESCE(sc.ClassName, ''),
+                    SET br.SupplierClassName = COALESCE(sc.CategoryName, ''),
                         br.UpdatedDate = GETDATE()
                     FROM BusinessDailyReport br
-                    LEFT JOIN SupplierClassification1Master sc ON br.ClassificationCode = sc.ClassificationCode
+                    LEFT JOIN SupplierCategory1Master sc ON br.ClassificationCode = CAST(sc.CategoryCode AS NVARCHAR(3))
                     WHERE br.ClassificationCode != '000'";
 
                 await connection.ExecuteAsync(updateSupplierSql, transaction: transaction);

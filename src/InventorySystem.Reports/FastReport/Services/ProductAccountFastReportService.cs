@@ -1308,7 +1308,7 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
-        /// 商品別小計見出し行作成
+        /// 商品別小計見出し行作成（修正版）
         /// </summary>
         private ProductAccountFlatRow CreateProductSubtotalHeader(int sequence)
         {
@@ -1319,25 +1319,22 @@ namespace InventorySystem.Reports.FastReport.Services
                 IsBold = false,
                 IsGrayBackground = false,
                 
-                // 見出しを適切な位置に配置
-                // 「伝票NO」から「取引先名」の間に表示（右寄せ）
-                VoucherNumber = "【前日残】",
-                DisplayCategory = "【仕入計】",
-                MonthDay = "【売上計】",
-                PurchaseQuantity = "【当日残】",
-                SalesQuantity = "【在庫単価】",
-                RemainingQuantity = "【在庫金額】",
-                UnitPrice = "【粗利益】",
-                Amount = "【粗利率】",
-                
-                // その他のフィールドは空
-                ProductName = "",
-                ShippingMarkName = "",
-                ManualShippingMark = "",
-                GradeName = "",
-                ClassName = "",
-                GrossProfit = "",
-                CustomerSupplierName = ""
+                // 小計見出しを各列に配置（バランス良く配分）
+                ProductName = "【前日残】",           // 商品名列から開始
+                ShippingMarkName = "",                // 空（ProductNameで2列分使用）
+                ManualShippingMark = "【仕入計】",    // 手入力列から開始
+                GradeName = "",                       // 空（ManualShippingMarkで2列分使用）
+                ClassName = "",                       // 空（継続）
+                VoucherNumber = "【売上計】",         // 伝票NO列から開始
+                DisplayCategory = "",                 // 空（VoucherNumberで2列分使用）
+                MonthDay = "【当日残】",              // 月日列から開始
+                PurchaseQuantity = "【在庫単価】",    // 仕入数量列から開始
+                SalesQuantity = "",                   // 空（継続）
+                RemainingQuantity = "【在庫金額】",   // 残数量列から開始
+                UnitPrice = "",                       // 空（継続）
+                Amount = "【粗利益】",                // 金額列
+                GrossProfit = "",                     // 空
+                CustomerSupplierName = "【粗利率】"   // 取引先名列（最も広い列）
             };
         }
         
@@ -1363,24 +1360,24 @@ namespace InventorySystem.Reports.FastReport.Services
                 IsBold = true,
                 IsGrayBackground = true,
                 
-                // 数値を適切な位置に配置
-                VoucherNumber = FormatQuantity(previousBalance),     // 前日残
-                DisplayCategory = FormatQuantity(purchase),          // 仕入計
-                MonthDay = FormatQuantity(sales),                   // 売上計
-                PurchaseQuantity = FormatQuantity(currentBalance),  // 当日残
-                SalesQuantity = FormatUnitPrice(inventoryUnitPrice),// 在庫単価
-                RemainingQuantity = FormatAmount(inventoryAmount),  // 在庫金額
-                UnitPrice = FormatGrossProfit(grossProfit),        // 粗利益
-                Amount = FormatPercentage(grossProfitRate),         // 粗利率
-                
-                // その他のフィールドは空
-                ProductName = "",
+                // 数値を見出しと同じ位置に配置
+                ProductName = FormatQuantity(previousBalance),
                 ShippingMarkName = "",
-                ManualShippingMark = "",
+                ManualShippingMark = FormatQuantity(purchase),
                 GradeName = "",
                 ClassName = "",
+                VoucherNumber = FormatQuantity(sales),
+                DisplayCategory = "",
+                MonthDay = FormatQuantity(currentBalance),
+                PurchaseQuantity = FormatUnitPrice(inventoryUnitPrice),
+                SalesQuantity = "",
+                RemainingQuantity = FormatAmount(inventoryAmount),
+                UnitPrice = "",
+                Amount = FormatGrossProfit(grossProfit),
                 GrossProfit = "",
-                CustomerSupplierName = "",
+                CustomerSupplierName = FormatPercentage(grossProfitRate),
+                
+                // その他の情報はクリア
                 ProductCategory1 = "",
                 ProductCategory1Name = ""
             };
