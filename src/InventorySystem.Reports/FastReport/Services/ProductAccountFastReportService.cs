@@ -1115,6 +1115,53 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
+        /// 右揃え用のパディング処理
+        /// </summary>
+        /// <param name="text">表示テキスト</param>
+        /// <param name="columnWidth">列幅（ピクセル）</param>
+        /// <returns>右揃えされたテキスト</returns>
+        private string PadLeftForAlignment(string text, int columnWidth)
+        {
+            // MS UI Gothic 9ptの場合、半角文字は約6ピクセル、全角文字は約12ピクセル
+            // 列幅164ピクセルの場合、約27文字分（半角換算）
+            const int charWidthInPixels = 6;
+            int totalChars = columnWidth / charWidthInPixels;
+            
+            // テキストの実際の文字幅を計算（全角は2文字分として計算）
+            int textWidth = CalculateTextWidth(text);
+            
+            // パディング数を計算
+            int paddingCount = totalChars - textWidth;
+            if (paddingCount > 0)
+            {
+                return new string(' ', paddingCount) + text;
+            }
+            
+            return text;
+        }
+        
+        /// <summary>
+        /// テキストの表示幅を計算（全角文字は2文字分として計算）
+        /// </summary>
+        private int CalculateTextWidth(string text)
+        {
+            int width = 0;
+            foreach (char c in text)
+            {
+                // 全角文字の判定（簡易版）
+                if (c >= 0x3000 && c <= 0x9FFF || c >= 0xFF00 && c <= 0xFFEF)
+                {
+                    width += 2; // 全角は2文字分
+                }
+                else
+                {
+                    width += 1; // 半角は1文字分
+                }
+            }
+            return width;
+        }
+        
+        /// <summary>
         /// 区分表示ルール実装
         /// </summary>
         private string GetDisplayCategory(string voucherType, string recordType)
@@ -1336,7 +1383,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = "【在庫単価】",             // 単価列
                 Amount = "【在庫金額】",                // 金額列
                 GrossProfit = "【粗利益】",             // 粗利益列
-                CustomerSupplierName = "【粗利率】"     // 取引先名列
+                CustomerSupplierName = PadLeftForAlignment("【粗利率】", 164)     // 取引先名列（右揃え）
             };
         }
         
@@ -1379,7 +1426,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = FormatUnitPrice(inventoryUnitPrice),       // 在庫単価
                 Amount = FormatAmount(inventoryAmount),                // 在庫金額
                 GrossProfit = FormatGrossProfit(grossProfit),          // 粗利益
-                CustomerSupplierName = FormatPercentage(grossProfitRate), // 粗利率
+                CustomerSupplierName = PadLeftForAlignment(FormatPercentage(grossProfitRate), 164), // 粗利率（右揃え）
                 
                 // その他の情報はクリア
                 ProductCategory1 = "",
