@@ -638,7 +638,7 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             
             _logger.LogInformation("PDFパラメータ設定: StaffCode={StaffCode}, StaffName={StaffName}", 
-                report.GetParameterValue("StaffCode"), report.GetParameterValue("StaffName"));
+                (string)report.GetParameterValue("StaffCode"), (string)report.GetParameterValue("StaffName"));
             
             _logger.LogInformation("レポートを準備中...");
             report.Prepare();
@@ -1213,8 +1213,8 @@ namespace InventorySystem.Reports.FastReport.Services
             var productKeyDisplay = $"【{productKey.ProductCode}】 【{productKey.ShippingMarkCode}】 【{productKey.ManualShippingMark}】【{productKey.ShippingMarkName}】【 {productKey.GradeCode}】 【{productKey.ClassCode}】";
             
             _logger.LogInformation("小計行作成: 商品={ProductCode}, 荷印={ShippingMarkCode}, 手入力={ManualShippingMark}, 等級={GradeCode}, 階級={ClassCode}",
-                productKey.ProductCode, productKey.ShippingMarkCode, productKey.ManualShippingMark, 
-                productKey.GradeCode, productKey.ClassCode);
+                (string)productKey.ProductCode, (string)productKey.ShippingMarkCode, (string)productKey.ManualShippingMark, 
+                (string)productKey.GradeCode, (string)productKey.ClassCode);
             _logger.LogInformation("小計表示文字列: {Display}", productKeyDisplay);
             
             return new ProductAccountFlatRow
