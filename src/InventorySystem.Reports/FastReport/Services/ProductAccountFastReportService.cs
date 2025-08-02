@@ -118,10 +118,10 @@ namespace InventorySystem.Reports.FastReport.Services
             
             // 担当者でグループ化（ProductCategory1）
             var staffGroups = sourceData
-                .GroupBy(x => new { 
-                    StaffCode = x.ProductCategory1 ?? "999", 
-                    // まずAdditionalInfoから取得を試み、なければGetStaffNameメソッドで取得
-                    StaffName = x.GetAdditionalInfo("ProductCategory1Name") ?? GetStaffName(x.ProductCategory1 ?? "999")
+                .GroupBy(x => new 
+                { 
+                    StaffCode = x.ProductCategory1 ?? "", 
+                    StaffName = x.GetAdditionalInfo("ProductCategory1Name") ?? ""
                 })
                 .OrderBy(g => g.Key.StaffCode);
             
@@ -129,8 +129,19 @@ namespace InventorySystem.Reports.FastReport.Services
             
             foreach (var staffGroup in staffGroups)
             {
-                _logger.LogInformation("担当者処理中: {Code} {Name} ({Count}件)", 
-                    staffGroup.Key.StaffCode, staffGroup.Key.StaffName, staffGroup.Count());
+                var staffCode = staffGroup.Key.StaffCode;
+                var staffName = staffGroup.Key.StaffName;
+                
+                // 空の担当者コードの場合のログを調整
+                if (string.IsNullOrWhiteSpace(staffCode))
+                {
+                    _logger.LogInformation("担当者コードなしのグループ処理中 ({Count}件)", staffGroup.Count());
+                }
+                else
+                {
+                    _logger.LogInformation("担当者処理中: {StaffCode} {StaffName} ({Count}件)", 
+                        staffCode, staffName, staffGroup.Count());
+                }
                 
                 // 改ページ制御（最初の担当者以外）
                 if (!isFirstStaff)
@@ -190,8 +201,8 @@ namespace InventorySystem.Reports.FastReport.Services
                     if (cpInventoryData != null)
                     {
                         subtotalPreviousBalance = cpInventoryData.PreviousDayStock ?? 0;
-                        subtotalInventoryUnitPrice = cpInventoryData.CurrentStockUnitPrice ?? 0;
-                        subtotalInventoryAmount = cpInventoryData.CurrentStockAmount ?? 0;
+                        subtotalInventoryUnitPrice = cpInventoryData.DailyUnitPrice ?? 0;  // 修正
+                        subtotalInventoryAmount = cpInventoryData.DailyStockAmount ?? 0;   // 修正
                     }
                     
                     foreach (var detail in details)
@@ -571,6 +582,13 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             try
             {
+                // 空文字列チェックを追加
+                if (string.IsNullOrWhiteSpace(staffCode))
+                {
+                    _logger.LogWarning("担当者コードが空です");
+                    return ""; // 空文字列を返す
+                }
+
                 // ProductCategory1が数値に変換できるかチェック
                 if (!int.TryParse(staffCode, out int staffCodeInt))
                 {
@@ -611,9 +629,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 var sql = @"
                     SELECT 
                         PreviousDayStock,
-                        CurrentStockUnitPrice,
-                        CurrentStock,
-                        CurrentStockAmount
+                        DailyUnitPrice,      -- 修正：CurrentStockUnitPrice → DailyUnitPrice
+                        DailyStock,          -- 修正：CurrentStock → DailyStock
+                        DailyStockAmount     -- 修正：CurrentStockAmount → DailyStockAmount
                     FROM CpInventoryMaster
                     WHERE ProductCode = @ProductCode
                       AND GradeCode = @GradeCode

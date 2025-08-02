@@ -45,10 +45,7 @@ namespace InventorySystem.Data.Repositories
 
         public async Task AggregateSalesDataAsync(DateTime jobDate)
         {
-            using var connection = CreateConnection();
-            using var transaction = connection.BeginTransaction();
-
-            try
+            await ExecuteInTransactionAsync(async (connection, transaction) =>
             {
                 // 現金売上（伝票種52、明細種1-4）
                 await AggregateField(connection, transaction, jobDate, "DailyCashSales", @"
@@ -115,23 +112,13 @@ namespace InventorySystem.Data.Repositories
                       AND sv.IsActive = 1
                     GROUP BY c.Classification1Code");
 
-                transaction.Commit();
                 _logger.LogInformation("売上伝票データの集計が完了しました: {JobDate}", jobDate);
-            }
-            catch (Exception ex)
-            {
-                transaction.Rollback();
-                _logger.LogError(ex, "売上伝票データの集計中にエラーが発生しました: {JobDate}", jobDate);
-                throw;
-            }
+            });
         }
 
         public async Task AggregatePurchaseDataAsync(DateTime jobDate)
         {
-            using var connection = CreateConnection();
-            using var transaction = connection.BeginTransaction();
-
-            try
+            await ExecuteInTransactionAsync(async (connection, transaction) =>
             {
                 // 現金仕入（伝票種12、明細種1）
                 await AggregateField(connection, transaction, jobDate, "DailyCashPurchase", @"
@@ -198,23 +185,13 @@ namespace InventorySystem.Data.Repositories
                       AND pv.IsActive = 1
                     GROUP BY s.Classification1Code");
 
-                transaction.Commit();
                 _logger.LogInformation("仕入伝票データの集計が完了しました: {JobDate}", jobDate);
-            }
-            catch (Exception ex)
-            {
-                transaction.Rollback();
-                _logger.LogError(ex, "仕入伝票データの集計中にエラーが発生しました: {JobDate}", jobDate);
-                throw;
-            }
+            });
         }
 
         public async Task AggregateReceiptDataAsync(DateTime jobDate)
         {
-            using var connection = CreateConnection();
-            using var transaction = connection.BeginTransaction();
-
-            try
+            await ExecuteInTransactionAsync(async (connection, transaction) =>
             {
                 // 現金・小切手・手形入金（伝票種52、明細種12）
                 await AggregateField(connection, transaction, jobDate, "DailyCashReceipt", @"
@@ -255,23 +232,13 @@ namespace InventorySystem.Data.Repositories
                       AND rv.IsActive = 1
                     GROUP BY c.Classification1Code");
 
-                transaction.Commit();
                 _logger.LogInformation("入金伝票データの集計が完了しました: {JobDate}", jobDate);
-            }
-            catch (Exception ex)
-            {
-                transaction.Rollback();
-                _logger.LogError(ex, "入金伝票データの集計中にエラーが発生しました: {JobDate}", jobDate);
-                throw;
-            }
+            });
         }
 
         public async Task AggregatePaymentDataAsync(DateTime jobDate)
         {
-            using var connection = CreateConnection();
-            using var transaction = connection.BeginTransaction();
-
-            try
+            await ExecuteInTransactionAsync(async (connection, transaction) =>
             {
                 // 現金・小切手・手形支払（伝票種52、明細種15）
                 await AggregateField(connection, transaction, jobDate, "DailyCashPayment", @"
@@ -312,15 +279,8 @@ namespace InventorySystem.Data.Repositories
                       AND pv.IsActive = 1
                     GROUP BY s.Classification1Code");
 
-                transaction.Commit();
                 _logger.LogInformation("支払伝票データの集計が完了しました: {JobDate}", jobDate);
-            }
-            catch (Exception ex)
-            {
-                transaction.Rollback();
-                _logger.LogError(ex, "支払伝票データの集計中にエラーが発生しました: {JobDate}", jobDate);
-                throw;
-            }
+            });
         }
 
         public async Task<List<BusinessDailyReportItem>> GetReportDataAsync()
@@ -356,10 +316,7 @@ namespace InventorySystem.Data.Repositories
 
         public async Task UpdateClassificationNamesAsync()
         {
-            using var connection = CreateConnection();
-            using var transaction = connection.BeginTransaction();
-
-            try
+            await ExecuteInTransactionAsync(async (connection, transaction) =>
             {
                 // 得意先分類1名の更新
                 const string updateCustomerSql = @"
@@ -383,15 +340,8 @@ namespace InventorySystem.Data.Repositories
 
                 await connection.ExecuteAsync(updateSupplierSql, transaction: transaction);
 
-                transaction.Commit();
                 _logger.LogInformation("分類名の更新が完了しました");
-            }
-            catch (Exception ex)
-            {
-                transaction.Rollback();
-                _logger.LogError(ex, "分類名の更新中にエラーが発生しました");
-                throw;
-            }
+            });
         }
 
         private async Task AggregateField(SqlConnection connection, SqlTransaction transaction, DateTime jobDate, string fieldName, string aggregationQuery)
