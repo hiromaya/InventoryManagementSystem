@@ -1308,7 +1308,7 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
-        /// 商品別小計見出し行作成（修正版：伝票NO列から開始）
+        /// 商品別小計見出し行作成（最終版：区分列から開始）
         /// </summary>
         private ProductAccountFlatRow CreateProductSubtotalHeader(int sequence)
         {
@@ -1319,27 +1319,29 @@ namespace InventorySystem.Reports.FastReport.Services
                 IsBold = false,
                 IsGrayBackground = false,
                 
-                // 伝票NO列から開始し、8項目を配置
-                ProductName = "",                     // 空
-                ShippingMarkName = "",                // 空
-                ManualShippingMark = "",              // 空
-                GradeName = "",                       // 空
-                ClassName = "",                       // 空
-                VoucherNumber = "【前日残】",         // 伝票NO列に配置
-                DisplayCategory = "【仕入計】",       // 区分列に配置
-                MonthDay = "【売上計】",              // 月日列に配置
-                PurchaseQuantity = "【当日残】",      // 仕入数量列に配置
-                SalesQuantity = "【在庫単価】",       // 売上数量列に配置
-                RemainingQuantity = "【在庫金額】",   // 残数量列に配置
-                UnitPrice = "【粗利益】",             // 単価列に配置
-                Amount = "",                          // 空（粗利益で幅を使用）
-                GrossProfit = "",                     // 空
-                CustomerSupplierName = "【粗利率】"   // 取引先名列に配置
+                // 商品情報列は空
+                ProductName = "",
+                ShippingMarkName = "",
+                ManualShippingMark = "",
+                GradeName = "",
+                ClassName = "",
+                VoucherNumber = "",                     // 伝票NO列は空
+                
+                // 小計見出しの配置
+                DisplayCategory = "【前日残】",         // 区分列（月日列と結合）
+                MonthDay = "",                          // 空（前日残で使用）
+                PurchaseQuantity = "【仕入計】",        // 仕入数量列
+                SalesQuantity = "【売上計】",           // 売上数量列
+                RemainingQuantity = "【当日残】",       // 残数量列
+                UnitPrice = "【在庫単価】",             // 単価列
+                Amount = "【在庫金額】",                // 金額列
+                GrossProfit = "【粗利益】",             // 粗利益列
+                CustomerSupplierName = "【粗利率】"     // 取引先名列
             };
         }
         
         /// <summary>
-        /// 商品別小計数値行作成（修正版）
+        /// 商品別小計数値行作成（最終版：区分列から開始）
         /// </summary>
         private ProductAccountFlatRow CreateProductSubtotal(
             decimal previousBalance,      // 前日残（追加）
@@ -1360,22 +1362,24 @@ namespace InventorySystem.Reports.FastReport.Services
                 IsBold = true,
                 IsGrayBackground = true,
                 
-                // 数値を見出しと同じ位置に配置（伝票NO列から開始）
+                // 商品情報列は空
                 ProductName = "",
                 ShippingMarkName = "",
                 ManualShippingMark = "",
                 GradeName = "",
                 ClassName = "",
-                VoucherNumber = FormatQuantity(previousBalance),
-                DisplayCategory = FormatQuantity(purchase),
-                MonthDay = FormatQuantity(sales),
-                PurchaseQuantity = FormatQuantity(currentBalance),
-                SalesQuantity = FormatUnitPrice(inventoryUnitPrice),
-                RemainingQuantity = FormatAmount(inventoryAmount),
-                UnitPrice = FormatGrossProfit(grossProfit),
-                Amount = "",
-                GrossProfit = "",
-                CustomerSupplierName = FormatPercentage(grossProfitRate),
+                VoucherNumber = "",
+                
+                // 小計数値の配置
+                DisplayCategory = FormatQuantity(previousBalance),     // 前日残
+                MonthDay = "",                                         // 空
+                PurchaseQuantity = FormatQuantity(purchase),           // 仕入計
+                SalesQuantity = FormatQuantity(sales),                 // 売上計
+                RemainingQuantity = FormatQuantity(currentBalance),    // 当日残
+                UnitPrice = FormatUnitPrice(inventoryUnitPrice),       // 在庫単価
+                Amount = FormatAmount(inventoryAmount),                // 在庫金額
+                GrossProfit = FormatGrossProfit(grossProfit),          // 粗利益
+                CustomerSupplierName = FormatPercentage(grossProfitRate), // 粗利率
                 
                 // その他の情報はクリア
                 ProductCategory1 = "",
