@@ -111,9 +111,10 @@ namespace InventorySystem.Reports.FastReport.Services
                     _logger.LogWarning($"ScriptTextクリア時の警告: {ex.Message}");
                 }
 
-                // データソース作成
-                var dataTable = CreateDataTable(items);
-                report.RegisterData(dataTable, "BusinessDailyReportItems");
+                // データソース作成（16行に展開）
+                _logger.LogInformation("データを16行に展開しています...");
+                var dataTable = CreateExpandedDataTable(items);
+                report.RegisterData(dataTable, "BusinessDailyReportExpanded");
 
                 // パラメータ設定
                 report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
@@ -228,6 +229,131 @@ namespace InventorySystem.Reports.FastReport.Services
             }
 
             return dataTable;
+        }
+
+        private DataTable CreateExpandedDataTable(IEnumerable<BusinessDailyReportItem> items)
+        {
+            var table = new DataTable("BusinessDailyReportExpanded");
+            
+            // カラム定義
+            table.Columns.Add("RowNumber", typeof(int));
+            table.Columns.Add("ItemName", typeof(string));
+            table.Columns.Add("Col1_Total", typeof(decimal));
+            table.Columns.Add("Col2_Class1", typeof(decimal));
+            table.Columns.Add("Col3_Class2", typeof(decimal));
+            table.Columns.Add("Col4_Class3", typeof(decimal));
+            table.Columns.Add("Col5_Class4", typeof(decimal));
+            table.Columns.Add("Col6_Class5", typeof(decimal));
+            table.Columns.Add("Col7_Class6", typeof(decimal));
+            table.Columns.Add("Col8_Class7", typeof(decimal));
+            table.Columns.Add("Col9_Class8", typeof(decimal));
+            
+            // 16行の項目定義
+            var rowDefinitions = new[]
+            {
+                "【日計】 現金売上",
+                "現売消費税",
+                "掛売上＋売上返品",
+                "売上値引",
+                "掛売消費税",
+                "現金仕入",
+                "現仕消費税",
+                "掛仕入＋仕入返品",
+                "仕入値引",
+                "掛仕入消費税",
+                "現金・小切手・手形入金",
+                "振込入金",
+                "入金値引・その他入金",
+                "現金・小切手・手形支払",
+                "振込支払",
+                "支払値引・その他支払"
+            };
+            
+            // 分類別に集計（分類コード001～008）
+            var itemsByClass = items.Where(x => !string.IsNullOrEmpty(x.ClassificationCode))
+                                   .GroupBy(x => x.ClassificationCode)
+                                   .ToDictionary(g => g.Key, g => g.First());
+            
+            // 合計を計算（分類000または全体合計）
+            var totalItem = items.FirstOrDefault(x => x.ClassificationCode == "000");
+            if (totalItem == null)
+            {
+                // 合計がない場合は各分類の合計を計算
+                totalItem = new BusinessDailyReportItem
+                {
+                    ClassificationCode = "000",
+                    DailyCashSales = items.Sum(x => x.DailyCashSales),
+                    DailyCashSalesTax = items.Sum(x => x.DailyCashSalesTax),
+                    DailyCreditSales = items.Sum(x => x.DailyCreditSales),
+                    DailySalesDiscount = items.Sum(x => x.DailySalesDiscount),
+                    DailyCreditSalesTax = items.Sum(x => x.DailyCreditSalesTax),
+                    DailyCashPurchase = items.Sum(x => x.DailyCashPurchase),
+                    DailyCashPurchaseTax = items.Sum(x => x.DailyCashPurchaseTax),
+                    DailyCreditPurchase = items.Sum(x => x.DailyCreditPurchase),
+                    DailyPurchaseDiscount = items.Sum(x => x.DailyPurchaseDiscount),
+                    DailyCreditPurchaseTax = items.Sum(x => x.DailyCreditPurchaseTax),
+                    DailyCashReceipt = items.Sum(x => x.DailyCashReceipt),
+                    DailyBankReceipt = items.Sum(x => x.DailyBankReceipt),
+                    DailyOtherReceipt = items.Sum(x => x.DailyOtherReceipt),
+                    DailyCashPayment = items.Sum(x => x.DailyCashPayment),
+                    DailyBankPayment = items.Sum(x => x.DailyBankPayment),
+                    DailyOtherPayment = items.Sum(x => x.DailyOtherPayment)
+                };
+            }
+            
+            // 16行のデータを作成
+            for (int i = 0; i < 16; i++)
+            {
+                var row = table.NewRow();
+                row["RowNumber"] = i + 1;
+                row["ItemName"] = rowDefinitions[i];
+                
+                // 合計列
+                row["Col1_Total"] = GetValueByRowIndex(totalItem, i);
+                
+                // 分類001～008のデータ
+                for (int classIndex = 1; classIndex <= 8; classIndex++)
+                {
+                    var classCode = classIndex.ToString("D3");  // 001, 002, ... 008
+                    if (itemsByClass.ContainsKey(classCode))
+                    {
+                        row[$"Col{classIndex + 1}_Class{classIndex}"] = GetValueByRowIndex(itemsByClass[classCode], i);
+                    }
+                    else
+                    {
+                        row[$"Col{classIndex + 1}_Class{classIndex}"] = 0m;
+                    }
+                }
+                
+                table.Rows.Add(row);
+            }
+            
+            _logger.LogInformation($"データ展開完了: {table.Rows.Count}行のデータを作成しました");
+            return table;
+        }
+
+        private decimal GetValueByRowIndex(BusinessDailyReportItem item, int rowIndex)
+        {
+            return rowIndex switch
+            {
+                0 => item.DailyCashSales,
+                1 => item.DailyCashSalesTax,
+                2 => item.DailyCreditSales,
+                3 => item.DailySalesDiscount,
+                4 => item.DailyCreditSalesTax,
+                5 => item.DailyCashPurchase,
+                6 => item.DailyCashPurchaseTax,
+                7 => item.DailyCreditPurchase,
+                8 => item.DailyPurchaseDiscount,
+                9 => item.DailyCreditPurchaseTax,
+                10 => item.DailyCashReceipt,
+                11 => item.DailyBankReceipt,
+                12 => item.DailyOtherReceipt,
+                13 => item.DailyCashPayment,
+                14 => item.DailyBankPayment,
+                15 => item.DailyOtherPayment,
+                _ => 0m
+            };
         }
     }
 }
