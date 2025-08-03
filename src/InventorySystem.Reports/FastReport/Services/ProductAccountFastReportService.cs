@@ -1430,7 +1430,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = FormatUnitPrice(inventoryUnitPrice),
                 Amount = FormatAmount(inventoryAmount),
                 GrossProfit = FormatGrossProfit(grossProfit),
-                CustomerSupplierName = FormatPercentage(grossProfitRate)  // 粗利率
+                CustomerSupplierName = FormatPercentage(grossProfitRate),  // 粗利率
                 
                 // その他の情報はクリア
                 ProductCategory1 = "",
