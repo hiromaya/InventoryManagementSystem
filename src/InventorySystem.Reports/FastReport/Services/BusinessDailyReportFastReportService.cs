@@ -43,73 +43,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 // テンプレート読み込み
                 report.Load(templatePath);
 
-                // .NET 8対応: ScriptLanguageを強制的にNoneに設定
-                try
-                {
-                    _logger.LogInformation("ScriptLanguage設定を開始します");
-                    
-                    // リフレクションを使用してScriptLanguageプロパティを取得
-                    var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
-                    if (scriptLanguageProperty != null)
-                    {
-                        _logger.LogInformation($"ScriptLanguageプロパティが見つかりました: {scriptLanguageProperty.PropertyType}");
-                        
-                        var scriptLanguageType = scriptLanguageProperty.PropertyType;
-                        if (scriptLanguageType.IsEnum)
-                        {
-                            // 現在の値をログ出力
-                            var currentValue = scriptLanguageProperty.GetValue(report);
-                            _logger.LogInformation($"現在のScriptLanguage値: {currentValue}");
-                            
-                            // FastReport.ScriptLanguage.None を設定
-                            var noneValue = Enum.GetValues(scriptLanguageType)
-                                .Cast<object>()
-                                .FirstOrDefault(v => v.ToString() == "None");
-                            
-                            if (noneValue != null)
-                            {
-                                scriptLanguageProperty.SetValue(report, noneValue);
-                                var newValue = scriptLanguageProperty.GetValue(report);
-                                _logger.LogInformation($"ScriptLanguageをNoneに設定しました: {currentValue} → {newValue}");
-                            }
-                            else
-                            {
-                                _logger.LogWarning("ScriptLanguage.Noneが見つかりませんでした");
-                                var enumValues = Enum.GetValues(scriptLanguageType).Cast<object>().Select(v => v.ToString()).ToArray();
-                                _logger.LogInformation($"利用可能な値: {string.Join(", ", enumValues)}");
-                            }
-                        }
-                        else
-                        {
-                            _logger.LogWarning($"ScriptLanguageプロパティがEnum型ではありません: {scriptLanguageType}");
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogWarning("ScriptLanguageプロパティが見つかりませんでした");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
-                    _logger.LogWarning($"スタックトレース: {ex.StackTrace}");
-                    // エラーが発生しても処理を継続
-                }
-
-                // 追加の.NET 8対応: スクリプトテキストをクリア
-                try
-                {
-                    var scriptTextProperty = report.GetType().GetProperty("ScriptText");
-                    if (scriptTextProperty != null && scriptTextProperty.CanWrite)
-                    {
-                        scriptTextProperty.SetValue(report, "");
-                        _logger.LogInformation("ScriptTextをクリアしました");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning($"ScriptTextクリア時の警告: {ex.Message}");
-                }
+                // .NET 8対応: スクリプト機能を完全に無効化
+                DisableFastReportScripting(report);
 
                 // データソース作成（16行に展開）
                 _logger.LogInformation("データを16行に展開しています...");
@@ -354,6 +289,81 @@ namespace InventorySystem.Reports.FastReport.Services
                 15 => item.DailyOtherPayment,
                 _ => 0m
             };
+        }
+
+        private void DisableFastReportScripting(Report report)
+        {
+            try
+            {
+                _logger.LogInformation("FastReportのスクリプト機能を無効化します");
+                
+                // 1. ScriptTextプロパティをクリア
+                var scriptTextProperty = report.GetType().GetProperty("ScriptText");
+                if (scriptTextProperty != null)
+                {
+                    scriptTextProperty.SetValue(report, string.Empty);
+                    _logger.LogInformation("ScriptTextをクリアしました");
+                }
+                
+                // 2. 非公開のScriptプロパティをnullに設定（最重要）
+                var scriptProperty = report.GetType().GetProperty("Script", 
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                if (scriptProperty != null)
+                {
+                    scriptProperty.SetValue(report, null);
+                    _logger.LogInformation("Scriptプロパティをnullに設定しました");
+                }
+                
+                // 3. ReportScriptプロパティをnullに設定
+                var reportScriptProperty = report.GetType().GetProperty("ReportScript", 
+                    BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+                if (reportScriptProperty != null)
+                {
+                    reportScriptProperty.SetValue(report, null);
+                    _logger.LogInformation("ReportScriptをnullに設定しました");
+                }
+                
+                // 4. ScriptRestrictions プロパティを設定（存在する場合）
+                var scriptRestrictionsProperty = report.GetType().GetProperty("ScriptRestrictions");
+                if (scriptRestrictionsProperty != null)
+                {
+                    try
+                    {
+                        // DontRunという値を設定（列挙型の場合）
+                        var restrictionsType = scriptRestrictionsProperty.PropertyType;
+                        if (restrictionsType.IsEnum)
+                        {
+                            var dontRunValue = Enum.GetValues(restrictionsType)
+                                .Cast<object>()
+                                .FirstOrDefault(v => v.ToString().Contains("DontRun"));
+                            if (dontRunValue != null)
+                            {
+                                scriptRestrictionsProperty.SetValue(report, dontRunValue);
+                                _logger.LogInformation("ScriptRestrictionsをDontRunに設定しました");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug($"ScriptRestrictions設定時の例外: {ex.Message}");
+                    }
+                }
+                
+                // 5. AllowExpressions プロパティを false に設定
+                var allowExpressionsProperty = report.GetType().GetProperty("AllowExpressions");
+                if (allowExpressionsProperty != null)
+                {
+                    allowExpressionsProperty.SetValue(report, false);
+                    _logger.LogInformation("AllowExpressionsをfalseに設定しました");
+                }
+                
+                _logger.LogInformation("FastReportのスクリプト機能の無効化が完了しました");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"スクリプト無効化時の警告: {ex.Message}");
+                // エラーが発生しても処理を継続
+            }
         }
     }
 }
