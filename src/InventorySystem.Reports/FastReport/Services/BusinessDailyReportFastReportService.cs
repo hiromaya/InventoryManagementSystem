@@ -8,6 +8,7 @@ using InventorySystem.Core.Interfaces;
 using InventorySystem.Reports.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Data;
+using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -46,10 +47,14 @@ namespace InventorySystem.Reports.FastReport.Services
                 // .NET 8対応: スクリプト機能を完全に無効化
                 DisableFastReportScripting(report);
 
-                // データソース作成（16行に展開）
-                _logger.LogInformation("データを16行に展開しています...");
-                var dataTable = CreateExpandedDataTable(items);
-                report.RegisterData(dataTable, "BusinessDailyReportExpanded");
+                // テンプレートを静的レイアウトに変換
+                _logger.LogInformation("テンプレートを静的レイアウトに変換しています...");
+                ConvertToStaticLayout(report);
+
+                // データを直接設定（16行×9列）
+                _logger.LogInformation("データを16行×9列で設定しています...");
+                var dataTable = CreateStaticReportData(items);
+                SetReportData(report, dataTable);
 
                 // パラメータ設定
                 report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
@@ -364,6 +369,232 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogWarning($"スクリプト無効化時の警告: {ex.Message}");
                 // エラーが発生しても処理を継続
             }
+        }
+
+        private void ConvertToStaticLayout(Report report)
+        {
+            try
+            {
+                _logger.LogInformation("テンプレートの静的レイアウト変換を開始します");
+                
+                // DataBandを検出して削除
+                var page = report.Pages[0] as ReportPage;
+                if (page != null)
+                {
+                    var dataBands = page.AllObjects.OfType<DataBand>().ToList();
+                    foreach (var dataBand in dataBands)
+                    {
+                        _logger.LogInformation($"DataBandを削除しました: {dataBand.Name}");
+                        page.Objects.Remove(dataBand);
+                    }
+                    
+                    // ReportSummaryBandがない場合は作成
+                    var summaryBand = page.AllObjects.OfType<ReportSummaryBand>().FirstOrDefault();
+                    if (summaryBand == null)
+                    {
+                        summaryBand = new ReportSummaryBand();
+                        summaryBand.Name = "ReportSummary1";
+                        summaryBand.Height = Units.Millimeters * 302.4f; // 16行×18.9mm
+                        page.Objects.Add(summaryBand);
+                        _logger.LogInformation("ReportSummaryBandを作成しました");
+                    }
+                    
+                    // 16行×9列のTextObjectを作成
+                    CreateStaticTextObjects(summaryBand);
+                }
+                
+                _logger.LogInformation("テンプレートの静的レイアウト変換が完了しました");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"静的レイアウト変換時の警告: {ex.Message}");
+            }
+        }
+
+        private void CreateStaticTextObjects(ReportSummaryBand summaryBand)
+        {
+            var itemNames = new string[]
+            {
+                "【日計】 現金売上", "現売消費税", "掛売上＋売上返品", "売上値引",
+                "掛売消費税", "現金仕入", "現仕消費税", "掛仕入＋仕入返品",
+                "仕入値引", "掛仕入消費税", "現金・小切手・手形入金", "振込入金",
+                "入金値引・その他入金", "現金・小切手・手形支払", "振込支払", "支払値引・その他支払"
+            };
+            
+            float rowHeight = Units.Millimeters * 18.9f; // 1行の高さ
+            float colWidth = Units.Millimeters * 20f;    // 1列の幅
+            float labelWidth = Units.Millimeters * 40f;  // 項目名の幅
+            
+            for (int row = 0; row < 16; row++)
+            {
+                float top = row * rowHeight;
+                string rowNo = (row + 1).ToString("00");
+                
+                // 項目名
+                var labelObj = new TextObject();
+                labelObj.Name = $"Row{rowNo}_Label";
+                labelObj.Left = 0;
+                labelObj.Top = top;
+                labelObj.Width = labelWidth;
+                labelObj.Height = rowHeight;
+                labelObj.Text = itemNames[row];
+                labelObj.Font = new Font("MS Gothic", 9);
+                summaryBand.Objects.Add(labelObj);
+                
+                // 合計
+                var totalObj = new TextObject();
+                totalObj.Name = $"Row{rowNo}_Total";
+                totalObj.Left = labelWidth;
+                totalObj.Top = top;
+                totalObj.Width = colWidth;
+                totalObj.Height = rowHeight;
+                totalObj.Text = "0";
+                totalObj.Font = new Font("MS Gothic", 9);
+                totalObj.HorzAlign = HorzAlign.Right;
+                summaryBand.Objects.Add(totalObj);
+                
+                // 8分類
+                for (int col = 1; col <= 8; col++)
+                {
+                    var classObj = new TextObject();
+                    classObj.Name = $"Row{rowNo}_Class{col:00}";
+                    classObj.Left = labelWidth + col * colWidth;
+                    classObj.Top = top;
+                    classObj.Width = colWidth;
+                    classObj.Height = rowHeight;
+                    classObj.Text = "0";
+                    classObj.Font = new Font("MS Gothic", 9);
+                    classObj.HorzAlign = HorzAlign.Right;
+                    summaryBand.Objects.Add(classObj);
+                }
+            }
+            
+            _logger.LogInformation($"静的TextObjectを作成しました: {16 * 9}個");
+        }
+
+        private DataTable CreateStaticReportData(IEnumerable<BusinessDailyReportItem> items)
+        {
+            var dt = new DataTable("BusinessDailyReport");
+            
+            // カラム定義
+            dt.Columns.Add("RowNo", typeof(int));
+            dt.Columns.Add("ItemName", typeof(string));
+            dt.Columns.Add("Total", typeof(decimal));
+            for (int i = 1; i <= 8; i++)
+            {
+                dt.Columns.Add($"Class{i:00}", typeof(decimal));
+            }
+            
+            var itemNames = new string[]
+            {
+                "【日計】 現金売上", "現売消費税", "掛売上＋売上返品", "売上値引",
+                "掛売消費税", "現金仕入", "現仕消費税", "掛仕入＋仕入返品",
+                "仕入値引", "掛仕入消費税", "現金・小切手・手形入金", "振込入金",
+                "入金値引・その他入金", "現金・小切手・手形支払", "振込支払", "支払値引・その他支払"
+            };
+            
+            // 分類別に集計
+            var itemsByClass = items.Where(x => !string.IsNullOrEmpty(x.ClassificationCode))
+                                   .GroupBy(x => x.ClassificationCode)
+                                   .ToDictionary(g => g.Key, g => g.First());
+            
+            // 合計を計算
+            var totalItem = items.FirstOrDefault(x => x.ClassificationCode == "000") ?? new BusinessDailyReportItem
+            {
+                ClassificationCode = "000",
+                DailyCashSales = items.Sum(x => x.DailyCashSales),
+                DailyCashSalesTax = items.Sum(x => x.DailyCashSalesTax),
+                DailyCreditSales = items.Sum(x => x.DailyCreditSales),
+                DailySalesDiscount = items.Sum(x => x.DailySalesDiscount),
+                DailyCreditSalesTax = items.Sum(x => x.DailyCreditSalesTax),
+                DailyCashPurchase = items.Sum(x => x.DailyCashPurchase),
+                DailyCashPurchaseTax = items.Sum(x => x.DailyCashPurchaseTax),
+                DailyCreditPurchase = items.Sum(x => x.DailyCreditPurchase),
+                DailyPurchaseDiscount = items.Sum(x => x.DailyPurchaseDiscount),
+                DailyCreditPurchaseTax = items.Sum(x => x.DailyCreditPurchaseTax),
+                DailyCashReceipt = items.Sum(x => x.DailyCashReceipt),
+                DailyBankReceipt = items.Sum(x => x.DailyBankReceipt),
+                DailyOtherReceipt = items.Sum(x => x.DailyOtherReceipt),
+                DailyCashPayment = items.Sum(x => x.DailyCashPayment),
+                DailyBankPayment = items.Sum(x => x.DailyBankPayment),
+                DailyOtherPayment = items.Sum(x => x.DailyOtherPayment)
+            };
+            
+            // 16行のデータを作成
+            for (int row = 0; row < 16; row++)
+            {
+                var dr = dt.NewRow();
+                dr["RowNo"] = row + 1;
+                dr["ItemName"] = itemNames[row];
+                dr["Total"] = GetValueByRowIndex(totalItem, row);
+                
+                // 8分類のデータ
+                for (int col = 1; col <= 8; col++)
+                {
+                    var classCode = col.ToString("D3");
+                    if (itemsByClass.ContainsKey(classCode))
+                    {
+                        dr[$"Class{col:00}"] = GetValueByRowIndex(itemsByClass[classCode], row);
+                    }
+                    else
+                    {
+                        dr[$"Class{col:00}"] = 0m;
+                    }
+                }
+                
+                dt.Rows.Add(dr);
+            }
+            
+            _logger.LogInformation($"静的レポートデータを作成しました: {dt.Rows.Count}行");
+            return dt;
+        }
+
+        private void SetReportData(Report report, DataTable dataTable)
+        {
+            try
+            {
+                var page = report.Pages[0] as ReportPage;
+                if (page == null) return;
+                
+                _logger.LogInformation("レポートデータを設定しています...");
+                
+                // 16行分のデータを設定
+                for (int row = 0; row < 16; row++)
+                {
+                    var dataRow = dataTable.Rows[row];
+                    var rowNo = (row + 1).ToString("00");
+                    
+                    // 合計
+                    var totalObj = page.FindObject($"Row{rowNo}_Total") as TextObject;
+                    if (totalObj != null)
+                    {
+                        totalObj.Text = FormatNumber((decimal)dataRow["Total"]);
+                    }
+                    
+                    // 8分類
+                    for (int col = 1; col <= 8; col++)
+                    {
+                        var classObj = page.FindObject($"Row{rowNo}_Class{col:00}") as TextObject;
+                        if (classObj != null)
+                        {
+                            classObj.Text = FormatNumber((decimal)dataRow[$"Class{col:00}"]);
+                        }
+                    }
+                }
+                
+                _logger.LogInformation("レポートデータの設定が完了しました");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"レポートデータ設定時の警告: {ex.Message}");
+            }
+        }
+
+        private string FormatNumber(decimal value)
+        {
+            if (value == 0) return "0";
+            if (value < 0) return $"▲{Math.Abs(value):N0}";
+            return value.ToString("N0");
         }
     }
 }
