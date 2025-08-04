@@ -378,15 +378,19 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 _logger.LogInformation("テンプレートの静的レイアウト変換を開始します");
                 
-                // DataBandを検出して削除
+                // ReportPageを取得
                 var page = report.Pages[0] as ReportPage;
                 if (page != null)
                 {
+                    // DataBandを検出して削除
                     var dataBands = page.AllObjects.OfType<DataBand>().ToList();
                     foreach (var dataBand in dataBands)
                     {
                         _logger.LogInformation($"DataBandを削除しました: {dataBand.Name}");
-                        page.Children.Remove(dataBand);
+                        if (dataBand.Parent != null)
+                        {
+                            dataBand.Parent.Objects.Remove(dataBand);
+                        }
                     }
                     
                     // ReportSummaryBandがない場合は作成
@@ -395,8 +399,8 @@ namespace InventorySystem.Reports.FastReport.Services
                     {
                         summaryBand = new ReportSummaryBand();
                         summaryBand.Name = "ReportSummary1";
-                        summaryBand.Height = Units.Millimeters * 302.4f; // 16行×18.9mm
-                        page.Children.Add(summaryBand);
+                        summaryBand.Height = 302.4f; // 16行×18.9mm
+                        page.Objects.Add(summaryBand);
                         _logger.LogInformation("ReportSummaryBandを作成しました");
                     }
                     
@@ -422,9 +426,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 "入金値引・その他入金", "現金・小切手・手形支払", "振込支払", "支払値引・その他支払"
             };
             
-            float rowHeight = Units.Millimeters * 18.9f; // 1行の高さ
-            float colWidth = Units.Millimeters * 20f;    // 1列の幅
-            float labelWidth = Units.Millimeters * 40f;  // 項目名の幅
+            float rowHeight = 18.9f; // 1行の高さ（mm単位）
+            float colWidth = 20f;    // 1列の幅（mm単位）
+            float labelWidth = 40f;  // 項目名の幅（mm単位）
             
             for (int row = 0; row < 16; row++)
             {
