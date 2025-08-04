@@ -303,6 +303,30 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 _logger.LogInformation("FastReportのスクリプト機能を無効化します");
                 
+                // 0. ScriptLanguageを強制的にNoneに設定（最重要）
+                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                if (scriptLanguageProperty != null)
+                {
+                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                    if (scriptLanguageType.IsEnum)
+                    {
+                        // FastReport.ScriptLanguage.None を設定
+                        var noneValue = Enum.GetValues(scriptLanguageType)
+                            .Cast<object>()
+                            .FirstOrDefault(v => v.ToString() == "None");
+                        
+                        if (noneValue != null)
+                        {
+                            scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                        }
+                        else
+                        {
+                            _logger.LogWarning("ScriptLanguage.Noneが見つかりません");
+                        }
+                    }
+                }
+                
                 // 1. ScriptTextプロパティをクリア
                 var scriptTextProperty = report.GetType().GetProperty("ScriptText");
                 if (scriptTextProperty != null)
@@ -391,6 +415,18 @@ namespace InventorySystem.Reports.FastReport.Services
                         dataBand.Dispose();
                     }
                     
+                    // DataBand削除後、すべてのTextObjectから式を削除
+                    var textObjects = page.AllObjects.OfType<TextObject>().ToList();
+                    foreach (var textObj in textObjects)
+                    {
+                        if (textObj.Text != null && textObj.Text.Contains("["))
+                        {
+                            _logger.LogDebug($"TextObject '{textObj.Name}' の式をクリアします: {textObj.Text}");
+                            // 式を削除して、静的なテキストまたは空にする
+                            textObj.Text = "";
+                        }
+                    }
+                    
                     // ReportSummaryBandがない場合は作成
                     var summaryBand = page.AllObjects.OfType<ReportSummaryBand>().FirstOrDefault();
                     if (summaryBand == null)
@@ -434,40 +470,59 @@ namespace InventorySystem.Reports.FastReport.Services
                 string rowNo = (row + 1).ToString("00");
                 
                 // 項目名
-                var labelObj = new TextObject();
-                labelObj.Name = $"Row{rowNo}_Label";
-                labelObj.Left = 0;
-                labelObj.Top = top;
-                labelObj.Width = labelWidth;
-                labelObj.Height = rowHeight;
-                labelObj.Text = itemNames[row];
-                labelObj.Font = new Font("MS Gothic", 9);
+                var labelObj = new TextObject
+                {
+                    Name = $"Row{rowNo}_Label",
+                    Left = 0,
+                    Top = top,
+                    Width = labelWidth,
+                    Height = rowHeight,
+                    Text = itemNames[row],  // 静的な値
+                    Font = new Font("ＭＳ ゴシック", 9),
+                    // 式評価を無効化
+                    AllowExpressions = false,
+                    Brackets = ""
+                };
                 labelObj.Parent = summaryBand;
                 
                 // 合計
-                var totalObj = new TextObject();
-                totalObj.Name = $"Row{rowNo}_Total";
-                totalObj.Left = labelWidth;
-                totalObj.Top = top;
-                totalObj.Width = colWidth;
-                totalObj.Height = rowHeight;
-                totalObj.Text = "0";
-                totalObj.Font = new Font("MS Gothic", 9);
-                totalObj.HorzAlign = HorzAlign.Right;
+                var totalObj = new TextObject
+                {
+                    Name = $"Row{rowNo}_Total",
+                    Left = labelWidth,
+                    Top = top,
+                    Width = colWidth,
+                    Height = rowHeight,
+                    Text = "0",  // 静的な値
+                    Font = new Font("ＭＳ ゴシック", 9),
+                    HorzAlign = HorzAlign.Right,
+                    // 式評価を無効化
+                    AllowExpressions = false,
+                    Brackets = ""
+                };
+                totalObj.Border.Lines = BorderLines.All;
+                totalObj.Border.Width = 0.5f;
                 totalObj.Parent = summaryBand;
                 
                 // 8分類
                 for (int col = 1; col <= 8; col++)
                 {
-                    var classObj = new TextObject();
-                    classObj.Name = $"Row{rowNo}_Class{col:00}";
-                    classObj.Left = labelWidth + col * colWidth;
-                    classObj.Top = top;
-                    classObj.Width = colWidth;
-                    classObj.Height = rowHeight;
-                    classObj.Text = "0";
-                    classObj.Font = new Font("MS Gothic", 9);
-                    classObj.HorzAlign = HorzAlign.Right;
+                    var classObj = new TextObject
+                    {
+                        Name = $"Row{rowNo}_Class{col:00}",
+                        Left = labelWidth + col * colWidth,
+                        Top = top,
+                        Width = colWidth,
+                        Height = rowHeight,
+                        Text = "0",  // 静的な値
+                        Font = new Font("ＭＳ ゴシック", 9),
+                        HorzAlign = HorzAlign.Right,
+                        // 式評価を無効化
+                        AllowExpressions = false,
+                        Brackets = ""
+                    };
+                    classObj.Border.Lines = BorderLines.All;
+                    classObj.Border.Width = 0.5f;
                     classObj.Parent = summaryBand;
                 }
             }
@@ -568,7 +623,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     var rowNo = (row + 1).ToString("00");
                     
                     // 合計
-                    var totalObj = page.FindObject($"Row{rowNo}_Total") as TextObject;
+                    var totalObj = FindTextObject(page, $"Row{rowNo}_Total");
                     if (totalObj != null)
                     {
                         totalObj.Text = FormatNumber((decimal)dataRow["Total"]);
@@ -577,7 +632,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     // 8分類
                     for (int col = 1; col <= 8; col++)
                     {
-                        var classObj = page.FindObject($"Row{rowNo}_Class{col:00}") as TextObject;
+                        var classObj = FindTextObject(page, $"Row{rowNo}_Class{col:00}");
                         if (classObj != null)
                         {
                             classObj.Text = FormatNumber((decimal)dataRow[$"Class{col:00}"]);
@@ -591,6 +646,29 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 _logger.LogWarning($"レポートデータ設定時の警告: {ex.Message}");
             }
+        }
+
+        private TextObject FindTextObject(ReportPage page, string objectName)
+        {
+            var textObj = page.FindObject(objectName) as TextObject;
+            if (textObj == null)
+            {
+                // ReportSummaryBand内も検索
+                var summaryBand = page.AllObjects.OfType<ReportSummaryBand>().FirstOrDefault();
+                if (summaryBand != null)
+                {
+                    textObj = summaryBand.AllObjects
+                        .OfType<TextObject>()
+                        .FirstOrDefault(t => t.Name == objectName);
+                }
+            }
+
+            if (textObj == null)
+            {
+                _logger.LogDebug($"TextObject '{objectName}' が見つかりません");
+            }
+            
+            return textObj;
         }
 
         private string FormatNumber(decimal value)
