@@ -3,6 +3,7 @@
 
 using FastReport;
 using FastReport.Export.Pdf;
+using FastReport.Utils;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Reports.Interfaces;
@@ -385,7 +386,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     foreach (var dataBand in dataBands)
                     {
                         _logger.LogInformation($"DataBandを削除しました: {dataBand.Name}");
-                        page.Objects.Remove(dataBand);
+                        page.Children.Remove(dataBand);
                     }
                     
                     // ReportSummaryBandがない場合は作成
@@ -395,7 +396,7 @@ namespace InventorySystem.Reports.FastReport.Services
                         summaryBand = new ReportSummaryBand();
                         summaryBand.Name = "ReportSummary1";
                         summaryBand.Height = Units.Millimeters * 302.4f; // 16行×18.9mm
-                        page.Objects.Add(summaryBand);
+                        page.Children.Add(summaryBand);
                         _logger.LogInformation("ReportSummaryBandを作成しました");
                     }
                     
