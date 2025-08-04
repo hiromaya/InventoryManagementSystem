@@ -387,10 +387,8 @@ namespace InventorySystem.Reports.FastReport.Services
                     foreach (var dataBand in dataBands)
                     {
                         _logger.LogInformation($"DataBandを削除しました: {dataBand.Name}");
-                        if (dataBand.Parent != null)
-                        {
-                            dataBand.Parent.Objects.Remove(dataBand);
-                        }
+                        // DataBandを削除（親から取り除く）
+                        dataBand.Dispose();
                     }
                     
                     // ReportSummaryBandがない場合は作成
@@ -400,7 +398,7 @@ namespace InventorySystem.Reports.FastReport.Services
                         summaryBand = new ReportSummaryBand();
                         summaryBand.Name = "ReportSummary1";
                         summaryBand.Height = 302.4f; // 16行×18.9mm
-                        page.Objects.Add(summaryBand);
+                        summaryBand.Parent = page;
                         _logger.LogInformation("ReportSummaryBandを作成しました");
                     }
                     
@@ -444,7 +442,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 labelObj.Height = rowHeight;
                 labelObj.Text = itemNames[row];
                 labelObj.Font = new Font("MS Gothic", 9);
-                summaryBand.Objects.Add(labelObj);
+                labelObj.Parent = summaryBand;
                 
                 // 合計
                 var totalObj = new TextObject();
@@ -456,7 +454,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 totalObj.Text = "0";
                 totalObj.Font = new Font("MS Gothic", 9);
                 totalObj.HorzAlign = HorzAlign.Right;
-                summaryBand.Objects.Add(totalObj);
+                totalObj.Parent = summaryBand;
                 
                 // 8分類
                 for (int col = 1; col <= 8; col++)
@@ -470,7 +468,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     classObj.Text = "0";
                     classObj.Font = new Font("MS Gothic", 9);
                     classObj.HorzAlign = HorzAlign.Right;
-                    summaryBand.Objects.Add(classObj);
+                    classObj.Parent = summaryBand;
                 }
             }
             
