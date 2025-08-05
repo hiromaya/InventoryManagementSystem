@@ -64,9 +64,11 @@ namespace InventorySystem.Core.Services
                 _logger.LogInformation("PDFを生成しています...");
                 var pdfBytes = _reportService.GenerateBusinessDailyReport(reportData, jobDate);
 
-                // 9. ファイル保存
-                var fileName = $"business_daily_report_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf";
-                var outputPath = await _fileManagementService.SaveReportAsync(pdfBytes, fileName, jobDate);
+                // 9. ファイル保存（他の帳票と統一）
+                var outputPath = await _fileManagementService.GetReportOutputPathAsync("BusinessDailyReport", jobDate, "pdf");
+                await File.WriteAllBytesAsync(outputPath, pdfBytes);
+                
+                _logger.LogInformation("営業日報ファイルを保存しました: {FilePath}", outputPath);
 
                 stopwatch.Stop();
 

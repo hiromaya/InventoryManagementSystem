@@ -155,6 +155,14 @@ namespace InventorySystem.Reports.FastReport.Services
             var flatData = new List<BusinessDailyReportFlatRow>();
             var itemsList = items.ToList();
             
+            // デバッグ: 入力データの確認
+            _logger.LogInformation("入力データ確認: BusinessDailyReportItem件数={Count}", itemsList.Count);
+            foreach (var item in itemsList.Take(3))
+            {
+                _logger.LogDebug("入力データ: ClassificationCode={ClassCode}, CustomerClass={CustomerName}, SupplierClass={SupplierName}, DailyCashSales={DailyCashSales}", 
+                    item.ClassificationCode, item.CustomerClassName, item.SupplierClassName, item.DailyCashSales);
+            }
+            
             // 16行の固定項目
             string[] rowLabels = new[]
             {
@@ -183,6 +191,14 @@ namespace InventorySystem.Reports.FastReport.Services
                 };
                 
                 flatData.Add(row);
+            }
+            
+            // デバッグ: フラットデータ生成結果の確認
+            _logger.LogInformation("フラットデータ生成完了: {Count}行", flatData.Count);
+            foreach (var row in flatData.Take(3))
+            {
+                _logger.LogDebug("行{RowNumber}: ItemName={ItemName}, Total={Total}, Class01={Class01}", 
+                    row.RowNumber, row.ItemName, row.Total, row.Class01);
             }
             
             return flatData;
@@ -273,6 +289,10 @@ namespace InventorySystem.Reports.FastReport.Services
                     row.Class08
                 );
             }
+            
+            // デバッグ: DataTable作成結果の確認
+            _logger.LogInformation("DataTable作成完了: 行数={RowCount}, 列数={ColCount}", 
+                table.Rows.Count, table.Columns.Count);
             
             return table;
         }

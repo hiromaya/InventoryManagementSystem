@@ -115,7 +115,8 @@ namespace InventorySystem.Core.Services
         public string GetReportPath(DateTime date)
         {
             var rootPath = _settings.GetReportOutputPath();
-            return Path.Combine(rootPath, date.ToString("yyyy"), date.ToString("MM"));
+            // yyyy-MM形式のフォルダにする（2025-06 のように）
+            return Path.Combine(rootPath, date.ToString("yyyy-MM"));
         }
 
         /// <summary>
