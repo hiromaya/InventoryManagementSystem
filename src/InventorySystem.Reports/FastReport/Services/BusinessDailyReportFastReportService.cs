@@ -35,7 +35,22 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             try
             {
+                _logger.LogCritical("===== 営業日報デバッグ開始 =====");
                 _logger.LogInformation("営業日報PDF生成を開始します: JobDate={JobDate}", jobDate);
+
+                // 入力データ検証
+                var itemsList = items.ToList();
+                _logger.LogCritical("入力データ件数: {Count}", itemsList.Count);
+                
+                foreach (var item in itemsList)
+                {
+                    _logger.LogCritical("分類コード: {Code}, 現金売上: {Sales}, 掛売上: {Credit}, 得意先分類: {Customer}, 仕入先分類: {Supplier}", 
+                        item.ClassificationCode, 
+                        item.DailyCashSales, 
+                        item.DailyCreditSales,
+                        item.CustomerClassName,
+                        item.SupplierClassName);
+                }
 
                 if (!File.Exists(_templatePath))
                 {
@@ -55,24 +70,33 @@ namespace InventorySystem.Reports.FastReport.Services
                 SetScriptLanguageToNone(report);
                 
                 // フラットデータの作成（16行のデータ）
-                var flatData = CreateFlatReportData(items, jobDate);
+                var flatData = CreateFlatReportData(itemsList, jobDate);
                 
                 // DataTableの作成
                 var dataTable = CreateDataTable(flatData);
                 report.RegisterData(dataTable, "BusinessDailyReport");
                 
-                // データソースの有効化
+                // FastReport登録確認
+                _logger.LogCritical("===== FastReport登録確認 =====");
                 var dataSource = report.GetDataSource("BusinessDailyReport");
                 if (dataSource != null)
                 {
                     dataSource.Enabled = true;
-                    _logger.LogInformation("データソース登録確認: {Name}, 行数: {Count}", 
-                        dataSource.Name, dataSource.RowCount);
+                    _logger.LogCritical("DataSource: Name={Name}, Enabled={Enabled}, RowCount={Count}", 
+                        dataSource.Name, dataSource.Enabled, dataSource.RowCount);
                 }
                 else
                 {
-                    _logger.LogError("データソース登録失敗: 'BusinessDailyReport' が見つかりません");
+                    _logger.LogCritical("エラー: DataSource 'BusinessDailyReport' が登録されていません");
                     throw new InvalidOperationException("データソースの登録に失敗しました");
+                }
+
+                // 登録されているすべてのデータソースを確認
+                _logger.LogCritical("登録済みDataSource一覧:");
+                foreach (var ds in report.Dictionary.DataSources)
+                {
+                    _logger.LogCritical("  - {Name} (Type: {Type}, Enabled: {Enabled})", 
+                        ds.Name, ds.GetType().Name, ds.Enabled);
                 }
                 
                 // 分類名をパラメータとして設定
@@ -83,7 +107,38 @@ namespace InventorySystem.Reports.FastReport.Services
                 report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日HH時mm分"));
                 
                 _logger.LogInformation("レポートを準備中...");
+                
+                // デバッグモード: レポート定義を保存
+#if DEBUG
+                try
+                {
+                    var debugReportPath = Path.Combine(
+                        AppDomain.CurrentDomain.BaseDirectory, 
+                        $"debug_business_daily_report_{DateTime.Now:yyyyMMddHHmmss}.frx");
+                    report.Save(debugReportPath);
+                    _logger.LogCritical("デバッグ: レポート定義を保存しました: {Path}", debugReportPath);
+                }
+                catch (Exception debugEx)
+                {
+                    _logger.LogCritical("デバッグ: レポート定義保存エラー: {Message}", debugEx.Message);
+                }
+                
+                // デバッグモード: プレビューを有効化
+                report.Preview = true;
+                _logger.LogCritical("デバッグ: Preview モードを有効化しました");
+#endif
+                
                 report.Prepare();
+                
+                // デバッグ: Prepare後のレポート状態確認
+                _logger.LogCritical("===== Prepare後のレポート状態 =====");
+                _logger.LogCritical("Pages.Count: {Count}", report.Pages.Count);
+                _logger.LogCritical("PreparedPages.Count: {Count}", report.PreparedPages.Count);
+                
+                if (report.PreparedPages.Count == 0)
+                {
+                    _logger.LogCritical("エラー: PreparedPages が0件です。データが正しく処理されていません。");
+                }
                 
                 // PDF出力
                 using var pdfExport = new PDFExport
@@ -194,11 +249,12 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             
             // デバッグ: フラットデータ生成結果の確認
-            _logger.LogInformation("フラットデータ生成完了: {Count}行", flatData.Count);
-            foreach (var row in flatData.Take(3))
+            _logger.LogCritical("===== フラットデータ生成結果 =====");
+            _logger.LogCritical("生成された行数: {Count}", flatData.Count);
+            foreach (var row in flatData)
             {
-                _logger.LogDebug("行{RowNumber}: ItemName={ItemName}, Total={Total}, Class01={Class01}", 
-                    row.RowNumber, row.ItemName, row.Total, row.Class01);
+                _logger.LogCritical("行{No}: {ItemName} => Total:{Total}, Class01:{C1}, Class02:{C2}", 
+                    row.RowNumber, row.ItemName, row.Total, row.Class01, row.Class02);
             }
             
             return flatData;
@@ -209,6 +265,7 @@ namespace InventorySystem.Reports.FastReport.Services
             var itemsList = items.ToList();
             
             // 分類名を取得してパラメータに設定
+            _logger.LogCritical("===== パラメータ設定確認 =====");
             for (int i = 1; i <= 8; i++)
             {
                 var classCode = i.ToString("000");
@@ -219,6 +276,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 report.SetParameterValue($"CustomerClass{i:00}", customerName);
                 report.SetParameterValue($"SupplierClass{i:00}", supplierName);
+                
+                _logger.LogCritical("分類{i}: 得意先={Customer}, 仕入先={Supplier}", 
+                    i, customerName, supplierName);
             }
         }
 
@@ -291,8 +351,20 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             
             // デバッグ: DataTable作成結果の確認
-            _logger.LogInformation("DataTable作成完了: 行数={RowCount}, 列数={ColCount}", 
-                table.Rows.Count, table.Columns.Count);
+            _logger.LogCritical("===== DataTable生成結果 =====");
+            _logger.LogCritical("行数: {Rows}, 列数: {Columns}", table.Rows.Count, table.Columns.Count);
+
+            // カラム名の確認
+            var columnNames = string.Join(", ", table.Columns.Cast<DataColumn>().Select(c => c.ColumnName));
+            _logger.LogCritical("カラム名: {Columns}", columnNames);
+
+            // データの確認
+            for (int i = 0; i < table.Rows.Count; i++)
+            {
+                var row = table.Rows[i];
+                _logger.LogCritical("Row[{i}]: ItemName={ItemName}, Total={Total}, Class01={Class01}", 
+                    i, row["ItemName"], row["Total"], row["Class01"]);
+            }
             
             return table;
         }

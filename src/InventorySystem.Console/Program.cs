@@ -31,9 +31,11 @@ using InventorySystem.Data.Services;
 using InventorySystem.Data.Services.Development;
 using InventorySystem.Console.Commands;
 
-// Program クラスの定義
-public class Program
+namespace InventorySystem.Console
 {
+    // Program クラスの定義
+    public class Program
+    {
     public static async Task<int> Main(string[] args)
     {
         // カルチャー設定（日付処理の一貫性を保つため）
@@ -387,6 +389,10 @@ try
             
         case "business-daily-report":
             await ExecuteBusinessDailyReportAsync(host.Services, args);
+            break;
+            
+        case "test-business-daily-report":
+            await TestBusinessDailyReportAsync();
             break;
             
         case "daily-report":
@@ -5198,114 +5204,133 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
                 logger.LogError(ex, "商品勘定処理（開発用）でエラーが発生しました");
             }
         }
-    }
 
-    /// <summary>
-    /// 在庫表処理（開発用）- アンマッチチェックをスキップ可能
-    /// </summary>
-    private static async Task ExecuteDevInventoryListAsync(IServiceProvider services, string[] args)
-    {
-        using (var scope = services.CreateScope())
+        /// <summary>
+        /// 在庫表処理（開発用）- アンマッチチェックをスキップ可能
+        /// </summary>
+        private static async Task ExecuteDevInventoryListAsync(IServiceProvider services, string[] args)
         {
-            var scopedServices = scope.ServiceProvider;
-            var logger = scopedServices.GetRequiredService<ILogger<Program>>();
-            
-            // ジョブ日付を取得
-            DateTime jobDate;
-            if (args.Length >= 2 && DateTime.TryParse(args[1], out jobDate))
+            using (var scope = services.CreateScope())
             {
-                logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
-            }
-            else
-            {
-                jobDate = DateTime.Today;
-                logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
-            }
-            
-            bool skipUnmatchCheck = args.Contains("--skip-unmatch-check");
-            
-            Console.WriteLine("=== 在庫表処理開始（開発用） ===");
-            Console.WriteLine($"対象日付: {jobDate:yyyy-MM-dd}");
-            if (skipUnmatchCheck)
-            {
-                Console.WriteLine("⚠️ アンマッチチェックはスキップされます（開発用）");
-            }
-            
-            try
-            {
-                // 在庫表処理の実装（現時点では既存のinventory-listコマンドを流用）
-                Console.WriteLine("🚧 在庫表処理は未実装です。既存のinventory-listコマンドを使用してください。");
-                Console.WriteLine("✅ 在庫表処理が完了しました（開発用モード）");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ エラーが発生しました: {ex.Message}");
-                logger.LogError(ex, "在庫表処理（開発用）でエラーが発生しました");
-            }
-        }
-    }
-
-    /// <summary>
-    /// 営業日報処理実行
-    /// </summary>
-    private static async Task ExecuteBusinessDailyReportAsync(IServiceProvider services, string[] args)
-    {
-        using (var scope = services.CreateScope())
-        {
-            var scopedServices = scope.ServiceProvider;
-            var logger = scopedServices.GetRequiredService<ILogger<Program>>();
-            var businessDailyReportService = scopedServices.GetRequiredService<InventorySystem.Core.Interfaces.IBusinessDailyReportService>();
-
-            if (args.Length < 2)
-            {
-                Console.WriteLine("❌ 日付が指定されていません");
-                Console.WriteLine("使用方法: dotnet run business-daily-report [YYYY-MM-DD]");
-                Console.WriteLine("例: dotnet run business-daily-report 2025-06-01");
-                return;
-            }
-
-            if (!DateTime.TryParse(args[1], out var jobDate))
-            {
-                Console.WriteLine($"❌ 日付の形式が正しくありません: {args[1]}");
-                Console.WriteLine("正しい形式: YYYY-MM-DD (例: 2025-06-01)");
-                return;
-            }
-
-            Console.WriteLine("=== 営業日報処理開始 ===");
-            Console.WriteLine($"対象日付: {jobDate:yyyy-MM-dd}");
-            Console.WriteLine();
-
-            try
-            {
-                var dataSetId = Guid.NewGuid().ToString();
-                var result = await businessDailyReportService.ExecuteAsync(jobDate, dataSetId);
-
-                if (result.Success)
+                var scopedServices = scope.ServiceProvider;
+                var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+                
+                // ジョブ日付を取得
+                DateTime jobDate;
+                if (args.Length >= 2 && DateTime.TryParse(args[1], out jobDate))
                 {
-                    Console.WriteLine("✅ 営業日報処理が正常に完了しました");
-                    Console.WriteLine($"📊 処理件数: {result.ProcessedCount}件");
-                    Console.WriteLine($"⏱️ 処理時間: {result.ProcessingTime.TotalSeconds:F2}秒");
-                    Console.WriteLine($"📁 出力ファイル: {result.OutputPath}");
-                    
-                    logger.LogInformation("営業日報処理が完了しました: JobDate={JobDate}, ProcessedCount={ProcessedCount}, OutputPath={OutputPath}", 
-                        jobDate, result.ProcessedCount, result.OutputPath);
+                    logger.LogInformation("指定されたジョブ日付: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
                 }
                 else
                 {
-                    Console.WriteLine("❌ 営業日報処理でエラーが発生しました");
-                    Console.WriteLine($"エラー: {result.ErrorMessage}");
-                    
-                    logger.LogError("営業日報処理でエラーが発生しました: JobDate={JobDate}, Error={Error}", 
-                        jobDate, result.ErrorMessage);
+                    jobDate = DateTime.Today;
+                    logger.LogInformation("デフォルトのジョブ日付を使用: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
                 }
+                
+                bool skipUnmatchCheck = args.Contains("--skip-unmatch-check");
+                
+                Console.WriteLine("=== 在庫表処理開始（開発用） ===");
+                Console.WriteLine($"対象日付: {jobDate:yyyy-MM-dd}");
+                if (skipUnmatchCheck)
+                {
+                    Console.WriteLine("⚠️ アンマッチチェックはスキップされます（開発用）");
+                }
+                
+                try
+                {
+                    // 在庫表処理の実装（現時点では既存のinventory-listコマンドを流用）
+                    Console.WriteLine("🚧 在庫表処理は未実装です。既存のinventory-listコマンドを使用してください。");
+                    Console.WriteLine("✅ 在庫表処理が完了しました（開発用モード）");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ エラーが発生しました: {ex.Message}");
+                    logger.LogError(ex, "在庫表処理（開発用）でエラーが発生しました");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 営業日報処理実行
+        /// </summary>
+        private static async Task ExecuteBusinessDailyReportAsync(IServiceProvider services, string[] args)
+        {
+            using (var scope = services.CreateScope())
+            {
+                var scopedServices = scope.ServiceProvider;
+                var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+                var businessDailyReportService = scopedServices.GetRequiredService<InventorySystem.Core.Interfaces.IBusinessDailyReportService>();
+
+                if (args.Length < 2)
+                {
+                    Console.WriteLine("❌ 日付が指定されていません");
+                    Console.WriteLine("使用方法: dotnet run business-daily-report [YYYY-MM-DD]");
+                    Console.WriteLine("例: dotnet run business-daily-report 2025-06-01");
+                    return;
+                }
+
+                if (!DateTime.TryParse(args[1], out var jobDate))
+                {
+                    Console.WriteLine($"❌ 日付の形式が正しくありません: {args[1]}");
+                    Console.WriteLine("正しい形式: YYYY-MM-DD (例: 2025-06-01)");
+                    return;
+                }
+
+                Console.WriteLine("=== 営業日報処理開始 ===");
+                Console.WriteLine($"対象日付: {jobDate:yyyy-MM-dd}");
+                Console.WriteLine();
+
+                try
+                {
+                    var dataSetId = Guid.NewGuid().ToString();
+                    var result = await businessDailyReportService.ExecuteAsync(jobDate, dataSetId);
+
+                    if (result.Success)
+                    {
+                        Console.WriteLine("✅ 営業日報処理が正常に完了しました");
+                        Console.WriteLine($"📊 処理件数: {result.ProcessedCount}件");
+                        Console.WriteLine($"⏱️ 処理時間: {result.ProcessingTime.TotalSeconds:F2}秒");
+                        Console.WriteLine($"📁 出力ファイル: {result.OutputPath}");
+                        
+                        logger.LogInformation("営業日報処理が完了しました: JobDate={JobDate}, ProcessedCount={ProcessedCount}, OutputPath={OutputPath}", 
+                            jobDate, result.ProcessedCount, result.OutputPath);
+                    }
+                    else
+                    {
+                        Console.WriteLine("❌ 営業日報処理でエラーが発生しました");
+                        Console.WriteLine($"エラー: {result.ErrorMessage}");
+                        
+                        logger.LogError("営業日報処理でエラーが発生しました: JobDate={JobDate}, Error={Error}", 
+                            jobDate, result.ErrorMessage);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ 予期しないエラーが発生しました: {ex.Message}");
+                    logger.LogError(ex, "営業日報処理で予期しないエラーが発生しました: JobDate={JobDate}", jobDate);
+                }
+
+                Console.WriteLine("=== 営業日報処理終了 ===");
+            }
+        }
+
+        private static async Task TestBusinessDailyReportAsync()
+        {
+            Console.WriteLine("=== 営業日報テストデータ生成開始 ===");
+            
+            var services = BuildServiceProvider();
+            
+            try
+            {
+                await TestBusinessDailyReport.RunTest(services);
+                Console.WriteLine("✅ 営業日報テストデータ生成が完了しました");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ 予期しないエラーが発生しました: {ex.Message}");
-                logger.LogError(ex, "営業日報処理で予期しないエラーが発生しました: JobDate={JobDate}", jobDate);
+                Console.WriteLine($"❌ 営業日報テストデータ生成でエラーが発生しました: {ex.Message}");
             }
-
-            Console.WriteLine("=== 営業日報処理終了 ===");
+            
+            Console.WriteLine("=== 営業日報テストデータ生成終了 ===");
         }
     }
 }
