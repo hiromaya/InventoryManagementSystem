@@ -17,7 +17,7 @@ namespace InventorySystem.Console.Commands
 
         public AnalyzePrimaryKeyChangeCommand(IConfiguration configuration, ILogger<AnalyzePrimaryKeyChangeCommand> logger)
         {
-            _connectionString = configuration.GetConnectionString("DefaultConnection") 
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("接続文字列が設定されていません");
             _logger = logger;
         }
@@ -42,10 +42,10 @@ namespace InventorySystem.Console.Commands
                 FROM InventoryMaster
                 GROUP BY JobDate
                 ORDER BY JobDate DESC");
-            
+
             foreach (var item in jobDateCounts)
             {
-                _logger.LogInformation("  JobDate: {JobDate:yyyy-MM-dd}, レコード数: {Count}", 
+                _logger.LogInformation("  JobDate: {JobDate:yyyy-MM-dd}, レコード数: {Count}",
                     (DateTime)item.JobDate, (int)item.RecordCount);
             }
 
@@ -106,7 +106,7 @@ namespace InventorySystem.Console.Commands
                 SELECT COUNT(DISTINCT ProductCode + '|' + GradeCode + '|' + ClassCode + '|' + 
                                     ShippingMarkCode + '|' + ShippingMarkName) 
                 FROM InventoryMaster");
-            
+
             var reductionCount = totalRecords - uniqueKeys;
             var reductionRate = totalRecords > 0 ? (double)reductionCount / totalRecords * 100 : 0;
 
@@ -117,7 +117,7 @@ namespace InventorySystem.Console.Commands
             _logger.LogInformation("  削減率: {Rate:F1}%", reductionRate);
 
             _logger.LogInformation("========== 分析完了 ==========");
-            
+
             _logger.LogWarning("【重要】この分析結果を基に、以下を検討してください：");
             _logger.LogWarning("1. 履歴データの保存が必要かどうか");
             _logger.LogWarning("2. 最新データのみで業務に影響がないか");

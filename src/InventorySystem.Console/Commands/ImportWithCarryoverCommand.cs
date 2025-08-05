@@ -67,19 +67,19 @@ public class ImportWithCarryoverCommand
             // 1. 最終処理日を取得
             var lastProcessedDate = await _inventoryRepository.GetMaxJobDateAsync();
             _logger.LogInformation("最終処理日: {Date:yyyy-MM-dd}", lastProcessedDate);
-            
+
             // 2. 処理対象日を決定（最終処理日の翌日）
             var targetDate = lastProcessedDate.AddDays(1);
             _logger.LogInformation("処理対象日: {Date:yyyy-MM-dd}", targetDate);
-            
+
             // 3. DataSetIdを生成
             // ⭐ Phase 2-B: ITimeProvider使用（JST統一）
             var dataSetId = $"CARRYOVER_{targetDate:yyyyMMdd}_{_timeProvider.Now:HHmmss}_{GenerateRandomString(6)}";
             _logger.LogInformation("DataSetId: {DataSetId}", dataSetId);
-            
+
             // 4. 現在の在庫マスタ全データを取得（最新の有効データ）
             List<InventoryMaster> currentInventory;
-            
+
             // 最終処理日が基準日（2025-05-31）の場合、INITデータを検索
             if (lastProcessedDate == new DateTime(2025, 5, 31))
             {
@@ -87,7 +87,7 @@ public class ImportWithCarryoverCommand
                 currentInventory = (await _inventoryRepository.GetByImportTypeAsync("INIT"))
                     .Where(x => x.IsActive)
                     .ToList();
-                    
+
                 if (!currentInventory.Any())
                 {
                     _logger.LogWarning("前月末在庫が見つかりません。init-inventoryコマンドを先に実行してください。");
@@ -100,17 +100,17 @@ public class ImportWithCarryoverCommand
                 // 通常処理：全有効在庫データを取得
                 currentInventory = await _inventoryRepository.GetAllActiveInventoryAsync();
             }
-            
+
             _logger.LogInformation("現在の在庫マスタ: {Count}件", currentInventory.Count);
-            
+
             // 5. 処理対象日の伝票データを取得
             var salesVouchers = (await _salesVoucherRepository.GetByJobDateAsync(targetDate)).ToList();
             var purchaseVouchers = (await _purchaseVoucherRepository.GetByJobDateAsync(targetDate)).ToList();
             var adjustmentVouchers = (await _adjustmentRepository.GetByJobDateAsync(targetDate)).ToList();
-            
+
             _logger.LogInformation("当日伝票数 - 売上: {Sales}件, 仕入: {Purchase}件, 在庫調整: {Adjustment}件",
                 salesVouchers.Count, purchaseVouchers.Count, adjustmentVouchers.Count);
-            
+
             // 6. 在庫計算処理
             var mergedInventory = await CalculateInventoryAsync(
                 currentInventory,
@@ -120,9 +120,9 @@ public class ImportWithCarryoverCommand
                 targetDate,
                 dataSetId
             );
-            
+
             _logger.LogInformation("計算後の在庫: {Count}件", mergedInventory.Count);
-            
+
             // 7. DataSetManagementエンティティを作成
             // ⭐ Phase 2-B: ファクトリパターン使用（Gemini推奨）
             var dataSetManagement = _dataSetFactory.CreateForCarryover(
@@ -132,15 +132,15 @@ public class ImportWithCarryoverCommand
                 mergedInventory.Count,
                 parentDataSetId: currentInventory.FirstOrDefault()?.DataSetId,
                 notes: $"前日在庫引継: {currentInventory.Count}件");
-            
+
             // 8. トランザクション内でMERGE処理とDataSetManagement登録を実行
             var affectedRows = await _inventoryRepository.ProcessCarryoverInTransactionAsync(
-                mergedInventory, 
-                targetDate, 
+                mergedInventory,
+                targetDate,
                 dataSetId,
                 dataSetManagement
             );
-            
+
             // 9. 最終取引日を更新
             if (salesVouchers.Any())
             {
@@ -154,7 +154,7 @@ public class ImportWithCarryoverCommand
                     _logger.LogWarning(updateEx, "最終売上日の更新に失敗しました。処理は継続します。");
                 }
             }
-            
+
             if (purchaseVouchers.Any())
             {
                 try
@@ -167,20 +167,20 @@ public class ImportWithCarryoverCommand
                     _logger.LogWarning(updateEx, "最終仕入日の更新に失敗しました。処理は継続します。");
                 }
             }
-            
+
             // 10. Process 2-5の実行（伝票データがある場合のみ）
             var hasVoucherData = salesVouchers.Any() || purchaseVouchers.Any() || adjustmentVouchers.Any();
             if (hasVoucherData)
             {
                 _logger.LogInformation("Process 2-5: 売上伝票への在庫単価書込・粗利計算を開始");
                 System.Console.WriteLine("\n--- Process 2-5: 売上伝票への在庫単価書込・粗利計算 ---");
-                
+
                 try
                 {
                     var stopwatch = System.Diagnostics.Stopwatch.StartNew();
                     await _grossProfitCalculationService.ExecuteProcess25Async(targetDate, dataSetId);
                     stopwatch.Stop();
-                    
+
                     System.Console.WriteLine($"✅ Process 2-5完了 ({stopwatch.ElapsedMilliseconds}ms)");
                     _logger.LogInformation("Process 2-5が完了しました: 処理時間={ElapsedMs}ms", stopwatch.ElapsedMilliseconds);
                 }
@@ -196,7 +196,7 @@ public class ImportWithCarryoverCommand
                 _logger.LogInformation("Process 2-5スキップ: 伝票データが0件のため");
                 System.Console.WriteLine("⚠️ Process 2-5スキップ: 伝票データが0件");
             }
-            
+
             // 11. 完了メッセージ
             System.Console.WriteLine($"\n===== 在庫引継インポート完了 =====");
             System.Console.WriteLine($"処理対象日: {targetDate:yyyy-MM-dd}");
@@ -205,7 +205,7 @@ public class ImportWithCarryoverCommand
             System.Console.WriteLine($"売上伝票: {salesVouchers.Count}件");
             System.Console.WriteLine($"仕入伝票: {purchaseVouchers.Count}件");
             System.Console.WriteLine($"在庫調整: {adjustmentVouchers.Count}件");
-            
+
             _logger.LogInformation("在庫引継インポートが正常に完了しました");
         }
         catch (Exception ex)
@@ -215,7 +215,7 @@ public class ImportWithCarryoverCommand
             throw;
         }
     }
-    
+
     /// <summary>
     /// 在庫計算メソッド（新規追加）
     /// </summary>
@@ -250,7 +250,7 @@ public class ImportWithCarryoverCommand
                 PreviousMonthAmount = i.PreviousMonthAmount
             }
         );
-        
+
         // 売上伝票の反映（在庫減少）
         foreach (var sales in salesVouchers)
         {
@@ -274,12 +274,12 @@ public class ImportWithCarryoverCommand
                         sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode);
                     continue; // 在庫マスタには登録しない
                 }
-                
+
                 // マスタに存在する場合のみ登録
                 inventoryDict[key] = CreateNewInventory(sales, targetDate, dataSetId, -sales.Quantity, -sales.Amount);
             }
         }
-        
+
         // 仕入伝票の反映（在庫増加）
         foreach (var purchase in purchaseVouchers)
         {
@@ -303,12 +303,12 @@ public class ImportWithCarryoverCommand
                         purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode);
                     continue; // 在庫マスタには登録しない
                 }
-                
+
                 // マスタに存在する場合のみ登録
                 inventoryDict[key] = CreateNewInventory(purchase, targetDate, dataSetId, purchase.Quantity, purchase.Amount);
             }
         }
-        
+
         // 在庫調整の反映（区分1, 4, 6のみ）
         foreach (var adj in adjustmentVouchers.Where(a => a.CategoryCode == 1 || a.CategoryCode == 4 || a.CategoryCode == 6))
         {
@@ -332,15 +332,15 @@ public class ImportWithCarryoverCommand
                         adj.ProductCode, adj.GradeCode, adj.ClassCode, adj.ShippingMarkCode);
                     continue; // 在庫マスタには登録しない
                 }
-                
+
                 // マスタに存在する場合のみ登録
                 inventoryDict[key] = CreateNewInventory(adj, targetDate, dataSetId, adj.Quantity, adj.Amount);
             }
         }
-        
+
         return inventoryDict.Values.ToList();
     }
-    
+
     /// <summary>
     /// 新規在庫レコードを作成（売上伝票用）
     /// </summary>
@@ -374,7 +374,7 @@ public class ImportWithCarryoverCommand
             PreviousMonthAmount = 0
         };
     }
-    
+
     /// <summary>
     /// 新規在庫レコードを作成（仕入伝票用）
     /// </summary>
@@ -408,7 +408,7 @@ public class ImportWithCarryoverCommand
             PreviousMonthAmount = 0
         };
     }
-    
+
     /// <summary>
     /// 新規在庫レコードを作成（在庫調整用）
     /// </summary>
@@ -442,7 +442,7 @@ public class ImportWithCarryoverCommand
             PreviousMonthAmount = 0
         };
     }
-    
+
     /// <summary>
     /// すべてのマスタに存在するかチェック（売上伝票用）
     /// </summary>
@@ -456,7 +456,7 @@ public class ImportWithCarryoverCommand
                 _logger.LogDebug("商品コード'00000'は除外対象: ProductCode={Code}", voucher.ProductCode);
                 return false;
             }
-            
+
             // 商品マスタチェック
             var product = await _productMasterRepository.GetByCodeAsync(voucher.ProductCode);
             if (product == null)
@@ -464,7 +464,7 @@ public class ImportWithCarryoverCommand
                 _logger.LogDebug("商品マスタ未登録: ProductCode={Code}", voucher.ProductCode);
                 return false;
             }
-            
+
             // 等級マスタチェック（コード000は許可）
             if (voucher.GradeCode != "000")
             {
@@ -475,7 +475,7 @@ public class ImportWithCarryoverCommand
                     return false;
                 }
             }
-            
+
             // 階級マスタチェック（コード000は許可）
             if (voucher.ClassCode != "000")
             {
@@ -486,7 +486,7 @@ public class ImportWithCarryoverCommand
                     return false;
                 }
             }
-            
+
             // 荷印マスタチェック（コード0000は許可）
             if (voucher.ShippingMarkCode != "0000")
             {
@@ -497,7 +497,7 @@ public class ImportWithCarryoverCommand
                     return false;
                 }
             }
-            
+
             return true;
         }
         catch (Exception ex)
@@ -520,7 +520,7 @@ public class ImportWithCarryoverCommand
                 _logger.LogDebug("商品コード'00000'は除外対象: ProductCode={Code}", voucher.ProductCode);
                 return false;
             }
-            
+
             // 商品マスタチェック
             var product = await _productMasterRepository.GetByCodeAsync(voucher.ProductCode);
             if (product == null)
@@ -528,7 +528,7 @@ public class ImportWithCarryoverCommand
                 _logger.LogDebug("商品マスタ未登録: ProductCode={Code}", voucher.ProductCode);
                 return false;
             }
-            
+
             // 等級マスタチェック（コード000は許可）
             if (voucher.GradeCode != "000")
             {
@@ -539,7 +539,7 @@ public class ImportWithCarryoverCommand
                     return false;
                 }
             }
-            
+
             // 階級マスタチェック（コード000は許可）
             if (voucher.ClassCode != "000")
             {
@@ -550,7 +550,7 @@ public class ImportWithCarryoverCommand
                     return false;
                 }
             }
-            
+
             // 荷印マスタチェック（コード0000は許可）
             if (voucher.ShippingMarkCode != "0000")
             {
@@ -561,7 +561,7 @@ public class ImportWithCarryoverCommand
                     return false;
                 }
             }
-            
+
             return true;
         }
         catch (Exception ex)
@@ -584,7 +584,7 @@ public class ImportWithCarryoverCommand
                 _logger.LogDebug("商品コード'00000'は除外対象: ProductCode={Code}", voucher.ProductCode);
                 return false;
             }
-            
+
             // 商品マスタチェック
             var product = await _productMasterRepository.GetByCodeAsync(voucher.ProductCode);
             if (product == null)
@@ -592,7 +592,7 @@ public class ImportWithCarryoverCommand
                 _logger.LogDebug("商品マスタ未登録: ProductCode={Code}", voucher.ProductCode);
                 return false;
             }
-            
+
             // 等級マスタチェック（コード000は許可）
             if (voucher.GradeCode != "000")
             {
@@ -603,7 +603,7 @@ public class ImportWithCarryoverCommand
                     return false;
                 }
             }
-            
+
             // 階級マスタチェック（コード000は許可）
             if (voucher.ClassCode != "000")
             {
@@ -614,7 +614,7 @@ public class ImportWithCarryoverCommand
                     return false;
                 }
             }
-            
+
             // 荷印マスタチェック（コード0000は許可）
             if (voucher.ShippingMarkCode != "0000")
             {
@@ -625,7 +625,7 @@ public class ImportWithCarryoverCommand
                     return false;
                 }
             }
-            
+
             return true;
         }
         catch (Exception ex)
@@ -655,14 +655,14 @@ public class InventoryKeyEqualityComparer : IEqualityComparer<InventoryKey>
     public bool Equals(InventoryKey? x, InventoryKey? y)
     {
         if (x == null || y == null) return false;
-        
+
         return x.ProductCode == y.ProductCode &&
                x.GradeCode == y.GradeCode &&
                x.ClassCode == y.ClassCode &&
                x.ShippingMarkCode == y.ShippingMarkCode &&
                x.ShippingMarkName == y.ShippingMarkName;
     }
-    
+
     public int GetHashCode(InventoryKey obj)
     {
         return HashCode.Combine(

@@ -27,7 +27,7 @@ public class ImportInitialInventoryCommand
         _serviceProvider = serviceProvider;
         _logger = logger;
         _configuration = configuration;
-        
+
         // パスを直接設定
         _importPath = @"D:\InventoryImport\{Department}\Import";
         _processedPath = @"D:\InventoryImport\{Department}\Processed";
@@ -48,14 +48,14 @@ public class ImportInitialInventoryCommand
             var importPath = _importPath.Replace("{Department}", department);
             var processedPath = _processedPath.Replace("{Department}", department);
             var errorPath = _errorPath.Replace("{Department}", department);
-            
+
             // ディレクトリの存在確認
             if (!Directory.Exists(importPath))
             {
                 Directory.CreateDirectory(importPath);
                 _logger.LogWarning($"Importディレクトリを作成しました: {importPath}");
             }
-            
+
             _logger.LogInformation("インポートパス: {ImportPath}", importPath);
             _logger.LogInformation("処理済みパス: {ProcessedPath}", processedPath);
             _logger.LogInformation("エラーパス: {ErrorPath}", errorPath);

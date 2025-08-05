@@ -11,9 +11,9 @@ namespace InventorySystem.Console
         {
             var logger = services.GetRequiredService<ILogger<Program>>();
             var reportService = services.GetRequiredService<IBusinessDailyReportReportService>();
-            
+
             logger.LogCritical("===== 営業日報テストデータ生成開始 =====");
-            
+
             // テストデータ作成
             var testItems = new List<BusinessDailyReportItem>
             {
@@ -84,29 +84,29 @@ namespace InventorySystem.Console
                     DailyOtherPayment = 450
                 }
             };
-            
+
             logger.LogCritical("テストデータ作成完了: {Count}件", testItems.Count);
             foreach (var item in testItems)
             {
-                logger.LogCritical("テストデータ: {Code} - {Customer} / {Supplier} - 現金売上: {Cash}", 
+                logger.LogCritical("テストデータ: {Code} - {Customer} / {Supplier} - 現金売上: {Cash}",
                     item.ClassificationCode, item.CustomerClassName, item.SupplierClassName, item.DailyCashSales);
             }
-            
+
             try
             {
                 var testDate = DateTime.Today;
                 logger.LogCritical("PDF生成開始: JobDate={Date}", testDate);
-                
+
                 var pdfBytes = reportService.GenerateBusinessDailyReport(testItems, testDate);
-                
+
                 var outputPath = Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory, 
+                    AppDomain.CurrentDomain.BaseDirectory,
                     $"test_business_daily_report_{DateTime.Now:yyyyMMddHHmmss}.pdf");
-                
+
                 await File.WriteAllBytesAsync(outputPath, pdfBytes);
-                
+
                 logger.LogCritical("テスト営業日報生成完了: {Path}, サイズ: {Size}bytes", outputPath, pdfBytes.Length);
-                
+
                 // ファイルの存在確認
                 if (File.Exists(outputPath))
                 {
@@ -119,7 +119,7 @@ namespace InventorySystem.Console
                 logger.LogCritical(ex, "テスト営業日報生成エラー: {Message}", ex.Message);
                 throw;
             }
-            
+
             logger.LogCritical("===== 営業日報テストデータ生成終了 =====");
         }
     }
