@@ -27,6 +27,8 @@ namespace InventorySystem.Reports.FastReport.Services
             _logger = logger;
             var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
             _templatePath = Path.Combine(baseDirectory, "FastReport", "Templates", "BusinessDailyReport.frx");
+            
+            _logger.LogInformation("営業日報テンプレートパス: {Path}", _templatePath);
         }
 
         public byte[] GenerateBusinessDailyReport(IEnumerable<BusinessDailyReportItem> items, DateTime jobDate)
