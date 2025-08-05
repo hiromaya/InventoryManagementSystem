@@ -95,8 +95,11 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogCritical("登録済みDataSource一覧:");
                 foreach (var ds in report.Dictionary.DataSources)
                 {
+                    // DataSourceの型によって適切にキャストして情報を取得
+                    var name = ds.GetType().GetProperty("Name")?.GetValue(ds)?.ToString() ?? "Unknown";
+                    var enabled = ds.GetType().GetProperty("Enabled")?.GetValue(ds)?.ToString() ?? "Unknown";
                     _logger.LogCritical("  - {Name} (Type: {Type}, Enabled: {Enabled})", 
-                        ds.Name, ds.GetType().Name, ds.Enabled);
+                        name, ds.GetType().Name, enabled);
                 }
                 
                 // 分類名をパラメータとして設定
@@ -123,9 +126,24 @@ namespace InventorySystem.Reports.FastReport.Services
                     _logger.LogCritical("デバッグ: レポート定義保存エラー: {Message}", debugEx.Message);
                 }
                 
-                // デバッグモード: プレビューを有効化
-                report.Preview = true;
-                _logger.LogCritical("デバッグ: Preview モードを有効化しました");
+                // デバッグモード: プレビューを有効化（Windows環境のみ）
+                try
+                {
+                    var previewProperty = report.GetType().GetProperty("ShowPreparedReport");
+                    if (previewProperty != null)
+                    {
+                        previewProperty.SetValue(report, true);
+                        _logger.LogCritical("デバッグ: ShowPreparedReport を有効化しました");
+                    }
+                    else
+                    {
+                        _logger.LogCritical("デバッグ: ShowPreparedReport プロパティが見つかりません");
+                    }
+                }
+                catch (Exception previewEx)
+                {
+                    _logger.LogCritical("デバッグ: Preview設定エラー: {Message}", previewEx.Message);
+                }
 #endif
                 
                 report.Prepare();
@@ -381,16 +399,16 @@ namespace InventorySystem.Reports.FastReport.Services
     public class BusinessDailyReportFlatRow
     {
         public int RowNumber { get; set; }
-        public string ItemName { get; set; }
-        public string Total { get; set; }
-        public string Class01 { get; set; }
-        public string Class02 { get; set; }
-        public string Class03 { get; set; }
-        public string Class04 { get; set; }
-        public string Class05 { get; set; }
-        public string Class06 { get; set; }
-        public string Class07 { get; set; }
-        public string Class08 { get; set; }
+        public string ItemName { get; set; } = string.Empty;
+        public string Total { get; set; } = string.Empty;
+        public string Class01 { get; set; } = string.Empty;
+        public string Class02 { get; set; } = string.Empty;
+        public string Class03 { get; set; } = string.Empty;
+        public string Class04 { get; set; } = string.Empty;
+        public string Class05 { get; set; } = string.Empty;
+        public string Class06 { get; set; } = string.Empty;
+        public string Class07 { get; set; } = string.Empty;
+        public string Class08 { get; set; } = string.Empty;
     }
 }
 #endif
