@@ -114,8 +114,8 @@ namespace InventorySystem.Core.Services
         /// </summary>
         public string GetReportPath(DateTime date)
         {
-            var rootPath = _settings.GetImportRootPath();
-            return Path.Combine(rootPath, "Reports", date.ToString("yyyy"), date.ToString("MM"));
+            var rootPath = _settings.GetReportOutputPath();
+            return Path.Combine(rootPath, date.ToString("yyyy"), date.ToString("MM"));
         }
 
         /// <summary>
