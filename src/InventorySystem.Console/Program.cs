@@ -777,6 +777,7 @@ try
                     Console.WriteLine("全コマンド一覧: dotnet run help");
                     break;
             }
+        }
 
         /// <summary>
         /// 商品勘定処理（開発用）- アンマッチチェックをスキップ可能
@@ -5330,8 +5331,6 @@ static async Task ExecuteOptimizeInventoryAsync(IServiceProvider services, strin
                 logger.LogError(ex, "主キー変更分析でエラーが発生しました");
                 Console.WriteLine($"❌ エラー: {ex.Message}");
             }
-            }
-        }
         }
     }
 }
