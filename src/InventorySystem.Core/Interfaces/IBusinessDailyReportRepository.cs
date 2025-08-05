@@ -10,6 +10,8 @@ namespace InventorySystem.Core.Interfaces
         Task AggregateReceiptDataAsync(DateTime jobDate);
         Task AggregatePaymentDataAsync(DateTime jobDate);
         Task<List<BusinessDailyReportItem>> GetReportDataAsync();
+        Task<List<BusinessDailyReportItem>> GetMonthlyDataAsync(DateTime jobDate);
+        Task<List<BusinessDailyReportItem>> GetYearlyDataAsync(DateTime jobDate);
         Task UpdateClassificationNamesAsync();
     }
 }
