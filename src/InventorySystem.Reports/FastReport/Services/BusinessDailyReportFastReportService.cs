@@ -89,11 +89,11 @@ namespace InventorySystem.Reports.FastReport.Services
                 };
                 
                 // 該当ページの分類範囲を計算
-                int startClass = (pageNo - 1) * 9 + 1;
-                int endClass = Math.Min(pageNo * 9, 35);
+                int startClass = (pageNo - 1) * 8 + 1;
+                int endClass = Math.Min(startClass + 7, 35);
                 
-                // 分類名を設定
-                for (int i = startClass; i <= endClass; i++)
+                // 分類名を設定（8分類まで）
+                for (int i = startClass; i <= endClass && i <= 35; i++)
                 {
                     var classCode = $"{i:000}";
                     var dailyItem = dailyList.FirstOrDefault(x => x.ClassificationCode == classCode);
@@ -308,7 +308,7 @@ namespace InventorySystem.Reports.FastReport.Services
             // 各列の合計を計算
             row.Total = FormatNumber(SumColumn(sourceRows, "Total"));
             
-            for (int i = 1; i <= 9; i++)
+            for (int i = 1; i <= 8; i++)
             {
                 var propName = $"Class{i:00}";
                 var sum = SumColumn(sourceRows, propName);
@@ -410,7 +410,7 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("SectionName", typeof(string));
             table.Columns.Add("ItemName", typeof(string));
             table.Columns.Add("Total", typeof(string));
-            for (int i = 1; i <= 9; i++)
+            for (int i = 1; i <= 8; i++)
             {
                 table.Columns.Add($"Class{i:00}", typeof(string));
             }
@@ -424,7 +424,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 dataRow["ItemName"] = row.ItemName;
                 dataRow["Total"] = row.Total;
                 
-                for (int i = 1; i <= 9; i++)
+                for (int i = 1; i <= 8; i++)
                 {
                     var propName = $"Class{i:00}";
                     var prop = row.GetType().GetProperty(propName);
@@ -444,17 +444,6 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 // ページタイトル
                 report.SetParameterValue($"Page{page.PageNumber}Title", page.PageTitle);
-                
-                // 分類名（9個×2種類）
-                for (int i = 0; i < 9 && i < page.CustomerClassNames.Count; i++)
-                {
-                    report.SetParameterValue($"Page{page.PageNumber}CustomerClass{(i + 1):00}", page.CustomerClassNames[i]);
-                }
-                
-                for (int i = 0; i < 9 && i < page.SupplierClassNames.Count; i++)
-                {
-                    report.SetParameterValue($"Page{page.PageNumber}SupplierClass{(i + 1):00}", page.SupplierClassNames[i]);
-                }
             }
         }
 
