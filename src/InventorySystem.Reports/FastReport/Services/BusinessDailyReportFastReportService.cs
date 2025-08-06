@@ -77,23 +77,27 @@ namespace InventorySystem.Reports.FastReport.Services
             var monthlyList = monthlyItems.ToList();
             var yearlyList = yearlyItems.ToList();
             
-            _logger.LogInformation("4ページ分のデータ構造を作成中...");
+            _logger.LogInformation("4ページ分のデータ構造を作成中（9列構造）...");
             
-            // 4ページ分のループ
-            for (int pageNo = 1; pageNo <= 4; pageNo++)
+            // 4ページ分のループ（正確な分類配置）
+            var pageConfigs = new[]
+            {
+                new { PageNo = 1, StartClass = 1, EndClass = 8, Title = "営業日報（１）" },
+                new { PageNo = 2, StartClass = 9, EndClass = 16, Title = "営業日報（２）" },
+                new { PageNo = 3, StartClass = 18, EndClass = 25, Title = "営業日報（３）" },
+                new { PageNo = 4, StartClass = 27, EndClass = 34, Title = "営業日報（４）" }
+            };
+            
+            foreach (var config in pageConfigs)
             {
                 var page = new BusinessDailyReportPage
                 {
-                    PageNumber = pageNo,
-                    PageTitle = $"営業日報（{GetKanjiNumber(pageNo)}）"
+                    PageNumber = config.PageNo,
+                    PageTitle = config.Title
                 };
                 
-                // 該当ページの分類範囲を計算
-                int startClass = (pageNo - 1) * 8 + 1;
-                int endClass = Math.Min(startClass + 7, 35);
-                
-                // 分類名を設定（8分類まで）
-                for (int i = startClass; i <= endClass && i <= 35; i++)
+                // 分類名を設定（8分類）
+                for (int i = config.StartClass; i <= config.EndClass && i <= 35; i++)
                 {
                     var classCode = $"{i:000}";
                     var dailyItem = dailyList.FirstOrDefault(x => x.ClassificationCode == classCode);
@@ -101,14 +105,14 @@ namespace InventorySystem.Reports.FastReport.Services
                     page.SupplierClassNames.Add(dailyItem?.SupplierClassName ?? $"仕入分類{i:00}");
                 }
                 
-                // 【日計】セクション（16項目 + 合計行4行）
-                AddDailySection(page, dailyList, startClass, endClass);
+                // 【日計】セクション（18項目）
+                AddDailySection(page, dailyList, config.StartClass, config.EndClass);
                 
-                // 【月計】セクション（16項目 + 合計行4行）
-                AddMonthlySection(page, monthlyList, startClass, endClass);
+                // 【月計】セクション（18項目）
+                AddMonthlySection(page, monthlyList, config.StartClass, config.EndClass);
                 
                 // 【年計】セクション（4項目のみ）
-                AddYearlySection(page, yearlyList, startClass, endClass);
+                AddYearlySection(page, yearlyList, config.StartClass, config.EndClass);
                 
                 pages.Add(page);
             }
@@ -123,7 +127,7 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             var rows = new List<BusinessDailyReportRow>();
             
-            // 売上関連5項目
+            // PDF仕様に基づく正確な項目名で18項目を作成
             rows.Add(CreateDataRow("【日計】", "現金売上", items, startClass, endClass, 
                 item => item.DailyCashSales));
             rows.Add(CreateDataRow("", "現売消費税", items, startClass, endClass, 
@@ -153,23 +157,27 @@ namespace InventorySystem.Reports.FastReport.Services
             // 仕入計（合計行）
             rows.Add(CreateSummaryRow("", "＊仕入計＊", rows.Skip(6).Take(5)));
             
-            // 入金関連3項目
+            // 入金関連項目（PDF仕様に合わせた名称）
             rows.Add(CreateDataRow("", "入金と現売", items, startClass, endClass, 
-                item => item.DailyCashReceipt + item.DailyCashSales));  // 現金売上を加算
+                item => item.DailyCashReceipt + item.DailyCashSales));
+            rows.Add(CreateDataRow("", "振込入金", items, startClass, endClass, 
+                item => item.DailyBankReceipt));
             rows.Add(CreateDataRow("", "入金値引・他", items, startClass, endClass, 
                 item => item.DailyOtherReceipt));
             
             // 入金計（合計行）
-            rows.Add(CreateSummaryRow("", "＊入金計＊", rows.Skip(12).Take(2)));
+            rows.Add(CreateSummaryRow("", "＊入金計＊", rows.Skip(12).Take(3)));
             
-            // 支払関連3項目
+            // 支払関連項目（PDF仕様に合わせた名称）
             rows.Add(CreateDataRow("", "支払と現金支払", items, startClass, endClass, 
-                item => item.DailyCashPayment + item.DailyCashPurchase));  // 現金仕入を加算
+                item => item.DailyCashPayment + item.DailyCashPurchase));
+            rows.Add(CreateDataRow("", "振込支払", items, startClass, endClass, 
+                item => item.DailyBankPayment));
             rows.Add(CreateDataRow("", "支払値引・他", items, startClass, endClass, 
                 item => item.DailyOtherPayment));
             
             // 支払計（合計行）
-            rows.Add(CreateSummaryRow("", "＊支払計＊", rows.Skip(15).Take(2)));
+            rows.Add(CreateSummaryRow("", "＊支払計＊", rows.Skip(16).Take(3)));
             
             page.Rows.AddRange(rows);
         }
@@ -406,7 +414,7 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             var table = new DataTable($"Page{pageNo}Data");
             
-            // カラム定義
+            // カラム定義（9列構造：合計+8分類）
             table.Columns.Add("SectionName", typeof(string));
             table.Columns.Add("ItemName", typeof(string));
             table.Columns.Add("Total", typeof(string));
@@ -424,6 +432,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 dataRow["ItemName"] = row.ItemName;
                 dataRow["Total"] = row.Total;
                 
+                // 8分類のデータを正確に配置
                 for (int i = 1; i <= 8; i++)
                 {
                     var propName = $"Class{i:00}";
@@ -442,8 +451,15 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             foreach (var page in pages)
             {
-                // ページタイトル
-                report.SetParameterValue($"Page{page.PageNumber}Title", page.PageTitle);
+                // 各ページの分類名パラメータを設定
+                for (int i = 0; i < 8 && i < page.CustomerClassNames.Count; i++)
+                {
+                    report.SetParameterValue($"Page{page.PageNumber}Customer{i+1:00}", page.CustomerClassNames[i]);
+                    if (i < page.SupplierClassNames.Count)
+                    {
+                        report.SetParameterValue($"Page{page.PageNumber}Supplier{i+1:00}", page.SupplierClassNames[i]);
+                    }
+                }
             }
         }
 

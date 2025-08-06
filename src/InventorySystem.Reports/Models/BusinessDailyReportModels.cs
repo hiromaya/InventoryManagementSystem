@@ -21,12 +21,12 @@ namespace InventorySystem.Reports.Models
         public List<BusinessDailyReportRow> Rows { get; set; } = new();
         
         /// <summary>
-        /// 得意先分類名（9個）
+        /// 得意先分類名（8個）
         /// </summary>
         public List<string> CustomerClassNames { get; set; } = new();
         
         /// <summary>
-        /// 仕入先分類名（9個）
+        /// 仕入先分類名（8個）
         /// </summary>
         public List<string> SupplierClassNames { get; set; } = new();
     }

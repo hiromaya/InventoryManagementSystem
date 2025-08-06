@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="None" ReportInfo.Created="2025-08-06" ReportInfo.Modified="08/06/2025 15:30:00" ReportInfo.CreatorVersion="2024.1.3.0">
+<Report ScriptLanguage="None" ReportInfo.Created="2025-08-06" ReportInfo.Modified="08/06/2025 17:15:00" ReportInfo.CreatorVersion="2024.1.3.0">
   <Dictionary>
+    <!-- 4ページ分のDataTable（各ページ9列構造：合計+8分類） -->
     <TableDataSource Name="Page1Data" ReferenceName="Page1Data" DataType="System.Int32" Enabled="true">
       <Column Name="SectionName" DataType="System.String"/>
       <Column Name="ItemName" DataType="System.String"/>
@@ -57,186 +58,258 @@
       <Column Name="Class08" DataType="System.String"/>
       <Column Name="IsSummaryRow" DataType="System.Boolean"/>
     </TableDataSource>
+    
+    <!-- パラメータ -->
     <Parameter Name="CreateDate" DataType="System.String" AsString=""/>
     <Parameter Name="JobDate" DataType="System.String" AsString=""/>
-    <Parameter Name="Page1Title" DataType="System.String" AsString=""/>
-    <Parameter Name="Page2Title" DataType="System.String" AsString=""/>
-    <Parameter Name="Page3Title" DataType="System.String" AsString=""/>
-    <Parameter Name="Page4Title" DataType="System.String" AsString=""/>
+    
+    <!-- 各ページの分類名 -->
+    <Parameter Name="Page1Customer01" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Customer02" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Customer03" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Customer04" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Customer05" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Customer06" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Customer07" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Customer08" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Supplier01" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Supplier02" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Supplier03" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Supplier04" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Supplier05" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Supplier06" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Supplier07" DataType="System.String" AsString=""/>
+    <Parameter Name="Page1Supplier08" DataType="System.String" AsString=""/>
   </Dictionary>
+  
+  <!-- ページ1: 分類01-08 -->
   <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" Watermark.Font="MS UI Gothic, 60pt">
-    <ReportTitleBand Name="ReportTitle1" Width="1512" Height="75.6">
-      <TextObject Name="CreateDate1" Left="37.8" Top="56.7" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Title1" Left="538.65" Top="56.7" Width="434.7" Height="18.9" Text="※ [JobDate] 　[Page1Title]　※" HorzAlign="Center" Font="ＭＳ ゴシック, 14pt, style=Bold"/>
+    <!-- タイトル部：PDF仕様に合わせて最小限（高さ28.35pt） -->
+    <ReportTitleBand Name="ReportTitle1" Width="1512" Height="28.35">
+      <!-- タイトル上部に2本の横罫線 -->
+      <LineObject Name="TitleTopLine1" Left="37.8" Top="0" Width="1436.4" Height="0" Border.Width="1"/>
+      <LineObject Name="TitleTopLine2" Left="37.8" Top="1.89" Width="1436.4" Height="0" Border.Width="1"/>
+      
+      <!-- 作成日とタイトルを同じ行（Top="9.45"）に配置、フォント9pt標準 -->
+      <TextObject Name="CreateDate1" Left="37.8" Top="9.45" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Title1" Left="538.65" Top="9.45" Width="434.7" Height="18.9" Text="※ [JobDate]　営　業　日　報　（１）　※" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </ReportTitleBand>
-    <PageHeaderBand Name="PageHeader1" Top="80.09" Width="1512" Height="56.7">
-      <!-- 8列構成（合計+分類01-08） -->
-      <TextObject Name="Header_Total1" Left="132.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="合　　計" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class01" Left="283.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類01" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class02" Left="434.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類02" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class03" Left="585.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類03" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class04" Left="737.1" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類04" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class05" Left="888.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類05" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class06" Left="1039.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類06" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class07" Left="1190.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類07" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class08" Left="1341.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類08" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <!-- 2行目は空白 -->
-      <TextObject Name="Header_Total1_2" Left="132.3" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class01_2" Left="283.5" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class02_2" Left="434.7" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class03_2" Left="585.9" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class04_2" Left="737.1" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class05_2" Left="888.3" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class06_2" Left="1039.5" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class07_2" Left="1190.7" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class08_2" Left="1341.9" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+    
+    <!-- ヘッダー部：密着配置、2行構成（高さ37.8pt） -->
+    <PageHeaderBand Name="PageHeader1" Top="28.35" Width="1512" Height="37.8">
+      <!-- ヘッダー1行目：得意先分類名 -->
+      <TextObject Name="Header_Total1" Left="132.3" Top="0" Width="151.2" Height="18.9" Border.Lines="All" Border.Width="0.5" Text="合　　計" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust01" Left="283.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Right" Border.Width="0.5" Text="[Page1Customer01]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust02" Left="434.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="[Page1Customer02]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <!-- 分類02-03間は縦罫線なし -->
+      <TextObject Name="Header_Cust03" Left="585.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Right" Border.Width="0.5" Text="[Page1Customer03]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust04" Left="737.1" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="[Page1Customer04]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust05" Left="888.3" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="[Page1Customer05]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust06" Left="1039.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="[Page1Customer06]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <!-- 分類06-07間は縦罫線なし -->
+      <TextObject Name="Header_Cust07" Left="1190.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Right" Border.Width="0.5" Text="[Page1Customer07]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust08" Left="1341.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="[Page1Customer08]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <!-- ヘッダー2行目：仕入先分類名 -->
+      <TextObject Name="Header_Total1_2" Left="132.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="All" Border.Width="0.5" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp01" Left="283.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Left,Bottom,Right" Border.Width="0.5" Text="[Page1Supplier01]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp02" Left="434.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="[Page1Supplier02]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp03" Left="585.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Left,Bottom,Right" Border.Width="0.5" Text="[Page1Supplier03]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp04" Left="737.1" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="[Page1Supplier04]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp05" Left="888.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="[Page1Supplier05]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp06" Left="1039.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="[Page1Supplier06]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp07" Left="1190.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Left,Bottom,Right" Border.Width="0.5" Text="[Page1Supplier07]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp08" Left="1341.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="[Page1Supplier08]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    <DataBand Name="Data1" Top="141.29" Width="1512" Height="18.9" DataSource="Page1Data">
-      <TextObject Name="Section1" Width="50" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page1Data.SectionName]" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
-      <TextObject Name="Item1" Left="50" Width="82.3" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page1Data.ItemName]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Total1" Left="132.3" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page1Data.Total]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class01_1" Left="283.5" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page1Data.Class01]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class02_1" Left="434.7" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page1Data.Class02]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class03_1" Left="585.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page1Data.Class03]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class04_1" Left="737.1" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page1Data.Class04]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class05_1" Left="888.3" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page1Data.Class05]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class06_1" Left="1039.5" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page1Data.Class06]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class07_1" Left="1190.7" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page1Data.Class07]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class08_1" Left="1341.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page1Data.Class08]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+    
+    <!-- データ部：9列構造（合計+8分類）、PDF仕様の罫線 -->
+    <DataBand Name="Data1" Top="66.15" Width="1512" Height="18.9" DataSource="Page1Data">
+      <!-- セクション名（【日計】等） -->
+      <TextObject Name="Section1" Left="0" Top="0" Width="50" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page1Data.SectionName]" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
+      
+      <!-- 項目名（現金売上等） -->
+      <TextObject Name="Item1" Left="50" Top="0" Width="82.3" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page1Data.ItemName]" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <!-- 合計列 -->
+      <TextObject Name="Total1" Left="132.3" Top="0" Width="151.2" Height="18.9" Border.Lines="All" Border.Width="0.5" Text="[Page1Data.Total]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <!-- 分類01列 -->
+      <TextObject Name="Class01_1" Left="283.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Bottom" Border.Width="0.5" Text="[Page1Data.Class01]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <!-- 分類02列（分類02-03間は縦罫線なし） -->
+      <TextObject Name="Class02_1" Left="434.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page1Data.Class02]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <!-- 分類03列 -->
+      <TextObject Name="Class03_1" Left="585.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Bottom,Right" Border.Width="0.5" Text="[Page1Data.Class03]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <!-- 分類04列 -->
+      <TextObject Name="Class04_1" Left="737.1" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom,Right" Border.Width="0.5" Text="[Page1Data.Class04]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <!-- 分類05列 -->
+      <TextObject Name="Class05_1" Left="888.3" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom,Right" Border.Width="0.5" Text="[Page1Data.Class05]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <!-- 分類06列（分類06-07間は縦罫線なし） -->
+      <TextObject Name="Class06_1" Left="1039.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page1Data.Class06]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <!-- 分類07列 -->
+      <TextObject Name="Class07_1" Left="1190.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Bottom,Right" Border.Width="0.5" Text="[Page1Data.Class07]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <!-- 分類08列 -->
+      <TextObject Name="Class08_1" Left="1341.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom,Right" Border.Width="0.5" Text="[Page1Data.Class08]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
     </DataBand>
-    <PageFooterBand Name="PageFooter1" Top="164.68" Width="1512" Height="20">
+    
+    <PageFooterBand Name="PageFooter1" Top="89.54" Width="1512" Height="20">
       <TextObject Name="Footer1" Width="1512" Height="20" Text="在庫管理システム - 営業日報 - Page 1" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
     </PageFooterBand>
   </ReportPage>
+  
+  <!-- ページ2: 分類09-17 -->
   <ReportPage Name="Page2" Landscape="true" PaperWidth="420" PaperHeight="297" Watermark.Font="MS UI Gothic, 60pt">
-    <ReportTitleBand Name="ReportTitle2" Width="1512" Height="75.6">
-      <TextObject Name="CreateDate2" Left="37.8" Top="56.7" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Title2" Left="538.65" Top="56.7" Width="434.7" Height="18.9" Text="※ [JobDate] 　[Page2Title]　※" HorzAlign="Center" Font="ＭＳ ゴシック, 14pt, style=Bold"/>
+    <ReportTitleBand Name="ReportTitle2" Width="1512" Height="28.35">
+      <LineObject Name="TitleTopLine1_2" Left="37.8" Top="0" Width="1436.4" Height="0" Border.Width="1"/>
+      <LineObject Name="TitleTopLine2_2" Left="37.8" Top="1.89" Width="1436.4" Height="0" Border.Width="1"/>
+      <TextObject Name="CreateDate2" Left="37.8" Top="9.45" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Title2" Left="538.65" Top="9.45" Width="434.7" Height="18.9" Text="※ [JobDate]　営　業　日　報　（２）　※" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </ReportTitleBand>
-    <PageHeaderBand Name="PageHeader2" Top="80.09" Width="1512" Height="56.7">
-      <!-- 8列構成（合計+分類09-17） -->
-      <TextObject Name="Header_Total2" Left="132.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="合　　計" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class09" Left="283.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類09" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class10" Left="434.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類10" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class11" Left="585.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類11" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class12" Left="737.1" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類12" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class13" Left="888.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類13" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class14" Left="1039.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類14" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class15" Left="1190.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類15" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class16" Left="1341.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類16" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <!-- 2行目は空白 -->
-      <TextObject Name="Header_Total2_2" Left="132.3" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class09_2" Left="283.5" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class10_2" Left="434.7" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class11_2" Left="585.9" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class12_2" Left="737.1" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class13_2" Left="888.3" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class14_2" Left="1039.5" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class15_2" Left="1190.7" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class16_2" Left="1341.9" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+    
+    <PageHeaderBand Name="PageHeader2" Top="28.35" Width="1512" Height="37.8">
+      <!-- 分類09-17のヘッダー（9列目は分類17まで表示、ページ2は分類09-16） -->
+      <TextObject Name="Header_Total2" Left="132.3" Top="0" Width="151.2" Height="18.9" Border.Lines="All" Border.Width="0.5" Text="合　　計" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust09" Left="283.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Right" Border.Width="0.5" Text="得意分類０９" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust10" Left="434.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類１０" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust11" Left="585.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Right" Border.Width="0.5" Text="得意分類１１" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust12" Left="737.1" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類１２" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust13" Left="888.3" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類１３" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust14" Left="1039.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類１４" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust15" Left="1190.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Right" Border.Width="0.5" Text="得意分類１５" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust16" Left="1341.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類１６" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <TextObject Name="Header_Total2_2" Left="132.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="All" Border.Width="0.5" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp09" Left="283.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Left,Bottom,Right" Border.Width="0.5" Text="仕入分類０９" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp10" Left="434.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類１０" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp11" Left="585.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Left,Bottom,Right" Border.Width="0.5" Text="仕入分類１１" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp12" Left="737.1" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類１２" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp13" Left="888.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類１３" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp14" Left="1039.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類１４" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp15" Left="1190.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Left,Bottom,Right" Border.Width="0.5" Text="仕入分類１５" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp16" Left="1341.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類１６" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    <DataBand Name="Data2" Top="141.29" Width="1512" Height="18.9" DataSource="Page2Data">
-      <TextObject Name="Section2" Width="50" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page2Data.SectionName]" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
-      <TextObject Name="Item2" Left="50" Width="82.3" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page2Data.ItemName]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Total2" Left="132.3" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page2Data.Total]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class01_2" Left="283.5" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page2Data.Class01]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class02_2" Left="434.7" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page2Data.Class02]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class03_2" Left="585.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page2Data.Class03]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class04_2" Left="737.1" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page2Data.Class04]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class05_2" Left="888.3" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page2Data.Class05]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class06_2" Left="1039.5" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page2Data.Class06]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class07_2" Left="1190.7" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page2Data.Class07]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class08_2" Left="1341.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page2Data.Class08]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+    
+    <DataBand Name="Data2" Top="66.15" Width="1512" Height="18.9" DataSource="Page2Data">
+      <TextObject Name="Section2" Left="0" Top="0" Width="50" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page2Data.SectionName]" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
+      <TextObject Name="Item2" Left="50" Top="0" Width="82.3" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page2Data.ItemName]" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Total2" Left="132.3" Top="0" Width="151.2" Height="18.9" Border.Lines="All" Border.Width="0.5" Text="[Page2Data.Total]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class01_2" Left="283.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Bottom" Border.Width="0.5" Text="[Page2Data.Class01]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class02_2" Left="434.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page2Data.Class02]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class03_2" Left="585.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Bottom,Right" Border.Width="0.5" Text="[Page2Data.Class03]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class04_2" Left="737.1" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom,Right" Border.Width="0.5" Text="[Page2Data.Class04]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class05_2" Left="888.3" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom,Right" Border.Width="0.5" Text="[Page2Data.Class05]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class06_2" Left="1039.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page2Data.Class06]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class07_2" Left="1190.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Bottom,Right" Border.Width="0.5" Text="[Page2Data.Class07]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class08_2" Left="1341.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom,Right" Border.Width="0.5" Text="[Page2Data.Class08]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
     </DataBand>
-    <PageFooterBand Name="PageFooter2" Top="164.68" Width="1512" Height="20">
+    
+    <PageFooterBand Name="PageFooter2" Top="89.54" Width="1512" Height="20">
       <TextObject Name="Footer2" Width="1512" Height="20" Text="在庫管理システム - 営業日報 - Page 2" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
     </PageFooterBand>
   </ReportPage>
+  
+  <!-- ページ3: 分類18-26 -->
   <ReportPage Name="Page3" Landscape="true" PaperWidth="420" PaperHeight="297" Watermark.Font="MS UI Gothic, 60pt">
-    <ReportTitleBand Name="ReportTitle3" Width="1512" Height="75.6">
-      <TextObject Name="CreateDate3" Left="37.8" Top="56.7" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Title3" Left="538.65" Top="56.7" Width="434.7" Height="18.9" Text="※ [JobDate] 　[Page3Title]　※" HorzAlign="Center" Font="ＭＳ ゴシック, 14pt, style=Bold"/>
+    <ReportTitleBand Name="ReportTitle3" Width="1512" Height="28.35">
+      <LineObject Name="TitleTopLine1_3" Left="37.8" Top="0" Width="1436.4" Height="0" Border.Width="1"/>
+      <LineObject Name="TitleTopLine2_3" Left="37.8" Top="1.89" Width="1436.4" Height="0" Border.Width="1"/>
+      <TextObject Name="CreateDate3" Left="37.8" Top="9.45" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Title3" Left="538.65" Top="9.45" Width="434.7" Height="18.9" Text="※ [JobDate]　営　業　日　報　（３）　※" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </ReportTitleBand>
-    <PageHeaderBand Name="PageHeader3" Top="80.09" Width="1512" Height="56.7">
-      <!-- 8列構成（合計+分類18-26） -->
-      <TextObject Name="Header_Total3" Left="132.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="合　　計" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class18" Left="283.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類18" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class19" Left="434.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類19" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class20" Left="585.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類20" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class21" Left="737.1" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類21" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class22" Left="888.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類22" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class23" Left="1039.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類23" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class24" Left="1190.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類24" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class25" Left="1341.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類25" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <!-- 2行目は空白 -->
-      <TextObject Name="Header_Total3_2" Left="132.3" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class18_2" Left="283.5" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class19_2" Left="434.7" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class20_2" Left="585.9" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class21_2" Left="737.1" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class22_2" Left="888.3" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class23_2" Left="1039.5" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class24_2" Left="1190.7" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class25_2" Left="1341.9" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+    
+    <PageHeaderBand Name="PageHeader3" Top="28.35" Width="1512" Height="37.8">
+      <TextObject Name="Header_Total3" Left="132.3" Top="0" Width="151.2" Height="18.9" Border.Lines="All" Border.Width="0.5" Text="合　　計" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust18" Left="283.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Right" Border.Width="0.5" Text="得意分類１８" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust19" Left="434.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類１９" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust20" Left="585.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Right" Border.Width="0.5" Text="得意分類２０" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust21" Left="737.1" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類２１" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust22" Left="888.3" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類２２" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust23" Left="1039.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類２３" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust24" Left="1190.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Right" Border.Width="0.5" Text="得意分類２４" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust25" Left="1341.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類２５" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <TextObject Name="Header_Total3_2" Left="132.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="All" Border.Width="0.5" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp18" Left="283.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Left,Bottom,Right" Border.Width="0.5" Text="仕入分類１８" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp19" Left="434.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類１９" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp20" Left="585.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Left,Bottom,Right" Border.Width="0.5" Text="仕入分類２０" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp21" Left="737.1" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類２１" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp22" Left="888.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類２２" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp23" Left="1039.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類２３" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp24" Left="1190.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Left,Bottom,Right" Border.Width="0.5" Text="仕入分類２４" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp25" Left="1341.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類２５" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    <DataBand Name="Data3" Top="141.29" Width="1512" Height="18.9" DataSource="Page3Data">
-      <TextObject Name="Section3" Width="50" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page3Data.SectionName]" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
-      <TextObject Name="Item3" Left="50" Width="82.3" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page3Data.ItemName]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Total3" Left="132.3" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page3Data.Total]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class01_3" Left="283.5" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page3Data.Class01]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class02_3" Left="434.7" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page3Data.Class02]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class03_3" Left="585.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page3Data.Class03]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class04_3" Left="737.1" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page3Data.Class04]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class05_3" Left="888.3" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page3Data.Class05]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class06_3" Left="1039.5" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page3Data.Class06]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class07_3" Left="1190.7" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page3Data.Class07]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class08_3" Left="1341.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page3Data.Class08]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+    
+    <DataBand Name="Data3" Top="66.15" Width="1512" Height="18.9" DataSource="Page3Data">
+      <TextObject Name="Section3" Left="0" Top="0" Width="50" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page3Data.SectionName]" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
+      <TextObject Name="Item3" Left="50" Top="0" Width="82.3" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page3Data.ItemName]" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Total3" Left="132.3" Top="0" Width="151.2" Height="18.9" Border.Lines="All" Border.Width="0.5" Text="[Page3Data.Total]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class01_3" Left="283.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Bottom" Border.Width="0.5" Text="[Page3Data.Class01]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class02_3" Left="434.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page3Data.Class02]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class03_3" Left="585.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Bottom,Right" Border.Width="0.5" Text="[Page3Data.Class03]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class04_3" Left="737.1" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom,Right" Border.Width="0.5" Text="[Page3Data.Class04]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class05_3" Left="888.3" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom,Right" Border.Width="0.5" Text="[Page3Data.Class05]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class06_3" Left="1039.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page3Data.Class06]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class07_3" Left="1190.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Bottom,Right" Border.Width="0.5" Text="[Page3Data.Class07]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class08_3" Left="1341.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom,Right" Border.Width="0.5" Text="[Page3Data.Class08]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
     </DataBand>
-    <PageFooterBand Name="PageFooter3" Top="164.68" Width="1512" Height="20">
+    
+    <PageFooterBand Name="PageFooter3" Top="89.54" Width="1512" Height="20">
       <TextObject Name="Footer3" Width="1512" Height="20" Text="在庫管理システム - 営業日報 - Page 3" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
     </PageFooterBand>
   </ReportPage>
+  
+  <!-- ページ4: 分類27-35 -->
   <ReportPage Name="Page4" Landscape="true" PaperWidth="420" PaperHeight="297" Watermark.Font="MS UI Gothic, 60pt">
-    <ReportTitleBand Name="ReportTitle4" Width="1512" Height="75.6">
-      <TextObject Name="CreateDate4" Left="37.8" Top="56.7" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Title4" Left="538.65" Top="56.7" Width="434.7" Height="18.9" Text="※ [JobDate] 　[Page4Title]　※" HorzAlign="Center" Font="ＭＳ ゴシック, 14pt, style=Bold"/>
+    <ReportTitleBand Name="ReportTitle4" Width="1512" Height="28.35">
+      <LineObject Name="TitleTopLine1_4" Left="37.8" Top="0" Width="1436.4" Height="0" Border.Width="1"/>
+      <LineObject Name="TitleTopLine2_4" Left="37.8" Top="1.89" Width="1436.4" Height="0" Border.Width="1"/>
+      <TextObject Name="CreateDate4" Left="37.8" Top="9.45" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Title4" Left="538.65" Top="9.45" Width="434.7" Height="18.9" Text="※ [JobDate]　営　業　日　報　（４）　※" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </ReportTitleBand>
-    <PageHeaderBand Name="PageHeader4" Top="80.09" Width="1512" Height="56.7">
-      <!-- 8列構成（合計+分類27-35） - 分類35まで -->
-      <TextObject Name="Header_Total4" Left="132.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="合　　計" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class27" Left="283.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類27" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class28" Left="434.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類28" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class29" Left="585.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類29" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class30" Left="737.1" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類30" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class31" Left="888.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類31" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class32" Left="1039.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類32" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class33" Left="1190.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類33" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class34" Left="1341.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="分類34" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <!-- 2行目は空白 -->
-      <TextObject Name="Header_Total4_2" Left="132.3" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class27_2" Left="283.5" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class28_2" Left="434.7" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class29_2" Left="585.9" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class30_2" Left="737.1" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class31_2" Left="888.3" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class32_2" Left="1039.5" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class33_2" Left="1190.7" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header_Class34_2" Left="1341.9" Top="37.8" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="2" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+    
+    <PageHeaderBand Name="PageHeader4" Top="28.35" Width="1512" Height="37.8">
+      <TextObject Name="Header_Total4" Left="132.3" Top="0" Width="151.2" Height="18.9" Border.Lines="All" Border.Width="0.5" Text="合　　計" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust27" Left="283.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Right" Border.Width="0.5" Text="得意分類２７" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust28" Left="434.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類２８" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust29" Left="585.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Right" Border.Width="0.5" Text="得意分類２９" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust30" Left="737.1" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類３０" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust31" Left="888.3" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類３１" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust32" Left="1039.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類３２" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust33" Left="1190.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Right" Border.Width="0.5" Text="得意分類３３" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Cust34" Left="1341.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Right" Border.Width="0.5" Text="得意分類３４" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      
+      <TextObject Name="Header_Total4_2" Left="132.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="All" Border.Width="0.5" Text="" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp27" Left="283.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Left,Bottom,Right" Border.Width="0.5" Text="仕入分類２７" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp28" Left="434.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類２８" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp29" Left="585.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Left,Bottom,Right" Border.Width="0.5" Text="仕入分類２９" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp30" Left="737.1" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類３０" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp31" Left="888.3" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類３１" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp32" Left="1039.5" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類３２" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp33" Left="1190.7" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Left,Bottom,Right" Border.Width="0.5" Text="仕入分類３３" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header_Supp34" Left="1341.9" Top="18.9" Width="151.2" Height="18.9" Border.Lines="Bottom,Right" Border.Width="0.5" Text="仕入分類３４" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    <DataBand Name="Data4" Top="141.29" Width="1512" Height="18.9" DataSource="Page4Data">
-      <TextObject Name="Section4" Width="50" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page4Data.SectionName]" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
-      <TextObject Name="Item4" Left="50" Width="82.3" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page4Data.ItemName]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Total4" Left="132.3" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page4Data.Total]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class01_4" Left="283.5" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page4Data.Class01]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class02_4" Left="434.7" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page4Data.Class02]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class03_4" Left="585.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page4Data.Class03]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class04_4" Left="737.1" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page4Data.Class04]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class05_4" Left="888.3" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page4Data.Class05]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class06_4" Left="1039.5" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page4Data.Class06]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class07_4" Left="1190.7" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page4Data.Class07]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Class08_4" Left="1341.9" Width="151.2" Height="18.9" Border.Lines="Top, Bottom" Border.Width="0.5" Text="[Page4Data.Class08]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+    
+    <DataBand Name="Data4" Top="66.15" Width="1512" Height="18.9" DataSource="Page4Data">
+      <TextObject Name="Section4" Left="0" Top="0" Width="50" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page4Data.SectionName]" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
+      <TextObject Name="Item4" Left="50" Top="0" Width="82.3" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page4Data.ItemName]" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Total4" Left="132.3" Top="0" Width="151.2" Height="18.9" Border.Lines="All" Border.Width="0.5" Text="[Page4Data.Total]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class01_4" Left="283.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Bottom" Border.Width="0.5" Text="[Page4Data.Class01]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class02_4" Left="434.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page4Data.Class02]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class03_4" Left="585.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Bottom,Right" Border.Width="0.5" Text="[Page4Data.Class03]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class04_4" Left="737.1" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom,Right" Border.Width="0.5" Text="[Page4Data.Class04]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class05_4" Left="888.3" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom,Right" Border.Width="0.5" Text="[Page4Data.Class05]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class06_4" Left="1039.5" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom" Border.Width="0.5" Text="[Page4Data.Class06]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class07_4" Left="1190.7" Top="0" Width="151.2" Height="18.9" Border.Lines="Left,Top,Bottom,Right" Border.Width="0.5" Text="[Page4Data.Class07]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Class08_4" Left="1341.9" Top="0" Width="151.2" Height="18.9" Border.Lines="Top,Bottom,Right" Border.Width="0.5" Text="[Page4Data.Class08]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
     </DataBand>
-    <PageFooterBand Name="PageFooter4" Top="164.68" Width="1512" Height="20">
+    
+    <PageFooterBand Name="PageFooter4" Top="89.54" Width="1512" Height="20">
       <TextObject Name="Footer4" Width="1512" Height="20" Text="在庫管理システム - 営業日報 - Page 4" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
     </PageFooterBand>
   </ReportPage>
