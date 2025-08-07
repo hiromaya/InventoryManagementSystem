@@ -929,7 +929,7 @@
       
       <!-- 日計後の太破線 -->
       <LineObject Name="DailySeparator" Left="0" Top="340.2" Width="1512" Height="0" 
-                  Border.Style="DashDot" Border.Width="1.5"/>
+                  Border.Style="Dash" Border.Width="1"/>
       
       <!-- 【月計】18行（340.2から） -->
       <TextObject Name="M_Sec" Left="0" Top="340.2" Width="70" Height="18.9" 
@@ -1332,7 +1332,7 @@
       
       <!-- 月計後の太破線（680.4） -->
       <LineObject Name="MonthlySeparator" Left="0" Top="680.4" Width="1512" Height="0" 
-                  Border.Style="DashDot" Border.Width="1.5"/>
+                  Border.Style="Dash" Border.Width="1"/>
       
       <!-- 【年計】4行（680.4から） -->
       <TextObject Name="Y_Sec" Left="0" Top="680.4" Width="70" Height="18.9" 
