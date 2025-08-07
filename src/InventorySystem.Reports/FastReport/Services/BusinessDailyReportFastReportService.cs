@@ -17,6 +17,9 @@ using FR = global::FastReport;
 
 namespace InventorySystem.Reports.FastReport.Services
 {
+    /// <summary>
+    /// 営業日報動的ページ生成サービス（データがある分類のみ表示、1ページ8分類）
+    /// </summary>
     public class BusinessDailyReportFastReportService : 
         InventorySystem.Reports.Interfaces.IBusinessDailyReportService, 
         InventorySystem.Core.Interfaces.IBusinessDailyReportReportService
@@ -41,17 +44,22 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             try
             {
-                _logger.LogInformation("営業日報PDF生成を開始します: JobDate={JobDate}", jobDate);
+                _logger.LogInformation("営業日報PDF生成を開始します（動的ページ生成版）: JobDate={JobDate}", jobDate);
 
-                // 1. 月計・年計データの取得
+                // 1. データがある分類のみを抽出
+                var activeClassifications = GetActiveClassifications(items);
+                _logger.LogInformation("有効な分類数: {Count}", activeClassifications.Count);
+                
+                // 2. ページ数を計算（1ページ8分類）
+                var totalPages = Math.Max(1, (int)Math.Ceiling(activeClassifications.Count / 8.0));
+                _logger.LogInformation("動的ページ数: {TotalPages}", totalPages);
+                
+                // 3. 月計・年計データの取得
                 var monthlyData = await _repository.GetMonthlyDataAsync(jobDate);
                 var yearlyData = await _repository.GetYearlyDataAsync(jobDate);
                 
-                // 2. 4ページ分のデータ構造を作成
-                var pages = CreatePageData(items, monthlyData, yearlyData, jobDate);
-                
-                // 3. FastReportで4ページ分を生成
-                return GenerateMultiPagePdf(pages, jobDate);
+                // 4. 動的ページ生成でPDF作成
+                return await GenerateDynamicMultiPagePdf(items, monthlyData, yearlyData, activeClassifications, totalPages, jobDate);
             }
             catch (Exception ex)
             {
@@ -66,289 +74,52 @@ namespace InventorySystem.Reports.FastReport.Services
             return GenerateBusinessDailyReportAsync(items, jobDate).GetAwaiter().GetResult();
         }
 
-        private List<BusinessDailyReportPage> CreatePageData(
+        /// <summary>
+        /// データがある分類のみを抽出（000は除外）
+        /// </summary>
+        private List<BusinessDailyReportItem> GetActiveClassifications(IEnumerable<BusinessDailyReportItem> items)
+        {
+            return items
+                .Where(x => x.ClassificationCode != "000" && // 合計以外
+                           !string.IsNullOrEmpty(x.ClassificationCode) &&
+                           HasAnyData(x)) // 実際にデータがある分類のみ
+                .OrderBy(x => x.ClassificationCode)
+                .ToList();
+        }
+        
+        /// <summary>
+        /// 分類に何らかのデータがあるかをチェック
+        /// </summary>
+        private bool HasAnyData(BusinessDailyReportItem item)
+        {
+            return item.DailyCashSales != 0 ||
+                   item.DailyCashSalesTax != 0 ||
+                   item.DailyCreditSales != 0 ||
+                   item.DailySalesDiscount != 0 ||
+                   item.DailyCreditSalesTax != 0 ||
+                   item.DailyCashPurchase != 0 ||
+                   item.DailyCashPurchaseTax != 0 ||
+                   item.DailyCreditPurchase != 0 ||
+                   item.DailyPurchaseDiscount != 0 ||
+                   item.DailyCreditPurchaseTax != 0 ||
+                   item.DailyCashReceipt != 0 ||
+                   item.DailyBankReceipt != 0 ||
+                   item.DailyOtherReceipt != 0 ||
+                   item.DailyCashPayment != 0 ||
+                   item.DailyBankPayment != 0 ||
+                   item.DailyOtherPayment != 0;
+        }
+
+        /// <summary>
+        /// 動的ページ生成でPDFを作成
+        /// </summary>
+        private async Task<byte[]> GenerateDynamicMultiPagePdf(
             IEnumerable<BusinessDailyReportItem> dailyItems,
             IEnumerable<BusinessDailyReportItem> monthlyItems,
             IEnumerable<BusinessDailyReportItem> yearlyItems,
+            List<BusinessDailyReportItem> activeClassifications,
+            int totalPages,
             DateTime jobDate)
-        {
-            var pages = new List<BusinessDailyReportPage>();
-            var dailyList = dailyItems.ToList();
-            var monthlyList = monthlyItems.ToList();
-            var yearlyList = yearlyItems.ToList();
-            
-            _logger.LogInformation("4ページ分のデータ構造を作成中（9列構造）...");
-            
-            // 4ページ分のループ（正確な分類配置）
-            var pageConfigs = new[]
-            {
-                new { PageNo = 1, StartClass = 1, EndClass = 8, Title = "営業日報（１）" },
-                new { PageNo = 2, StartClass = 9, EndClass = 16, Title = "営業日報（２）" },
-                new { PageNo = 3, StartClass = 18, EndClass = 25, Title = "営業日報（３）" },
-                new { PageNo = 4, StartClass = 27, EndClass = 34, Title = "営業日報（４）" }
-            };
-            
-            foreach (var config in pageConfigs)
-            {
-                var page = new BusinessDailyReportPage
-                {
-                    PageNumber = config.PageNo,
-                    PageTitle = config.Title
-                };
-                
-                // 分類名を設定（8分類）
-                for (int i = config.StartClass; i <= config.EndClass && i <= 35; i++)
-                {
-                    var classCode = $"{i:000}";
-                    var dailyItem = dailyList.FirstOrDefault(x => x.ClassificationCode == classCode);
-                    page.CustomerClassNames.Add(dailyItem?.CustomerClassName ?? $"得意分類{i:00}");
-                    page.SupplierClassNames.Add(dailyItem?.SupplierClassName ?? $"仕入分類{i:00}");
-                }
-                
-                // 【日計】セクション（18項目）
-                AddDailySection(page, dailyList, config.StartClass, config.EndClass);
-                
-                // 【月計】セクション（18項目）
-                AddMonthlySection(page, monthlyList, config.StartClass, config.EndClass);
-                
-                // 【年計】セクション（4項目のみ）
-                AddYearlySection(page, yearlyList, config.StartClass, config.EndClass);
-                
-                pages.Add(page);
-            }
-            
-            return pages;
-        }
-
-        private void AddDailySection(
-            BusinessDailyReportPage page, 
-            IEnumerable<BusinessDailyReportItem> items,
-            int startClass, int endClass)
-        {
-            var rows = new List<BusinessDailyReportRow>();
-            
-            // PDF仕様に基づく正確な項目名で18項目を作成
-            rows.Add(CreateDataRow("【日計】", "現金売上", items, startClass, endClass, 
-                item => item.DailyCashSales));
-            rows.Add(CreateDataRow("", "現売消費税", items, startClass, endClass, 
-                item => item.DailyCashSalesTax));
-            rows.Add(CreateDataRow("", "掛売上と返品", items, startClass, endClass, 
-                item => item.DailyCreditSales));
-            rows.Add(CreateDataRow("", "売上値引", items, startClass, endClass, 
-                item => item.DailySalesDiscount));
-            rows.Add(CreateDataRow("", "掛売消費税", items, startClass, endClass, 
-                item => item.DailyCreditSalesTax));
-            
-            // 売上計（合計行）
-            rows.Add(CreateSummaryRow("", "＊売上計＊", rows.TakeLast(5)));
-            
-            // 仕入関連5項目
-            rows.Add(CreateDataRow("", "現金仕入", items, startClass, endClass, 
-                item => item.DailyCashPurchase));
-            rows.Add(CreateDataRow("", "現仕消費税", items, startClass, endClass, 
-                item => item.DailyCashPurchaseTax));
-            rows.Add(CreateDataRow("", "掛仕入と返品", items, startClass, endClass, 
-                item => item.DailyCreditPurchase));
-            rows.Add(CreateDataRow("", "仕入値引", items, startClass, endClass, 
-                item => item.DailyPurchaseDiscount));
-            rows.Add(CreateDataRow("", "掛仕入消費税", items, startClass, endClass, 
-                item => item.DailyCreditPurchaseTax));
-            
-            // 仕入計（合計行）
-            rows.Add(CreateSummaryRow("", "＊仕入計＊", rows.Skip(6).Take(5)));
-            
-            // 入金関連項目（PDF仕様に合わせた名称）
-            rows.Add(CreateDataRow("", "入金と現売", items, startClass, endClass, 
-                item => item.DailyCashReceipt + item.DailyCashSales));
-            rows.Add(CreateDataRow("", "振込入金", items, startClass, endClass, 
-                item => item.DailyBankReceipt));
-            rows.Add(CreateDataRow("", "入金値引・他", items, startClass, endClass, 
-                item => item.DailyOtherReceipt));
-            
-            // 入金計（合計行）
-            rows.Add(CreateSummaryRow("", "＊入金計＊", rows.Skip(12).Take(3)));
-            
-            // 支払関連項目（PDF仕様に合わせた名称）
-            rows.Add(CreateDataRow("", "支払と現金支払", items, startClass, endClass, 
-                item => item.DailyCashPayment + item.DailyCashPurchase));
-            rows.Add(CreateDataRow("", "振込支払", items, startClass, endClass, 
-                item => item.DailyBankPayment));
-            rows.Add(CreateDataRow("", "支払値引・他", items, startClass, endClass, 
-                item => item.DailyOtherPayment));
-            
-            // 支払計（合計行）
-            rows.Add(CreateSummaryRow("", "＊支払計＊", rows.Skip(16).Take(3)));
-            
-            page.Rows.AddRange(rows);
-        }
-
-        private void AddMonthlySection(
-            BusinessDailyReportPage page,
-            IEnumerable<BusinessDailyReportItem> items,
-            int startClass, int endClass)
-        {
-            var rows = new List<BusinessDailyReportRow>();
-            
-            // 月計は日計と同じ構造だが、項目名に【月計】を付ける
-            rows.Add(CreateDataRow("【月計】", "現金売上", items, startClass, endClass, 
-                item => item.DailyCashSales));  // 月計データの場合、Dailyではなく適切なプロパティを使用
-            rows.Add(CreateDataRow("", "現売消費税", items, startClass, endClass, 
-                item => item.DailyCashSalesTax));
-            rows.Add(CreateDataRow("", "掛売上と返品", items, startClass, endClass, 
-                item => item.DailyCreditSales));
-            rows.Add(CreateDataRow("", "売上値引", items, startClass, endClass, 
-                item => item.DailySalesDiscount));
-            rows.Add(CreateDataRow("", "掛売消費税", items, startClass, endClass, 
-                item => item.DailyCreditSalesTax));
-            
-            // 売上計（合計行）
-            rows.Add(CreateSummaryRow("", "＊売上計＊", rows.TakeLast(5)));
-            
-            // 仕入関連5項目
-            rows.Add(CreateDataRow("", "現金仕入", items, startClass, endClass, 
-                item => item.DailyCashPurchase));
-            rows.Add(CreateDataRow("", "現仕消費税", items, startClass, endClass, 
-                item => item.DailyCashPurchaseTax));
-            rows.Add(CreateDataRow("", "掛仕入と返品", items, startClass, endClass, 
-                item => item.DailyCreditPurchase));
-            rows.Add(CreateDataRow("", "仕入値引", items, startClass, endClass, 
-                item => item.DailyPurchaseDiscount));
-            rows.Add(CreateDataRow("", "掛仕入消費税", items, startClass, endClass, 
-                item => item.DailyCreditPurchaseTax));
-            
-            // 仕入計（合計行）
-            rows.Add(CreateSummaryRow("", "＊仕入計＊", rows.Skip(6).Take(5)));
-            
-            // 入金関連3項目
-            rows.Add(CreateDataRow("", "入金と現売", items, startClass, endClass, 
-                item => item.DailyCashReceipt + item.DailyCashSales));
-            rows.Add(CreateDataRow("", "入金値引・他", items, startClass, endClass, 
-                item => item.DailyOtherReceipt));
-            
-            // 入金計（合計行）
-            rows.Add(CreateSummaryRow("", "＊入金計＊", rows.Skip(12).Take(2)));
-            
-            // 支払関連3項目
-            rows.Add(CreateDataRow("", "支払と現金支払", items, startClass, endClass, 
-                item => item.DailyCashPayment + item.DailyCashPurchase));
-            rows.Add(CreateDataRow("", "支払値引・他", items, startClass, endClass, 
-                item => item.DailyOtherPayment));
-            
-            // 支払計（合計行）
-            rows.Add(CreateSummaryRow("", "＊支払計＊", rows.Skip(15).Take(2)));
-            
-            page.Rows.AddRange(rows);
-        }
-
-        private void AddYearlySection(
-            BusinessDailyReportPage page,
-            IEnumerable<BusinessDailyReportItem> items,
-            int startClass, int endClass)
-        {
-            var rows = new List<BusinessDailyReportRow>();
-            
-            // 年計は4項目のみ
-            rows.Add(CreateDataRow("【年計】", "売上", items, startClass, endClass, 
-                item => item.DailyCashSales + item.DailyCreditSales));  // 売上合計
-            rows.Add(CreateDataRow("", "売上消費税", items, startClass, endClass, 
-                item => item.DailyCashSalesTax + item.DailyCreditSalesTax));  // 売上消費税合計
-            rows.Add(CreateDataRow("", "仕入", items, startClass, endClass, 
-                item => item.DailyCashPurchase + item.DailyCreditPurchase));  // 仕入合計
-            rows.Add(CreateDataRow("", "仕入消費税", items, startClass, endClass, 
-                item => item.DailyCashPurchaseTax + item.DailyCreditPurchaseTax));  // 仕入消費税合計
-            
-            page.Rows.AddRange(rows);
-        }
-
-        private BusinessDailyReportRow CreateDataRow(
-            string sectionName,
-            string itemName,
-            IEnumerable<BusinessDailyReportItem> items,
-            int startClass,
-            int endClass,
-            Func<BusinessDailyReportItem, decimal> valueSelector)
-        {
-            var row = new BusinessDailyReportRow
-            {
-                SectionName = sectionName,
-                ItemName = itemName,
-                IsSummaryRow = false
-            };
-            
-            decimal total = 0;
-            
-            // 合計（000）の値
-            var totalItem = items.FirstOrDefault(x => x.ClassificationCode == "000");
-            if (totalItem != null)
-            {
-                total = valueSelector(totalItem);
-                row.Total = FormatNumber(total);
-            }
-            
-            // 各分類の値を設定（該当ページの分類のみ）
-            for (int i = startClass; i <= endClass; i++)
-            {
-                var classCode = $"{i:000}";
-                var item = items.FirstOrDefault(x => x.ClassificationCode == classCode);
-                decimal value = item != null ? valueSelector(item) : 0m;
-                
-                // リフレクションで動的にプロパティ設定
-                var propName = $"Class{(i - startClass + 1):00}";
-                var prop = row.GetType().GetProperty(propName);
-                prop?.SetValue(row, FormatNumber(value));
-            }
-            
-            return row;
-        }
-
-        private BusinessDailyReportRow CreateSummaryRow(
-            string sectionName,
-            string itemName,
-            IEnumerable<BusinessDailyReportRow> sourceRows)
-        {
-            var row = new BusinessDailyReportRow
-            {
-                SectionName = sectionName,
-                ItemName = itemName,
-                IsSummaryRow = true
-            };
-            
-            // 各列の合計を計算
-            row.Total = FormatNumber(SumColumn(sourceRows, "Total"));
-            
-            for (int i = 1; i <= 8; i++)
-            {
-                var propName = $"Class{i:00}";
-                var sum = SumColumn(sourceRows, propName);
-                var prop = row.GetType().GetProperty(propName);
-                prop?.SetValue(row, FormatNumber(sum));
-            }
-            
-            return row;
-        }
-
-        private decimal SumColumn(IEnumerable<BusinessDailyReportRow> rows, string columnName)
-        {
-            decimal sum = 0;
-            foreach (var row in rows)
-            {
-                var prop = row.GetType().GetProperty(columnName);
-                var value = prop?.GetValue(row)?.ToString() ?? "";
-                if (!string.IsNullOrEmpty(value))
-                {
-                    // ▲記号の処理
-                    bool isNegative = value.StartsWith("▲");
-                    var numStr = value.Replace("▲", "").Replace(",", "");
-                    if (decimal.TryParse(numStr, out var num))
-                    {
-                        sum += isNegative ? -num : num;
-                    }
-                }
-            }
-            return sum;
-        }
-
-        private byte[] GenerateMultiPagePdf(List<BusinessDailyReportPage> pages, DateTime jobDate)
         {
             if (!File.Exists(_templatePath))
             {
@@ -356,39 +127,414 @@ namespace InventorySystem.Reports.FastReport.Services
             }
 
             using var report = new FR.Report();
-            
-            // FastReportの設定
-            report.ReportResourceString = "";
-            report.FileName = _templatePath;
-            
-            // テンプレート読み込み
             report.Load(_templatePath);
-            
-            // ScriptLanguageをNoneに設定（最重要）
             SetScriptLanguageToNone(report);
-            
-            // 4ページ分のDataTableを作成・登録
-            for (int pageNo = 1; pageNo <= 4; pageNo++)
+
+            // 元のページをテンプレートとして取得
+            var templatePage = report.Pages[0] as FR.ReportPage;
+            if (templatePage == null)
             {
-                var page = pages.FirstOrDefault(p => p.PageNumber == pageNo);
-                if (page != null)
+                throw new InvalidOperationException("テンプレートページが見つかりません");
+            }
+
+            // 追加ページが必要な場合はページを複製
+            for (int pageIndex = 1; pageIndex < totalPages; pageIndex++)
+            {
+                var newPage = ClonePage(templatePage, report);
+                report.Pages.Add(newPage);
+                _logger.LogDebug("ページ{PageIndex}を追加しました", pageIndex + 1);
+            }
+
+            var allDailyItems = dailyItems.ToList();
+            var allMonthlyItems = monthlyItems.ToList();
+            var allYearlyItems = yearlyItems.ToList();
+
+            // 各ページにデータを設定
+            for (int pageIndex = 0; pageIndex < totalPages; pageIndex++)
+            {
+                var currentPage = report.Pages[pageIndex] as FR.ReportPage;
+                if (currentPage != null)
                 {
-                    var dataTable = CreatePageDataTable(page, pageNo);
-                    report.RegisterData(dataTable, $"Page{pageNo}Data");
+                    SetPageData(currentPage, allDailyItems, allMonthlyItems, allYearlyItems, 
+                              activeClassifications, pageIndex, totalPages, jobDate);
                 }
             }
-            
-            // パラメータ設定
-            report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
-            report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日HH時mm分"));
-            
-            // 各ページの分類名パラメータ設定
-            SetPagesParameters(report, pages);
-            
+
             _logger.LogInformation("レポートを準備中...");
             report.Prepare();
+
+            return ExportToPdf(report, jobDate);
+        }
+
+        /// <summary>
+        /// ページを複製（FastReportページクローン）
+        /// </summary>
+        private FR.ReportPage ClonePage(FR.ReportPage templatePage, FR.Report report)
+        {
+            // 新しいページを作成
+            var newPage = new FR.ReportPage();
             
-            // PDF出力
+            // 基本プロパティをコピー
+            newPage.Name = $"Page{report.Pages.Count + 1}";
+            newPage.PaperWidth = templatePage.PaperWidth;
+            newPage.PaperHeight = templatePage.PaperHeight;
+            newPage.Landscape = templatePage.Landscape;
+            newPage.LeftMargin = templatePage.LeftMargin;
+            newPage.TopMargin = templatePage.TopMargin;
+            newPage.RightMargin = templatePage.RightMargin;
+            newPage.BottomMargin = templatePage.BottomMargin;
+
+            // バンドをコピー
+            foreach (FR.BandBase band in templatePage.AllObjects)
+            {
+                if (band is FR.BandBase)
+                {
+                    // バンドの複製を作成
+                    var newBand = CloneBand(band);
+                    newPage.Bands.Add(newBand);
+                }
+            }
+
+            return newPage;
+        }
+
+        /// <summary>
+        /// バンドを複製
+        /// </summary>
+        private FR.BandBase CloneBand(FR.BandBase originalBand)
+        {
+            // バンドタイプに応じて新しいバンドを作成
+            FR.BandBase newBand = originalBand switch
+            {
+                FR.PageHeaderBand => new FR.PageHeaderBand(),
+                FR.DataBand => new FR.DataBand(),
+                FR.PageFooterBand => new FR.PageFooterBand(),
+                _ => throw new NotSupportedException($"バンドタイプ {originalBand.GetType().Name} は対応していません")
+            };
+
+            // 基本プロパティをコピー
+            newBand.Name = originalBand.Name + "_Clone";
+            newBand.Height = originalBand.Height;
+            newBand.Top = originalBand.Top;
+
+            // 子オブジェクトをコピー
+            foreach (FR.ReportComponentBase child in originalBand.Objects)
+            {
+                var clonedChild = CloneReportObject(child);
+                newBand.Objects.Add(clonedChild);
+            }
+
+            return newBand;
+        }
+
+        /// <summary>
+        /// レポートオブジェクトを複製
+        /// </summary>
+        private FR.ReportComponentBase CloneReportObject(FR.ReportComponentBase original)
+        {
+            if (original is FR.TextObject textObj)
+            {
+                var newTextObj = new FR.TextObject();
+                newTextObj.Name = textObj.Name + "_Clone";
+                newTextObj.Left = textObj.Left;
+                newTextObj.Top = textObj.Top;
+                newTextObj.Width = textObj.Width;
+                newTextObj.Height = textObj.Height;
+                newTextObj.Text = textObj.Text;
+                newTextObj.HorzAlign = textObj.HorzAlign;
+                newTextObj.VertAlign = textObj.VertAlign;
+                newTextObj.Font = textObj.Font;
+                newTextObj.Border = textObj.Border;
+                return newTextObj;
+            }
+
+            throw new NotSupportedException($"オブジェクトタイプ {original.GetType().Name} は対応していません");
+        }
+
+        /// <summary>
+        /// 各ページにデータパラメータを設定
+        /// </summary>
+        private void SetPageData(
+            FR.ReportPage page,
+            List<BusinessDailyReportItem> dailyItems,
+            List<BusinessDailyReportItem> monthlyItems,
+            List<BusinessDailyReportItem> yearlyItems,
+            List<BusinessDailyReportItem> activeClassifications,
+            int pageIndex,
+            int totalPages,
+            DateTime jobDate)
+        {
+            // 基本パラメータ
+            var report = page.Report;
+            report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日HH時mm分"));
+            report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
+            report.SetParameterValue("PageNumber", ToKanjiNumber(pageIndex + 1));
+
+            // このページの分類を取得（8個ずつ）
+            var startIndex = pageIndex * 8;
+            var pageClassifications = activeClassifications
+                .Skip(startIndex)
+                .Take(8)
+                .ToList();
+
+            // 合計データ取得
+            var totalDailyData = dailyItems.FirstOrDefault(x => x.ClassificationCode == "000");
+            var totalMonthlyData = monthlyItems.FirstOrDefault(x => x.ClassificationCode == "000");
+            var totalYearlyData = yearlyItems.FirstOrDefault(x => x.ClassificationCode == "000");
+
+            // データテーブル作成
+            var dataTable = CreateDynamicPageDataTable(
+                totalDailyData, totalMonthlyData, totalYearlyData,
+                pageClassifications, dailyItems, monthlyItems, yearlyItems);
+
+            report.RegisterData(dataTable, $"PageData");
+
+            // 分類名パラメータ設定（8個分）
+            for (int i = 0; i < 8; i++)
+            {
+                if (i < pageClassifications.Count)
+                {
+                    var item = pageClassifications[i];
+                    report.SetParameterValue($"CustomerName{i + 1}", TruncateToLength(item.CustomerClassName ?? "", 6));
+                    report.SetParameterValue($"SupplierName{i + 1}", TruncateToLength(item.SupplierClassName ?? "", 6));
+                }
+                else
+                {
+                    // 空の分類
+                    report.SetParameterValue($"CustomerName{i + 1}", "");
+                    report.SetParameterValue($"SupplierName{i + 1}", "");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 動的ページ用のDataTable作成（40行固定）
+        /// </summary>
+        private DataTable CreateDynamicPageDataTable(
+            BusinessDailyReportItem totalDaily,
+            BusinessDailyReportItem totalMonthly,
+            BusinessDailyReportItem totalYearly,
+            List<BusinessDailyReportItem> pageClassifications,
+            List<BusinessDailyReportItem> allDaily,
+            List<BusinessDailyReportItem> allMonthly,
+            List<BusinessDailyReportItem> allYearly)
+        {
+            var table = new DataTable("PageData");
+            
+            // カラム定義
+            table.Columns.Add("SectionName", typeof(string));
+            table.Columns.Add("ItemName", typeof(string));
+            table.Columns.Add("Total", typeof(string));
+            for (int i = 1; i <= 8; i++)
+            {
+                table.Columns.Add($"Class{i:00}", typeof(string));
+            }
+            table.Columns.Add("IsSummaryRow", typeof(bool));
+
+            // 40行のデータを作成（18+18+4）
+            AddDailySection(table, totalDaily, pageClassifications, allDaily);
+            AddMonthlySection(table, totalMonthly, pageClassifications, allMonthly);
+            AddYearlySection(table, totalYearly, pageClassifications, allYearly);
+
+            return table;
+        }
+
+        /// <summary>
+        /// 日計セクション（18行）を追加
+        /// </summary>
+        private void AddDailySection(DataTable table, BusinessDailyReportItem totalData, 
+            List<BusinessDailyReportItem> pageClassifications, List<BusinessDailyReportItem> allData)
+        {
+            // 日計18行の定義（仕様書準拠の正確な項目名）
+            var dailyRows = new[]
+            {
+                new { Section = "【日計】", Item = "現金売上", Property = nameof(BusinessDailyReportItem.DailyCashSales), IsSum = false },
+                new { Section = "", Item = "現売消費税", Property = nameof(BusinessDailyReportItem.DailyCashSalesTax), IsSum = false },
+                new { Section = "", Item = "掛売上と返品", Property = nameof(BusinessDailyReportItem.DailyCreditSales), IsSum = false },
+                new { Section = "", Item = "売上値引", Property = nameof(BusinessDailyReportItem.DailySalesDiscount), IsSum = false },
+                new { Section = "", Item = "掛売消費税", Property = nameof(BusinessDailyReportItem.DailyCreditSalesTax), IsSum = false },
+                new { Section = "", Item = "＊売上計＊", Property = "", IsSum = true },
+                new { Section = "", Item = "現金仕入", Property = nameof(BusinessDailyReportItem.DailyCashPurchase), IsSum = false },
+                new { Section = "", Item = "現仕消費税", Property = nameof(BusinessDailyReportItem.DailyCashPurchaseTax), IsSum = false },
+                new { Section = "", Item = "掛仕入と返品", Property = nameof(BusinessDailyReportItem.DailyCreditPurchase), IsSum = false },
+                new { Section = "", Item = "仕入値引", Property = nameof(BusinessDailyReportItem.DailyPurchaseDiscount), IsSum = false },
+                new { Section = "", Item = "掛仕入消費税", Property = nameof(BusinessDailyReportItem.DailyCreditPurchaseTax), IsSum = false },
+                new { Section = "", Item = "＊仕入計＊", Property = "", IsSum = true },
+                new { Section = "", Item = "入金と現売", Property = nameof(BusinessDailyReportItem.DailyCashReceipt), IsSum = false },
+                new { Section = "", Item = "振込入金", Property = nameof(BusinessDailyReportItem.DailyBankReceipt), IsSum = false },
+                new { Section = "", Item = "入金値引・その他", Property = nameof(BusinessDailyReportItem.DailyOtherReceipt), IsSum = false },
+                new { Section = "", Item = "＊入金計＊", Property = "", IsSum = true },
+                new { Section = "", Item = "支払と現金支払", Property = nameof(BusinessDailyReportItem.DailyCashPayment), IsSum = false },
+                new { Section = "", Item = "振込支払", Property = nameof(BusinessDailyReportItem.DailyBankPayment), IsSum = false }
+            };
+
+            foreach (var rowDef in dailyRows)
+            {
+                var row = table.NewRow();
+                row["SectionName"] = rowDef.Section;
+                row["ItemName"] = rowDef.Item;
+                row["IsSummaryRow"] = rowDef.IsSum;
+
+                if (rowDef.IsSum)
+                {
+                    // 合計行の計算（前5行の合計など）
+                    row["Total"] = ""; // 実装時に計算ロジック追加
+                    for (int i = 1; i <= 8; i++)
+                    {
+                        row[$"Class{i:00}"] = "";
+                    }
+                }
+                else
+                {
+                    // 通常行
+                    row["Total"] = GetPropertyValueFormatted(totalData, rowDef.Property);
+                    for (int i = 1; i <= 8; i++)
+                    {
+                        if (i <= pageClassifications.Count)
+                        {
+                            var classCode = pageClassifications[i - 1].ClassificationCode;
+                            var item = allData.FirstOrDefault(x => x.ClassificationCode == classCode);
+                            row[$"Class{i:00}"] = GetPropertyValueFormatted(item, rowDef.Property);
+                        }
+                        else
+                        {
+                            row[$"Class{i:00}"] = "";
+                        }
+                    }
+                }
+
+                table.Rows.Add(row);
+            }
+        }
+
+        /// <summary>
+        /// 月計セクション（18行）を追加
+        /// </summary>
+        private void AddMonthlySection(DataTable table, BusinessDailyReportItem totalData, 
+            List<BusinessDailyReportItem> pageClassifications, List<BusinessDailyReportItem> allData)
+        {
+            // 月計も日計と同じ18行構造
+            var monthlyRows = new[]
+            {
+                new { Section = "【月計】", Item = "現金売上", Property = nameof(BusinessDailyReportItem.DailyCashSales), IsSum = false },
+                new { Section = "", Item = "現売消費税", Property = nameof(BusinessDailyReportItem.DailyCashSalesTax), IsSum = false },
+                new { Section = "", Item = "掛売上と返品", Property = nameof(BusinessDailyReportItem.DailyCreditSales), IsSum = false },
+                new { Section = "", Item = "売上値引", Property = nameof(BusinessDailyReportItem.DailySalesDiscount), IsSum = false },
+                new { Section = "", Item = "掛売消費税", Property = nameof(BusinessDailyReportItem.DailyCreditSalesTax), IsSum = false },
+                new { Section = "", Item = "＊売上計＊", Property = "", IsSum = true },
+                new { Section = "", Item = "現金仕入", Property = nameof(BusinessDailyReportItem.DailyCashPurchase), IsSum = false },
+                new { Section = "", Item = "現仕消費税", Property = nameof(BusinessDailyReportItem.DailyCashPurchaseTax), IsSum = false },
+                new { Section = "", Item = "掛仕入と返品", Property = nameof(BusinessDailyReportItem.DailyCreditPurchase), IsSum = false },
+                new { Section = "", Item = "仕入値引", Property = nameof(BusinessDailyReportItem.DailyPurchaseDiscount), IsSum = false },
+                new { Section = "", Item = "掛仕入消費税", Property = nameof(BusinessDailyReportItem.DailyCreditPurchaseTax), IsSum = false },
+                new { Section = "", Item = "＊仕入計＊", Property = "", IsSum = true },
+                new { Section = "", Item = "入金と現売", Property = nameof(BusinessDailyReportItem.DailyCashReceipt), IsSum = false },
+                new { Section = "", Item = "振込入金", Property = nameof(BusinessDailyReportItem.DailyBankReceipt), IsSum = false },
+                new { Section = "", Item = "入金値引・その他", Property = nameof(BusinessDailyReportItem.DailyOtherReceipt), IsSum = false },
+                new { Section = "", Item = "＊入金計＊", Property = "", IsSum = true },
+                new { Section = "", Item = "支払と現金支払", Property = nameof(BusinessDailyReportItem.DailyCashPayment), IsSum = false },
+                new { Section = "", Item = "振込支払", Property = nameof(BusinessDailyReportItem.DailyBankPayment), IsSum = false }
+            };
+
+            foreach (var rowDef in monthlyRows)
+            {
+                var row = table.NewRow();
+                row["SectionName"] = rowDef.Section;
+                row["ItemName"] = rowDef.Item;
+                row["IsSummaryRow"] = rowDef.IsSum;
+
+                if (rowDef.IsSum)
+                {
+                    // 合計行
+                    row["Total"] = "";
+                    for (int i = 1; i <= 8; i++)
+                    {
+                        row[$"Class{i:00}"] = "";
+                    }
+                }
+                else
+                {
+                    // 通常行（月計データを使用）
+                    row["Total"] = GetPropertyValueFormatted(totalData, rowDef.Property);
+                    for (int i = 1; i <= 8; i++)
+                    {
+                        if (i <= pageClassifications.Count)
+                        {
+                            var classCode = pageClassifications[i - 1].ClassificationCode;
+                            var item = allData.FirstOrDefault(x => x.ClassificationCode == classCode);
+                            row[$"Class{i:00}"] = GetPropertyValueFormatted(item, rowDef.Property);
+                        }
+                        else
+                        {
+                            row[$"Class{i:00}"] = "";
+                        }
+                    }
+                }
+
+                table.Rows.Add(row);
+            }
+        }
+
+        /// <summary>
+        /// 年計セクション（4行）を追加
+        /// </summary>
+        private void AddYearlySection(DataTable table, BusinessDailyReportItem totalData, 
+            List<BusinessDailyReportItem> pageClassifications, List<BusinessDailyReportItem> allData)
+        {
+            // 年計は4行のみ
+            var yearlyRows = new[]
+            {
+                new { Section = "【年計】", Item = "売上", Property = nameof(BusinessDailyReportItem.DailyCashSales) },
+                new { Section = "", Item = "売上消費税", Property = nameof(BusinessDailyReportItem.DailyCashSalesTax) },
+                new { Section = "", Item = "仕入", Property = nameof(BusinessDailyReportItem.DailyCashPurchase) },
+                new { Section = "", Item = "仕入消費税", Property = nameof(BusinessDailyReportItem.DailyCashPurchaseTax) }
+            };
+
+            foreach (var rowDef in yearlyRows)
+            {
+                var row = table.NewRow();
+                row["SectionName"] = rowDef.Section;
+                row["ItemName"] = rowDef.Item;
+                row["IsSummaryRow"] = false;
+
+                // 年計データを使用
+                row["Total"] = GetPropertyValueFormatted(totalData, rowDef.Property);
+                for (int i = 1; i <= 8; i++)
+                {
+                    if (i <= pageClassifications.Count)
+                    {
+                        var classCode = pageClassifications[i - 1].ClassificationCode;
+                        var item = allData.FirstOrDefault(x => x.ClassificationCode == classCode);
+                        row[$"Class{i:00}"] = GetPropertyValueFormatted(item, rowDef.Property);
+                    }
+                    else
+                    {
+                        row[$"Class{i:00}"] = "";
+                    }
+                }
+
+                table.Rows.Add(row);
+            }
+        }
+
+        private string GetPropertyValueFormatted(BusinessDailyReportItem item, string propertyName)
+        {
+            if (item == null || string.IsNullOrEmpty(propertyName))
+                return "";
+
+            var property = typeof(BusinessDailyReportItem).GetProperty(propertyName);
+            var value = property?.GetValue(item);
+            
+            if (value is decimal decValue)
+            {
+                return FormatNumber(decValue);
+            }
+            
+            return "";
+        }
+
+        private byte[] ExportToPdf(FR.Report report, DateTime jobDate)
+        {
             using var pdfExport = new PDFExport
             {
                 EmbeddingFonts = true,
@@ -400,67 +546,14 @@ namespace InventorySystem.Reports.FastReport.Services
                 JpegQuality = 95,
                 OpenAfterExport = false
             };
-            
+
             using var stream = new MemoryStream();
             report.Export(pdfExport, stream);
-            
+
             var result = stream.ToArray();
             _logger.LogInformation("営業日報PDF生成完了: サイズ={Size}bytes", result.Length);
-            
+
             return result;
-        }
-
-        private DataTable CreatePageDataTable(BusinessDailyReportPage page, int pageNo)
-        {
-            var table = new DataTable($"Page{pageNo}Data");
-            
-            // カラム定義（9列構造：合計+8分類）
-            table.Columns.Add("SectionName", typeof(string));
-            table.Columns.Add("ItemName", typeof(string));
-            table.Columns.Add("Total", typeof(string));
-            for (int i = 1; i <= 8; i++)
-            {
-                table.Columns.Add($"Class{i:00}", typeof(string));
-            }
-            table.Columns.Add("IsSummaryRow", typeof(bool));
-            
-            // データ追加
-            foreach (var row in page.Rows)
-            {
-                var dataRow = table.NewRow();
-                dataRow["SectionName"] = row.SectionName;
-                dataRow["ItemName"] = row.ItemName;
-                dataRow["Total"] = row.Total;
-                
-                // 8分類のデータを正確に配置
-                for (int i = 1; i <= 8; i++)
-                {
-                    var propName = $"Class{i:00}";
-                    var prop = row.GetType().GetProperty(propName);
-                    dataRow[propName] = prop?.GetValue(row) ?? "";
-                }
-                
-                dataRow["IsSummaryRow"] = row.IsSummaryRow;
-                table.Rows.Add(dataRow);
-            }
-            
-            return table;
-        }
-
-        private void SetPagesParameters(FR.Report report, List<BusinessDailyReportPage> pages)
-        {
-            foreach (var page in pages)
-            {
-                // 各ページの分類名パラメータを設定
-                for (int i = 0; i < 8 && i < page.CustomerClassNames.Count; i++)
-                {
-                    report.SetParameterValue($"Page{page.PageNumber}Customer{i+1:00}", page.CustomerClassNames[i]);
-                    if (i < page.SupplierClassNames.Count)
-                    {
-                        report.SetParameterValue($"Page{page.PageNumber}Supplier{i+1:00}", page.SupplierClassNames[i]);
-                    }
-                }
-            }
         }
 
         private void SetScriptLanguageToNone(FR.Report report)
@@ -476,15 +569,15 @@ namespace InventorySystem.Reports.FastReport.Services
                         var noneValue = Enum.GetValues(scriptLanguageType)
                             .Cast<object>()
                             .FirstOrDefault(v => v.ToString() == "None");
-                        
+
                         if (noneValue != null)
                         {
                             scriptLanguageProperty.SetValue(report, noneValue);
-                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                            _logger.LogDebug("ScriptLanguageをNoneに設定しました");
                         }
                     }
                 }
-                
+
                 // Scriptプロパティもnullに設定（追加の安全策）
                 var scriptProperty = report.GetType().GetProperty("Script", 
                     BindingFlags.NonPublic | BindingFlags.Instance);
@@ -495,7 +588,7 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             catch (Exception ex)
             {
-                _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+                _logger.LogWarning(ex, "ScriptLanguage設定時の警告");
             }
         }
 
@@ -505,7 +598,13 @@ namespace InventorySystem.Reports.FastReport.Services
             return value < 0 ? $"▲{Math.Abs(value):N0}" : value.ToString("N0");
         }
 
-        private string GetKanjiNumber(int number)
+        private string TruncateToLength(string value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            return value.Length > maxLength ? value.Substring(0, maxLength) : value;
+        }
+
+        private string ToKanjiNumber(int number)
         {
             return number switch
             {
@@ -513,6 +612,11 @@ namespace InventorySystem.Reports.FastReport.Services
                 2 => "２", 
                 3 => "３",
                 4 => "４",
+                5 => "５",
+                6 => "６",
+                7 => "７",
+                8 => "８",
+                9 => "９",
                 _ => number.ToString()
             };
         }
