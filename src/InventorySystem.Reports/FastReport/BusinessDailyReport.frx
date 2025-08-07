@@ -512,8 +512,21 @@
       
       <!-- 縦罫線群（高さ756px = 40行分） -->
       <!-- セクション列には罫線なし（0-70） -->
+      <LineObject Name="VLine1" Left="70" Top="0" Width="0" Height="756" Border.Width="0.5"/>
+      <LineObject Name="VLine2" Left="152.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
+      <LineObject Name="VLine3" Left="297.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
+      <LineObject Name="VLine4" Left="442.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
+      <LineObject Name="VLine5" Left="587.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
       <!-- 空列1（587.3-602.3）には縦罫線なし -->
+      <LineObject Name="VLine6" Left="602.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
+      <LineObject Name="VLine7" Left="747.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
+      <LineObject Name="VLine8" Left="892.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
+      <LineObject Name="VLine9" Left="1037.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
+      <LineObject Name="VLine10" Left="1182.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
       <!-- 空列2（1182.3-1197.3）には縦罫線なし -->
+      <LineObject Name="VLine11" Left="1197.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
+      <LineObject Name="VLine12" Left="1342.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
+      <LineObject Name="VLine13" Left="1487.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
       
       <!-- 【日計】18行 -->
       <!-- 行1：現金売上 -->
