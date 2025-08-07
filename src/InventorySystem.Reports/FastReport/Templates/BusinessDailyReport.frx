@@ -516,51 +516,15 @@
       <LineObject Name="VLine2" Left="152.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
       <LineObject Name="VLine3" Left="297.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
       <LineObject Name="VLine4" Left="442.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
-      
-      <!-- 空列1（X=587.3）の部分縦罫線 -->
-      <!-- 日計セクション（Y: 0～340.2）の空列1縦罫線 -->
-      <LineObject Name="VLine5_Daily_Top" Left="587.3" Top="0" Width="0" Height="18.9" Border.Width="0.5"/>
-      <!-- 中間部分（18.9～321.3）は罫線なし -->
-      <LineObject Name="VLine5_Daily_Bottom" Left="587.3" Top="321.3" Width="0" Height="18.9" Border.Width="0.5"/>
-      
+      <!-- 空列1（587.3-602.3）には縦罫線なし -->
       <LineObject Name="VLine6" Left="602.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
       <LineObject Name="VLine7" Left="747.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
       <LineObject Name="VLine8" Left="892.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
       <LineObject Name="VLine9" Left="1037.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
-      
-      <!-- 空列2（X=1182.3）の部分縦罫線 -->
-      <!-- 日計セクション（Y: 0～340.2）の空列2縦罫線 -->
-      <LineObject Name="VLine10_Daily_Top" Left="1182.3" Top="0" Width="0" Height="18.9" Border.Width="0.5"/>
-      <!-- 中間部分（18.9～321.3）は罫線なし -->
-      <LineObject Name="VLine10_Daily_Bottom" Left="1182.3" Top="321.3" Width="0" Height="18.9" Border.Width="0.5"/>
-      
+      <!-- 空列2（1182.3-1197.3）には縦罫線なし -->
       <LineObject Name="VLine11" Left="1197.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
       <LineObject Name="VLine12" Left="1342.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
       <LineObject Name="VLine13" Left="1487.3" Top="0" Width="0" Height="756" Border.Width="0.5"/>
-      
-      <!-- 月計セクション（Y: 340.2～680.4）の空列縦罫線 -->
-      <!-- 空列1（X=587.3）の月計縦罫線 -->
-      <LineObject Name="VLine5_Monthly_Top" Left="587.3" Top="340.2" Width="0" Height="18.9" Border.Width="0.5"/>
-      <!-- 中間部分（359.1～661.5）は罫線なし -->
-      <LineObject Name="VLine5_Monthly_Bottom" Left="587.3" Top="661.5" Width="0" Height="18.9" Border.Width="0.5"/>
-      
-      <!-- 空列2（X=1182.3）の月計縦罫線 -->
-      <LineObject Name="VLine10_Monthly_Top" Left="1182.3" Top="340.2" Width="0" Height="18.9" Border.Width="0.5"/>
-      <!-- 中間部分（359.1～661.5）は罫線なし -->
-      <LineObject Name="VLine10_Monthly_Bottom" Left="1182.3" Top="661.5" Width="0" Height="18.9" Border.Width="0.5"/>
-      
-      <!-- 年計セクション（Y: 680.4～756）の空列縦罫線 -->
-      <!-- 空列1（X=587.3）の年計縦罫線 -->
-      <!-- 売上行（680.4～699.3）は罫線なし -->
-      <!-- 売上消費税行（699.3～718.2）は罫線なし -->
-      <LineObject Name="VLine5_Yearly_Purchase" Left="587.3" Top="718.2" Width="0" Height="18.9" Border.Width="0.5"/>
-      <LineObject Name="VLine5_Yearly_PurchaseTax" Left="587.3" Top="737.1" Width="0" Height="18.9" Border.Width="0.5"/>
-      
-      <!-- 空列2（X=1182.3）の年計縦罫線 -->
-      <!-- 売上行（680.4～699.3）は罫線なし -->
-      <!-- 売上消費税行（699.3～718.2）は罫線なし -->
-      <LineObject Name="VLine10_Yearly_Purchase" Left="1182.3" Top="718.2" Width="0" Height="18.9" Border.Width="0.5"/>
-      <LineObject Name="VLine10_Yearly_PurchaseTax" Left="1182.3" Top="737.1" Width="0" Height="18.9" Border.Width="0.5"/>
       
       <!-- 【日計】18行 -->
       <!-- 行1：現金売上 -->
