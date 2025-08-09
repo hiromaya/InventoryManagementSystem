@@ -9,6 +9,7 @@ using System.Reflection;
 using FastReport;
 using FastReport.Data;
 using FastReport.Export.Pdf;
+using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Reports.Interfaces;
 using InventorySystem.Reports.Models;
