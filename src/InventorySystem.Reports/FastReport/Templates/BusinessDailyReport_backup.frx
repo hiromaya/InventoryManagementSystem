@@ -544,7 +544,9 @@
                   Text="[Daily_Row1_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行2：現売消費税 -->
-      <LineObject Name="Line1" Left="70" Top="18.9" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line1_Part1" Left="70" Top="18.9" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line1_Part2" Left="602.3" Top="18.9" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line1_Part3" Left="1197.3" Top="18.9" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item2" Left="70" Top="18.9" Width="82.3" Height="18.9" 
                   Text="現売消費税" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R2_Total" Left="152.3" Top="18.9" Width="145" Height="18.9" 
@@ -567,7 +569,9 @@
                   Text="[Daily_Row2_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行3：掛売上と返品 -->
-      <LineObject Name="Line2" Left="70" Top="37.8" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line2_Part1" Left="70" Top="37.8" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line2_Part2" Left="602.3" Top="37.8" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line2_Part3" Left="1197.3" Top="37.8" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item3" Left="70" Top="37.8" Width="82.3" Height="18.9" 
                   Text="掛売上と返品" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R3_Total" Left="152.3" Top="37.8" Width="145" Height="18.9" 
@@ -590,7 +594,9 @@
                   Text="[Daily_Row3_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行4：売上値引 -->
-      <LineObject Name="Line3" Left="70" Top="56.7" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line3_Part1" Left="70" Top="56.7" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line3_Part2" Left="602.3" Top="56.7" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line3_Part3" Left="1197.3" Top="56.7" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item4" Left="70" Top="56.7" Width="82.3" Height="18.9" 
                   Text="売上値引" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R4_Total" Left="152.3" Top="56.7" Width="145" Height="18.9" 
@@ -613,7 +619,9 @@
                   Text="[Daily_Row4_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行5：掛売消費税 -->
-      <LineObject Name="Line4" Left="70" Top="75.6" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line4_Part1" Left="70" Top="75.6" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line4_Part2" Left="602.3" Top="75.6" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line4_Part3" Left="1197.3" Top="75.6" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item5" Left="70" Top="75.6" Width="82.3" Height="18.9" 
                   Text="掛売消費税" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R5_Total" Left="152.3" Top="75.6" Width="145" Height="18.9" 
@@ -636,7 +644,9 @@
                   Text="[Daily_Row5_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行6：＊売上計＊ -->
-      <LineObject Name="Line5" Left="70" Top="94.5" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line5_Part1" Left="70" Top="94.5" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line5_Part2" Left="602.3" Top="94.5" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line5_Part3" Left="1197.3" Top="94.5" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item6" Left="70" Top="94.5" Width="82.3" Height="18.9" 
                   Text="＊売上計＊" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       <TextObject Name="D_R6_Total" Left="152.3" Top="94.5" Width="145" Height="18.9" 
@@ -659,7 +669,9 @@
                   Text="[Daily_Row6_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       
       <!-- 行7：現金仕入 -->
-      <LineObject Name="Line6" Left="70" Top="113.4" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line6_Part1" Left="70" Top="113.4" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line6_Part2" Left="602.3" Top="113.4" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line6_Part3" Left="1197.3" Top="113.4" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item7" Left="70" Top="113.4" Width="82.3" Height="18.9" 
                   Text="現金仕入" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R7_Total" Left="152.3" Top="113.4" Width="145" Height="18.9" 
@@ -682,7 +694,9 @@
                   Text="[Daily_Row7_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行8：現仕消費税 -->
-      <LineObject Name="Line7" Left="70" Top="132.3" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line7_Part1" Left="70" Top="132.3" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line7_Part2" Left="602.3" Top="132.3" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line7_Part3" Left="1197.3" Top="132.3" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item8" Left="70" Top="132.3" Width="82.3" Height="18.9" 
                   Text="現仕消費税" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R8_Total" Left="152.3" Top="132.3" Width="145" Height="18.9" 
@@ -705,7 +719,9 @@
                   Text="[Daily_Row8_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行9：掛仕入と返品 -->
-      <LineObject Name="Line8" Left="70" Top="151.2" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line8_Part1" Left="70" Top="151.2" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line8_Part2" Left="602.3" Top="151.2" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line8_Part3" Left="1197.3" Top="151.2" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item9" Left="70" Top="151.2" Width="82.3" Height="18.9" 
                   Text="掛仕入と返品" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R9_Total" Left="152.3" Top="151.2" Width="145" Height="18.9" 
@@ -728,7 +744,9 @@
                   Text="[Daily_Row9_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行10：仕入値引 -->
-      <LineObject Name="Line9" Left="70" Top="170.1" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line9_Part1" Left="70" Top="170.1" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line9_Part2" Left="602.3" Top="170.1" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line9_Part3" Left="1197.3" Top="170.1" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item10" Left="70" Top="170.1" Width="82.3" Height="18.9" 
                   Text="仕入値引" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R10_Total" Left="152.3" Top="170.1" Width="145" Height="18.9" 
@@ -751,7 +769,9 @@
                   Text="[Daily_Row10_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行11：掛仕入消費税 -->
-      <LineObject Name="Line10" Left="70" Top="189" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line10_Part1" Left="70" Top="189" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line10_Part2" Left="602.3" Top="189" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line10_Part3" Left="1197.3" Top="189" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item11" Left="70" Top="189" Width="82.3" Height="18.9" 
                   Text="掛仕入消費税" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R11_Total" Left="152.3" Top="189" Width="145" Height="18.9" 
@@ -774,7 +794,9 @@
                   Text="[Daily_Row11_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行12：＊仕入計＊ -->
-      <LineObject Name="Line11" Left="70" Top="207.9" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line11_Part1" Left="70" Top="207.9" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line11_Part2" Left="602.3" Top="207.9" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line11_Part3" Left="1197.3" Top="207.9" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item12" Left="70" Top="207.9" Width="82.3" Height="18.9" 
                   Text="＊仕入計＊" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       <TextObject Name="D_R12_Total" Left="152.3" Top="207.9" Width="145" Height="18.9" 
@@ -797,7 +819,9 @@
                   Text="[Daily_Row12_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       
       <!-- 行13：入金と現売 -->
-      <LineObject Name="Line12" Left="70" Top="226.8" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line12_Part1" Left="70" Top="226.8" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line12_Part2" Left="602.3" Top="226.8" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line12_Part3" Left="1197.3" Top="226.8" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item13" Left="70" Top="226.8" Width="82.3" Height="18.9" 
                   Text="入金と現売" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R13_Total" Left="152.3" Top="226.8" Width="145" Height="18.9" 
@@ -820,7 +844,9 @@
                   Text="[Daily_Row13_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行14：入金値引・他 -->
-      <LineObject Name="Line13" Left="70" Top="245.7" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line13_Part1" Left="70" Top="245.7" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line13_Part2" Left="602.3" Top="245.7" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line13_Part3" Left="1197.3" Top="245.7" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item14" Left="70" Top="245.7" Width="82.3" Height="18.9" 
                   Text="入金値引・他" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R14_Total" Left="152.3" Top="245.7" Width="145" Height="18.9" 
@@ -843,7 +869,9 @@
                   Text="[Daily_Row14_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行15：＊入金計＊ -->
-      <LineObject Name="Line14" Left="70" Top="264.6" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line14_Part1" Left="70" Top="264.6" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line14_Part2" Left="602.3" Top="264.6" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line14_Part3" Left="1197.3" Top="264.6" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item15" Left="70" Top="264.6" Width="82.3" Height="18.9" 
                   Text="＊入金計＊" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       <TextObject Name="D_R15_Total" Left="152.3" Top="264.6" Width="145" Height="18.9" 
@@ -866,7 +894,9 @@
                   Text="[Daily_Row15_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       
       <!-- 行16：支払と現金支払 -->
-      <LineObject Name="Line15" Left="70" Top="283.5" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line15_Part1" Left="70" Top="283.5" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line15_Part2" Left="602.3" Top="283.5" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line15_Part3" Left="1197.3" Top="283.5" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item16" Left="70" Top="283.5" Width="82.3" Height="18.9" 
                   Text="支払と現金支払" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R16_Total" Left="152.3" Top="283.5" Width="145" Height="18.9" 
@@ -889,7 +919,9 @@
                   Text="[Daily_Row16_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
       <!-- 行17：支払値引・他 -->
-      <LineObject Name="Line16" Left="70" Top="302.4" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line16_Part1" Left="70" Top="302.4" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line16_Part2" Left="602.3" Top="302.4" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="Line16_Part3" Left="1197.3" Top="302.4" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="D_Item17" Left="70" Top="302.4" Width="82.3" Height="18.9" 
                   Text="支払値引・他" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="D_R17_Total" Left="152.3" Top="302.4" Width="145" Height="18.9" 
@@ -963,7 +995,9 @@
       <TextObject Name="M_R1_C8" Left="1342.3" Top="340.2" Width="145" Height="18.9" 
                   Text="[Monthly_Row1_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine1" Left="70" Top="359.1" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine1_Part1" Left="70" Top="359.1" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine1_Part2" Left="602.3" Top="359.1" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine1_Part3" Left="1197.3" Top="359.1" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item2" Left="70" Top="359.1" Width="82.3" Height="18.9" 
                   Text="現売消費税" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R2_Total" Left="152.3" Top="359.1" Width="145" Height="18.9" 
@@ -985,7 +1019,9 @@
       <TextObject Name="M_R2_C8" Left="1342.3" Top="359.1" Width="145" Height="18.9" 
                   Text="[Monthly_Row2_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine2" Left="70" Top="378" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine2_Part1" Left="70" Top="378" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine2_Part2" Left="602.3" Top="378" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine2_Part3" Left="1197.3" Top="378" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item3" Left="70" Top="378" Width="82.3" Height="18.9" 
                   Text="掛売上と返品" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R3_Total" Left="152.3" Top="378" Width="145" Height="18.9" 
@@ -1007,7 +1043,9 @@
       <TextObject Name="M_R3_C8" Left="1342.3" Top="378" Width="145" Height="18.9" 
                   Text="[Monthly_Row3_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine3" Left="70" Top="396.9" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine3_Part1" Left="70" Top="396.9" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine3_Part2" Left="602.3" Top="396.9" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine3_Part3" Left="1197.3" Top="396.9" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item4" Left="70" Top="396.9" Width="82.3" Height="18.9" 
                   Text="売上値引" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R4_Total" Left="152.3" Top="396.9" Width="145" Height="18.9" 
@@ -1029,7 +1067,9 @@
       <TextObject Name="M_R4_C8" Left="1342.3" Top="396.9" Width="145" Height="18.9" 
                   Text="[Monthly_Row4_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine4" Left="70" Top="415.8" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine4_Part1" Left="70" Top="415.8" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine4_Part2" Left="602.3" Top="415.8" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine4_Part3" Left="1197.3" Top="415.8" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item5" Left="70" Top="415.8" Width="82.3" Height="18.9" 
                   Text="掛売消費税" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R5_Total" Left="152.3" Top="415.8" Width="145" Height="18.9" 
@@ -1051,7 +1091,9 @@
       <TextObject Name="M_R5_C8" Left="1342.3" Top="415.8" Width="145" Height="18.9" 
                   Text="[Monthly_Row5_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine5" Left="70" Top="434.7" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine5_Part1" Left="70" Top="434.7" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine5_Part2" Left="602.3" Top="434.7" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine5_Part3" Left="1197.3" Top="434.7" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item6" Left="70" Top="434.7" Width="82.3" Height="18.9" 
                   Text="＊売上計＊" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       <TextObject Name="M_R6_Total" Left="152.3" Top="434.7" Width="145" Height="18.9" 
@@ -1073,7 +1115,9 @@
       <TextObject Name="M_R6_C8" Left="1342.3" Top="434.7" Width="145" Height="18.9" 
                   Text="[Monthly_Row6_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       
-      <LineObject Name="MLine6" Left="70" Top="453.6" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine6_Part1" Left="70" Top="453.6" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine6_Part2" Left="602.3" Top="453.6" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine6_Part3" Left="1197.3" Top="453.6" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item7" Left="70" Top="453.6" Width="82.3" Height="18.9" 
                   Text="現金仕入" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R7_Total" Left="152.3" Top="453.6" Width="145" Height="18.9" 
@@ -1095,7 +1139,9 @@
       <TextObject Name="M_R7_C8" Left="1342.3" Top="453.6" Width="145" Height="18.9" 
                   Text="[Monthly_Row7_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine7" Left="70" Top="472.5" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine7_Part1" Left="70" Top="472.5" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine7_Part2" Left="602.3" Top="472.5" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine7_Part3" Left="1197.3" Top="472.5" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item8" Left="70" Top="472.5" Width="82.3" Height="18.9" 
                   Text="現仕消費税" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R8_Total" Left="152.3" Top="472.5" Width="145" Height="18.9" 
@@ -1117,7 +1163,9 @@
       <TextObject Name="M_R8_C8" Left="1342.3" Top="472.5" Width="145" Height="18.9" 
                   Text="[Monthly_Row8_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine8" Left="70" Top="491.4" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine8_Part1" Left="70" Top="491.4" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine8_Part2" Left="602.3" Top="491.4" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine8_Part3" Left="1197.3" Top="491.4" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item9" Left="70" Top="491.4" Width="82.3" Height="18.9" 
                   Text="掛仕入と返品" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R9_Total" Left="152.3" Top="491.4" Width="145" Height="18.9" 
@@ -1139,7 +1187,9 @@
       <TextObject Name="M_R9_C8" Left="1342.3" Top="491.4" Width="145" Height="18.9" 
                   Text="[Monthly_Row9_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine9" Left="70" Top="510.3" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine9_Part1" Left="70" Top="510.3" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine9_Part2" Left="602.3" Top="510.3" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine9_Part3" Left="1197.3" Top="510.3" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item10" Left="70" Top="510.3" Width="82.3" Height="18.9" 
                   Text="仕入値引" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R10_Total" Left="152.3" Top="510.3" Width="145" Height="18.9" 
@@ -1161,7 +1211,9 @@
       <TextObject Name="M_R10_C8" Left="1342.3" Top="510.3" Width="145" Height="18.9" 
                   Text="[Monthly_Row10_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine10" Left="70" Top="529.2" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine10_Part1" Left="70" Top="529.2" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine10_Part2" Left="602.3" Top="529.2" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine10_Part3" Left="1197.3" Top="529.2" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item11" Left="70" Top="529.2" Width="82.3" Height="18.9" 
                   Text="掛仕入消費税" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R11_Total" Left="152.3" Top="529.2" Width="145" Height="18.9" 
@@ -1183,7 +1235,9 @@
       <TextObject Name="M_R11_C8" Left="1342.3" Top="529.2" Width="145" Height="18.9" 
                   Text="[Monthly_Row11_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine11" Left="70" Top="548.1" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine11_Part1" Left="70" Top="548.1" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine11_Part2" Left="602.3" Top="548.1" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine11_Part3" Left="1197.3" Top="548.1" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item12" Left="70" Top="548.1" Width="82.3" Height="18.9" 
                   Text="＊仕入計＊" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       <TextObject Name="M_R12_Total" Left="152.3" Top="548.1" Width="145" Height="18.9" 
@@ -1205,7 +1259,9 @@
       <TextObject Name="M_R12_C8" Left="1342.3" Top="548.1" Width="145" Height="18.9" 
                   Text="[Monthly_Row12_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       
-      <LineObject Name="MLine12" Left="70" Top="567" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine12_Part1" Left="70" Top="567" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine12_Part2" Left="602.3" Top="567" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine12_Part3" Left="1197.3" Top="567" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item13" Left="70" Top="567" Width="82.3" Height="18.9" 
                   Text="入金と現売" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R13_Total" Left="152.3" Top="567" Width="145" Height="18.9" 
@@ -1227,7 +1283,9 @@
       <TextObject Name="M_R13_C8" Left="1342.3" Top="567" Width="145" Height="18.9" 
                   Text="[Monthly_Row13_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine13" Left="70" Top="585.9" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine13_Part1" Left="70" Top="585.9" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine13_Part2" Left="602.3" Top="585.9" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine13_Part3" Left="1197.3" Top="585.9" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item14" Left="70" Top="585.9" Width="82.3" Height="18.9" 
                   Text="入金値引・他" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R14_Total" Left="152.3" Top="585.9" Width="145" Height="18.9" 
@@ -1249,7 +1307,9 @@
       <TextObject Name="M_R14_C8" Left="1342.3" Top="585.9" Width="145" Height="18.9" 
                   Text="[Monthly_Row14_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine14" Left="70" Top="604.8" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine14_Part1" Left="70" Top="604.8" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine14_Part2" Left="602.3" Top="604.8" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine14_Part3" Left="1197.3" Top="604.8" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item15" Left="70" Top="604.8" Width="82.3" Height="18.9" 
                   Text="＊入金計＊" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       <TextObject Name="M_R15_Total" Left="152.3" Top="604.8" Width="145" Height="18.9" 
@@ -1271,7 +1331,9 @@
       <TextObject Name="M_R15_C8" Left="1342.3" Top="604.8" Width="145" Height="18.9" 
                   Text="[Monthly_Row15_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       
-      <LineObject Name="MLine15" Left="70" Top="623.7" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine15_Part1" Left="70" Top="623.7" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine15_Part2" Left="602.3" Top="623.7" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine15_Part3" Left="1197.3" Top="623.7" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item16" Left="70" Top="623.7" Width="82.3" Height="18.9" 
                   Text="支払と現金支払" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_Total" Left="152.3" Top="623.7" Width="145" Height="18.9" 
@@ -1293,7 +1355,9 @@
       <TextObject Name="M_R16_C8" Left="1342.3" Top="623.7" Width="145" Height="18.9" 
                   Text="[Monthly_Row16_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="MLine16" Left="70" Top="642.6" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine16_Part1" Left="70" Top="642.6" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine16_Part2" Left="602.3" Top="642.6" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="MLine16_Part3" Left="1197.3" Top="642.6" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="M_Item17" Left="70" Top="642.6" Width="82.3" Height="18.9" 
                   Text="支払値引・他" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R17_Total" Left="152.3" Top="642.6" Width="145" Height="18.9" 
@@ -1387,7 +1451,9 @@
       <TextObject Name="Y_R2_C8" Left="1342.3" Top="699.3" Width="145" Height="18.9" 
                   Text="[Yearly_Row2_Col8]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       
-      <LineObject Name="YLine2" Left="70" Top="718.2" Width="1442" Height="0" Border.Width="0.5"/>
+      <LineObject Name="YLine2_Part1" Left="70" Top="718.2" Width="517.3" Height="0" Border.Width="0.5"/>
+      <LineObject Name="YLine2_Part2" Left="602.3" Top="718.2" Width="580" Height="0" Border.Width="0.5"/>
+      <LineObject Name="YLine2_Part3" Left="1197.3" Top="718.2" Width="315" Height="0" Border.Width="0.5"/>
       <TextObject Name="Y_Item3" Left="70" Top="718.2" Width="82.3" Height="18.9" 
                   Text="仕入" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Y_R3_Total" Left="152.3" Top="718.2" Width="145" Height="18.9" 
