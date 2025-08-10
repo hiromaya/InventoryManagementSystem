@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="None" ReportInfo.Created="08/09/2025 00:00:00" ReportInfo.Modified="08/09/2025 12:00:00" ReportInfo.CreatorVersion="2022.2.0.0">
+  <Dictionary>
+    <TableDataSource Name="DailyData" ReferenceName="DailyData" DataType="System.Data.DataTable" Enabled="true">
+      <Column Name="ItemName" DataType="System.String"/>
+      <Column Name="Total" DataType="System.String"/>
+      <Column Name="Class01" DataType="System.String"/>
+      <Column Name="Class02" DataType="System.String"/>
+      <Column Name="Class03" DataType="System.String"/>
+      <Column Name="Class04" DataType="System.String"/>
+      <Column Name="Class05" DataType="System.String"/>
+      <Column Name="Class06" DataType="System.String"/>
+      <Column Name="Class07" DataType="System.String"/>
+      <Column Name="Class08" DataType="System.String"/>
+      <Column Name="Class09" DataType="System.String"/>
+      <Column Name="Class10" DataType="System.String"/>
+      <Column Name="Class11" DataType="System.String"/>
+      <Column Name="Class12" DataType="System.String"/>
+      <Column Name="Class13" DataType="System.String"/>
+      <Column Name="Class14" DataType="System.String"/>
+      <Column Name="Class15" DataType="System.String"/>
+      <Column Name="Class16" DataType="System.String"/>
+      <Column Name="Class17" DataType="System.String"/>
+      <Column Name="Class18" DataType="System.String"/>
+      <Column Name="Class19" DataType="System.String"/>
+      <Column Name="Class20" DataType="System.String"/>
+      <Column Name="Class21" DataType="System.String"/>
+      <Column Name="Class22" DataType="System.String"/>
+      <Column Name="Class23" DataType="System.String"/>
+      <Column Name="Class24" DataType="System.String"/>
+      <Column Name="Class25" DataType="System.String"/>
+      <Column Name="Class26" DataType="System.String"/>
+      <Column Name="Class27" DataType="System.String"/>
+      <Column Name="Class28" DataType="System.String"/>
+      <Column Name="Class29" DataType="System.String"/>
+      <Column Name="Class30" DataType="System.String"/>
+      <Column Name="Class31" DataType="System.String"/>
+      <Column Name="Class32" DataType="System.String"/>
+      <Column Name="Class33" DataType="System.String"/>
+      <Column Name="Class34" DataType="System.String"/>
+      <Column Name="Class35" DataType="System.String"/>
+    </TableDataSource>
+    <TableDataSource Name="MonthlyData" ReferenceName="MonthlyData" DataType="System.Data.DataTable" Enabled="true">
+      <Column Name="ItemName" DataType="System.String"/>
+      <Column Name="Total" DataType="System.String"/>
+      <Column Name="Class01" DataType="System.String"/>
+      <Column Name="Class02" DataType="System.String"/>
+      <Column Name="Class03" DataType="System.String"/>
+      <Column Name="Class04" DataType="System.String"/>
+      <Column Name="Class05" DataType="System.String"/>
+      <Column Name="Class06" DataType="System.String"/>
+      <Column Name="Class07" DataType="System.String"/>
+      <Column Name="Class08" DataType="System.String"/>
+      <Column Name="Class09" DataType="System.String"/>
+      <Column Name="Class10" DataType="System.String"/>
+      <Column Name="Class11" DataType="System.String"/>
+      <Column Name="Class12" DataType="System.String"/>
+      <Column Name="Class13" DataType="System.String"/>
+      <Column Name="Class14" DataType="System.String"/>
+      <Column Name="Class15" DataType="System.String"/>
+      <Column Name="Class16" DataType="System.String"/>
+      <Column Name="Class17" DataType="System.String"/>
+      <Column Name="Class18" DataType="System.String"/>
+      <Column Name="Class19" DataType="System.String"/>
+      <Column Name="Class20" DataType="System.String"/>
+      <Column Name="Class21" DataType="System.String"/>
+      <Column Name="Class22" DataType="System.String"/>
+      <Column Name="Class23" DataType="System.String"/>
+      <Column Name="Class24" DataType="System.String"/>
+      <Column Name="Class25" DataType="System.String"/>
+      <Column Name="Class26" DataType="System.String"/>
+      <Column Name="Class27" DataType="System.String"/>
+      <Column Name="Class28" DataType="System.String"/>
+      <Column Name="Class29" DataType="System.String"/>
+      <Column Name="Class30" DataType="System.String"/>
+      <Column Name="Class31" DataType="System.String"/>
+      <Column Name="Class32" DataType="System.String"/>
+      <Column Name="Class33" DataType="System.String"/>
+      <Column Name="Class34" DataType="System.String"/>
+      <Column Name="Class35" DataType="System.String"/>
+    </TableDataSource>
+    <TableDataSource Name="YearlyData" ReferenceName="YearlyData" DataType="System.Data.DataTable" Enabled="true">
+      <Column Name="ItemName" DataType="System.String"/>
+      <Column Name="Total" DataType="System.String"/>
+      <Column Name="Class01" DataType="System.String"/>
+      <Column Name="Class02" DataType="System.String"/>
+      <Column Name="Class03" DataType="System.String"/>
+      <Column Name="Class04" DataType="System.String"/>
+      <Column Name="Class05" DataType="System.String"/>
+      <Column Name="Class06" DataType="System.String"/>
+      <Column Name="Class07" DataType="System.String"/>
+      <Column Name="Class08" DataType="System.String"/>
+      <Column Name="Class09" DataType="System.String"/>
+      <Column Name="Class10" DataType="System.String"/>
+      <Column Name="Class11" DataType="System.String"/>
+      <Column Name="Class12" DataType="System.String"/>
+      <Column Name="Class13" DataType="System.String"/>
+      <Column Name="Class14" DataType="System.String"/>
+      <Column Name="Class15" DataType="System.String"/>
+      <Column Name="Class16" DataType="System.String"/>
+      <Column Name="Class17" DataType="System.String"/>
+      <Column Name="Class18" DataType="System.String"/>
+      <Column Name="Class19" DataType="System.String"/>
+      <Column Name="Class20" DataType="System.String"/>
+      <Column Name="Class21" DataType="System.String"/>
+      <Column Name="Class22" DataType="System.String"/>
+      <Column Name="Class23" DataType="System.String"/>
+      <Column Name="Class24" DataType="System.String"/>
+      <Column Name="Class25" DataType="System.String"/>
+      <Column Name="Class26" DataType="System.String"/>
+      <Column Name="Class27" DataType="System.String"/>
+      <Column Name="Class28" DataType="System.String"/>
+      <Column Name="Class29" DataType="System.String"/>
+      <Column Name="Class30" DataType="System.String"/>
+      <Column Name="Class31" DataType="System.String"/>
+      <Column Name="Class32" DataType="System.String"/>
+      <Column Name="Class33" DataType="System.String"/>
+      <Column Name="Class34" DataType="System.String"/>
+      <Column Name="Class35" DataType="System.String"/>
+    </TableDataSource>
+    <Parameter Name="JobDate" DataType="System.DateTime"/>
+    <Parameter Name="CustomerName01" DataType="System.String"/>
+    <Parameter Name="CustomerName02" DataType="System.String"/>
+    <Parameter Name="CustomerName03" DataType="System.String"/>
+    <Parameter Name="CustomerName04" DataType="System.String"/>
+    <Parameter Name="CustomerName05" DataType="System.String"/>
+    <Parameter Name="CustomerName06" DataType="System.String"/>
+    <Parameter Name="CustomerName07" DataType="System.String"/>
+    <Parameter Name="CustomerName08" DataType="System.String"/>
+    <Parameter Name="CustomerName09" DataType="System.String"/>
+    <Parameter Name="CustomerName10" DataType="System.String"/>
+    <Parameter Name="CustomerName11" DataType="System.String"/>
+    <Parameter Name="CustomerName12" DataType="System.String"/>
+    <Parameter Name="CustomerName13" DataType="System.String"/>
+    <Parameter Name="CustomerName14" DataType="System.String"/>
+    <Parameter Name="CustomerName15" DataType="System.String"/>
+    <Parameter Name="CustomerName16" DataType="System.String"/>
+    <Parameter Name="CustomerName17" DataType="System.String"/>
+    <Parameter Name="CustomerName18" DataType="System.String"/>
+    <Parameter Name="CustomerName19" DataType="System.String"/>
+    <Parameter Name="CustomerName20" DataType="System.String"/>
+    <Parameter Name="CustomerName21" DataType="System.String"/>
+    <Parameter Name="CustomerName22" DataType="System.String"/>
+    <Parameter Name="CustomerName23" DataType="System.String"/>
+    <Parameter Name="CustomerName24" DataType="System.String"/>
+    <Parameter Name="CustomerName25" DataType="System.String"/>
+    <Parameter Name="CustomerName26" DataType="System.String"/>
+    <Parameter Name="CustomerName27" DataType="System.String"/>
+    <Parameter Name="CustomerName28" DataType="System.String"/>
+    <Parameter Name="CustomerName29" DataType="System.String"/>
+    <Parameter Name="CustomerName30" DataType="System.String"/>
+    <Parameter Name="CustomerName31" DataType="System.String"/>
+    <Parameter Name="CustomerName32" DataType="System.String"/>
+    <Parameter Name="CustomerName33" DataType="System.String"/>
+    <Parameter Name="CustomerName34" DataType="System.String"/>
+    <Parameter Name="CustomerName35" DataType="System.String"/>
+    <Parameter Name="SupplierName01" DataType="System.String"/>
+    <Parameter Name="SupplierName02" DataType="System.String"/>
+    <Parameter Name="SupplierName03" DataType="System.String"/>
+    <Parameter Name="SupplierName04" DataType="System.String"/>
+    <Parameter Name="SupplierName05" DataType="System.String"/>
+    <Parameter Name="SupplierName06" DataType="System.String"/>
+    <Parameter Name="SupplierName07" DataType="System.String"/>
+    <Parameter Name="SupplierName08" DataType="System.String"/>
+    <Parameter Name="SupplierName09" DataType="System.String"/>
+    <Parameter Name="SupplierName10" DataType="System.String"/>
+    <Parameter Name="SupplierName11" DataType="System.String"/>
+    <Parameter Name="SupplierName12" DataType="System.String"/>
+    <Parameter Name="SupplierName13" DataType="System.String"/>
+    <Parameter Name="SupplierName14" DataType="System.String"/>
+    <Parameter Name="SupplierName15" DataType="System.String"/>
+    <Parameter Name="SupplierName16" DataType="System.String"/>
+    <Parameter Name="SupplierName17" DataType="System.String"/>
+    <Parameter Name="SupplierName18" DataType="System.String"/>
+    <Parameter Name="SupplierName19" DataType="System.String"/>
+    <Parameter Name="SupplierName20" DataType="System.String"/>
+    <Parameter Name="SupplierName21" DataType="System.String"/>
+    <Parameter Name="SupplierName22" DataType="System.String"/>
+    <Parameter Name="SupplierName23" DataType="System.String"/>
+    <Parameter Name="SupplierName24" DataType="System.String"/>
+    <Parameter Name="SupplierName25" DataType="System.String"/>
+    <Parameter Name="SupplierName26" DataType="System.String"/>
+    <Parameter Name="SupplierName27" DataType="System.String"/>
+    <Parameter Name="SupplierName28" DataType="System.String"/>
+    <Parameter Name="SupplierName29" DataType="System.String"/>
+    <Parameter Name="SupplierName30" DataType="System.String"/>
+    <Parameter Name="SupplierName31" DataType="System.String"/>
+    <Parameter Name="SupplierName32" DataType="System.String"/>
+    <Parameter Name="SupplierName33" DataType="System.String"/>
+    <Parameter Name="SupplierName34" DataType="System.String"/>
+    <Parameter Name="SupplierName35" DataType="System.String"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" LeftMargin="8" TopMargin="8" RightMargin="8" BottomMargin="8">
+    <PageHeaderBand Name="PageHeader1" Width="1530.9" Height="56.7">
+      <TextObject Name="Title1" Left="0" Top="0" Width="1530.9" Height="22.68" Text="※ [JobDate.ToString(&quot;yyyy年MM月dd日&quot;)] 営業日報（1） ※" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 11pt, style=Bold"/>
+      <TextObject Name="Header1_1" Left="0" Top="28.35" Width="113.4" Height="28.35" Text="項     目" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header1_2" Left="113.4" Top="28.35" Width="94.5" Height="14.17" Text="合    計" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header1_3" Left="207.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName01]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header1_4" Left="302.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName02]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header1_5" Left="396.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName03]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header1_6" Left="491.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName04]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header1_7" Left="585.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName05]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header1_8" Left="680.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName06]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header1_9" Left="774.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName07]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header1_10" Left="869.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName08]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader1_1" Left="113.4" Top="42.52" Width="94.5" Height="14.17" Text="(仕入先)" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader1_2" Left="207.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName01]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader1_3" Left="302.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName02]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader1_4" Left="396.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName03]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader1_5" Left="491.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName04]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader1_6" Left="585.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName05]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader1_7" Left="680.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName06]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader1_8" Left="774.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName07]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader1_9" Left="869.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName08]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+    </PageHeaderBand>
+    <DataBand Name="DailyBand1" Width="1530.9" Height="14.17" DataSource="DailyData">
+      <TextObject Name="ItemName1" Left="0" Top="0" Width="113.4" Height="14.17" Text="[DailyData.ItemName]" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Total1" Left="113.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Total]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class1_1" Left="207.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class01]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class1_2" Left="302.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class02]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class1_3" Left="396.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class03]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class1_4" Left="491.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class04]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class1_5" Left="585.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class05]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class1_6" Left="680.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class06]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class1_7" Left="774.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class07]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class1_8" Left="869.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class08]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+    </DataBand>
+    <DataBand Name="MonthlyBand1" Width="1530.9" Height="14.17" DataSource="MonthlyData">
+      <TextObject Name="MonthlyItemName1" Left="0" Top="0" Width="113.4" Height="14.17" Text="[MonthlyData.ItemName]" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyTotal1" Left="113.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Total]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass1_1" Left="207.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class01]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass1_2" Left="302.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class02]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass1_3" Left="396.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class03]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass1_4" Left="491.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class04]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass1_5" Left="585.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class05]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass1_6" Left="680.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class06]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass1_7" Left="774.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class07]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass1_8" Left="869.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class08]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+    </DataBand>
+    <DataBand Name="YearlyBand1" Width="1530.9" Height="14.17" DataSource="YearlyData">
+      <TextObject Name="YearlyItemName1" Left="0" Top="0" Width="113.4" Height="14.17" Text="[YearlyData.ItemName]" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyTotal1" Left="113.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Total]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass1_1" Left="207.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class01]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass1_2" Left="302.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class02]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass1_3" Left="396.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class03]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass1_4" Left="491.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class04]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass1_5" Left="585.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class05]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass1_6" Left="680.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class06]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass1_7" Left="774.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class07]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass1_8" Left="869.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class08]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+    </DataBand>
+  </ReportPage>
+  <ReportPage Name="Page2" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" LeftMargin="8" TopMargin="8" RightMargin="8" BottomMargin="8">
+    <PageHeaderBand Name="PageHeader2" Width="1530.9" Height="56.7">
+      <TextObject Name="Title2" Left="0" Top="0" Width="1530.9" Height="22.68" Text="※ [JobDate.ToString(&quot;yyyy年MM月dd日&quot;)] 営業日報（2） ※" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 11pt, style=Bold"/>
+      <TextObject Name="Header2_1" Left="0" Top="28.35" Width="113.4" Height="28.35" Text="項     目" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header2_2" Left="113.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName09]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header2_3" Left="207.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName10]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header2_4" Left="302.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName11]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header2_5" Left="396.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName12]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header2_6" Left="491.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName13]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header2_7" Left="585.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName14]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header2_8" Left="680.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName15]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header2_9" Left="774.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName16]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header2_10" Left="869.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName17]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader2_1" Left="113.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName09]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader2_2" Left="207.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName10]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader2_3" Left="302.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName11]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader2_4" Left="396.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName12]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader2_5" Left="491.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName13]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader2_6" Left="585.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName14]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader2_7" Left="680.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName15]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader2_8" Left="774.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName16]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader2_9" Left="869.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName17]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+    </PageHeaderBand>
+    <DataBand Name="DailyBand2" Width="1530.9" Height="14.17" DataSource="DailyData">
+      <TextObject Name="ItemName2" Left="0" Top="0" Width="113.4" Height="14.17" Text="[DailyData.ItemName]" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class2_1" Left="113.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class09]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class2_2" Left="207.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class10]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class2_3" Left="302.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class11]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class2_4" Left="396.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class12]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class2_5" Left="491.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class13]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class2_6" Left="585.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class14]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class2_7" Left="680.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class15]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class2_8" Left="774.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class16]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class2_9" Left="869.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class17]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+    </DataBand>
+    <DataBand Name="MonthlyBand2" Width="1530.9" Height="14.17" DataSource="MonthlyData">
+      <TextObject Name="MonthlyItemName2" Left="0" Top="0" Width="113.4" Height="14.17" Text="[MonthlyData.ItemName]" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass2_1" Left="113.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class09]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass2_2" Left="207.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class10]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass2_3" Left="302.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class11]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass2_4" Left="396.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class12]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass2_5" Left="491.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class13]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass2_6" Left="585.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class14]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass2_7" Left="680.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class15]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass2_8" Left="774.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class16]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass2_9" Left="869.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class17]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+    </DataBand>
+    <DataBand Name="YearlyBand2" Width="1530.9" Height="14.17" DataSource="YearlyData">
+      <TextObject Name="YearlyItemName2" Left="0" Top="0" Width="113.4" Height="14.17" Text="[YearlyData.ItemName]" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass2_1" Left="113.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class09]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass2_2" Left="207.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class10]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass2_3" Left="302.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class11]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass2_4" Left="396.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class12]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass2_5" Left="491.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class13]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass2_6" Left="585.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class14]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass2_7" Left="680.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class15]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass2_8" Left="774.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class16]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass2_9" Left="869.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class17]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+    </DataBand>
+  </ReportPage>
+  <ReportPage Name="Page3" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" LeftMargin="8" TopMargin="8" RightMargin="8" BottomMargin="8">
+    <PageHeaderBand Name="PageHeader3" Width="1530.9" Height="56.7">
+      <TextObject Name="Title3" Left="0" Top="0" Width="1530.9" Height="22.68" Text="※ [JobDate.ToString(&quot;yyyy年MM月dd日&quot;)] 営業日報（3） ※" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 11pt, style=Bold"/>
+      <TextObject Name="Header3_1" Left="0" Top="28.35" Width="113.4" Height="28.35" Text="項     目" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header3_2" Left="113.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName18]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header3_3" Left="207.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName19]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header3_4" Left="302.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName20]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header3_5" Left="396.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName21]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header3_6" Left="491.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName22]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header3_7" Left="585.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName23]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header3_8" Left="680.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName24]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header3_9" Left="774.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName25]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header3_10" Left="869.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName26]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader3_1" Left="113.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName18]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader3_2" Left="207.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName19]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader3_3" Left="302.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName20]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader3_4" Left="396.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName21]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader3_5" Left="491.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName22]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader3_6" Left="585.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName23]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader3_7" Left="680.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName24]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader3_8" Left="774.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName25]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader3_9" Left="869.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName26]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+    </PageHeaderBand>
+    <DataBand Name="DailyBand3" Width="1530.9" Height="14.17" DataSource="DailyData">
+      <TextObject Name="ItemName3" Left="0" Top="0" Width="113.4" Height="14.17" Text="[DailyData.ItemName]" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class3_1" Left="113.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class18]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class3_2" Left="207.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class19]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class3_3" Left="302.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class20]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class3_4" Left="396.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class21]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class3_5" Left="491.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class22]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class3_6" Left="585.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class23]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class3_7" Left="680.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class24]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class3_8" Left="774.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class25]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class3_9" Left="869.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class26]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+    </DataBand>
+    <DataBand Name="MonthlyBand3" Width="1530.9" Height="14.17" DataSource="MonthlyData">
+      <TextObject Name="MonthlyItemName3" Left="0" Top="0" Width="113.4" Height="14.17" Text="[MonthlyData.ItemName]" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass3_1" Left="113.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class18]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass3_2" Left="207.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class19]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass3_3" Left="302.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class20]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass3_4" Left="396.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class21]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass3_5" Left="491.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class22]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass3_6" Left="585.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class23]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass3_7" Left="680.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class24]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass3_8" Left="774.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class25]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass3_9" Left="869.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class26]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+    </DataBand>
+    <DataBand Name="YearlyBand3" Width="1530.9" Height="14.17" DataSource="YearlyData">
+      <TextObject Name="YearlyItemName3" Left="0" Top="0" Width="113.4" Height="14.17" Text="[YearlyData.ItemName]" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass3_1" Left="113.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class18]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass3_2" Left="207.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class19]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass3_3" Left="302.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class20]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass3_4" Left="396.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class21]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass3_5" Left="491.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class22]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass3_6" Left="585.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class23]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass3_7" Left="680.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class24]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass3_8" Left="774.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class25]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass3_9" Left="869.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class26]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+    </DataBand>
+  </ReportPage>
+  <ReportPage Name="Page4" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" LeftMargin="8" TopMargin="8" RightMargin="8" BottomMargin="8">
+    <PageHeaderBand Name="PageHeader4" Width="1530.9" Height="56.7">
+      <TextObject Name="Title4" Left="0" Top="0" Width="1530.9" Height="22.68" Text="※ [JobDate.ToString(&quot;yyyy年MM月dd日&quot;)] 営業日報（4） ※" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 11pt, style=Bold"/>
+      <TextObject Name="Header4_1" Left="0" Top="28.35" Width="113.4" Height="28.35" Text="項     目" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header4_2" Left="113.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName27]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header4_3" Left="207.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName28]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header4_4" Left="302.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName29]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header4_5" Left="396.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName30]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header4_6" Left="491.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName31]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header4_7" Left="585.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName32]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header4_8" Left="680.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName33]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header4_9" Left="774.9" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName34]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Header4_10" Left="869.4" Top="28.35" Width="94.5" Height="14.17" Text="[CustomerName35]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader4_1" Left="113.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName27]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader4_2" Left="207.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName28]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader4_3" Left="302.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName29]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader4_4" Left="396.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName30]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader4_5" Left="491.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName31]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader4_6" Left="585.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName32]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader4_7" Left="680.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName33]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader4_8" Left="774.9" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName34]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="SubHeader4_9" Left="869.4" Top="42.52" Width="94.5" Height="14.17" Text="[SupplierName35]" HorzAlign="Center" VertAlign="Center" Font="MS Gothic, 9pt, style=Bold" Border.Lines="All" Border.Width="0.5"/>
+    </PageHeaderBand>
+    <DataBand Name="DailyBand4" Width="1530.9" Height="14.17" DataSource="DailyData">
+      <TextObject Name="ItemName4" Left="0" Top="0" Width="113.4" Height="14.17" Text="[DailyData.ItemName]" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class4_1" Left="113.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class27]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class4_2" Left="207.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class28]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class4_3" Left="302.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class29]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class4_4" Left="396.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class30]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class4_5" Left="491.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class31]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class4_6" Left="585.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class32]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class4_7" Left="680.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class33]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class4_8" Left="774.9" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class34]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="Class4_9" Left="869.4" Top="0" Width="94.5" Height="14.17" Text="[DailyData.Class35]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+    </DataBand>
+    <DataBand Name="MonthlyBand4" Width="1530.9" Height="14.17" DataSource="MonthlyData">
+      <TextObject Name="MonthlyItemName4" Left="0" Top="0" Width="113.4" Height="14.17" Text="[MonthlyData.ItemName]" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass4_1" Left="113.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class27]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass4_2" Left="207.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class28]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass4_3" Left="302.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class29]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass4_4" Left="396.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class30]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass4_5" Left="491.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class31]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass4_6" Left="585.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class32]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass4_7" Left="680.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class33]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass4_8" Left="774.9" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class34]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="MonthlyClass4_9" Left="869.4" Top="0" Width="94.5" Height="14.17" Text="[MonthlyData.Class35]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+    </DataBand>
+    <DataBand Name="YearlyBand4" Width="1530.9" Height="14.17" DataSource="YearlyData">
+      <TextObject Name="YearlyItemName4" Left="0" Top="0" Width="113.4" Height="14.17" Text="[YearlyData.ItemName]" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass4_1" Left="113.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class27]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass4_2" Left="207.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class28]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass4_3" Left="302.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class29]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass4_4" Left="396.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class30]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass4_5" Left="491.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class31]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass4_6" Left="585.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class32]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass4_7" Left="680.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class33]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass4_8" Left="774.9" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class34]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+      <TextObject Name="YearlyClass4_9" Left="869.4" Top="0" Width="94.5" Height="14.17" Text="[YearlyData.Class35]" HorzAlign="Right" VertAlign="Center" Font="MS Gothic, 9pt" Border.Lines="All" Border.Width="0.5"/>
+    </DataBand>
+  </ReportPage>
+</Report>
