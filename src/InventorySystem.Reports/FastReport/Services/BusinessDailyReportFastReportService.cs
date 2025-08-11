@@ -193,18 +193,18 @@ namespace InventorySystem.Reports.FastReport.Services
             }
 
             // 行6：＊売上計＊（合計行）
-            var salesTotal = (total.DailyCashSales ?? 0) + (total.DailyCashSalesTax ?? 0) +
-                             (total.DailyCreditSales ?? 0) + (total.DailySalesDiscount ?? 0) +
-                             (total.DailyCreditSalesTax ?? 0);
+            var salesTotal = (total.DailyCashSales ?? 0m) + (total.DailyCashSalesTax ?? 0m) +
+                             (total.DailyCreditSales ?? 0m) + (total.DailySalesDiscount ?? 0m) +
+                             (total.DailyCreditSalesTax ?? 0m);
             report.SetParameterValue("Daily_Row6_Total", FormatNumber(salesTotal));
             for (int col = 1; col <= 8; col++)
             {
                 var item = dataByClass[col];
                 if (item != null)
                 {
-                    var colTotal = (item.DailyCashSales ?? 0) + (item.DailyCashSalesTax ?? 0) +
-                                   (item.DailyCreditSales ?? 0) + (item.DailySalesDiscount ?? 0) +
-                                   (item.DailyCreditSalesTax ?? 0);
+                    var colTotal = (item.DailyCashSales ?? 0m) + (item.DailyCashSalesTax ?? 0m) +
+                                   (item.DailyCreditSales ?? 0m) + (item.DailySalesDiscount ?? 0m) +
+                                   (item.DailyCreditSalesTax ?? 0m);
                     report.SetParameterValue($"Daily_Row6_Col{col}", FormatNumber(colTotal));
                 }
                 else
@@ -254,18 +254,18 @@ namespace InventorySystem.Reports.FastReport.Services
             }
 
             // 行12：＊仕入計＊
-            var purchaseTotal = (total.DailyCashPurchase ?? 0) + (total.DailyCashPurchaseTax ?? 0) +
-                                (total.DailyCreditPurchase ?? 0) + (total.DailyPurchaseDiscount ?? 0) +
-                                (total.DailyCreditPurchaseTax ?? 0);
+            var purchaseTotal = (total.DailyCashPurchase ?? 0m) + (total.DailyCashPurchaseTax ?? 0m) +
+                                (total.DailyCreditPurchase ?? 0m) + (total.DailyPurchaseDiscount ?? 0m) +
+                                (total.DailyCreditPurchaseTax ?? 0m);
             report.SetParameterValue("Daily_Row12_Total", FormatNumber(purchaseTotal));
             for (int col = 1; col <= 8; col++)
             {
                 var item = dataByClass[col];
                 if (item != null)
                 {
-                    var colTotal = (item.DailyCashPurchase ?? 0) + (item.DailyCashPurchaseTax ?? 0) +
-                                   (item.DailyCreditPurchase ?? 0) + (item.DailyPurchaseDiscount ?? 0) +
-                                   (item.DailyCreditPurchaseTax ?? 0);
+                    var colTotal = (item.DailyCashPurchase ?? 0m) + (item.DailyCashPurchaseTax ?? 0m) +
+                                   (item.DailyCreditPurchase ?? 0m) + (item.DailyPurchaseDiscount ?? 0m) +
+                                   (item.DailyCreditPurchaseTax ?? 0m);
                     report.SetParameterValue($"Daily_Row12_Col{col}", FormatNumber(colTotal));
                 }
                 else
@@ -291,14 +291,14 @@ namespace InventorySystem.Reports.FastReport.Services
             }
 
             // 行15：＊入金計＊
-            var receiptTotal = (total.DailyCashReceipt ?? 0) + (total.DailyOtherReceipt ?? 0);
+            var receiptTotal = (total.DailyCashReceipt ?? 0m) + (total.DailyOtherReceipt ?? 0m);
             report.SetParameterValue("Daily_Row15_Total", FormatNumber(receiptTotal));
             for (int col = 1; col <= 8; col++)
             {
                 var item = dataByClass[col];
                 if (item != null)
                 {
-                    var colTotal = (item.DailyCashReceipt ?? 0) + (item.DailyOtherReceipt ?? 0);
+                    var colTotal = (item.DailyCashReceipt ?? 0m) + (item.DailyOtherReceipt ?? 0m);
                     report.SetParameterValue($"Daily_Row15_Col{col}", FormatNumber(colTotal));
                 }
                 else
@@ -324,14 +324,14 @@ namespace InventorySystem.Reports.FastReport.Services
             }
 
             // 行18：＊支払計＊
-            var paymentTotal = (total.DailyCashPayment ?? 0) + (total.DailyOtherPayment ?? 0);
+            var paymentTotal = (total.DailyCashPayment ?? 0m) + (total.DailyOtherPayment ?? 0m);
             report.SetParameterValue("Daily_Row18_Total", FormatNumber(paymentTotal));
             for (int col = 1; col <= 8; col++)
             {
                 var item = dataByClass[col];
                 if (item != null)
                 {
-                    var colTotal = (item.DailyCashPayment ?? 0) + (item.DailyOtherPayment ?? 0);
+                    var colTotal = (item.DailyCashPayment ?? 0m) + (item.DailyOtherPayment ?? 0m);
                     report.SetParameterValue($"Daily_Row18_Col{col}", FormatNumber(colTotal));
                 }
                 else
