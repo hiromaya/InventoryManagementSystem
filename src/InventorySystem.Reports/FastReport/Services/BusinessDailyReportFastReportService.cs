@@ -403,22 +403,22 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             return new BusinessDailyReportItem
             {
-                DailyCashSales = items.Sum(x => x.DailyCashSales),
-                DailyCashSalesTax = items.Sum(x => x.DailyCashSalesTax),
-                DailyCreditSales = items.Sum(x => x.DailyCreditSales),
-                DailySalesDiscount = items.Sum(x => x.DailySalesDiscount),
-                DailyCreditSalesTax = items.Sum(x => x.DailyCreditSalesTax),
-                DailyCashPurchase = items.Sum(x => x.DailyCashPurchase),
-                DailyCashPurchaseTax = items.Sum(x => x.DailyCashPurchaseTax),
-                DailyCreditPurchase = items.Sum(x => x.DailyCreditPurchase),
-                DailyPurchaseDiscount = items.Sum(x => x.DailyPurchaseDiscount),
-                DailyCreditPurchaseTax = items.Sum(x => x.DailyCreditPurchaseTax),
-                DailyCashReceipt = items.Sum(x => x.DailyCashReceipt),
-                DailyBankReceipt = items.Sum(x => x.DailyBankReceipt),
-                DailyOtherReceipt = items.Sum(x => x.DailyOtherReceipt),
-                DailyCashPayment = items.Sum(x => x.DailyCashPayment),
-                DailyBankPayment = items.Sum(x => x.DailyBankPayment),
-                DailyOtherPayment = items.Sum(x => x.DailyOtherPayment)
+                DailyCashSales = items.Sum(x => x.DailyCashSales ?? 0),
+                DailyCashSalesTax = items.Sum(x => x.DailyCashSalesTax ?? 0),
+                DailyCreditSales = items.Sum(x => x.DailyCreditSales ?? 0),
+                DailySalesDiscount = items.Sum(x => x.DailySalesDiscount ?? 0),
+                DailyCreditSalesTax = items.Sum(x => x.DailyCreditSalesTax ?? 0),
+                DailyCashPurchase = items.Sum(x => x.DailyCashPurchase ?? 0),
+                DailyCashPurchaseTax = items.Sum(x => x.DailyCashPurchaseTax ?? 0),
+                DailyCreditPurchase = items.Sum(x => x.DailyCreditPurchase ?? 0),
+                DailyPurchaseDiscount = items.Sum(x => x.DailyPurchaseDiscount ?? 0),
+                DailyCreditPurchaseTax = items.Sum(x => x.DailyCreditPurchaseTax ?? 0),
+                DailyCashReceipt = items.Sum(x => x.DailyCashReceipt ?? 0),
+                DailyBankReceipt = items.Sum(x => x.DailyBankReceipt ?? 0),
+                DailyOtherReceipt = items.Sum(x => x.DailyOtherReceipt ?? 0),
+                DailyCashPayment = items.Sum(x => x.DailyCashPayment ?? 0),
+                DailyBankPayment = items.Sum(x => x.DailyBankPayment ?? 0),
+                DailyOtherPayment = items.Sum(x => x.DailyOtherPayment ?? 0)
             };
         }
 
