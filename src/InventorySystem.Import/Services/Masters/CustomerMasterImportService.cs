@@ -218,17 +218,49 @@ public class CustomerMasterImportService
             Address3 = csv.Address3?.Trim(),
             PhoneNumber = csv.PhoneNumber?.Trim(),
             FaxNumber = csv.FaxNumber?.Trim(),
-            CustomerCategory1 = csv.CustomerCategory1?.Trim(),
-            CustomerCategory2 = csv.CustomerCategory2?.Trim(),
-            CustomerCategory3 = csv.CustomerCategory3?.Trim(),
-            CustomerCategory4 = csv.CustomerCategory4?.Trim(),
-            CustomerCategory5 = csv.CustomerCategory5?.Trim(),
+            CustomerCategory1 = FormatCategoryCode(csv.CustomerCategory1),
+            CustomerCategory2 = FormatCategoryCode(csv.CustomerCategory2),
+            CustomerCategory3 = FormatCategoryCode(csv.CustomerCategory3),
+            CustomerCategory4 = FormatCategoryCode(csv.CustomerCategory4),
+            CustomerCategory5 = FormatCategoryCode(csv.CustomerCategory5),
             WalkingRate = csv.WalkingRate,
             BillingCode = csv.BillingCode?.Trim(),
             IsActive = csv.IsActive,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
+    }
+
+    /// <summary>
+    /// 分類コードを3桁の0埋め文字列に変換
+    /// </summary>
+    /// <param name="categoryValue">CSV から読み込んだ分類コード値</param>
+    /// <returns>3桁フォーマット済みの分類コード、またはnull</returns>
+    private string? FormatCategoryCode(string? categoryValue)
+    {
+        // nullまたは空文字の場合はnullを返す
+        if (string.IsNullOrWhiteSpace(categoryValue))
+            return null;
+
+        var valueStr = categoryValue.Trim();
+        
+        // 数値として解析を試みる
+        if (int.TryParse(valueStr, out int code))
+        {
+            // 範囲チェック（1～999まで対応）
+            if (code < 0 || code > 999)
+            {
+                _logger.LogWarning("分類コードが範囲外です: {Code}", code);
+                return valueStr; // 元の値をそのまま返す
+            }
+            
+            // 3桁の0埋め形式に変換（例: 1 → "001", 35 → "035"）
+            return code.ToString("D3");
+        }
+        
+        // 数値でない場合は元の値をそのまま返す
+        _logger.LogWarning("分類コードが数値ではありません: {ValueStr}", valueStr);
+        return valueStr;
     }
 
     /// <summary>

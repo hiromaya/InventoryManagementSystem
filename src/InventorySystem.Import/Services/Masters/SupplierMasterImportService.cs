@@ -218,14 +218,46 @@ public class SupplierMasterImportService
             Address3 = csv.Address3?.Trim(),
             PhoneNumber = csv.PhoneNumber?.Trim(),
             FaxNumber = csv.FaxNumber?.Trim(),
-            SupplierCategory1 = csv.SupplierCategory1?.Trim(),
-            SupplierCategory2 = csv.SupplierCategory2?.Trim(),
-            SupplierCategory3 = csv.SupplierCategory3?.Trim(),
+            SupplierCategory1 = FormatCategoryCode(csv.SupplierCategory1),
+            SupplierCategory2 = FormatCategoryCode(csv.SupplierCategory2),
+            SupplierCategory3 = FormatCategoryCode(csv.SupplierCategory3),
             PaymentCode = csv.PaymentCode?.Trim(),
             IsActive = csv.IsActive,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
+    }
+
+    /// <summary>
+    /// 分類コードを3桁の0埋め文字列に変換
+    /// </summary>
+    /// <param name="categoryValue">CSV から読み込んだ分類コード値</param>
+    /// <returns>3桁フォーマット済みの分類コード、またはnull</returns>
+    private string? FormatCategoryCode(string? categoryValue)
+    {
+        // nullまたは空文字の場合はnullを返す
+        if (string.IsNullOrWhiteSpace(categoryValue))
+            return null;
+
+        var valueStr = categoryValue.Trim();
+        
+        // 数値として解析を試みる
+        if (int.TryParse(valueStr, out int code))
+        {
+            // 範囲チェック（1～999まで対応）
+            if (code < 0 || code > 999)
+            {
+                _logger.LogWarning("分類コードが範囲外です: {Code}", code);
+                return valueStr; // 元の値をそのまま返す
+            }
+            
+            // 3桁の0埋め形式に変換（例: 1 → "001", 35 → "035"）
+            return code.ToString("D3");
+        }
+        
+        // 数値でない場合は元の値をそのまま返す
+        _logger.LogWarning("分類コードが数値ではありません: {ValueStr}", valueStr);
+        return valueStr;
     }
 
     /// <summary>
