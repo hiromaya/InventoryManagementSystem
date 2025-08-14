@@ -4,6 +4,9 @@ using InventorySystem.Core.Interfaces;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace InventorySystem.Data.Repositories
 {
@@ -302,205 +305,517 @@ namespace InventorySystem.Data.Repositories
             return result.ToList();
         }
 
+        // ================ 個別集計メソッド（月次用） ================
+
+        /// <summary>
+        /// 月次売上データを分類別に集計
+        /// </summary>
+        private async Task<Dictionary<string, BusinessDailyReportItem>> GetMonthlySalesDataAsync(
+            SqlConnection connection, DateTime startDate, DateTime endDate)
+        {
+            const string sql = @"
+                SELECT 
+                    COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                    SUM(CASE WHEN sv.VoucherType = 52 AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS MonthlyCashSalesTax,
+                    SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType IN (1,2) THEN sv.Amount ELSE 0 END) AS MonthlyCreditSales,
+                    SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType IN (3,4) THEN sv.Amount ELSE 0 END) AS MonthlySalesDiscount,
+                    SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS MonthlyCreditSalesTax
+                FROM SalesVouchers sv
+                LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
+                WHERE sv.JobDate BETWEEN @StartDate AND @EndDate 
+                  AND sv.IsActive = 1
+                GROUP BY c.CustomerCategory1";
+
+            var result = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
+            
+            var dictionary = new Dictionary<string, BusinessDailyReportItem>();
+            foreach (var row in result)
+            {
+                var item = new BusinessDailyReportItem
+                {
+                    ClassificationCode = row.ClassificationCode,
+                    MonthlyCashSalesTax = row.MonthlyCashSalesTax ?? 0,
+                    MonthlyCreditSales = row.MonthlyCreditSales ?? 0,
+                    MonthlySalesDiscount = row.MonthlySalesDiscount ?? 0,
+                    MonthlyCreditSalesTax = row.MonthlyCreditSalesTax ?? 0
+                };
+                dictionary[item.ClassificationCode] = item;
+            }
+            
+            return dictionary;
+        }
+
+        /// <summary>
+        /// 月次仕入データを分類別に集計
+        /// </summary>
+        private async Task<Dictionary<string, BusinessDailyReportItem>> GetMonthlyPurchaseDataAsync(
+            SqlConnection connection, DateTime startDate, DateTime endDate)
+        {
+            const string sql = @"
+                SELECT 
+                    COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                    SUM(CASE WHEN pv.VoucherType = 12 AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS MonthlyCashPurchaseTax,
+                    SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType IN (1,2) THEN pv.Amount ELSE 0 END) AS MonthlyCreditPurchase,
+                    SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType IN (3,4) THEN pv.Amount ELSE 0 END) AS MonthlyPurchaseDiscount,
+                    SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS MonthlyCreditPurchaseTax
+                FROM PurchaseVouchers pv
+                LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
+                WHERE pv.JobDate BETWEEN @StartDate AND @EndDate 
+                  AND pv.IsActive = 1
+                GROUP BY s.SupplierCategory1";
+
+            var result = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
+            
+            var dictionary = new Dictionary<string, BusinessDailyReportItem>();
+            foreach (var row in result)
+            {
+                var item = new BusinessDailyReportItem
+                {
+                    ClassificationCode = row.ClassificationCode,
+                    MonthlyCashPurchaseTax = row.MonthlyCashPurchaseTax ?? 0,
+                    MonthlyCreditPurchase = row.MonthlyCreditPurchase ?? 0,
+                    MonthlyPurchaseDiscount = row.MonthlyPurchaseDiscount ?? 0,
+                    MonthlyCreditPurchaseTax = row.MonthlyCreditPurchaseTax ?? 0
+                };
+                dictionary[item.ClassificationCode] = item;
+            }
+            
+            return dictionary;
+        }
+
+        /// <summary>
+        /// 月次入金データを分類別に集計
+        /// </summary>
+        private async Task<Dictionary<string, BusinessDailyReportItem>> GetMonthlyReceiptDataAsync(
+            SqlConnection connection, DateTime startDate, DateTime endDate)
+        {
+            const string sql = @"
+                SELECT 
+                    COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                    SUM(CASE WHEN rv.PaymentType IN (1,2,4) THEN rv.Amount ELSE 0 END) AS MonthlyCashReceipt,
+                    SUM(CASE WHEN rv.PaymentType = 3 THEN rv.Amount ELSE 0 END) AS MonthlyBankReceipt,
+                    SUM(CASE WHEN rv.PaymentType IN (5,6,7,8,9) THEN rv.Amount ELSE 0 END) AS MonthlyOtherReceipt
+                FROM ReceiptVouchers rv
+                LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
+                WHERE rv.JobDate BETWEEN @StartDate AND @EndDate
+                GROUP BY c.CustomerCategory1";
+
+            var result = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
+            
+            var dictionary = new Dictionary<string, BusinessDailyReportItem>();
+            foreach (var row in result)
+            {
+                var item = new BusinessDailyReportItem
+                {
+                    ClassificationCode = row.ClassificationCode,
+                    MonthlyCashReceipt = row.MonthlyCashReceipt ?? 0,
+                    MonthlyBankReceipt = row.MonthlyBankReceipt ?? 0,
+                    MonthlyOtherReceipt = row.MonthlyOtherReceipt ?? 0
+                };
+                dictionary[item.ClassificationCode] = item;
+            }
+            
+            return dictionary;
+        }
+
+        /// <summary>
+        /// 月次支払データを分類別に集計
+        /// </summary>
+        private async Task<Dictionary<string, BusinessDailyReportItem>> GetMonthlyPaymentDataAsync(
+            SqlConnection connection, DateTime startDate, DateTime endDate)
+        {
+            const string sql = @"
+                SELECT 
+                    COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                    SUM(CASE WHEN pv.PaymentType IN (1,2,4) THEN pv.Amount ELSE 0 END) AS MonthlyCashPayment,
+                    SUM(CASE WHEN pv.PaymentType = 3 THEN pv.Amount ELSE 0 END) AS MonthlyBankPayment,
+                    SUM(CASE WHEN pv.PaymentType IN (5,6,7,8,9) THEN pv.Amount ELSE 0 END) AS MonthlyOtherPayment
+                FROM PaymentVouchers pv
+                LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
+                WHERE pv.JobDate BETWEEN @StartDate AND @EndDate
+                GROUP BY s.SupplierCategory1";
+
+            var result = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
+            
+            var dictionary = new Dictionary<string, BusinessDailyReportItem>();
+            foreach (var row in result)
+            {
+                var item = new BusinessDailyReportItem
+                {
+                    ClassificationCode = row.ClassificationCode,
+                    MonthlyCashPayment = row.MonthlyCashPayment ?? 0,
+                    MonthlyBankPayment = row.MonthlyBankPayment ?? 0,
+                    MonthlyOtherPayment = row.MonthlyOtherPayment ?? 0
+                };
+                dictionary[item.ClassificationCode] = item;
+            }
+            
+            return dictionary;
+        }
+
+        /// <summary>
+        /// 月次データをマージして完全なリストを作成
+        /// </summary>
+        private List<BusinessDailyReportItem> MergeMonthlyData(
+            Dictionary<string, BusinessDailyReportItem> salesData,
+            Dictionary<string, BusinessDailyReportItem> purchaseData,
+            Dictionary<string, BusinessDailyReportItem> receiptData,
+            Dictionary<string, BusinessDailyReportItem> paymentData)
+        {
+            // すべての分類コードを収集
+            var allCodes = new HashSet<string>();
+            allCodes.UnionWith(salesData.Keys);
+            allCodes.UnionWith(purchaseData.Keys);
+            allCodes.UnionWith(receiptData.Keys);
+            allCodes.UnionWith(paymentData.Keys);
+            
+            var result = new List<BusinessDailyReportItem>();
+            
+            foreach (var code in allCodes.OrderBy(c => c))
+            {
+                var item = new BusinessDailyReportItem
+                {
+                    ClassificationCode = code,
+                    CustomerClassName = "",  // 後で別途取得
+                    SupplierClassName = "",  // 後で別途取得
+                };
+                
+                // 売上データをマージ
+                if (salesData.TryGetValue(code, out var sales))
+                {
+                    item.MonthlyCashSalesTax = sales.MonthlyCashSalesTax;
+                    item.MonthlyCreditSales = sales.MonthlyCreditSales;
+                    item.MonthlySalesDiscount = sales.MonthlySalesDiscount;
+                    item.MonthlyCreditSalesTax = sales.MonthlyCreditSalesTax;
+                }
+                
+                // 仕入データをマージ
+                if (purchaseData.TryGetValue(code, out var purchase))
+                {
+                    item.MonthlyCashPurchaseTax = purchase.MonthlyCashPurchaseTax;
+                    item.MonthlyCreditPurchase = purchase.MonthlyCreditPurchase;
+                    item.MonthlyPurchaseDiscount = purchase.MonthlyPurchaseDiscount;
+                    item.MonthlyCreditPurchaseTax = purchase.MonthlyCreditPurchaseTax;
+                }
+                
+                // 入金データをマージ
+                if (receiptData.TryGetValue(code, out var receipt))
+                {
+                    item.MonthlyCashReceipt = receipt.MonthlyCashReceipt;
+                    item.MonthlyBankReceipt = receipt.MonthlyBankReceipt;
+                    item.MonthlyOtherReceipt = receipt.MonthlyOtherReceipt;
+                }
+                
+                // 支払データをマージ
+                if (paymentData.TryGetValue(code, out var payment))
+                {
+                    item.MonthlyCashPayment = payment.MonthlyCashPayment;
+                    item.MonthlyBankPayment = payment.MonthlyBankPayment;
+                    item.MonthlyOtherPayment = payment.MonthlyOtherPayment;
+                }
+                
+                result.Add(item);
+            }
+            
+            // 合計行（000）を追加
+            var totalItem = new BusinessDailyReportItem
+            {
+                ClassificationCode = "000",
+                CustomerClassName = "合計",
+                SupplierClassName = "合計",
+                MonthlyCashSalesTax = result.Sum(r => r.MonthlyCashSalesTax ?? 0),
+                MonthlyCreditSales = result.Sum(r => r.MonthlyCreditSales ?? 0),
+                MonthlySalesDiscount = result.Sum(r => r.MonthlySalesDiscount ?? 0),
+                MonthlyCreditSalesTax = result.Sum(r => r.MonthlyCreditSalesTax ?? 0),
+                MonthlyCashPurchaseTax = result.Sum(r => r.MonthlyCashPurchaseTax ?? 0),
+                MonthlyCreditPurchase = result.Sum(r => r.MonthlyCreditPurchase ?? 0),
+                MonthlyPurchaseDiscount = result.Sum(r => r.MonthlyPurchaseDiscount ?? 0),
+                MonthlyCreditPurchaseTax = result.Sum(r => r.MonthlyCreditPurchaseTax ?? 0),
+                MonthlyCashReceipt = result.Sum(r => r.MonthlyCashReceipt ?? 0),
+                MonthlyBankReceipt = result.Sum(r => r.MonthlyBankReceipt ?? 0),
+                MonthlyOtherReceipt = result.Sum(r => r.MonthlyOtherReceipt ?? 0),
+                MonthlyCashPayment = result.Sum(r => r.MonthlyCashPayment ?? 0),
+                MonthlyBankPayment = result.Sum(r => r.MonthlyBankPayment ?? 0),
+                MonthlyOtherPayment = result.Sum(r => r.MonthlyOtherPayment ?? 0)
+            };
+            
+            result.Insert(0, totalItem);
+            
+            return result;
+        }
+
+        /// <summary>
+        /// 分類名を取得して設定
+        /// </summary>
+        private async Task SetClassificationNamesAsync(
+            SqlConnection connection, List<BusinessDailyReportItem> items)
+        {
+            // 得意先分類名を取得
+            const string customerSql = @"
+                SELECT CategoryCode, CategoryName 
+                FROM CustomerCategory1Master";
+            
+            var customerCategories = await connection.QueryAsync<dynamic>(customerSql);
+            var customerDict = customerCategories.ToDictionary(
+                c => c.CategoryCode.ToString().PadLeft(3, '0'),
+                c => (string)c.CategoryName);
+            
+            // 仕入先分類名を取得
+            const string supplierSql = @"
+                SELECT CategoryCode, CategoryName 
+                FROM SupplierCategory1Master";
+            
+            var supplierCategories = await connection.QueryAsync<dynamic>(supplierSql);
+            var supplierDict = supplierCategories.ToDictionary(
+                s => s.CategoryCode.ToString().PadLeft(3, '0'),
+                s => (string)s.CategoryName);
+            
+            // 分類名を設定
+            foreach (var item in items)
+            {
+                if (item.ClassificationCode == "000")
+                {
+                    item.CustomerClassName = "合計";
+                    item.SupplierClassName = "合計";
+                }
+                else
+                {
+                    customerDict.TryGetValue(item.ClassificationCode, out var customerName);
+                    supplierDict.TryGetValue(item.ClassificationCode, out var supplierName);
+                    item.CustomerClassName = customerName ?? "";
+                    item.SupplierClassName = supplierName ?? "";
+                }
+            }
+        }
+
         public async Task<List<BusinessDailyReportItem>> GetMonthlyDataAsync(DateTime jobDate)
         {
-            // 月初から前日までの累計を取得
-            var startDate = new DateTime(jobDate.Year, jobDate.Month, 1);
-            var endDate = jobDate.AddDays(-1);
+            try
+            {
+                _logger.LogInformation("月次データ集計を開始: JobDate={JobDate}", jobDate);
+                
+                var startDate = new DateTime(jobDate.Year, jobDate.Month, 1);
+                var endDate = jobDate.AddDays(-1);
+                
+                // 前日までのデータがない場合は空リストを返す
+                if (endDate < startDate)
+                {
+                    _logger.LogInformation("月初のため月次データなし");
+                    return new List<BusinessDailyReportItem>();
+                }
+                
+                using var connection = CreateConnection();
+                
+                // 各テーブルを個別に集計（並列実行）
+                var salesTask = GetMonthlySalesDataAsync(connection, startDate, endDate);
+                var purchaseTask = GetMonthlyPurchaseDataAsync(connection, startDate, endDate);
+                var receiptTask = GetMonthlyReceiptDataAsync(connection, startDate, endDate);
+                var paymentTask = GetMonthlyPaymentDataAsync(connection, startDate, endDate);
+                
+                // すべての集計を待機
+                await Task.WhenAll(salesTask, purchaseTask, receiptTask, paymentTask);
+                
+                _logger.LogInformation("個別集計完了 - 売上:{SalesCount}, 仕入:{PurchaseCount}, 入金:{ReceiptCount}, 支払:{PaymentCount}",
+                    salesTask.Result.Count, purchaseTask.Result.Count, 
+                    receiptTask.Result.Count, paymentTask.Result.Count);
+                
+                // データをマージ
+                var result = MergeMonthlyData(
+                    salesTask.Result,
+                    purchaseTask.Result,
+                    receiptTask.Result,
+                    paymentTask.Result
+                );
+                
+                // 分類名を設定
+                await SetClassificationNamesAsync(connection, result);
+                
+                _logger.LogInformation("月次データ集計完了: {Count}件", result.Count);
+                
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "月次データ集計でエラーが発生しました");
+                throw;
+            }
+        }
 
+        // ================ 個別集計メソッド（年次用） ================
+
+        /// <summary>
+        /// 年次売上データを分類別に集計（、4項目のみ）
+        /// </summary>
+        private async Task<Dictionary<string, BusinessDailyReportItem>> GetYearlySalesDataAsync(
+            SqlConnection connection, DateTime startDate, DateTime endDate)
+        {
             const string sql = @"
-                -- 分類別に月計を集計
                 SELECT 
-                    COALESCE(c.CustomerCategory1, s.SupplierCategory1, '999') AS ClassificationCode,
-                    COALESCE(cc.CategoryName, sc.CategoryName, '') AS CustomerClassName,
-                    COALESCE(sc.CategoryName, cc.CategoryName, '') AS SupplierClassName,
-                    
-                    -- 売上関連（現金売上は含まない - 現金売上は入金に含まれるため）
-                    0 AS MonthlyCashSales,
-                    SUM(CASE WHEN sv.VoucherType = 52 AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS MonthlyCashSalesTax,
-                    SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType IN (1,2) THEN sv.Amount ELSE 0 END) AS MonthlyCreditSales,
-                    SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType IN (3,4) THEN sv.Amount ELSE 0 END) AS MonthlySalesDiscount,
-                    SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS MonthlyCreditSalesTax,
-                    
-                    -- 仕入関連（現金仕入は含まない - 現金仕入は支払に含まれるため）
-                    0 AS MonthlyCashPurchase,
-                    SUM(CASE WHEN pv.VoucherType = 12 AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS MonthlyCashPurchaseTax,
-                    SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType IN (1,2) THEN pv.Amount ELSE 0 END) AS MonthlyCreditPurchase,
-                    SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType IN (3,4) THEN pv.Amount ELSE 0 END) AS MonthlyPurchaseDiscount,
-                    SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS MonthlyCreditPurchaseTax,
-                    
-                    -- 入金関連（現金売上を含む）
-                    (SUM(CASE WHEN rv.PaymentType IN (1,2,4) THEN rv.Amount ELSE 0 END) + 
-                     SUM(CASE WHEN sv.VoucherType = 52 AND sv.DetailType IN (1,2,3,4) THEN sv.Amount ELSE 0 END)) AS MonthlyCashReceipt,
-                    SUM(CASE WHEN rv.PaymentType = 3 THEN rv.Amount ELSE 0 END) AS MonthlyBankReceipt,
-                    SUM(CASE WHEN rv.PaymentType IN (5,6,7,8,9) THEN rv.Amount ELSE 0 END) AS MonthlyOtherReceipt,
-                    
-                    -- 支払関連（現金仕入を含む）
-                    (SUM(CASE WHEN payv.PaymentType IN (1,2,4) THEN payv.Amount ELSE 0 END) + 
-                     SUM(CASE WHEN pv.VoucherType = 12 AND pv.DetailType = 1 THEN pv.Amount ELSE 0 END)) AS MonthlyCashPayment,
-                    SUM(CASE WHEN payv.PaymentType = 3 THEN payv.Amount ELSE 0 END) AS MonthlyBankPayment,
-                    SUM(CASE WHEN payv.PaymentType IN (5,6,7,8,9) THEN payv.Amount ELSE 0 END) AS MonthlyOtherPayment
-                    
-                FROM (
-                    SELECT DISTINCT COALESCE(CustomerCategory1, '999') AS Category FROM CustomerMaster
-                    UNION
-                    SELECT DISTINCT COALESCE(SupplierCategory1, '999') AS Category FROM SupplierMaster
-                ) AS categories
-                LEFT JOIN CustomerMaster c ON categories.Category = c.CustomerCategory1
-                LEFT JOIN SupplierMaster s ON categories.Category = s.SupplierCategory1
-                LEFT JOIN CustomerCategory1Master cc ON categories.Category = CAST(cc.CategoryCode AS NVARCHAR(3))
-                LEFT JOIN SupplierCategory1Master sc ON categories.Category = CAST(sc.CategoryCode AS NVARCHAR(3))
-                LEFT JOIN SalesVouchers sv ON (c.CustomerCategory1 = categories.Category) 
-                    AND sv.JobDate BETWEEN @StartDate AND @EndDate AND sv.IsActive = 1
-                LEFT JOIN PurchaseVouchers pv ON (s.SupplierCategory1 = categories.Category) 
-                    AND pv.JobDate BETWEEN @StartDate AND @EndDate AND pv.IsActive = 1
-                LEFT JOIN ReceiptVouchers rv ON (c.CustomerCategory1 = categories.Category) 
-                    AND rv.JobDate BETWEEN @StartDate AND @EndDate
-                LEFT JOIN PaymentVouchers payv ON (s.SupplierCategory1 = categories.Category) 
-                    AND payv.JobDate BETWEEN @StartDate AND @EndDate
-                GROUP BY 
-                    COALESCE(c.CustomerCategory1, s.SupplierCategory1, '999'),
-                    COALESCE(cc.CategoryName, sc.CategoryName, ''),
-                    COALESCE(sc.CategoryName, cc.CategoryName, '')
-                
-                UNION ALL
-                
-                -- 合計行（000）
-                SELECT 
-                    '000' AS ClassificationCode,
-                    '合計' AS CustomerClassName,
-                    '合計' AS SupplierClassName,
-                    0 AS MonthlyCashSales,
-                    SUM(CASE WHEN sv.VoucherType = 52 AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS MonthlyCashSalesTax,
-                    SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType IN (1,2) THEN sv.Amount ELSE 0 END) AS MonthlyCreditSales,
-                    SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType IN (3,4) THEN sv.Amount ELSE 0 END) AS MonthlySalesDiscount,
-                    SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS MonthlyCreditSalesTax,
-                    0 AS MonthlyCashPurchase,
-                    SUM(CASE WHEN pv.VoucherType = 12 AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS MonthlyCashPurchaseTax,
-                    SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType IN (1,2) THEN pv.Amount ELSE 0 END) AS MonthlyCreditPurchase,
-                    SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType IN (3,4) THEN pv.Amount ELSE 0 END) AS MonthlyPurchaseDiscount,
-                    SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS MonthlyCreditPurchaseTax,
-                    (SUM(CASE WHEN rv.PaymentType IN (1,2,4) THEN rv.Amount ELSE 0 END) + 
-                     SUM(CASE WHEN sv.VoucherType = 52 AND sv.DetailType IN (1,2,3,4) THEN sv.Amount ELSE 0 END)) AS MonthlyCashReceipt,
-                    SUM(CASE WHEN rv.PaymentType = 3 THEN rv.Amount ELSE 0 END) AS MonthlyBankReceipt,
-                    SUM(CASE WHEN rv.PaymentType IN (5,6,7,8,9) THEN rv.Amount ELSE 0 END) AS MonthlyOtherReceipt,
-                    (SUM(CASE WHEN payv.PaymentType IN (1,2,4) THEN payv.Amount ELSE 0 END) + 
-                     SUM(CASE WHEN pv.VoucherType = 12 AND pv.DetailType = 1 THEN pv.Amount ELSE 0 END)) AS MonthlyCashPayment,
-                    SUM(CASE WHEN payv.PaymentType = 3 THEN payv.Amount ELSE 0 END) AS MonthlyBankPayment,
-                    SUM(CASE WHEN payv.PaymentType IN (5,6,7,8,9) THEN payv.Amount ELSE 0 END) AS MonthlyOtherPayment
+                    COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                    SUM(CASE WHEN sv.VoucherType IN (51, 52) AND sv.DetailType IN (1,2,3,4) THEN sv.Amount ELSE 0 END) AS YearlyCashSales,
+                    SUM(CASE WHEN sv.VoucherType IN (51, 52) AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS YearlyCashSalesTax
                 FROM SalesVouchers sv
-                FULL OUTER JOIN PurchaseVouchers pv ON 1=1
-                FULL OUTER JOIN ReceiptVouchers rv ON 1=1
-                FULL OUTER JOIN PaymentVouchers payv ON 1=1
-                WHERE (sv.JobDate BETWEEN @StartDate AND @EndDate AND sv.IsActive = 1)
-                   OR (pv.JobDate BETWEEN @StartDate AND @EndDate AND pv.IsActive = 1)
-                   OR (rv.JobDate BETWEEN @StartDate AND @EndDate)
-                   OR (payv.JobDate BETWEEN @StartDate AND @EndDate)
-                
-                ORDER BY ClassificationCode";
+                LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
+                WHERE sv.JobDate BETWEEN @StartDate AND @EndDate 
+                  AND sv.IsActive = 1
+                GROUP BY c.CustomerCategory1";
 
-            using var connection = CreateConnection();
-            var result = await connection.QueryAsync<BusinessDailyReportItem>(sql, new { StartDate = startDate, EndDate = endDate });
-            return result.ToList();
+            var result = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
+            
+            var dictionary = new Dictionary<string, BusinessDailyReportItem>();
+            foreach (var row in result)
+            {
+                var item = new BusinessDailyReportItem
+                {
+                    ClassificationCode = row.ClassificationCode,
+                    YearlyCashSales = row.YearlyCashSales ?? 0,
+                    YearlyCashSalesTax = row.YearlyCashSalesTax ?? 0
+                };
+                dictionary[item.ClassificationCode] = item;
+            }
+            
+            return dictionary;
+        }
+
+        /// <summary>
+        /// 年次仕入データを分類別に集計（、2項目のみ）
+        /// </summary>
+        private async Task<Dictionary<string, BusinessDailyReportItem>> GetYearlyPurchaseDataAsync(
+            SqlConnection connection, DateTime startDate, DateTime endDate)
+        {
+            const string sql = @"
+                SELECT 
+                    COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                    SUM(CASE WHEN pv.VoucherType IN (11, 12) AND pv.DetailType IN (1,2,3,4) THEN pv.Amount ELSE 0 END) AS YearlyCashPurchase,
+                    SUM(CASE WHEN pv.VoucherType IN (11, 12) AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS YearlyCashPurchaseTax
+                FROM PurchaseVouchers pv
+                LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
+                WHERE pv.JobDate BETWEEN @StartDate AND @EndDate 
+                  AND pv.IsActive = 1
+                GROUP BY s.SupplierCategory1";
+
+            var result = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
+            
+            var dictionary = new Dictionary<string, BusinessDailyReportItem>();
+            foreach (var row in result)
+            {
+                var item = new BusinessDailyReportItem
+                {
+                    ClassificationCode = row.ClassificationCode,
+                    YearlyCashPurchase = row.YearlyCashPurchase ?? 0,
+                    YearlyCashPurchaseTax = row.YearlyCashPurchaseTax ?? 0
+                };
+                dictionary[item.ClassificationCode] = item;
+            }
+            
+            return dictionary;
+        }
+
+        /// <summary>
+        /// 年次データをマージして完全なリストを作成
+        /// </summary>
+        private List<BusinessDailyReportItem> MergeYearlyData(
+            Dictionary<string, BusinessDailyReportItem> salesData,
+            Dictionary<string, BusinessDailyReportItem> purchaseData)
+        {
+            // すべての分類コードを収集
+            var allCodes = new HashSet<string>();
+            allCodes.UnionWith(salesData.Keys);
+            allCodes.UnionWith(purchaseData.Keys);
+            
+            var result = new List<BusinessDailyReportItem>();
+            
+            foreach (var code in allCodes.OrderBy(c => c))
+            {
+                var item = new BusinessDailyReportItem
+                {
+                    ClassificationCode = code,
+                    CustomerClassName = "",  // 後で別途取得
+                    SupplierClassName = "",  // 後で別途取得
+                };
+                
+                // 売上データをマージ
+                if (salesData.TryGetValue(code, out var sales))
+                {
+                    item.YearlyCashSales = sales.YearlyCashSales;
+                    item.YearlyCashSalesTax = sales.YearlyCashSalesTax;
+                }
+                
+                // 仕入データをマージ
+                if (purchaseData.TryGetValue(code, out var purchase))
+                {
+                    item.YearlyCashPurchase = purchase.YearlyCashPurchase;
+                    item.YearlyCashPurchaseTax = purchase.YearlyCashPurchaseTax;
+                }
+                
+                result.Add(item);
+            }
+            
+            // 合計行（000）を追加
+            var totalItem = new BusinessDailyReportItem
+            {
+                ClassificationCode = "000",
+                CustomerClassName = "合計",
+                SupplierClassName = "合計",
+                YearlyCashSales = result.Sum(r => r.YearlyCashSales ?? 0),
+                YearlyCashSalesTax = result.Sum(r => r.YearlyCashSalesTax ?? 0),
+                YearlyCashPurchase = result.Sum(r => r.YearlyCashPurchase ?? 0),
+                YearlyCashPurchaseTax = result.Sum(r => r.YearlyCashPurchaseTax ?? 0)
+            };
+            
+            result.Insert(0, totalItem);
+            
+            return result;
         }
 
         public async Task<List<BusinessDailyReportItem>> GetYearlyDataAsync(DateTime jobDate)
         {
-            // 年度初めから前日までの累計を取得
-            // 年計は4項目のみ（売上、売上消費税、仕入、仕入消費税）
-            var startDate = new DateTime(jobDate.Year, 4, 1); // 4月開始の会計年度
-            if (jobDate.Month < 4)
+            try
             {
-                startDate = new DateTime(jobDate.Year - 1, 4, 1);
+                _logger.LogInformation("年次データ集計を開始: JobDate={JobDate}", jobDate);
+                
+                // 年度初めから前日までの累計を取得
+                var startDate = new DateTime(jobDate.Year, 4, 1); // 4月開始の会計年度
+                if (jobDate.Month < 4)
+                {
+                    startDate = new DateTime(jobDate.Year - 1, 4, 1);
+                }
+                var endDate = jobDate.AddDays(-1);
+                
+                // 前日までのデータがない場合は空リストを返す
+                if (endDate < startDate)
+                {
+                    _logger.LogInformation("年度初のため年次データなし");
+                    return new List<BusinessDailyReportItem>();
+                }
+                
+                using var connection = CreateConnection();
+                
+                // 売上と仕入を個別に集計（年計は4項目のみ）
+                var salesTask = GetYearlySalesDataAsync(connection, startDate, endDate);
+                var purchaseTask = GetYearlyPurchaseDataAsync(connection, startDate, endDate);
+                
+                // すべての集計を待機
+                await Task.WhenAll(salesTask, purchaseTask);
+                
+                _logger.LogInformation("個別集計完了 - 売上:{SalesCount}, 仕入:{PurchaseCount}",
+                    salesTask.Result.Count, purchaseTask.Result.Count);
+                
+                // データをマージ
+                var result = MergeYearlyData(salesTask.Result, purchaseTask.Result);
+                
+                // 分類名を設定
+                await SetClassificationNamesAsync(connection, result);
+                
+                _logger.LogInformation("年次データ集計完了: {Count}件", result.Count);
+                
+                return result;
             }
-            var endDate = jobDate.AddDays(-1);
-
-            const string sql = @"
-                -- 分類別に年計を集計（4項目のみ）
-                SELECT 
-                    COALESCE(c.CustomerCategory1, s.SupplierCategory1, '999') AS ClassificationCode,
-                    COALESCE(cc.CategoryName, sc.CategoryName, '') AS CustomerClassName,
-                    COALESCE(sc.CategoryName, cc.CategoryName, '') AS SupplierClassName,
-                    
-                    -- 年計は4項目のみ
-                    SUM(CASE WHEN sv.VoucherType IN (51, 52) AND sv.DetailType IN (1,2,3,4) THEN sv.Amount ELSE 0 END) AS YearlySales,
-                    SUM(CASE WHEN sv.VoucherType IN (51, 52) AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS YearlySalesTax,
-                    SUM(CASE WHEN pv.VoucherType IN (11, 12) AND pv.DetailType IN (1,2,3,4) THEN pv.Amount ELSE 0 END) AS YearlyPurchase,
-                    SUM(CASE WHEN pv.VoucherType IN (11, 12) AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS YearlyPurchaseTax,
-                    
-                    -- その他の項目は0
-                    0 AS YearlyCashSales,
-                    0 AS YearlyCashSalesTax,
-                    0 AS YearlyCreditSales,
-                    0 AS YearlySalesDiscount,
-                    0 AS YearlyCreditSalesTax,
-                    0 AS YearlyCashPurchase,
-                    0 AS YearlyCashPurchaseTax,
-                    0 AS YearlyCreditPurchase,
-                    0 AS YearlyPurchaseDiscount,
-                    0 AS YearlyCreditPurchaseTax,
-                    0 AS YearlyCashReceipt,
-                    0 AS YearlyBankReceipt,
-                    0 AS YearlyOtherReceipt,
-                    0 AS YearlyCashPayment,
-                    0 AS YearlyBankPayment,
-                    0 AS YearlyOtherPayment
-                    
-                FROM (
-                    SELECT DISTINCT COALESCE(CustomerCategory1, '999') AS Category FROM CustomerMaster
-                    UNION
-                    SELECT DISTINCT COALESCE(SupplierCategory1, '999') AS Category FROM SupplierMaster
-                ) AS categories
-                LEFT JOIN CustomerMaster c ON categories.Category = c.CustomerCategory1
-                LEFT JOIN SupplierMaster s ON categories.Category = s.SupplierCategory1
-                LEFT JOIN CustomerCategory1Master cc ON categories.Category = CAST(cc.CategoryCode AS NVARCHAR(3))
-                LEFT JOIN SupplierCategory1Master sc ON categories.Category = CAST(sc.CategoryCode AS NVARCHAR(3))
-                LEFT JOIN SalesVouchers sv ON (c.CustomerCategory1 = categories.Category) 
-                    AND sv.JobDate BETWEEN @StartDate AND @EndDate AND sv.IsActive = 1
-                LEFT JOIN PurchaseVouchers pv ON (s.SupplierCategory1 = categories.Category) 
-                    AND pv.JobDate BETWEEN @StartDate AND @EndDate AND pv.IsActive = 1
-                GROUP BY 
-                    COALESCE(c.CustomerCategory1, s.SupplierCategory1, '999'),
-                    COALESCE(cc.CategoryName, sc.CategoryName, ''),
-                    COALESCE(sc.CategoryName, cc.CategoryName, '')
-                
-                UNION ALL
-                
-                -- 合計行（000）- 年計4項目のみ
-                SELECT 
-                    '000' AS ClassificationCode,
-                    '合計' AS CustomerClassName,
-                    '合計' AS SupplierClassName,
-                    SUM(CASE WHEN sv.VoucherType IN (51, 52) AND sv.DetailType IN (1,2,3,4) THEN sv.Amount ELSE 0 END) AS YearlySales,
-                    SUM(CASE WHEN sv.VoucherType IN (51, 52) AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS YearlySalesTax,
-                    SUM(CASE WHEN pv.VoucherType IN (11, 12) AND pv.DetailType IN (1,2,3,4) THEN pv.Amount ELSE 0 END) AS YearlyPurchase,
-                    SUM(CASE WHEN pv.VoucherType IN (11, 12) AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS YearlyPurchaseTax,
-                    0 AS YearlyCashSales,
-                    0 AS YearlyCashSalesTax,
-                    0 AS YearlyCreditSales,
-                    0 AS YearlySalesDiscount,
-                    0 AS YearlyCreditSalesTax,
-                    0 AS YearlyCashPurchase,
-                    0 AS YearlyCashPurchaseTax,
-                    0 AS YearlyCreditPurchase,
-                    0 AS YearlyPurchaseDiscount,
-                    0 AS YearlyCreditPurchaseTax,
-                    0 AS YearlyCashReceipt,
-                    0 AS YearlyBankReceipt,
-                    0 AS YearlyOtherReceipt,
-                    0 AS YearlyCashPayment,
-                    0 AS YearlyBankPayment,
-                    0 AS YearlyOtherPayment
-                FROM SalesVouchers sv
-                FULL OUTER JOIN PurchaseVouchers pv ON 1=1
-                WHERE (sv.JobDate BETWEEN @StartDate AND @EndDate AND sv.IsActive = 1)
-                   OR (pv.JobDate BETWEEN @StartDate AND @EndDate AND pv.IsActive = 1)
-                
-                ORDER BY ClassificationCode";
-
-            using var connection = CreateConnection();
-            var result = await connection.QueryAsync<BusinessDailyReportItem>(sql, new { StartDate = startDate, EndDate = endDate });
-            return result.ToList();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "年次データ集計でエラーが発生しました");
+                throw;
+            }
         }
 
         public async Task UpdateClassificationNamesAsync()
