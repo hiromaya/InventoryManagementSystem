@@ -219,10 +219,10 @@ public class CustomerMasterImportService
             PhoneNumber = csv.PhoneNumber?.Trim(),
             FaxNumber = csv.FaxNumber?.Trim(),
             CustomerCategory1 = FormatCategoryCode(csv.CustomerCategory1),
-            CustomerCategory2 = FormatCategoryCode(csv.CustomerCategory2),
-            CustomerCategory3 = FormatCategoryCode(csv.CustomerCategory3),
-            CustomerCategory4 = FormatCategoryCode(csv.CustomerCategory4),
-            CustomerCategory5 = FormatCategoryCode(csv.CustomerCategory5),
+            CustomerCategory2 = null, // CSVファイルに存在しないためnull
+            CustomerCategory3 = null, // CSVファイルに存在しないためnull
+            CustomerCategory4 = null, // CSVファイルに存在しないためnull
+            CustomerCategory5 = null, // CSVファイルに存在しないためnull
             WalkingRate = csv.WalkingRate,
             BillingCode = csv.BillingCode?.Trim(),
             IsActive = csv.IsActive,

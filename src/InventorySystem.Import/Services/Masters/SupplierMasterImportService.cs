@@ -219,8 +219,8 @@ public class SupplierMasterImportService
             PhoneNumber = csv.PhoneNumber?.Trim(),
             FaxNumber = csv.FaxNumber?.Trim(),
             SupplierCategory1 = FormatCategoryCode(csv.SupplierCategory1),
-            SupplierCategory2 = FormatCategoryCode(csv.SupplierCategory2),
-            SupplierCategory3 = FormatCategoryCode(csv.SupplierCategory3),
+            SupplierCategory2 = null, // CSVファイルに存在しないためnull
+            SupplierCategory3 = null, // CSVファイルに存在しないためnull
             PaymentCode = csv.PaymentCode?.Trim(),
             IsActive = csv.IsActive,
             CreatedAt = DateTime.Now,

@@ -51,25 +51,26 @@ public class CustomerMasterCsv
     [Index(10)]
     public string? FaxNumber { get; set; }
 
-    [Name("区分１")]
-    [Index(11)]
+    [Name("取引先分類（営業日報ﾌｧｲﾙのKey）")]
+    [Index(18)]
     public string? CustomerCategory1 { get; set; }
 
-    [Name("区分２")]
-    [Index(12)]
-    public string? CustomerCategory2 { get; set; }
+    // CustomerCategory2-5はCSVファイルに存在しないため削除
+    // [Name("区分２")]
+    // [Index(12)]
+    // public string? CustomerCategory2 { get; set; }
 
-    [Name("区分３")]
-    [Index(13)]
-    public string? CustomerCategory3 { get; set; }
+    // [Name("区分３")]
+    // [Index(13)]
+    // public string? CustomerCategory3 { get; set; }
 
-    [Name("区分４")]
-    [Index(14)]
-    public string? CustomerCategory4 { get; set; }
+    // [Name("区分４")]
+    // [Index(14)]
+    // public string? CustomerCategory4 { get; set; }
 
-    [Name("区分５")]
-    [Index(15)]
-    public string? CustomerCategory5 { get; set; }
+    // [Name("区分５")]
+    // [Index(15)]
+    // public string? CustomerCategory5 { get; set; }
 
     [Name("汎用数値１")]
     [Index(16)]

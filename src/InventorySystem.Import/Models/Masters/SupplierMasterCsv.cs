@@ -51,17 +51,18 @@ public class SupplierMasterCsv
     [Index(10)]
     public string? FaxNumber { get; set; }
 
-    [Name("区分１")]
-    [Index(11)]
+    [Name("取引先分類（営業日報FのKey）")]
+    [Index(18)]
     public string? SupplierCategory1 { get; set; }
 
-    [Name("区分２")]
-    [Index(12)]
-    public string? SupplierCategory2 { get; set; }
+    // SupplierCategory2-3はCSVファイルに存在しないため削除
+    // [Name("区分２")]
+    // [Index(12)]
+    // public string? SupplierCategory2 { get; set; }
 
-    [Name("区分３")]
-    [Index(13)]
-    public string? SupplierCategory3 { get; set; }
+    // [Name("区分３")]
+    // [Index(13)]
+    // public string? SupplierCategory3 { get; set; }
 
     [Name("支払条件コード")]
     [Index(53)]
