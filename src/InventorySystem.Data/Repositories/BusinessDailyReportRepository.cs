@@ -311,8 +311,10 @@ namespace InventorySystem.Data.Repositories
         /// 月次売上データを分類別に集計
         /// </summary>
         private async Task<Dictionary<string, BusinessDailyReportItem>> GetMonthlySalesDataAsync(
-            SqlConnection connection, DateTime startDate, DateTime endDate)
+            DateTime startDate, DateTime endDate)
         {
+            using var connection = CreateConnection();
+            
             const string sql = @"
                 SELECT 
                     COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
@@ -349,8 +351,10 @@ namespace InventorySystem.Data.Repositories
         /// 月次仕入データを分類別に集計
         /// </summary>
         private async Task<Dictionary<string, BusinessDailyReportItem>> GetMonthlyPurchaseDataAsync(
-            SqlConnection connection, DateTime startDate, DateTime endDate)
+            DateTime startDate, DateTime endDate)
         {
+            using var connection = CreateConnection();
+            
             const string sql = @"
                 SELECT 
                     COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
@@ -387,8 +391,10 @@ namespace InventorySystem.Data.Repositories
         /// 月次入金データを分類別に集計
         /// </summary>
         private async Task<Dictionary<string, BusinessDailyReportItem>> GetMonthlyReceiptDataAsync(
-            SqlConnection connection, DateTime startDate, DateTime endDate)
+            DateTime startDate, DateTime endDate)
         {
+            using var connection = CreateConnection();
+            
             const string sql = @"
                 SELECT 
                     COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
@@ -422,8 +428,10 @@ namespace InventorySystem.Data.Repositories
         /// 月次支払データを分類別に集計
         /// </summary>
         private async Task<Dictionary<string, BusinessDailyReportItem>> GetMonthlyPaymentDataAsync(
-            SqlConnection connection, DateTime startDate, DateTime endDate)
+            DateTime startDate, DateTime endDate)
         {
+            using var connection = CreateConnection();
+            
             const string sql = @"
                 SELECT 
                     COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
@@ -604,13 +612,11 @@ namespace InventorySystem.Data.Repositories
                     return new List<BusinessDailyReportItem>();
                 }
                 
-                using var connection = CreateConnection();
-                
                 // 各テーブルを個別に集計（並列実行）
-                var salesTask = GetMonthlySalesDataAsync(connection, startDate, endDate);
-                var purchaseTask = GetMonthlyPurchaseDataAsync(connection, startDate, endDate);
-                var receiptTask = GetMonthlyReceiptDataAsync(connection, startDate, endDate);
-                var paymentTask = GetMonthlyPaymentDataAsync(connection, startDate, endDate);
+                var salesTask = GetMonthlySalesDataAsync(startDate, endDate);
+                var purchaseTask = GetMonthlyPurchaseDataAsync(startDate, endDate);
+                var receiptTask = GetMonthlyReceiptDataAsync(startDate, endDate);
+                var paymentTask = GetMonthlyPaymentDataAsync(startDate, endDate);
                 
                 // すべての集計を待機
                 await Task.WhenAll(salesTask, purchaseTask, receiptTask, paymentTask);
@@ -627,7 +633,8 @@ namespace InventorySystem.Data.Repositories
                     paymentTask.Result
                 );
                 
-                // 分類名を設定
+                // 分類名を設定（新しいconnectionを作成）
+                using var connection = CreateConnection();
                 await SetClassificationNamesAsync(connection, result);
                 
                 _logger.LogInformation("月次データ集計完了: {Count}件", result.Count);
@@ -647,8 +654,10 @@ namespace InventorySystem.Data.Repositories
         /// 年次売上データを分類別に集計（、4項目のみ）
         /// </summary>
         private async Task<Dictionary<string, BusinessDailyReportItem>> GetYearlySalesDataAsync(
-            SqlConnection connection, DateTime startDate, DateTime endDate)
+            DateTime startDate, DateTime endDate)
         {
+            using var connection = CreateConnection();
+            
             const string sql = @"
                 SELECT 
                     COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
@@ -681,8 +690,10 @@ namespace InventorySystem.Data.Repositories
         /// 年次仕入データを分類別に集計（、2項目のみ）
         /// </summary>
         private async Task<Dictionary<string, BusinessDailyReportItem>> GetYearlyPurchaseDataAsync(
-            SqlConnection connection, DateTime startDate, DateTime endDate)
+            DateTime startDate, DateTime endDate)
         {
+            using var connection = CreateConnection();
+            
             const string sql = @"
                 SELECT 
                     COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
@@ -789,11 +800,9 @@ namespace InventorySystem.Data.Repositories
                     return new List<BusinessDailyReportItem>();
                 }
                 
-                using var connection = CreateConnection();
-                
                 // 売上と仕入を個別に集計（年計は4項目のみ）
-                var salesTask = GetYearlySalesDataAsync(connection, startDate, endDate);
-                var purchaseTask = GetYearlyPurchaseDataAsync(connection, startDate, endDate);
+                var salesTask = GetYearlySalesDataAsync(startDate, endDate);
+                var purchaseTask = GetYearlyPurchaseDataAsync(startDate, endDate);
                 
                 // すべての集計を待機
                 await Task.WhenAll(salesTask, purchaseTask);
@@ -804,7 +813,8 @@ namespace InventorySystem.Data.Repositories
                 // データをマージ
                 var result = MergeYearlyData(salesTask.Result, purchaseTask.Result);
                 
-                // 分類名を設定
+                // 分類名を設定（新しいconnectionを作成）
+                using var connection = CreateConnection();
                 await SetClassificationNamesAsync(connection, result);
                 
                 _logger.LogInformation("年次データ集計完了: {Count}件", result.Count);
