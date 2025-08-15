@@ -36,25 +36,25 @@ namespace InventorySystem.Core.Services
                 _logger.LogInformation("日計エリアをクリアしています...");
                 await _repository.ClearDailyAreaAsync();
 
-                // 2. 分類名の更新（得意先分類1、仕入先分類1から取得）
-                _logger.LogInformation("分類名を更新しています...");
-                await _repository.UpdateClassificationNamesAsync();
-
-                // 3. 売上伝票集計（伝票種×明細種の組み合わせで判定）
+                // 2. 売上伝票集計（伝票種×明細種の組み合わせで判定）
                 _logger.LogInformation("売上伝票データを集計しています...");
                 await _repository.AggregateSalesDataAsync(jobDate);
 
-                // 4. 仕入伝票集計
+                // 3. 仕入伝票集計
                 _logger.LogInformation("仕入伝票データを集計しています...");
                 await _repository.AggregatePurchaseDataAsync(jobDate);
 
-                // 5. 入金伝票集計
+                // 4. 入金伝票集計
                 _logger.LogInformation("入金伝票データを集計しています...");
                 await _repository.AggregateReceiptDataAsync(jobDate);
 
-                // 6. 支払伝票集計
+                // 5. 支払伝票集計
                 _logger.LogInformation("支払伝票データを集計しています...");
                 await _repository.AggregatePaymentDataAsync(jobDate);
+
+                // 6. 分類名をデータベースに更新（集計完了後に実行）
+                _logger.LogInformation("分類名をデータベースに更新しています...");
+                await _repository.UpdateClassificationNamesInDatabaseAsync();
 
                 // 7. レポートデータ取得
                 _logger.LogInformation("レポートデータを取得しています...");

@@ -13,5 +13,6 @@ namespace InventorySystem.Core.Interfaces
         Task<List<BusinessDailyReportItem>> GetMonthlyDataAsync(DateTime jobDate);
         Task<List<BusinessDailyReportItem>> GetYearlyDataAsync(DateTime jobDate);
         Task UpdateClassificationNamesAsync();
+        Task UpdateClassificationNamesInDatabaseAsync();
     }
 }

@@ -596,6 +596,63 @@ namespace InventorySystem.Data.Repositories
             }
         }
 
+        /// <summary>
+        /// BusinessDailyReportテーブルの分類名をデータベースに保存
+        /// </summary>
+        public async Task UpdateClassificationNamesInDatabaseAsync()
+        {
+            try
+            {
+                _logger.LogInformation("データベースの分類名更新を開始");
+                
+                using var connection = CreateConnection();
+                
+                // 得意先分類名を更新
+                const string updateCustomerSql = @"
+                    UPDATE bdr
+                    SET CustomerClassName = cc.CategoryName
+                    FROM BusinessDailyReport bdr
+                    INNER JOIN CustomerCategory1Master cc 
+                        ON bdr.ClassificationCode = RIGHT('000' + CAST(cc.CategoryCode AS NVARCHAR), 3)
+                    WHERE bdr.ClassificationCode != '000'
+                      AND bdr.ClassificationCode != '999'";
+                
+                var customerUpdated = await connection.ExecuteAsync(updateCustomerSql);
+                _logger.LogInformation("得意先分類名更新完了: {UpdatedRows}件", customerUpdated);
+                
+                // 仕入先分類名を更新
+                const string updateSupplierSql = @"
+                    UPDATE bdr
+                    SET SupplierClassName = sc.CategoryName
+                    FROM BusinessDailyReport bdr
+                    INNER JOIN SupplierCategory1Master sc 
+                        ON bdr.ClassificationCode = RIGHT('000' + CAST(sc.CategoryCode AS NVARCHAR), 3)
+                    WHERE bdr.ClassificationCode != '000'
+                      AND bdr.ClassificationCode != '999'";
+                
+                var supplierUpdated = await connection.ExecuteAsync(updateSupplierSql);
+                _logger.LogInformation("仕入先分類名更新完了: {UpdatedRows}件", supplierUpdated);
+                
+                // 合計行の分類名を設定
+                const string updateTotalsSql = @"
+                    UPDATE BusinessDailyReport
+                    SET CustomerClassName = '合計',
+                        SupplierClassName = '合計'
+                    WHERE ClassificationCode = '000'";
+                
+                var totalsUpdated = await connection.ExecuteAsync(updateTotalsSql);
+                _logger.LogInformation("合計行分類名更新完了: {UpdatedRows}件", totalsUpdated);
+                
+                _logger.LogInformation("全分類名更新完了: 得意先{Customer}件, 仕入先{Supplier}件, 合計{Total}件", 
+                    customerUpdated, supplierUpdated, totalsUpdated);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "分類名のデータベース更新でエラーが発生しました");
+                throw;
+            }
+        }
+
         public async Task<List<BusinessDailyReportItem>> GetMonthlyDataAsync(DateTime jobDate)
         {
             try
