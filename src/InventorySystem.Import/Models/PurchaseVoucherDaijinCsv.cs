@@ -146,7 +146,7 @@ public class PurchaseVoucherDaijinCsv
             JobDate = ParseDate(JobDate),
             VoucherType = ConvertVoucherType(VoucherType?.Trim() ?? string.Empty),
             DetailType = ConvertDetailType(DetailType?.Trim() ?? string.Empty),
-            SupplierCode = SupplierCode?.Trim(),
+            SupplierCode = CodeFormatter.FormatTo5Digits(SupplierCode),
             SupplierName = SupplierName?.Trim(),
             ProductCode = ProductCode?.Trim() ?? string.Empty,
             ProductName = ProductName?.Trim(),

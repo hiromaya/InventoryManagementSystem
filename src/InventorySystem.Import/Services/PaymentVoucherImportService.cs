@@ -4,6 +4,7 @@ using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Models;
 using InventorySystem.Import.Models.Csv;
+using InventorySystem.Import.Helpers;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text;
@@ -184,7 +185,7 @@ public class PaymentVoucherImportService : IImportService
         {
             DataSetId = dataSetId,
             VoucherNumber = record.VoucherNumber,
-            SupplierCode = record.SupplierCode,
+            SupplierCode = CodeFormatter.FormatTo5Digits(record.SupplierCode),
             SupplierName = record.SupplierName ?? "",
             // BillingCode property is not available for PaymentVoucher
             VoucherDate = DateTime.TryParseExact(record.VoucherDate, "yyyyMMdd", null, DateTimeStyles.None, out var vDate) ? vDate : importDate,
