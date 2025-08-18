@@ -18,7 +18,7 @@ namespace InventorySystem.Reports.FastReport.Services
 {
     /// <summary>
     /// 営業日報FastReportサービス - 完全パラメータ方式（スクリプトレス）
-    /// 4ページ固定レイアウト（1ページ目:合計+分類01-08、2-4ページ目:分類09-17,18-26,27-35）
+    /// 4ページ固定レイアウト（A3横：Page1=合計+001-008、Page2-4=009-017、018-026、027-035）
     /// </summary>
     public class BusinessDailyReportFastReportService : 
         InventorySystem.Reports.Interfaces.IBusinessDailyReportService, 
@@ -64,13 +64,15 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 基本パラメータ
                 report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日HH時mm分ss秒"));
                 report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
-                report.SetParameterValue("PageNumber", "１");
 
-                // 分類名設定（実データから取得）
-                await SetClassificationNamesAsync(report, dailyItems);
+                // 全ページの分類名設定（実データから取得）
+                await SetAllPagesClassificationNamesAsync(report, dailyItems);
 
-                // データパラメータ設定（日計・月計・年計）
+                // 4ページのデータパラメータ設定（日計・月計・年計）
                 SetPage1DataParameters(report, dailyItems, monthlyItems.ToList(), yearlyItems.ToList());
+                SetPage2DataParameters(report, dailyItems, monthlyItems.ToList(), yearlyItems.ToList());
+                SetPage3DataParameters(report, dailyItems, monthlyItems.ToList(), yearlyItems.ToList());
+                SetPage4DataParameters(report, dailyItems, monthlyItems.ToList(), yearlyItems.ToList());
 
                 _logger.LogInformation("レポート準備中...");
                 report.Prepare();
@@ -99,11 +101,28 @@ namespace InventorySystem.Reports.FastReport.Services
 
 
         /// <summary>
-        /// 分類名設定（実データから取得）
+        /// 全ページの分類名設定（実データから取得）
         /// </summary>
-        private async Task SetClassificationNamesAsync(FR.Report report, List<BusinessDailyReportItem> dailyItems)
+        private async Task SetAllPagesClassificationNamesAsync(FR.Report report, List<BusinessDailyReportItem> dailyItems)
         {
-            // 分類001～008の分類名を実データから設定
+            // Page1: 分類001～008（既存処理、合計列+8分類）
+            await SetClassificationNamesForPage1(report, dailyItems);
+            
+            // Page2: 分類009～017（9分類、合計列なし）
+            await SetClassificationNamesForPage2(report, dailyItems);
+            
+            // Page3: 分類018～026（9分類、合計列なし）
+            await SetClassificationNamesForPage3(report, dailyItems);
+            
+            // Page4: 分類027～035（9分類、合計列なし）
+            await SetClassificationNamesForPage4(report, dailyItems);
+        }
+
+        /// <summary>
+        /// Page1分類名設定（分類001～008）
+        /// </summary>
+        private async Task SetClassificationNamesForPage1(FR.Report report, List<BusinessDailyReportItem> dailyItems)
+        {
             for (int i = 1; i <= 8; i++)
             {
                 var code = i.ToString("000");
@@ -116,6 +135,61 @@ namespace InventorySystem.Reports.FastReport.Services
                 report.SetParameterValue($"SupplierName{i}", supplierName);
             }
         }
+
+        /// <summary>
+        /// Page2分類名設定（分類009～017、9分類）
+        /// </summary>
+        private async Task SetClassificationNamesForPage2(FR.Report report, List<BusinessDailyReportItem> dailyItems)
+        {
+            for (int i = 1; i <= 9; i++)
+            {
+                var code = (i + 8).ToString("000"); // 009～017
+                var item = dailyItems.FirstOrDefault(x => x.ClassificationCode == code);
+                
+                var customerName = TruncateToLength(item?.CustomerClassName ?? "", 6);
+                var supplierName = TruncateToLength(item?.SupplierClassName ?? "", 6);
+                
+                report.SetParameterValue($"Page2_CustomerName{i}", customerName);
+                report.SetParameterValue($"Page2_SupplierName{i}", supplierName);
+            }
+        }
+
+        /// <summary>
+        /// Page3分類名設定（分類018～026、9分類）
+        /// </summary>
+        private async Task SetClassificationNamesForPage3(FR.Report report, List<BusinessDailyReportItem> dailyItems)
+        {
+            for (int i = 1; i <= 9; i++)
+            {
+                var code = (i + 17).ToString("000"); // 018～026
+                var item = dailyItems.FirstOrDefault(x => x.ClassificationCode == code);
+                
+                var customerName = TruncateToLength(item?.CustomerClassName ?? "", 6);
+                var supplierName = TruncateToLength(item?.SupplierClassName ?? "", 6);
+                
+                report.SetParameterValue($"Page3_CustomerName{i}", customerName);
+                report.SetParameterValue($"Page3_SupplierName{i}", supplierName);
+            }
+        }
+
+        /// <summary>
+        /// Page4分類名設定（分類027～035、9分類）
+        /// </summary>
+        private async Task SetClassificationNamesForPage4(FR.Report report, List<BusinessDailyReportItem> dailyItems)
+        {
+            for (int i = 1; i <= 9; i++)
+            {
+                var code = (i + 26).ToString("000"); // 027～035
+                var item = dailyItems.FirstOrDefault(x => x.ClassificationCode == code);
+                
+                var customerName = TruncateToLength(item?.CustomerClassName ?? "", 6);
+                var supplierName = TruncateToLength(item?.SupplierClassName ?? "", 6);
+                
+                report.SetParameterValue($"Page4_CustomerName{i}", customerName);
+                report.SetParameterValue($"Page4_SupplierName{i}", supplierName);
+            }
+        }
+
 
         /// <summary>
         /// 1ページ目のデータパラメータ設定（日計・月計・年計）
@@ -420,6 +494,366 @@ namespace InventorySystem.Reports.FastReport.Services
                 DailyBankPayment = items.Sum(x => x.DailyBankPayment ?? 0),
                 DailyOtherPayment = items.Sum(x => x.DailyOtherPayment ?? 0)
             };
+        }
+
+        /// <summary>
+        /// Page2のデータパラメータ設定（分類009～017、9分類）
+        /// </summary>
+        private void SetPage2DataParameters(
+            FR.Report report,
+            List<BusinessDailyReportItem> dailyItems,
+            List<BusinessDailyReportItem> monthlyItems,
+            List<BusinessDailyReportItem> yearlyItems)
+        {
+            SetPageDataParameters(report, dailyItems, monthlyItems, yearlyItems, 2, 9, 17);
+        }
+
+        /// <summary>
+        /// Page3のデータパラメータ設定（分類018～026、9分類）
+        /// </summary>
+        private void SetPage3DataParameters(
+            FR.Report report,
+            List<BusinessDailyReportItem> dailyItems,
+            List<BusinessDailyReportItem> monthlyItems,
+            List<BusinessDailyReportItem> yearlyItems)
+        {
+            SetPageDataParameters(report, dailyItems, monthlyItems, yearlyItems, 3, 18, 26);
+        }
+
+        /// <summary>
+        /// Page4のデータパラメータ設定（分類027～035、9分類）
+        /// </summary>
+        private void SetPage4DataParameters(
+            FR.Report report,
+            List<BusinessDailyReportItem> dailyItems,
+            List<BusinessDailyReportItem> monthlyItems,
+            List<BusinessDailyReportItem> yearlyItems)
+        {
+            SetPageDataParameters(report, dailyItems, monthlyItems, yearlyItems, 4, 27, 35);
+        }
+
+        /// <summary>
+        /// 指定ページのデータパラメータ設定（共通処理）
+        /// </summary>
+        private void SetPageDataParameters(
+            FR.Report report,
+            List<BusinessDailyReportItem> dailyItems,
+            List<BusinessDailyReportItem> monthlyItems,
+            List<BusinessDailyReportItem> yearlyItems,
+            int pageNumber,
+            int startClassCode,
+            int endClassCode)
+        {
+            var pagePrefix = pageNumber == 1 ? "" : $"Page{pageNumber}_";
+            var maxColumns = pageNumber == 1 ? 8 : 9; // Page1は8列、Page2-4は9列
+
+            // 対象分類のデータを取得
+            var dataByClass = new Dictionary<int, BusinessDailyReportItem>();
+            for (int i = 1; i <= maxColumns; i++)
+            {
+                var classCode = startClassCode + i - 1;
+                if (classCode <= endClassCode)
+                {
+                    var code = classCode.ToString("000");
+                    dataByClass[i] = dailyItems.FirstOrDefault(x => x.ClassificationCode == code);
+                }
+                else
+                {
+                    dataByClass[i] = null; // 範囲外は空
+                }
+            }
+
+            // Page1のみ全35分類の合計を表示、Page2-4は合計列なし
+            var totalAll = pageNumber == 1 ? CalculateTotal(dailyItems) : null;
+
+            // 日計18行設定
+            SetPageDailyData(report, dataByClass, totalAll, pagePrefix, maxColumns);
+            
+            // 月計18行設定
+            SetPageMonthlyData(report, monthlyItems, pagePrefix, startClassCode, endClassCode, maxColumns);
+            
+            // 年計4行設定
+            SetPageYearlyData(report, yearlyItems, pagePrefix, startClassCode, endClassCode, maxColumns);
+        }
+
+        /// <summary>
+        /// 指定ページの日計データ設定（18行）
+        /// </summary>
+        private void SetPageDailyData(FR.Report report, Dictionary<int, BusinessDailyReportItem> dataByClass, BusinessDailyReportItem totalAll, string pagePrefix, int maxColumns)
+        {
+            // 行1：現金売上
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row1_Total", FormatNumber(totalAll.DailyCashSales));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyCashSales;
+                report.SetParameterValue($"{pagePrefix}Daily_Row1_Col{col}", FormatNumber(value));
+            }
+
+            // 行2：現売消費税
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row2_Total", FormatNumber(totalAll.DailyCashSalesTax));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyCashSalesTax;
+                report.SetParameterValue($"{pagePrefix}Daily_Row2_Col{col}", FormatNumber(value));
+            }
+
+            // 行3：掛売上と返品
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row3_Total", FormatNumber(totalAll.DailyCreditSales));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyCreditSales;
+                report.SetParameterValue($"{pagePrefix}Daily_Row3_Col{col}", FormatNumber(value));
+            }
+
+            // 行4：売上値引
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row4_Total", FormatNumber(totalAll.DailySalesDiscount));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailySalesDiscount;
+                report.SetParameterValue($"{pagePrefix}Daily_Row4_Col{col}", FormatNumber(value));
+            }
+
+            // 行5：掛売消費税
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row5_Total", FormatNumber(totalAll.DailyCreditSalesTax));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyCreditSalesTax;
+                report.SetParameterValue($"{pagePrefix}Daily_Row5_Col{col}", FormatNumber(value));
+            }
+
+            // 行6：＊売上計＊（合計行）
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                var salesTotalAll = (totalAll.DailyCashSales ?? 0m) + (totalAll.DailyCashSalesTax ?? 0m) +
+                                    (totalAll.DailyCreditSales ?? 0m) + (totalAll.DailySalesDiscount ?? 0m) +
+                                    (totalAll.DailyCreditSalesTax ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Daily_Row6_Total", FormatNumber(salesTotalAll));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var item = dataByClass[col];
+                if (item != null)
+                {
+                    var colTotal = (item.DailyCashSales ?? 0m) + (item.DailyCashSalesTax ?? 0m) +
+                                   (item.DailyCreditSales ?? 0m) + (item.DailySalesDiscount ?? 0m) +
+                                   (item.DailyCreditSalesTax ?? 0m);
+                    report.SetParameterValue($"{pagePrefix}Daily_Row6_Col{col}", FormatNumber(colTotal));
+                }
+                else
+                {
+                    report.SetParameterValue($"{pagePrefix}Daily_Row6_Col{col}", "");
+                }
+            }
+
+            // 行7：現金仕入
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row7_Total", FormatNumber(totalAll.DailyCashPurchase));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyCashPurchase;
+                report.SetParameterValue($"{pagePrefix}Daily_Row7_Col{col}", FormatNumber(value));
+            }
+
+            // 行8：現仕消費税
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row8_Total", FormatNumber(totalAll.DailyCashPurchaseTax));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyCashPurchaseTax;
+                report.SetParameterValue($"{pagePrefix}Daily_Row8_Col{col}", FormatNumber(value));
+            }
+
+            // 行9：掛仕入と返品
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row9_Total", FormatNumber(totalAll.DailyCreditPurchase));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyCreditPurchase;
+                report.SetParameterValue($"{pagePrefix}Daily_Row9_Col{col}", FormatNumber(value));
+            }
+
+            // 行10：仕入値引
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row10_Total", FormatNumber(totalAll.DailyPurchaseDiscount));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyPurchaseDiscount;
+                report.SetParameterValue($"{pagePrefix}Daily_Row10_Col{col}", FormatNumber(value));
+            }
+
+            // 行11：掛仕入消費税
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row11_Total", FormatNumber(totalAll.DailyCreditPurchaseTax));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyCreditPurchaseTax;
+                report.SetParameterValue($"{pagePrefix}Daily_Row11_Col{col}", FormatNumber(value));
+            }
+
+            // 行12：＊仕入計＊
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                var purchaseTotalAll = (totalAll.DailyCashPurchase ?? 0m) + (totalAll.DailyCashPurchaseTax ?? 0m) +
+                                       (totalAll.DailyCreditPurchase ?? 0m) + (totalAll.DailyPurchaseDiscount ?? 0m) +
+                                       (totalAll.DailyCreditPurchaseTax ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Daily_Row12_Total", FormatNumber(purchaseTotalAll));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var item = dataByClass[col];
+                if (item != null)
+                {
+                    var colTotal = (item.DailyCashPurchase ?? 0m) + (item.DailyCashPurchaseTax ?? 0m) +
+                                   (item.DailyCreditPurchase ?? 0m) + (item.DailyPurchaseDiscount ?? 0m) +
+                                   (item.DailyCreditPurchaseTax ?? 0m);
+                    report.SetParameterValue($"{pagePrefix}Daily_Row12_Col{col}", FormatNumber(colTotal));
+                }
+                else
+                {
+                    report.SetParameterValue($"{pagePrefix}Daily_Row12_Col{col}", "");
+                }
+            }
+
+            // 行13：入金と現売
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row13_Total", FormatNumber(totalAll.DailyCashReceipt));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyCashReceipt;
+                report.SetParameterValue($"{pagePrefix}Daily_Row13_Col{col}", FormatNumber(value));
+            }
+
+            // 行14：入金値引・他
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row14_Total", FormatNumber(totalAll.DailyOtherReceipt));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyOtherReceipt;
+                report.SetParameterValue($"{pagePrefix}Daily_Row14_Col{col}", FormatNumber(value));
+            }
+
+            // 行15：＊入金計＊
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                var receiptTotalAll = (totalAll.DailyCashReceipt ?? 0m) + (totalAll.DailyOtherReceipt ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Daily_Row15_Total", FormatNumber(receiptTotalAll));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var item = dataByClass[col];
+                if (item != null)
+                {
+                    var colTotal = (item.DailyCashReceipt ?? 0m) + (item.DailyOtherReceipt ?? 0m);
+                    report.SetParameterValue($"{pagePrefix}Daily_Row15_Col{col}", FormatNumber(colTotal));
+                }
+                else
+                {
+                    report.SetParameterValue($"{pagePrefix}Daily_Row15_Col{col}", "");
+                }
+            }
+
+            // 行16：支払と現金支払
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row16_Total", FormatNumber(totalAll.DailyCashPayment));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyCashPayment;
+                report.SetParameterValue($"{pagePrefix}Daily_Row16_Col{col}", FormatNumber(value));
+            }
+
+            // 行17：支払値引・他
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Daily_Row17_Total", FormatNumber(totalAll.DailyOtherPayment));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.DailyOtherPayment;
+                report.SetParameterValue($"{pagePrefix}Daily_Row17_Col{col}", FormatNumber(value));
+            }
+
+            // 行18：＊支払計＊
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                var paymentTotalAll = (totalAll.DailyCashPayment ?? 0m) + (totalAll.DailyOtherPayment ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Daily_Row18_Total", FormatNumber(paymentTotalAll));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var item = dataByClass[col];
+                if (item != null)
+                {
+                    var colTotal = (item.DailyCashPayment ?? 0m) + (item.DailyOtherPayment ?? 0m);
+                    report.SetParameterValue($"{pagePrefix}Daily_Row18_Col{col}", FormatNumber(colTotal));
+                }
+                else
+                {
+                    report.SetParameterValue($"{pagePrefix}Daily_Row18_Col{col}", "");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 指定ページの月計データ設定（18行）
+        /// </summary>
+        private void SetPageMonthlyData(FR.Report report, List<BusinessDailyReportItem> monthlyItems, string pagePrefix, int startClassCode, int endClassCode, int maxColumns)
+        {
+            // 月計は現在未実装（空文字設定）
+            for (int row = 1; row <= 18; row++)
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row{row}_Total", "");
+                for (int col = 1; col <= maxColumns; col++)
+                {
+                    report.SetParameterValue($"{pagePrefix}Monthly_Row{row}_Col{col}", "");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 指定ページの年計データ設定（4行）
+        /// </summary>
+        private void SetPageYearlyData(FR.Report report, List<BusinessDailyReportItem> yearlyItems, string pagePrefix, int startClassCode, int endClassCode, int maxColumns)
+        {
+            // 年計は現在未実装（空文字設定）
+            for (int row = 1; row <= 4; row++)
+            {
+                report.SetParameterValue($"{pagePrefix}Yearly_Row{row}_Total", "");
+                for (int col = 1; col <= maxColumns; col++)
+                {
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row{row}_Col{col}", "");
+                }
+            }
         }
 
         /// <summary>
