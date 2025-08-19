@@ -11,6 +11,7 @@ using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Reports.Interfaces;
 using InventorySystem.Reports.Models;
+using InventorySystem.Reports.Tools;
 using Microsoft.Extensions.Logging;
 using FR = global::FastReport;
 
@@ -56,6 +57,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 月計・年計データの取得（Repository経由）
                 var monthlyItems = await _repository.GetMonthlyDataAsync(jobDate);
                 var yearlyItems = await _repository.GetYearlyDataAsync(jobDate);
+
+                // 1) レイアウトパッチ適用（重なり解消）
+                FastReportPatcher.Patch(_templatePath);
 
                 using var report = new FR.Report();
                 report.Load(_templatePath);
