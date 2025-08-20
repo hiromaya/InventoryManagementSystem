@@ -59,7 +59,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 var yearlyItems = await _repository.GetYearlyDataAsync(jobDate);
 
                 // 1) レイアウトパッチ適用（重なり解消）
-                FastReportPatcher.Patch(_templatePath);
+                // FastReportPatcher.Patch(_templatePath); // 無効化: データ行X座標ズレ問題のため
 
                 using var report = new FR.Report();
                 report.Load(_templatePath);
