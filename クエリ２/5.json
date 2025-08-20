@@ -1,0 +1,1430 @@
+[
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 1,
+    "FormattedCode": "001",
+    "CategoryName": "得分1001",
+    "MatchStatus": "MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 2,
+    "FormattedCode": "002",
+    "CategoryName": "得分1002",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 3,
+    "FormattedCode": "003",
+    "CategoryName": "得分1003",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 4,
+    "FormattedCode": "004",
+    "CategoryName": "得分1004",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 5,
+    "FormattedCode": "005",
+    "CategoryName": "得分1005",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 6,
+    "FormattedCode": "006",
+    "CategoryName": "得分1006",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 7,
+    "FormattedCode": "007",
+    "CategoryName": "得分1007",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 8,
+    "FormattedCode": "008",
+    "CategoryName": "得分1008",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 9,
+    "FormattedCode": "009",
+    "CategoryName": "得分1009",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 10,
+    "FormattedCode": "010",
+    "CategoryName": "得分1010",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 11,
+    "FormattedCode": "011",
+    "CategoryName": "得分1011",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 12,
+    "FormattedCode": "012",
+    "CategoryName": "得分1012",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 13,
+    "FormattedCode": "013",
+    "CategoryName": "得分1013",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 14,
+    "FormattedCode": "014",
+    "CategoryName": "得分1014",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 15,
+    "FormattedCode": "015",
+    "CategoryName": "得分1015",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 16,
+    "FormattedCode": "016",
+    "CategoryName": "得分1016",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 17,
+    "FormattedCode": "017",
+    "CategoryName": "得分1017",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 18,
+    "FormattedCode": "018",
+    "CategoryName": "得分1018",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 19,
+    "FormattedCode": "019",
+    "CategoryName": "得分1019",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 20,
+    "FormattedCode": "020",
+    "CategoryName": "得分1020",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 21,
+    "FormattedCode": "021",
+    "CategoryName": "得分1021",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 22,
+    "FormattedCode": "022",
+    "CategoryName": "得分1022",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 23,
+    "FormattedCode": "023",
+    "CategoryName": "得分1023",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 24,
+    "FormattedCode": "024",
+    "CategoryName": "得分1024",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 25,
+    "FormattedCode": "025",
+    "CategoryName": "得分1025",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 26,
+    "FormattedCode": "026",
+    "CategoryName": "得分1026",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 27,
+    "FormattedCode": "027",
+    "CategoryName": "得分1027",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 28,
+    "FormattedCode": "028",
+    "CategoryName": "得分1028",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 29,
+    "FormattedCode": "029",
+    "CategoryName": "得分1029",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 30,
+    "FormattedCode": "030",
+    "CategoryName": "得分1030",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 31,
+    "FormattedCode": "031",
+    "CategoryName": "得分1031",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 32,
+    "FormattedCode": "032",
+    "CategoryName": "得分1032",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 33,
+    "FormattedCode": "033",
+    "CategoryName": "得分1033",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 34,
+    "FormattedCode": "034",
+    "CategoryName": "得分1034",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 35,
+    "FormattedCode": "035",
+    "CategoryName": "得分1035",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 36,
+    "FormattedCode": "036",
+    "CategoryName": "得分1036",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 37,
+    "FormattedCode": "037",
+    "CategoryName": "得分1037",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 38,
+    "FormattedCode": "038",
+    "CategoryName": "得分1038",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 39,
+    "FormattedCode": "039",
+    "CategoryName": "得分1039",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 40,
+    "FormattedCode": "040",
+    "CategoryName": "得分1040",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 41,
+    "FormattedCode": "041",
+    "CategoryName": "得分1041",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 42,
+    "FormattedCode": "042",
+    "CategoryName": "得分1042",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 43,
+    "FormattedCode": "043",
+    "CategoryName": "得分1043",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 44,
+    "FormattedCode": "044",
+    "CategoryName": "得分1044",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 45,
+    "FormattedCode": "045",
+    "CategoryName": "得分1045",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 46,
+    "FormattedCode": "046",
+    "CategoryName": "得分1046",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 47,
+    "FormattedCode": "047",
+    "CategoryName": "得分1047",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 48,
+    "FormattedCode": "048",
+    "CategoryName": "得分1048",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 49,
+    "FormattedCode": "049",
+    "CategoryName": "得分1049",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 50,
+    "FormattedCode": "050",
+    "CategoryName": "得分1050",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 51,
+    "FormattedCode": "051",
+    "CategoryName": "得分1051",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 52,
+    "FormattedCode": "052",
+    "CategoryName": "得分1052",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 53,
+    "FormattedCode": "053",
+    "CategoryName": "得分1053",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 54,
+    "FormattedCode": "054",
+    "CategoryName": "得分1054",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 55,
+    "FormattedCode": "055",
+    "CategoryName": "得分1055",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 56,
+    "FormattedCode": "056",
+    "CategoryName": "得分1056",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 57,
+    "FormattedCode": "057",
+    "CategoryName": "得分1057",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 58,
+    "FormattedCode": "058",
+    "CategoryName": "得分1058",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 59,
+    "FormattedCode": "059",
+    "CategoryName": "得分1059",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 60,
+    "FormattedCode": "060",
+    "CategoryName": "得分1060",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 61,
+    "FormattedCode": "061",
+    "CategoryName": "得分1061",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 62,
+    "FormattedCode": "062",
+    "CategoryName": "得分1062",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 63,
+    "FormattedCode": "063",
+    "CategoryName": "得分1063",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 64,
+    "FormattedCode": "064",
+    "CategoryName": "得分1064",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 65,
+    "FormattedCode": "065",
+    "CategoryName": "得分1065",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 66,
+    "FormattedCode": "066",
+    "CategoryName": "得分1066",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 67,
+    "FormattedCode": "067",
+    "CategoryName": "得分1067",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 68,
+    "FormattedCode": "068",
+    "CategoryName": "得分1068",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 69,
+    "FormattedCode": "069",
+    "CategoryName": "得分1069",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 70,
+    "FormattedCode": "070",
+    "CategoryName": "得分1070",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 71,
+    "FormattedCode": "071",
+    "CategoryName": "得分1071",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 72,
+    "FormattedCode": "072",
+    "CategoryName": "得分1072",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 73,
+    "FormattedCode": "073",
+    "CategoryName": "得分1073",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 74,
+    "FormattedCode": "074",
+    "CategoryName": "得分1074",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 75,
+    "FormattedCode": "075",
+    "CategoryName": "得分1075",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 76,
+    "FormattedCode": "076",
+    "CategoryName": "得分1076",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 77,
+    "FormattedCode": "077",
+    "CategoryName": "得分1077",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 78,
+    "FormattedCode": "078",
+    "CategoryName": "得分1078",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 79,
+    "FormattedCode": "079",
+    "CategoryName": "得分1079",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 80,
+    "FormattedCode": "080",
+    "CategoryName": "得分1080",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 81,
+    "FormattedCode": "081",
+    "CategoryName": "得分1081",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 82,
+    "FormattedCode": "082",
+    "CategoryName": "得分1082",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 83,
+    "FormattedCode": "083",
+    "CategoryName": "得分1083",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 84,
+    "FormattedCode": "084",
+    "CategoryName": "得分1084",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 85,
+    "FormattedCode": "085",
+    "CategoryName": "得分1085",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 86,
+    "FormattedCode": "086",
+    "CategoryName": "得分1086",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 87,
+    "FormattedCode": "087",
+    "CategoryName": "得分1087",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 88,
+    "FormattedCode": "088",
+    "CategoryName": "得分1088",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 89,
+    "FormattedCode": "089",
+    "CategoryName": "得分1089",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 90,
+    "FormattedCode": "090",
+    "CategoryName": "得分1090",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 91,
+    "FormattedCode": "091",
+    "CategoryName": "得分1091",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 92,
+    "FormattedCode": "092",
+    "CategoryName": "得分1092",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 93,
+    "FormattedCode": "093",
+    "CategoryName": "得分1093",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 94,
+    "FormattedCode": "094",
+    "CategoryName": "得分1094",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 95,
+    "FormattedCode": "095",
+    "CategoryName": "得分1095",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 96,
+    "FormattedCode": "096",
+    "CategoryName": "得分1096",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 97,
+    "FormattedCode": "097",
+    "CategoryName": "得分1097",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 98,
+    "FormattedCode": "098",
+    "CategoryName": "得分1098",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 99,
+    "FormattedCode": "099",
+    "CategoryName": "得分1099",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 100,
+    "FormattedCode": "100",
+    "CategoryName": "得分1100",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 101,
+    "FormattedCode": "101",
+    "CategoryName": "得分1101",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "001",
+    "CategoryCode": 102,
+    "FormattedCode": "102",
+    "CategoryName": "得分1102",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 1,
+    "FormattedCode": "001",
+    "CategoryName": "得分1001",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 2,
+    "FormattedCode": "002",
+    "CategoryName": "得分1002",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 3,
+    "FormattedCode": "003",
+    "CategoryName": "得分1003",
+    "MatchStatus": "MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 4,
+    "FormattedCode": "004",
+    "CategoryName": "得分1004",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 5,
+    "FormattedCode": "005",
+    "CategoryName": "得分1005",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 6,
+    "FormattedCode": "006",
+    "CategoryName": "得分1006",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 7,
+    "FormattedCode": "007",
+    "CategoryName": "得分1007",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 8,
+    "FormattedCode": "008",
+    "CategoryName": "得分1008",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 9,
+    "FormattedCode": "009",
+    "CategoryName": "得分1009",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 10,
+    "FormattedCode": "010",
+    "CategoryName": "得分1010",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 11,
+    "FormattedCode": "011",
+    "CategoryName": "得分1011",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 12,
+    "FormattedCode": "012",
+    "CategoryName": "得分1012",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 13,
+    "FormattedCode": "013",
+    "CategoryName": "得分1013",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 14,
+    "FormattedCode": "014",
+    "CategoryName": "得分1014",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 15,
+    "FormattedCode": "015",
+    "CategoryName": "得分1015",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 16,
+    "FormattedCode": "016",
+    "CategoryName": "得分1016",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 17,
+    "FormattedCode": "017",
+    "CategoryName": "得分1017",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 18,
+    "FormattedCode": "018",
+    "CategoryName": "得分1018",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 19,
+    "FormattedCode": "019",
+    "CategoryName": "得分1019",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 20,
+    "FormattedCode": "020",
+    "CategoryName": "得分1020",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 21,
+    "FormattedCode": "021",
+    "CategoryName": "得分1021",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 22,
+    "FormattedCode": "022",
+    "CategoryName": "得分1022",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 23,
+    "FormattedCode": "023",
+    "CategoryName": "得分1023",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 24,
+    "FormattedCode": "024",
+    "CategoryName": "得分1024",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 25,
+    "FormattedCode": "025",
+    "CategoryName": "得分1025",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 26,
+    "FormattedCode": "026",
+    "CategoryName": "得分1026",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 27,
+    "FormattedCode": "027",
+    "CategoryName": "得分1027",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 28,
+    "FormattedCode": "028",
+    "CategoryName": "得分1028",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 29,
+    "FormattedCode": "029",
+    "CategoryName": "得分1029",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 30,
+    "FormattedCode": "030",
+    "CategoryName": "得分1030",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 31,
+    "FormattedCode": "031",
+    "CategoryName": "得分1031",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 32,
+    "FormattedCode": "032",
+    "CategoryName": "得分1032",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 33,
+    "FormattedCode": "033",
+    "CategoryName": "得分1033",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 34,
+    "FormattedCode": "034",
+    "CategoryName": "得分1034",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 35,
+    "FormattedCode": "035",
+    "CategoryName": "得分1035",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 36,
+    "FormattedCode": "036",
+    "CategoryName": "得分1036",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 37,
+    "FormattedCode": "037",
+    "CategoryName": "得分1037",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 38,
+    "FormattedCode": "038",
+    "CategoryName": "得分1038",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 39,
+    "FormattedCode": "039",
+    "CategoryName": "得分1039",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 40,
+    "FormattedCode": "040",
+    "CategoryName": "得分1040",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 41,
+    "FormattedCode": "041",
+    "CategoryName": "得分1041",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 42,
+    "FormattedCode": "042",
+    "CategoryName": "得分1042",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 43,
+    "FormattedCode": "043",
+    "CategoryName": "得分1043",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 44,
+    "FormattedCode": "044",
+    "CategoryName": "得分1044",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 45,
+    "FormattedCode": "045",
+    "CategoryName": "得分1045",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 46,
+    "FormattedCode": "046",
+    "CategoryName": "得分1046",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 47,
+    "FormattedCode": "047",
+    "CategoryName": "得分1047",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 48,
+    "FormattedCode": "048",
+    "CategoryName": "得分1048",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 49,
+    "FormattedCode": "049",
+    "CategoryName": "得分1049",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 50,
+    "FormattedCode": "050",
+    "CategoryName": "得分1050",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 51,
+    "FormattedCode": "051",
+    "CategoryName": "得分1051",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 52,
+    "FormattedCode": "052",
+    "CategoryName": "得分1052",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 53,
+    "FormattedCode": "053",
+    "CategoryName": "得分1053",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 54,
+    "FormattedCode": "054",
+    "CategoryName": "得分1054",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 55,
+    "FormattedCode": "055",
+    "CategoryName": "得分1055",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 56,
+    "FormattedCode": "056",
+    "CategoryName": "得分1056",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 57,
+    "FormattedCode": "057",
+    "CategoryName": "得分1057",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 58,
+    "FormattedCode": "058",
+    "CategoryName": "得分1058",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 59,
+    "FormattedCode": "059",
+    "CategoryName": "得分1059",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 60,
+    "FormattedCode": "060",
+    "CategoryName": "得分1060",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 61,
+    "FormattedCode": "061",
+    "CategoryName": "得分1061",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 62,
+    "FormattedCode": "062",
+    "CategoryName": "得分1062",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 63,
+    "FormattedCode": "063",
+    "CategoryName": "得分1063",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 64,
+    "FormattedCode": "064",
+    "CategoryName": "得分1064",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 65,
+    "FormattedCode": "065",
+    "CategoryName": "得分1065",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 66,
+    "FormattedCode": "066",
+    "CategoryName": "得分1066",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 67,
+    "FormattedCode": "067",
+    "CategoryName": "得分1067",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 68,
+    "FormattedCode": "068",
+    "CategoryName": "得分1068",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 69,
+    "FormattedCode": "069",
+    "CategoryName": "得分1069",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 70,
+    "FormattedCode": "070",
+    "CategoryName": "得分1070",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 71,
+    "FormattedCode": "071",
+    "CategoryName": "得分1071",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 72,
+    "FormattedCode": "072",
+    "CategoryName": "得分1072",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 73,
+    "FormattedCode": "073",
+    "CategoryName": "得分1073",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 74,
+    "FormattedCode": "074",
+    "CategoryName": "得分1074",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 75,
+    "FormattedCode": "075",
+    "CategoryName": "得分1075",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 76,
+    "FormattedCode": "076",
+    "CategoryName": "得分1076",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 77,
+    "FormattedCode": "077",
+    "CategoryName": "得分1077",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 78,
+    "FormattedCode": "078",
+    "CategoryName": "得分1078",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 79,
+    "FormattedCode": "079",
+    "CategoryName": "得分1079",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 80,
+    "FormattedCode": "080",
+    "CategoryName": "得分1080",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 81,
+    "FormattedCode": "081",
+    "CategoryName": "得分1081",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 82,
+    "FormattedCode": "082",
+    "CategoryName": "得分1082",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 83,
+    "FormattedCode": "083",
+    "CategoryName": "得分1083",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 84,
+    "FormattedCode": "084",
+    "CategoryName": "得分1084",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 85,
+    "FormattedCode": "085",
+    "CategoryName": "得分1085",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 86,
+    "FormattedCode": "086",
+    "CategoryName": "得分1086",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 87,
+    "FormattedCode": "087",
+    "CategoryName": "得分1087",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 88,
+    "FormattedCode": "088",
+    "CategoryName": "得分1088",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 89,
+    "FormattedCode": "089",
+    "CategoryName": "得分1089",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 90,
+    "FormattedCode": "090",
+    "CategoryName": "得分1090",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 91,
+    "FormattedCode": "091",
+    "CategoryName": "得分1091",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 92,
+    "FormattedCode": "092",
+    "CategoryName": "得分1092",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 93,
+    "FormattedCode": "093",
+    "CategoryName": "得分1093",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 94,
+    "FormattedCode": "094",
+    "CategoryName": "得分1094",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 95,
+    "FormattedCode": "095",
+    "CategoryName": "得分1095",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 96,
+    "FormattedCode": "096",
+    "CategoryName": "得分1096",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 97,
+    "FormattedCode": "097",
+    "CategoryName": "得分1097",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 98,
+    "FormattedCode": "098",
+    "CategoryName": "得分1098",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 99,
+    "FormattedCode": "099",
+    "CategoryName": "得分1099",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 100,
+    "FormattedCode": "100",
+    "CategoryName": "得分1100",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 101,
+    "FormattedCode": "101",
+    "CategoryName": "得分1101",
+    "MatchStatus": "NO MATCH"
+  },
+  {
+    "ClassificationCode": "003",
+    "CategoryCode": 102,
+    "FormattedCode": "102",
+    "CategoryName": "得分1102",
+    "MatchStatus": "NO MATCH"
+  }
+]
