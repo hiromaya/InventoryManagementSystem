@@ -42,11 +42,23 @@ namespace InventorySystem.Core.Entities
         public decimal? MonthlyBankPayment { get; set; }
         public decimal? MonthlyOtherPayment { get; set; }
         
-        // 年計項目（4項目のみ）
+        // 年計項目（16項目）
         public decimal? YearlyCashSales { get; set; }
         public decimal? YearlyCashSalesTax { get; set; }
+        public decimal? YearlyCreditSales { get; set; }
+        public decimal? YearlySalesDiscount { get; set; }
+        public decimal? YearlyCreditSalesTax { get; set; }
         public decimal? YearlyCashPurchase { get; set; }
         public decimal? YearlyCashPurchaseTax { get; set; }
+        public decimal? YearlyCreditPurchase { get; set; }
+        public decimal? YearlyPurchaseDiscount { get; set; }
+        public decimal? YearlyCreditPurchaseTax { get; set; }
+        public decimal? YearlyCashReceipt { get; set; }
+        public decimal? YearlyBankReceipt { get; set; }
+        public decimal? YearlyOtherReceipt { get; set; }
+        public decimal? YearlyCashPayment { get; set; }
+        public decimal? YearlyBankPayment { get; set; }
+        public decimal? YearlyOtherPayment { get; set; }
         
         // 計算プロパティ
         public decimal DailySalesTotal => 

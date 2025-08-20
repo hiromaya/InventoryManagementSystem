@@ -1,0 +1,187 @@
+[
+  {
+    "ClassificationCode": "000",
+    "CustomerClassName": "合計",
+    "SupplierClassName": "合計"
+  },
+  {
+    "ClassificationCode": "001",
+    "CustomerClassName": "得分1001",
+    "SupplierClassName": "仕分1001"
+  },
+  {
+    "ClassificationCode": "002",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "003",
+    "CustomerClassName": "得分1003",
+    "SupplierClassName": "仕分1003"
+  },
+  {
+    "ClassificationCode": "004",
+    "CustomerClassName": "得分1004",
+    "SupplierClassName": "仕分1004"
+  },
+  {
+    "ClassificationCode": "005",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "006",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "007",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "008",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "009",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "010",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "011",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "012",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "013",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "014",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "015",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "016",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "017",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "018",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "019",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "020",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "021",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "022",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "023",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "024",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "025",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "026",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "027",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "028",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "029",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "030",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "031",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "032",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "033",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "034",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "035",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  },
+  {
+    "ClassificationCode": "999",
+    "CustomerClassName": "",
+    "SupplierClassName": ""
+  }
+]

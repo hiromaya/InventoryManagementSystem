@@ -108,20 +108,23 @@ namespace InventorySystem.Data.Repositories
                             MonthlyCashPurchase, MonthlyCashPurchaseTax, MonthlyCreditPurchase, MonthlyPurchaseDiscount, MonthlyCreditPurchaseTax,
                             MonthlyCashReceipt, MonthlyBankReceipt, MonthlyOtherReceipt,
                             MonthlyCashPayment, MonthlyBankPayment, MonthlyOtherPayment,
-                            YearlyCashSales, YearlyCashSalesTax, YearlyCashPurchase, YearlyCashPurchaseTax,
+                            YearlyCashSales, YearlyCashSalesTax, YearlyCreditSales, YearlySalesDiscount, YearlyCreditSalesTax,
+                            YearlyCashPurchase, YearlyCashPurchaseTax, YearlyCreditPurchase, YearlyPurchaseDiscount, YearlyCreditPurchaseTax,
+                            YearlyCashReceipt, YearlyBankReceipt, YearlyOtherReceipt,
+                            YearlyCashPayment, YearlyBankPayment, YearlyOtherPayment,
                             CreatedDate, UpdatedDate
                         )
                         VALUES (
                             source.ClassificationCode, source.CustomerClassName, source.SupplierClassName,
-                            0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                             0, 0, 0,
                             0, 0, 0,
-                            0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                             0, 0, 0,
                             0, 0, 0,
-                            0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                             GETDATE(), GETDATE()
                         );";
                 
@@ -143,20 +146,23 @@ namespace InventorySystem.Data.Repositories
                             MonthlyCashPurchase, MonthlyCashPurchaseTax, MonthlyCreditPurchase, MonthlyPurchaseDiscount, MonthlyCreditPurchaseTax,
                             MonthlyCashReceipt, MonthlyBankReceipt, MonthlyOtherReceipt,
                             MonthlyCashPayment, MonthlyBankPayment, MonthlyOtherPayment,
-                            YearlyCashSales, YearlyCashSalesTax, YearlyCashPurchase, YearlyCashPurchaseTax,
+                            YearlyCashSales, YearlyCashSalesTax, YearlyCreditSales, YearlySalesDiscount, YearlyCreditSalesTax,
+                            YearlyCashPurchase, YearlyCashPurchaseTax, YearlyCreditPurchase, YearlyPurchaseDiscount, YearlyCreditPurchaseTax,
+                            YearlyCashReceipt, YearlyBankReceipt, YearlyOtherReceipt,
+                            YearlyCashPayment, YearlyBankPayment, YearlyOtherPayment,
                             CreatedDate, UpdatedDate
                         )
                         VALUES (
                             source.ClassificationCode, source.CustomerClassName, source.SupplierClassName,
-                            0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                             0, 0, 0,
                             0, 0, 0,
-                            0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                             0, 0, 0,
                             0, 0, 0,
-                            0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                             GETDATE(), GETDATE()
                         );";
                 
