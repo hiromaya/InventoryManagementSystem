@@ -46,6 +46,141 @@ namespace InventorySystem.Data.Repositories
             _logger.LogInformation("営業日報の日計エリアをクリアしました");
         }
 
+        public async Task InitializeAllClassificationsAsync()
+        {
+            try
+            {
+                _logger.LogInformation("BusinessDailyReportテーブル36レコード初期化を開始");
+                
+                using var connection = CreateConnection();
+                
+                // 000-035の36分類をMERGEで一括初期化
+                const string mergeSql = @"
+                    WITH Classifications AS (
+                        SELECT '000' AS ClassificationCode, N'合計' AS CustomerClassName, N'合計' AS SupplierClassName
+                        UNION ALL SELECT '001', '', ''
+                        UNION ALL SELECT '002', '', ''
+                        UNION ALL SELECT '003', '', ''
+                        UNION ALL SELECT '004', '', ''
+                        UNION ALL SELECT '005', '', ''
+                        UNION ALL SELECT '006', '', ''
+                        UNION ALL SELECT '007', '', ''
+                        UNION ALL SELECT '008', '', ''
+                        UNION ALL SELECT '009', '', ''
+                        UNION ALL SELECT '010', '', ''
+                        UNION ALL SELECT '011', '', ''
+                        UNION ALL SELECT '012', '', ''
+                        UNION ALL SELECT '013', '', ''
+                        UNION ALL SELECT '014', '', ''
+                        UNION ALL SELECT '015', '', ''
+                        UNION ALL SELECT '016', '', ''
+                        UNION ALL SELECT '017', '', ''
+                        UNION ALL SELECT '018', '', ''
+                        UNION ALL SELECT '019', '', ''
+                        UNION ALL SELECT '020', '', ''
+                        UNION ALL SELECT '021', '', ''
+                        UNION ALL SELECT '022', '', ''
+                        UNION ALL SELECT '023', '', ''
+                        UNION ALL SELECT '024', '', ''
+                        UNION ALL SELECT '025', '', ''
+                        UNION ALL SELECT '026', '', ''
+                        UNION ALL SELECT '027', '', ''
+                        UNION ALL SELECT '028', '', ''
+                        UNION ALL SELECT '029', '', ''
+                        UNION ALL SELECT '030', '', ''
+                        UNION ALL SELECT '031', '', ''
+                        UNION ALL SELECT '032', '', ''
+                        UNION ALL SELECT '033', '', ''
+                        UNION ALL SELECT '034', '', ''
+                        UNION ALL SELECT '035', '', ''
+                    )
+                    MERGE BusinessDailyReport AS target
+                    USING Classifications AS source
+                        ON target.ClassificationCode = source.ClassificationCode
+                    WHEN NOT MATCHED THEN
+                        INSERT (
+                            ClassificationCode, CustomerClassName, SupplierClassName,
+                            DailyCashSales, DailyCashSalesTax, DailyCreditSales, DailySalesDiscount, DailyCreditSalesTax,
+                            DailyCashPurchase, DailyCashPurchaseTax, DailyCreditPurchase, DailyPurchaseDiscount, DailyCreditPurchaseTax,
+                            DailyCashReceipt, DailyBankReceipt, DailyOtherReceipt,
+                            DailyCashPayment, DailyBankPayment, DailyOtherPayment,
+                            MonthlyCashSales, MonthlyCashSalesTax, MonthlyCreditSales, MonthlySalesDiscount, MonthlyCreditSalesTax,
+                            MonthlyCashPurchase, MonthlyCashPurchaseTax, MonthlyCreditPurchase, MonthlyPurchaseDiscount, MonthlyCreditPurchaseTax,
+                            MonthlyCashReceipt, MonthlyBankReceipt, MonthlyOtherReceipt,
+                            MonthlyCashPayment, MonthlyBankPayment, MonthlyOtherPayment,
+                            YearlyCashSales, YearlyCashSalesTax, YearlyCashPurchase, YearlyCashPurchaseTax,
+                            CreatedDate, UpdatedDate
+                        )
+                        VALUES (
+                            source.ClassificationCode, source.CustomerClassName, source.SupplierClassName,
+                            0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0,
+                            0, 0, 0,
+                            0, 0, 0,
+                            0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0,
+                            0, 0, 0,
+                            0, 0, 0,
+                            0, 0, 0, 0,
+                            GETDATE(), GETDATE()
+                        );";
+                
+                var mergedCount = await connection.ExecuteAsync(mergeSql);
+                
+                // 999（未分類）も追加
+                const string mergeMiscSql = @"
+                    MERGE BusinessDailyReport AS target
+                    USING (SELECT '999' AS ClassificationCode, N'未分類' AS CustomerClassName, N'未分類' AS SupplierClassName) AS source
+                        ON target.ClassificationCode = source.ClassificationCode
+                    WHEN NOT MATCHED THEN
+                        INSERT (
+                            ClassificationCode, CustomerClassName, SupplierClassName,
+                            DailyCashSales, DailyCashSalesTax, DailyCreditSales, DailySalesDiscount, DailyCreditSalesTax,
+                            DailyCashPurchase, DailyCashPurchaseTax, DailyCreditPurchase, DailyPurchaseDiscount, DailyCreditPurchaseTax,
+                            DailyCashReceipt, DailyBankReceipt, DailyOtherReceipt,
+                            DailyCashPayment, DailyBankPayment, DailyOtherPayment,
+                            MonthlyCashSales, MonthlyCashSalesTax, MonthlyCreditSales, MonthlySalesDiscount, MonthlyCreditSalesTax,
+                            MonthlyCashPurchase, MonthlyCashPurchaseTax, MonthlyCreditPurchase, MonthlyPurchaseDiscount, MonthlyCreditPurchaseTax,
+                            MonthlyCashReceipt, MonthlyBankReceipt, MonthlyOtherReceipt,
+                            MonthlyCashPayment, MonthlyBankPayment, MonthlyOtherPayment,
+                            YearlyCashSales, YearlyCashSalesTax, YearlyCashPurchase, YearlyCashPurchaseTax,
+                            CreatedDate, UpdatedDate
+                        )
+                        VALUES (
+                            source.ClassificationCode, source.CustomerClassName, source.SupplierClassName,
+                            0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0,
+                            0, 0, 0,
+                            0, 0, 0,
+                            0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0,
+                            0, 0, 0,
+                            0, 0, 0,
+                            0, 0, 0, 0,
+                            GETDATE(), GETDATE()
+                        );";
+                
+                var miscMergedCount = await connection.ExecuteAsync(mergeMiscSql);
+                
+                // 最終レコード数確認
+                const string countSql = "SELECT COUNT(*) FROM BusinessDailyReport";
+                var totalRecords = await connection.ExecuteScalarAsync<int>(countSql);
+                
+                _logger.LogInformation("BusinessDailyReport初期化完了: 新規追加{NewRecords}件（36分類: {MergedCount}件 + 未分類: {MiscCount}件）、総件数{TotalRecords}件", 
+                    mergedCount + miscMergedCount, mergedCount, miscMergedCount, totalRecords);
+                
+                if (totalRecords < 37) // 000-035 + 999 = 37件最小保証
+                {
+                    _logger.LogWarning("BusinessDailyReportレコード数が不足: 期待37件以上、実際{ActualRecords}件", totalRecords);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "BusinessDailyReport初期化でエラーが発生しました");
+                throw;
+            }
+        }
+
         public async Task AggregateSalesDataAsync(DateTime jobDate)
         {
             await ExecuteInTransactionAsync(async (connection, transaction) =>

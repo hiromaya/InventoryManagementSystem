@@ -36,35 +36,47 @@ namespace InventorySystem.Core.Services
                 _logger.LogInformation("日計エリアをクリアしています...");
                 await _repository.ClearDailyAreaAsync();
 
-                // 2. 売上伝票集計（伝票種×明細種の組み合わせで判定）
+                // 2. 36レコード初期化（000-035 + 999 = 37レコード固定保証）
+                _logger.LogInformation("BusinessDailyReportテーブル36レコード初期化...");
+                await _repository.InitializeAllClassificationsAsync();
+
+                // 3. 売上伝票集計（伝票種×明細種の組み合わせで判定）
                 _logger.LogInformation("売上伝票データを集計しています...");
                 await _repository.AggregateSalesDataAsync(jobDate);
 
-                // 3. 仕入伝票集計
+                // 4. 仕入伝票集計
                 _logger.LogInformation("仕入伝票データを集計しています...");
                 await _repository.AggregatePurchaseDataAsync(jobDate);
 
-                // 4. 入金伝票集計
+                // 5. 入金伝票集計
                 _logger.LogInformation("入金伝票データを集計しています...");
                 await _repository.AggregateReceiptDataAsync(jobDate);
 
-                // 5. 支払伝票集計
+                // 6. 支払伝票集計
                 _logger.LogInformation("支払伝票データを集計しています...");
                 await _repository.AggregatePaymentDataAsync(jobDate);
 
-                // 6. 分類名をデータベースに更新（集計完了後に実行）
+                // 7. 分類名をデータベースに更新（集計完了後に実行）
                 _logger.LogInformation("分類名をデータベースに更新しています...");
                 await _repository.UpdateClassificationNamesInDatabaseAsync();
 
-                // 7. レポートデータ取得
+                // 8. レポートデータ取得
                 _logger.LogInformation("レポートデータを取得しています...");
                 var reportData = await _repository.GetReportDataAsync();
 
-                // 8. PDF生成
+                // 9. データ検証（36レコード固定保証）
+                if (reportData.Count < 37) // 000-035 + 999 = 37件最小保証
+                {
+                    _logger.LogError("営業日報データが37件未満です: 期待37件以上、実際{ActualRecords}件", reportData.Count);
+                    throw new InvalidOperationException($"営業日報データ不整合：期待37件以上、実際{reportData.Count}件");
+                }
+                _logger.LogInformation("営業日報データ検証完了: {RecordCount}件", reportData.Count);
+
+                // 10. PDF生成
                 _logger.LogInformation("PDFを生成しています...");
                 var pdfBytes = _reportService.GenerateBusinessDailyReport(reportData, jobDate);
 
-                // 9. ファイル保存（他の帳票と統一）
+                // 11. ファイル保存（他の帳票と統一）
                 var outputPath = await _fileManagementService.GetReportOutputPathAsync("BusinessDailyReport", jobDate, "pdf");
                 await File.WriteAllBytesAsync(outputPath, pdfBytes);
                 

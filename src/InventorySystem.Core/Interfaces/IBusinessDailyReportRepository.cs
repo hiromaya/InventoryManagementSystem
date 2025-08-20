@@ -5,6 +5,7 @@ namespace InventorySystem.Core.Interfaces
     public interface IBusinessDailyReportRepository
     {
         Task ClearDailyAreaAsync();
+        Task InitializeAllClassificationsAsync();
         Task AggregateSalesDataAsync(DateTime jobDate);
         Task AggregatePurchaseDataAsync(DateTime jobDate);
         Task AggregateReceiptDataAsync(DateTime jobDate);
