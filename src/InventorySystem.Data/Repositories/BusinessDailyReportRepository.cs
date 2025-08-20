@@ -53,67 +53,117 @@ namespace InventorySystem.Data.Repositories
                 // 現金売上（伝票種52、明細種1-4）
                 await AggregateField(connection, transaction, jobDate, "DailyCashSales", @"
                     SELECT 
-                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(sv.Amount) AS TotalAmount
                     FROM SalesVouchers sv
                     LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
                     WHERE sv.JobDate = @JobDate
                       AND sv.VoucherType = 52
                       AND sv.DetailType IN (1,2,3,4)
-                      AND sv.IsActive = 1
-                    GROUP BY c.CustomerCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END");
 
                 // 現売消費税（伝票種52、明細種18）
                 await AggregateField(connection, transaction, jobDate, "DailyCashSalesTax", @"
                     SELECT 
-                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(sv.Amount) AS TotalAmount
                     FROM SalesVouchers sv
                     LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
                     WHERE sv.JobDate = @JobDate
                       AND sv.VoucherType = 52
                       AND sv.DetailType = 18
-                      AND sv.IsActive = 1
-                    GROUP BY c.CustomerCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END");
 
                 // 掛売上（伝票種51、明細種1-2）
                 await AggregateField(connection, transaction, jobDate, "DailyCreditSales", @"
                     SELECT 
-                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(sv.Amount) AS TotalAmount
                     FROM SalesVouchers sv
                     LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
                     WHERE sv.JobDate = @JobDate
                       AND sv.VoucherType = 51
                       AND sv.DetailType IN (1,2)
-                      AND sv.IsActive = 1
-                    GROUP BY c.CustomerCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END");
 
                 // 売上値引（伝票種51、明細種3-4）
                 await AggregateField(connection, transaction, jobDate, "DailySalesDiscount", @"
                     SELECT 
-                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(sv.Amount) AS TotalAmount
                     FROM SalesVouchers sv
                     LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
                     WHERE sv.JobDate = @JobDate
                       AND sv.VoucherType = 51
                       AND sv.DetailType IN (3,4)
-                      AND sv.IsActive = 1
-                    GROUP BY c.CustomerCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END");
 
                 // 掛売消費税（伝票種51、明細種18）
                 await AggregateField(connection, transaction, jobDate, "DailyCreditSalesTax", @"
                     SELECT 
-                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(sv.Amount) AS TotalAmount
                     FROM SalesVouchers sv
                     LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
                     WHERE sv.JobDate = @JobDate
                       AND sv.VoucherType = 51
                       AND sv.DetailType = 18
-                      AND sv.IsActive = 1
-                    GROUP BY c.CustomerCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END");
 
                 _logger.LogInformation("売上伝票データの集計が完了しました: {JobDate}", jobDate);
             });
@@ -123,70 +173,120 @@ namespace InventorySystem.Data.Repositories
         {
             await ExecuteInTransactionAsync(async (connection, transaction) =>
             {
-                // 現金仕入（伝票種12、明細種1）
+                // 現金仕入（伝票種12、明細種1,2,3,4）
                 await AggregateField(connection, transaction, jobDate, "DailyCashPurchase", @"
                     SELECT 
-                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PurchaseVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
                       AND pv.VoucherType = 12
-                      AND pv.DetailType = 1
-                      AND pv.IsActive = 1
-                    GROUP BY s.SupplierCategory1");
+                      AND pv.DetailType IN (1,2,3,4)
+                    GROUP BY 
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END");
 
                 // 現仕消費税（伝票種12、明細種18）
                 await AggregateField(connection, transaction, jobDate, "DailyCashPurchaseTax", @"
                     SELECT 
-                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PurchaseVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
                       AND pv.VoucherType = 12
                       AND pv.DetailType = 18
-                      AND pv.IsActive = 1
-                    GROUP BY s.SupplierCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END");
 
                 // 掛仕入（伝票種11、明細種1-2）
                 await AggregateField(connection, transaction, jobDate, "DailyCreditPurchase", @"
                     SELECT 
-                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PurchaseVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
                       AND pv.VoucherType = 11
                       AND pv.DetailType IN (1,2)
-                      AND pv.IsActive = 1
-                    GROUP BY s.SupplierCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END");
 
                 // 仕入値引（伝票種11、明細種3-4）
                 await AggregateField(connection, transaction, jobDate, "DailyPurchaseDiscount", @"
                     SELECT 
-                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PurchaseVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
                       AND pv.VoucherType = 11
                       AND pv.DetailType IN (3,4)
-                      AND pv.IsActive = 1
-                    GROUP BY s.SupplierCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END");
 
                 // 掛仕入消費税（伝票種11、明細種18）
                 await AggregateField(connection, transaction, jobDate, "DailyCreditPurchaseTax", @"
                     SELECT 
-                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PurchaseVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
                       AND pv.VoucherType = 11
                       AND pv.DetailType = 18
-                      AND pv.IsActive = 1
-                    GROUP BY s.SupplierCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END");
 
                 _logger.LogInformation("仕入伝票データの集計が完了しました: {JobDate}", jobDate);
             });
@@ -199,35 +299,68 @@ namespace InventorySystem.Data.Repositories
                 // 現金・小切手・手形入金（PaymentType 1,2,4）
                 await AggregateField(connection, transaction, jobDate, "DailyCashReceipt", @"
                     SELECT 
-                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(rv.Amount) AS TotalAmount
                     FROM ReceiptVouchers rv
                     LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
                     WHERE rv.JobDate = @JobDate
                       AND rv.PaymentType IN (1,2,4)
-                    GROUP BY c.CustomerCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END");
 
                 // 振込入金（PaymentType 3）
                 await AggregateField(connection, transaction, jobDate, "DailyBankReceipt", @"
                     SELECT 
-                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(rv.Amount) AS TotalAmount
                     FROM ReceiptVouchers rv
                     LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
                     WHERE rv.JobDate = @JobDate
                       AND rv.PaymentType = 3
-                    GROUP BY c.CustomerCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END");
 
                 // その他入金（PaymentType 5,6,7,8,9）
                 await AggregateField(connection, transaction, jobDate, "DailyOtherReceipt", @"
                     SELECT 
-                        COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(rv.Amount) AS TotalAmount
                     FROM ReceiptVouchers rv
                     LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
                     WHERE rv.JobDate = @JobDate
                       AND rv.PaymentType IN (5,6,7,8,9)
-                    GROUP BY c.CustomerCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN c.CustomerCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                        END");
 
                 _logger.LogInformation("入金伝票データの集計が完了しました: {JobDate}", jobDate);
             });
@@ -240,35 +373,68 @@ namespace InventorySystem.Data.Repositories
                 // 現金・小切手・手形支払（PaymentType 1,2,4）
                 await AggregateField(connection, transaction, jobDate, "DailyCashPayment", @"
                     SELECT 
-                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PaymentVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
                       AND pv.PaymentType IN (1,2,4)
-                    GROUP BY s.SupplierCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END");
 
                 // 振込支払（PaymentType 3）
                 await AggregateField(connection, transaction, jobDate, "DailyBankPayment", @"
                     SELECT 
-                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PaymentVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
                       AND pv.PaymentType = 3
-                    GROUP BY s.SupplierCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END");
 
                 // その他支払（PaymentType 5,6,7,8,9）
                 await AggregateField(connection, transaction, jobDate, "DailyOtherPayment", @"
                     SELECT 
-                        COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END AS ClassificationCode,
                         SUM(pv.Amount) AS TotalAmount
                     FROM PaymentVouchers pv
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
                       AND pv.PaymentType IN (5,6,7,8,9)
-                    GROUP BY s.SupplierCategory1");
+                    GROUP BY 
+                        CASE 
+                            WHEN s.SupplierCategory1 IS NULL THEN '999'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                            WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                            ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                        END");
 
                 _logger.LogInformation("支払伝票データの集計が完了しました: {JobDate}", jobDate);
             });
@@ -317,16 +483,26 @@ namespace InventorySystem.Data.Repositories
             
             const string sql = @"
                 SELECT 
-                    COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                    CASE 
+                        WHEN c.CustomerCategory1 IS NULL THEN '999'
+                        WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                        WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                        ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                    END AS ClassificationCode,
                     SUM(CASE WHEN sv.VoucherType = 52 AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS MonthlyCashSalesTax,
                     SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType IN (1,2) THEN sv.Amount ELSE 0 END) AS MonthlyCreditSales,
                     SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType IN (3,4) THEN sv.Amount ELSE 0 END) AS MonthlySalesDiscount,
                     SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS MonthlyCreditSalesTax
                 FROM SalesVouchers sv
                 LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
-                WHERE sv.JobDate BETWEEN @StartDate AND @EndDate 
-                  AND sv.IsActive = 1
-                GROUP BY c.CustomerCategory1";
+                WHERE sv.JobDate BETWEEN @StartDate AND @EndDate
+                GROUP BY 
+                    CASE 
+                        WHEN c.CustomerCategory1 IS NULL THEN '999'
+                        WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                        WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                        ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                    END";
 
             var result = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
             
@@ -357,16 +533,26 @@ namespace InventorySystem.Data.Repositories
             
             const string sql = @"
                 SELECT 
-                    COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                    CASE 
+                        WHEN s.SupplierCategory1 IS NULL THEN '999'
+                        WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                        WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                        ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                    END AS ClassificationCode,
                     SUM(CASE WHEN pv.VoucherType = 12 AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS MonthlyCashPurchaseTax,
                     SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType IN (1,2) THEN pv.Amount ELSE 0 END) AS MonthlyCreditPurchase,
                     SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType IN (3,4) THEN pv.Amount ELSE 0 END) AS MonthlyPurchaseDiscount,
                     SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS MonthlyCreditPurchaseTax
                 FROM PurchaseVouchers pv
                 LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
-                WHERE pv.JobDate BETWEEN @StartDate AND @EndDate 
-                  AND pv.IsActive = 1
-                GROUP BY s.SupplierCategory1";
+                WHERE pv.JobDate BETWEEN @StartDate AND @EndDate
+                GROUP BY 
+                    CASE 
+                        WHEN s.SupplierCategory1 IS NULL THEN '999'
+                        WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                        WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                        ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                    END";
 
             var result = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
             
@@ -397,14 +583,25 @@ namespace InventorySystem.Data.Repositories
             
             const string sql = @"
                 SELECT 
-                    COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                    CASE 
+                        WHEN c.CustomerCategory1 IS NULL THEN '999'
+                        WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                        WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                        ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                    END AS ClassificationCode,
                     SUM(CASE WHEN rv.PaymentType IN (1,2,4) THEN rv.Amount ELSE 0 END) AS MonthlyCashReceipt,
                     SUM(CASE WHEN rv.PaymentType = 3 THEN rv.Amount ELSE 0 END) AS MonthlyBankReceipt,
                     SUM(CASE WHEN rv.PaymentType IN (5,6,7,8,9) THEN rv.Amount ELSE 0 END) AS MonthlyOtherReceipt
                 FROM ReceiptVouchers rv
                 LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
                 WHERE rv.JobDate BETWEEN @StartDate AND @EndDate
-                GROUP BY c.CustomerCategory1";
+                GROUP BY 
+                    CASE 
+                        WHEN c.CustomerCategory1 IS NULL THEN '999'
+                        WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                        WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                        ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                    END";
 
             var result = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
             
@@ -434,14 +631,25 @@ namespace InventorySystem.Data.Repositories
             
             const string sql = @"
                 SELECT 
-                    COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                    CASE 
+                        WHEN s.SupplierCategory1 IS NULL THEN '999'
+                        WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                        WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                        ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                    END AS ClassificationCode,
                     SUM(CASE WHEN pv.PaymentType IN (1,2,4) THEN pv.Amount ELSE 0 END) AS MonthlyCashPayment,
                     SUM(CASE WHEN pv.PaymentType = 3 THEN pv.Amount ELSE 0 END) AS MonthlyBankPayment,
                     SUM(CASE WHEN pv.PaymentType IN (5,6,7,8,9) THEN pv.Amount ELSE 0 END) AS MonthlyOtherPayment
                 FROM PaymentVouchers pv
                 LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                 WHERE pv.JobDate BETWEEN @StartDate AND @EndDate
-                GROUP BY s.SupplierCategory1";
+                GROUP BY 
+                    CASE 
+                        WHEN s.SupplierCategory1 IS NULL THEN '999'
+                        WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                        WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                        ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                    END";
 
             var result = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
             
@@ -717,14 +925,24 @@ namespace InventorySystem.Data.Repositories
             
             const string sql = @"
                 SELECT 
-                    COALESCE(c.CustomerCategory1, '999') AS ClassificationCode,
+                    CASE 
+                        WHEN c.CustomerCategory1 IS NULL THEN '999'
+                        WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                        WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                        ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                    END AS ClassificationCode,
                     SUM(CASE WHEN sv.VoucherType IN (51, 52) AND sv.DetailType IN (1,2,3,4) THEN sv.Amount ELSE 0 END) AS YearlyCashSales,
                     SUM(CASE WHEN sv.VoucherType IN (51, 52) AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS YearlyCashSalesTax
                 FROM SalesVouchers sv
                 LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
-                WHERE sv.JobDate BETWEEN @StartDate AND @EndDate 
-                  AND sv.IsActive = 1
-                GROUP BY c.CustomerCategory1";
+                WHERE sv.JobDate BETWEEN @StartDate AND @EndDate
+                GROUP BY 
+                    CASE 
+                        WHEN c.CustomerCategory1 IS NULL THEN '999'
+                        WHEN TRY_CAST(c.CustomerCategory1 AS INT) <= 0 THEN '035'
+                        WHEN TRY_CAST(c.CustomerCategory1 AS INT) >= 36 THEN '035'
+                        ELSE RIGHT('000' + CAST(c.CustomerCategory1 AS NVARCHAR), 3)
+                    END";
 
             var result = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
             
@@ -753,14 +971,24 @@ namespace InventorySystem.Data.Repositories
             
             const string sql = @"
                 SELECT 
-                    COALESCE(s.SupplierCategory1, '999') AS ClassificationCode,
+                    CASE 
+                        WHEN s.SupplierCategory1 IS NULL THEN '999'
+                        WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                        WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                        ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                    END AS ClassificationCode,
                     SUM(CASE WHEN pv.VoucherType IN (11, 12) AND pv.DetailType IN (1,2,3,4) THEN pv.Amount ELSE 0 END) AS YearlyCashPurchase,
                     SUM(CASE WHEN pv.VoucherType IN (11, 12) AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS YearlyCashPurchaseTax
                 FROM PurchaseVouchers pv
                 LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
-                WHERE pv.JobDate BETWEEN @StartDate AND @EndDate 
-                  AND pv.IsActive = 1
-                GROUP BY s.SupplierCategory1";
+                WHERE pv.JobDate BETWEEN @StartDate AND @EndDate
+                GROUP BY 
+                    CASE 
+                        WHEN s.SupplierCategory1 IS NULL THEN '999'
+                        WHEN TRY_CAST(s.SupplierCategory1 AS INT) <= 0 THEN '035'
+                        WHEN TRY_CAST(s.SupplierCategory1 AS INT) >= 36 THEN '035'
+                        ELSE RIGHT('000' + CAST(s.SupplierCategory1 AS NVARCHAR), 3)
+                    END";
 
             var result = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
             
