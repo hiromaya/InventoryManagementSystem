@@ -65,6 +65,11 @@ namespace InventorySystem.Data.Repositories
                     WHERE sv.JobDate = @JobDate
                       AND sv.VoucherType = 52
                       AND sv.DetailType IN (1,2,3,4)
+                      AND sv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM SalesVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN c.CustomerCategory1 IS NULL THEN '999'
@@ -88,6 +93,11 @@ namespace InventorySystem.Data.Repositories
                     WHERE sv.JobDate = @JobDate
                       AND sv.VoucherType = 52
                       AND sv.DetailType = 18
+                      AND sv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM SalesVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN c.CustomerCategory1 IS NULL THEN '999'
@@ -111,6 +121,11 @@ namespace InventorySystem.Data.Repositories
                     WHERE sv.JobDate = @JobDate
                       AND sv.VoucherType = 51
                       AND sv.DetailType IN (1,2)
+                      AND sv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM SalesVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN c.CustomerCategory1 IS NULL THEN '999'
@@ -134,6 +149,11 @@ namespace InventorySystem.Data.Repositories
                     WHERE sv.JobDate = @JobDate
                       AND sv.VoucherType = 51
                       AND sv.DetailType IN (3,4)
+                      AND sv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM SalesVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN c.CustomerCategory1 IS NULL THEN '999'
@@ -157,6 +177,11 @@ namespace InventorySystem.Data.Repositories
                     WHERE sv.JobDate = @JobDate
                       AND sv.VoucherType = 51
                       AND sv.DetailType = 18
+                      AND sv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM SalesVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN c.CustomerCategory1 IS NULL THEN '999'
@@ -188,6 +213,11 @@ namespace InventorySystem.Data.Repositories
                     WHERE pv.JobDate = @JobDate
                       AND pv.VoucherType = 12
                       AND pv.DetailType IN (1,2,3,4)
+                      AND pv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM PurchaseVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN s.SupplierCategory1 IS NULL THEN '999'
@@ -211,6 +241,11 @@ namespace InventorySystem.Data.Repositories
                     WHERE pv.JobDate = @JobDate
                       AND pv.VoucherType = 12
                       AND pv.DetailType = 18
+                      AND pv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM PurchaseVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN s.SupplierCategory1 IS NULL THEN '999'
@@ -234,6 +269,11 @@ namespace InventorySystem.Data.Repositories
                     WHERE pv.JobDate = @JobDate
                       AND pv.VoucherType = 11
                       AND pv.DetailType IN (1,2)
+                      AND pv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM PurchaseVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN s.SupplierCategory1 IS NULL THEN '999'
@@ -257,6 +297,11 @@ namespace InventorySystem.Data.Repositories
                     WHERE pv.JobDate = @JobDate
                       AND pv.VoucherType = 11
                       AND pv.DetailType IN (3,4)
+                      AND pv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM PurchaseVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN s.SupplierCategory1 IS NULL THEN '999'
@@ -280,6 +325,11 @@ namespace InventorySystem.Data.Repositories
                     WHERE pv.JobDate = @JobDate
                       AND pv.VoucherType = 11
                       AND pv.DetailType = 18
+                      AND pv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM PurchaseVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN s.SupplierCategory1 IS NULL THEN '999'
@@ -310,6 +360,11 @@ namespace InventorySystem.Data.Repositories
                     LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
                     WHERE rv.JobDate = @JobDate
                       AND rv.PaymentType IN (1,2,4)
+                      AND rv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM ReceiptVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN c.CustomerCategory1 IS NULL THEN '999'
@@ -332,6 +387,11 @@ namespace InventorySystem.Data.Repositories
                     LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
                     WHERE rv.JobDate = @JobDate
                       AND rv.PaymentType = 3
+                      AND rv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM ReceiptVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN c.CustomerCategory1 IS NULL THEN '999'
@@ -354,6 +414,11 @@ namespace InventorySystem.Data.Repositories
                     LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
                     WHERE rv.JobDate = @JobDate
                       AND rv.PaymentType IN (5,6,7,8,9)
+                      AND rv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM ReceiptVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN c.CustomerCategory1 IS NULL THEN '999'
@@ -384,6 +449,11 @@ namespace InventorySystem.Data.Repositories
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
                       AND pv.PaymentType IN (1,2,4)
+                      AND pv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM PaymentVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN s.SupplierCategory1 IS NULL THEN '999'
@@ -406,6 +476,11 @@ namespace InventorySystem.Data.Repositories
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
                       AND pv.PaymentType = 3
+                      AND pv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM PaymentVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN s.SupplierCategory1 IS NULL THEN '999'
@@ -428,6 +503,11 @@ namespace InventorySystem.Data.Repositories
                     LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                     WHERE pv.JobDate = @JobDate
                       AND pv.PaymentType IN (5,6,7,8,9)
+                      AND pv.DataSetId = (
+                        SELECT MAX(DataSetId) 
+                        FROM PaymentVouchers 
+                        WHERE JobDate = @JobDate
+                      )
                     GROUP BY 
                         CASE 
                             WHEN s.SupplierCategory1 IS NULL THEN '999'
@@ -494,6 +574,12 @@ namespace InventorySystem.Data.Repositories
                     SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType IN (3,4) THEN sv.Amount ELSE 0 END) AS MonthlySalesDiscount,
                     SUM(CASE WHEN sv.VoucherType = 51 AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS MonthlyCreditSalesTax
                 FROM SalesVouchers sv
+                INNER JOIN (
+                    SELECT JobDate, MAX(DataSetId) AS LatestDataSetId
+                    FROM SalesVouchers
+                    WHERE JobDate BETWEEN @StartDate AND @EndDate
+                    GROUP BY JobDate
+                ) latest ON sv.JobDate = latest.JobDate AND sv.DataSetId = latest.LatestDataSetId
                 LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
                 WHERE sv.JobDate BETWEEN @StartDate AND @EndDate
                 GROUP BY 
@@ -544,6 +630,12 @@ namespace InventorySystem.Data.Repositories
                     SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType IN (3,4) THEN pv.Amount ELSE 0 END) AS MonthlyPurchaseDiscount,
                     SUM(CASE WHEN pv.VoucherType = 11 AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS MonthlyCreditPurchaseTax
                 FROM PurchaseVouchers pv
+                INNER JOIN (
+                    SELECT JobDate, MAX(DataSetId) AS LatestDataSetId
+                    FROM PurchaseVouchers
+                    WHERE JobDate BETWEEN @StartDate AND @EndDate
+                    GROUP BY JobDate
+                ) latest ON pv.JobDate = latest.JobDate AND pv.DataSetId = latest.LatestDataSetId
                 LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                 WHERE pv.JobDate BETWEEN @StartDate AND @EndDate
                 GROUP BY 
@@ -593,6 +685,12 @@ namespace InventorySystem.Data.Repositories
                     SUM(CASE WHEN rv.PaymentType = 3 THEN rv.Amount ELSE 0 END) AS MonthlyBankReceipt,
                     SUM(CASE WHEN rv.PaymentType IN (5,6,7,8,9) THEN rv.Amount ELSE 0 END) AS MonthlyOtherReceipt
                 FROM ReceiptVouchers rv
+                INNER JOIN (
+                    SELECT JobDate, MAX(DataSetId) AS LatestDataSetId
+                    FROM ReceiptVouchers
+                    WHERE JobDate BETWEEN @StartDate AND @EndDate
+                    GROUP BY JobDate
+                ) latest ON rv.JobDate = latest.JobDate AND rv.DataSetId = latest.LatestDataSetId
                 LEFT JOIN CustomerMaster c ON rv.CustomerCode = c.CustomerCode
                 WHERE rv.JobDate BETWEEN @StartDate AND @EndDate
                 GROUP BY 
@@ -641,6 +739,12 @@ namespace InventorySystem.Data.Repositories
                     SUM(CASE WHEN pv.PaymentType = 3 THEN pv.Amount ELSE 0 END) AS MonthlyBankPayment,
                     SUM(CASE WHEN pv.PaymentType IN (5,6,7,8,9) THEN pv.Amount ELSE 0 END) AS MonthlyOtherPayment
                 FROM PaymentVouchers pv
+                INNER JOIN (
+                    SELECT JobDate, MAX(DataSetId) AS LatestDataSetId
+                    FROM PaymentVouchers
+                    WHERE JobDate BETWEEN @StartDate AND @EndDate
+                    GROUP BY JobDate
+                ) latest ON pv.JobDate = latest.JobDate AND pv.DataSetId = latest.LatestDataSetId
                 LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                 WHERE pv.JobDate BETWEEN @StartDate AND @EndDate
                 GROUP BY 
@@ -934,6 +1038,12 @@ namespace InventorySystem.Data.Repositories
                     SUM(CASE WHEN sv.VoucherType IN (51, 52) AND sv.DetailType IN (1,2,3,4) THEN sv.Amount ELSE 0 END) AS YearlyCashSales,
                     SUM(CASE WHEN sv.VoucherType IN (51, 52) AND sv.DetailType = 18 THEN sv.Amount ELSE 0 END) AS YearlyCashSalesTax
                 FROM SalesVouchers sv
+                INNER JOIN (
+                    SELECT JobDate, MAX(DataSetId) AS LatestDataSetId
+                    FROM SalesVouchers
+                    WHERE JobDate BETWEEN @StartDate AND @EndDate
+                    GROUP BY JobDate
+                ) latest ON sv.JobDate = latest.JobDate AND sv.DataSetId = latest.LatestDataSetId
                 LEFT JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
                 WHERE sv.JobDate BETWEEN @StartDate AND @EndDate
                 GROUP BY 
@@ -980,6 +1090,12 @@ namespace InventorySystem.Data.Repositories
                     SUM(CASE WHEN pv.VoucherType IN (11, 12) AND pv.DetailType IN (1,2,3,4) THEN pv.Amount ELSE 0 END) AS YearlyCashPurchase,
                     SUM(CASE WHEN pv.VoucherType IN (11, 12) AND pv.DetailType = 18 THEN pv.Amount ELSE 0 END) AS YearlyCashPurchaseTax
                 FROM PurchaseVouchers pv
+                INNER JOIN (
+                    SELECT JobDate, MAX(DataSetId) AS LatestDataSetId
+                    FROM PurchaseVouchers
+                    WHERE JobDate BETWEEN @StartDate AND @EndDate
+                    GROUP BY JobDate
+                ) latest ON pv.JobDate = latest.JobDate AND pv.DataSetId = latest.LatestDataSetId
                 LEFT JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
                 WHERE pv.JobDate BETWEEN @StartDate AND @EndDate
                 GROUP BY 
