@@ -864,16 +864,21 @@ namespace InventorySystem.Reports.FastReport.Services
         }
 
         /// <summary>
-        /// 数値フォーマット（ゼロ→空文字、マイナス→▲記号、カンマ区切り）
+        /// 数値フォーマット（NULL→空文字、ゼロ→"0"、マイナス→▲記号、カンマ区切り）
         /// </summary>
         private string FormatNumber(decimal? value)
         {
-            if (value == null || value == 0) return "";
+            // NULLの場合のみ空文字を返す
+            if (value == null) return "";
+            
+            // ゼロの場合は "0" を返す
+            if (value == 0) return "0";
 
             // マイナス値は▲記号
             if (value < 0)
                 return "▲" + Math.Abs(value.Value).ToString("#,##0");
 
+            // 正の値はカンマ区切りで表示
             return value.Value.ToString("#,##0");
         }
 
