@@ -458,6 +458,7 @@ namespace InventorySystem.Reports.FastReport.Services
             // 年計は4項目のみ
             // 分類001〜008のデータを取得
             var dataByClass = new Dictionary<int, BusinessDailyReportItem>();
+            const int maxColumns = 8; // Page1は8列固定
             for (int i = 1; i <= 8; i++)
             {
                 var code = i.ToString("000");
