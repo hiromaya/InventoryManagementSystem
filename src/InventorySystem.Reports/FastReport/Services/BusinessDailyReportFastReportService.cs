@@ -232,7 +232,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行1：現金売上
             report.SetParameterValue("Daily_Row1_Total", FormatNumber(total.DailyCashSales));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyCashSales;
                 report.SetParameterValue($"Daily_Row1_Col{col}", FormatNumber(value));
@@ -240,7 +240,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行2：現売消費税
             report.SetParameterValue("Daily_Row2_Total", FormatNumber(total.DailyCashSalesTax));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyCashSalesTax;
                 report.SetParameterValue($"Daily_Row2_Col{col}", FormatNumber(value));
@@ -248,7 +248,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行3：掛売上と返品
             report.SetParameterValue("Daily_Row3_Total", FormatNumber(total.DailyCreditSales));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyCreditSales;
                 report.SetParameterValue($"Daily_Row3_Col{col}", FormatNumber(value));
@@ -256,7 +256,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行4：売上値引
             report.SetParameterValue("Daily_Row4_Total", FormatNumber(total.DailySalesDiscount));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailySalesDiscount;
                 report.SetParameterValue($"Daily_Row4_Col{col}", FormatNumber(value));
@@ -264,7 +264,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行5：掛売消費税
             report.SetParameterValue("Daily_Row5_Total", FormatNumber(total.DailyCreditSalesTax));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyCreditSalesTax;
                 report.SetParameterValue($"Daily_Row5_Col{col}", FormatNumber(value));
@@ -275,7 +275,7 @@ namespace InventorySystem.Reports.FastReport.Services
                              (total.DailyCreditSales ?? 0m) + (total.DailySalesDiscount ?? 0m) +
                              (total.DailyCreditSalesTax ?? 0m);
             report.SetParameterValue("Daily_Row6_Total", FormatNumber(salesTotal));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var item = dataByClass[col];
                 if (item != null)
@@ -293,7 +293,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行7：現金仕入
             report.SetParameterValue("Daily_Row7_Total", FormatNumber(total.DailyCashPurchase));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyCashPurchase;
                 report.SetParameterValue($"Daily_Row7_Col{col}", FormatNumber(value));
@@ -301,7 +301,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行8：現仕消費税
             report.SetParameterValue("Daily_Row8_Total", FormatNumber(total.DailyCashPurchaseTax));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyCashPurchaseTax;
                 report.SetParameterValue($"Daily_Row8_Col{col}", FormatNumber(value));
@@ -309,7 +309,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行9：掛仕入と返品
             report.SetParameterValue("Daily_Row9_Total", FormatNumber(total.DailyCreditPurchase));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyCreditPurchase;
                 report.SetParameterValue($"Daily_Row9_Col{col}", FormatNumber(value));
@@ -317,7 +317,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行10：仕入値引
             report.SetParameterValue("Daily_Row10_Total", FormatNumber(total.DailyPurchaseDiscount));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyPurchaseDiscount;
                 report.SetParameterValue($"Daily_Row10_Col{col}", FormatNumber(value));
@@ -325,7 +325,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行11：掛仕入消費税
             report.SetParameterValue("Daily_Row11_Total", FormatNumber(total.DailyCreditPurchaseTax));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyCreditPurchaseTax;
                 report.SetParameterValue($"Daily_Row11_Col{col}", FormatNumber(value));
@@ -336,7 +336,7 @@ namespace InventorySystem.Reports.FastReport.Services
                                 (total.DailyCreditPurchase ?? 0m) + (total.DailyPurchaseDiscount ?? 0m) +
                                 (total.DailyCreditPurchaseTax ?? 0m);
             report.SetParameterValue("Daily_Row12_Total", FormatNumber(purchaseTotal));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var item = dataByClass[col];
                 if (item != null)
@@ -354,7 +354,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行13：入金と現売
             report.SetParameterValue("Daily_Row13_Total", FormatNumber(total.DailyCashReceipt));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyCashReceipt;
                 report.SetParameterValue($"Daily_Row13_Col{col}", FormatNumber(value));
@@ -362,7 +362,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行14：入金値引・他
             report.SetParameterValue("Daily_Row14_Total", FormatNumber(total.DailyOtherReceipt));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyOtherReceipt;
                 report.SetParameterValue($"Daily_Row14_Col{col}", FormatNumber(value));
@@ -371,7 +371,7 @@ namespace InventorySystem.Reports.FastReport.Services
             // 行15：＊入金計＊
             var receiptTotal = (total.DailyCashReceipt ?? 0m) + (total.DailyOtherReceipt ?? 0m);
             report.SetParameterValue("Daily_Row15_Total", FormatNumber(receiptTotal));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var item = dataByClass[col];
                 if (item != null)
@@ -387,7 +387,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行16：支払と現金支払
             report.SetParameterValue("Daily_Row16_Total", FormatNumber(total.DailyCashPayment));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyCashPayment;
                 report.SetParameterValue($"Daily_Row16_Col{col}", FormatNumber(value));
@@ -395,7 +395,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 行17：支払値引・他
             report.SetParameterValue("Daily_Row17_Total", FormatNumber(total.DailyOtherPayment));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var value = dataByClass[col]?.DailyOtherPayment;
                 report.SetParameterValue($"Daily_Row17_Col{col}", FormatNumber(value));
@@ -404,7 +404,7 @@ namespace InventorySystem.Reports.FastReport.Services
             // 行18：＊支払計＊
             var paymentTotal = (total.DailyCashPayment ?? 0m) + (total.DailyOtherPayment ?? 0m);
             report.SetParameterValue("Daily_Row18_Total", FormatNumber(paymentTotal));
-            for (int col = 1; col <= 8; col++)
+            for (int col = 1; col <= maxColumns; col++)
             {
                 var item = dataByClass[col];
                 if (item != null)
@@ -441,7 +441,7 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 // 簡略化のため、月計は0として設定（実装時に詳細化）
                 report.SetParameterValue($"Monthly_Row{row}_Total", "");
-                for (int col = 1; col <= 8; col++)
+                for (int col = 1; col <= maxColumns; col++)
                 {
                     report.SetParameterValue($"Monthly_Row{row}_Col{col}", "");
                 }
@@ -467,7 +467,7 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 // 簡略化のため、年計は0として設定（実装時に詳細化）
                 report.SetParameterValue($"Yearly_Row{row}_Total", "");
-                for (int col = 1; col <= 8; col++)
+                for (int col = 1; col <= maxColumns; col++)
                 {
                     report.SetParameterValue($"Yearly_Row{row}_Col{col}", "");
                 }
