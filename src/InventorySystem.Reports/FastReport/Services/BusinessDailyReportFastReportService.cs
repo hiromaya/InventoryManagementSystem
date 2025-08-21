@@ -836,14 +836,244 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private void SetPageMonthlyData(FR.Report report, List<BusinessDailyReportItem> monthlyItems, string pagePrefix, int startClassCode, int endClassCode, int maxColumns)
         {
-            // 月計は現在未実装（空文字設定）
-            for (int row = 1; row <= 18; row++)
+            // 分類別データを辞書化（列番号をキーとする）
+            var dataByClass = new Dictionary<int, BusinessDailyReportItem>();
+            for (int i = startClassCode; i <= endClassCode; i++)
             {
-                report.SetParameterValue($"{pagePrefix}Monthly_Row{row}_Total", "");
-                for (int col = 1; col <= maxColumns; col++)
+                var code = i.ToString("000");
+                var colIndex = i - startClassCode + 1;
+                dataByClass[colIndex] = monthlyItems.FirstOrDefault(x => x.ClassificationCode == code);
+            }
+
+            // 000（合計）データを取得（Page1のみ）
+            BusinessDailyReportItem? totalAll = null;
+            if (pagePrefix == "Page1_")
+            {
+                totalAll = monthlyItems.FirstOrDefault(x => x.ClassificationCode == "000");
+            }
+
+            // 行1：現金売上
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row1_Total", FormatNumber(totalAll.MonthlyCashSales));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyCashSales;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row1_Col{col}", FormatNumber(value));
+            }
+
+            // 行2：現売消費税
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row2_Total", FormatNumber(totalAll.MonthlyCashSalesTax));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyCashSalesTax;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row2_Col{col}", FormatNumber(value));
+            }
+
+            // 行3：掛売上と返品
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row3_Total", FormatNumber(totalAll.MonthlyCreditSales));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyCreditSales;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row3_Col{col}", FormatNumber(value));
+            }
+
+            // 行4：売上値引
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row4_Total", FormatNumber(totalAll.MonthlySalesDiscount));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlySalesDiscount;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row4_Col{col}", FormatNumber(value));
+            }
+
+            // 行5：掛売消費税
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row5_Total", FormatNumber(totalAll.MonthlyCreditSalesTax));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyCreditSalesTax;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row5_Col{col}", FormatNumber(value));
+            }
+
+            // 行6：＊売上計＊（合計行）
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                var salesTotalAll = (totalAll.MonthlyCashSales ?? 0m) + (totalAll.MonthlyCashSalesTax ?? 0m) +
+                                    (totalAll.MonthlyCreditSales ?? 0m) + (totalAll.MonthlySalesDiscount ?? 0m) +
+                                    (totalAll.MonthlyCreditSalesTax ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Monthly_Row6_Total", FormatNumber(salesTotalAll));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var item = dataByClass[col];
+                if (item != null)
                 {
-                    report.SetParameterValue($"{pagePrefix}Monthly_Row{row}_Col{col}", "");
+                    var colTotal = (item.MonthlyCashSales ?? 0m) + (item.MonthlyCashSalesTax ?? 0m) +
+                                   (item.MonthlyCreditSales ?? 0m) + (item.MonthlySalesDiscount ?? 0m) +
+                                   (item.MonthlyCreditSalesTax ?? 0m);
+                    report.SetParameterValue($"{pagePrefix}Monthly_Row6_Col{col}", FormatNumber(colTotal));
                 }
+                else
+                {
+                    report.SetParameterValue($"{pagePrefix}Monthly_Row6_Col{col}", "");
+                }
+            }
+
+            // 行7：現金仕入
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row7_Total", FormatNumber(totalAll.MonthlyCashPurchase));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyCashPurchase;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row7_Col{col}", FormatNumber(value));
+            }
+
+            // 行8：現仕消費税
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row8_Total", FormatNumber(totalAll.MonthlyCashPurchaseTax));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyCashPurchaseTax;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row8_Col{col}", FormatNumber(value));
+            }
+
+            // 行9：掛仕入と返品
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row9_Total", FormatNumber(totalAll.MonthlyCreditPurchase));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyCreditPurchase;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row9_Col{col}", FormatNumber(value));
+            }
+
+            // 行10：仕入値引
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row10_Total", FormatNumber(totalAll.MonthlyPurchaseDiscount));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyPurchaseDiscount;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row10_Col{col}", FormatNumber(value));
+            }
+
+            // 行11：掛仕入消費税
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row11_Total", FormatNumber(totalAll.MonthlyCreditPurchaseTax));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyCreditPurchaseTax;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row11_Col{col}", FormatNumber(value));
+            }
+
+            // 行12：＊仕入計＊（合計行）
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                var purchaseTotalAll = (totalAll.MonthlyCashPurchase ?? 0m) + (totalAll.MonthlyCashPurchaseTax ?? 0m) +
+                                       (totalAll.MonthlyCreditPurchase ?? 0m) + (totalAll.MonthlyPurchaseDiscount ?? 0m) +
+                                       (totalAll.MonthlyCreditPurchaseTax ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Monthly_Row12_Total", FormatNumber(purchaseTotalAll));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var item = dataByClass[col];
+                if (item != null)
+                {
+                    var colTotal = (item.MonthlyCashPurchase ?? 0m) + (item.MonthlyCashPurchaseTax ?? 0m) +
+                                   (item.MonthlyCreditPurchase ?? 0m) + (item.MonthlyPurchaseDiscount ?? 0m) +
+                                   (item.MonthlyCreditPurchaseTax ?? 0m);
+                    report.SetParameterValue($"{pagePrefix}Monthly_Row12_Col{col}", FormatNumber(colTotal));
+                }
+                else
+                {
+                    report.SetParameterValue($"{pagePrefix}Monthly_Row12_Col{col}", "");
+                }
+            }
+
+            // 行13：現金・小切手・手形入金
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row13_Total", FormatNumber(totalAll.MonthlyCashReceipt));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyCashReceipt;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row13_Col{col}", FormatNumber(value));
+            }
+
+            // 行14：振込入金
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row14_Total", FormatNumber(totalAll.MonthlyBankReceipt));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyBankReceipt;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row14_Col{col}", FormatNumber(value));
+            }
+
+            // 行15：入金値引・その他入金
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row15_Total", FormatNumber(totalAll.MonthlyOtherReceipt));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyOtherReceipt;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row15_Col{col}", FormatNumber(value));
+            }
+
+            // 行16：現金・小切手・手形支払
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row16_Total", FormatNumber(totalAll.MonthlyCashPayment));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyCashPayment;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row16_Col{col}", FormatNumber(value));
+            }
+
+            // 行17：振込支払
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row17_Total", FormatNumber(totalAll.MonthlyBankPayment));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyBankPayment;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row17_Col{col}", FormatNumber(value));
+            }
+
+            // 行18：支払値引・その他支払
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                report.SetParameterValue($"{pagePrefix}Monthly_Row18_Total", FormatNumber(totalAll.MonthlyOtherPayment));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var value = dataByClass[col]?.MonthlyOtherPayment;
+                report.SetParameterValue($"{pagePrefix}Monthly_Row18_Col{col}", FormatNumber(value));
             }
         }
 
@@ -852,13 +1082,111 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private void SetPageYearlyData(FR.Report report, List<BusinessDailyReportItem> yearlyItems, string pagePrefix, int startClassCode, int endClassCode, int maxColumns)
         {
-            // 年計は現在未実装（空文字設定）
-            for (int row = 1; row <= 4; row++)
+            // 分類別データを辞書化（列番号をキーとする）
+            var dataByClass = new Dictionary<int, BusinessDailyReportItem>();
+            for (int i = startClassCode; i <= endClassCode; i++)
             {
-                report.SetParameterValue($"{pagePrefix}Yearly_Row{row}_Total", "");
-                for (int col = 1; col <= maxColumns; col++)
+                var code = i.ToString("000");
+                var colIndex = i - startClassCode + 1;
+                dataByClass[colIndex] = yearlyItems.FirstOrDefault(x => x.ClassificationCode == code);
+            }
+
+            // 000（合計）データを取得（Page1のみ）
+            BusinessDailyReportItem? totalAll = null;
+            if (pagePrefix == "Page1_")
+            {
+                totalAll = yearlyItems.FirstOrDefault(x => x.ClassificationCode == "000");
+            }
+
+            // 行1：売上計（年計）
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                var yearlyTotalSales = (totalAll.YearlyCashSales ?? 0m) + (totalAll.YearlyCashSalesTax ?? 0m) +
+                                       (totalAll.YearlyCreditSales ?? 0m) + (totalAll.YearlySalesDiscount ?? 0m) +
+                                       (totalAll.YearlyCreditSalesTax ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Yearly_Row1_Total", FormatNumber(yearlyTotalSales));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var item = dataByClass[col];
+                if (item != null)
                 {
-                    report.SetParameterValue($"{pagePrefix}Yearly_Row{row}_Col{col}", "");
+                    var colTotal = (item.YearlyCashSales ?? 0m) + (item.YearlyCashSalesTax ?? 0m) +
+                                   (item.YearlyCreditSales ?? 0m) + (item.YearlySalesDiscount ?? 0m) +
+                                   (item.YearlyCreditSalesTax ?? 0m);
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row1_Col{col}", FormatNumber(colTotal));
+                }
+                else
+                {
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row1_Col{col}", "");
+                }
+            }
+
+            // 行2：仕入計（年計）
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                var yearlyTotalPurchase = (totalAll.YearlyCashPurchase ?? 0m) + (totalAll.YearlyCashPurchaseTax ?? 0m) +
+                                          (totalAll.YearlyCreditPurchase ?? 0m) + (totalAll.YearlyPurchaseDiscount ?? 0m) +
+                                          (totalAll.YearlyCreditPurchaseTax ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Yearly_Row2_Total", FormatNumber(yearlyTotalPurchase));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var item = dataByClass[col];
+                if (item != null)
+                {
+                    var colTotal = (item.YearlyCashPurchase ?? 0m) + (item.YearlyCashPurchaseTax ?? 0m) +
+                                   (item.YearlyCreditPurchase ?? 0m) + (item.YearlyPurchaseDiscount ?? 0m) +
+                                   (item.YearlyCreditPurchaseTax ?? 0m);
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row2_Col{col}", FormatNumber(colTotal));
+                }
+                else
+                {
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row2_Col{col}", "");
+                }
+            }
+
+            // 行3：入金計（年計）
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                var yearlyTotalReceipt = (totalAll.YearlyCashReceipt ?? 0m) + (totalAll.YearlyBankReceipt ?? 0m) +
+                                         (totalAll.YearlyOtherReceipt ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Yearly_Row3_Total", FormatNumber(yearlyTotalReceipt));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var item = dataByClass[col];
+                if (item != null)
+                {
+                    var colTotal = (item.YearlyCashReceipt ?? 0m) + (item.YearlyBankReceipt ?? 0m) +
+                                   (item.YearlyOtherReceipt ?? 0m);
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row3_Col{col}", FormatNumber(colTotal));
+                }
+                else
+                {
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row3_Col{col}", "");
+                }
+            }
+
+            // 行4：支払計（年計）
+            if (totalAll != null) // Page1のみ合計列あり
+            {
+                var yearlyTotalPayment = (totalAll.YearlyCashPayment ?? 0m) + (totalAll.YearlyBankPayment ?? 0m) +
+                                         (totalAll.YearlyOtherPayment ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Yearly_Row4_Total", FormatNumber(yearlyTotalPayment));
+            }
+            for (int col = 1; col <= maxColumns; col++)
+            {
+                var item = dataByClass[col];
+                if (item != null)
+                {
+                    var colTotal = (item.YearlyCashPayment ?? 0m) + (item.YearlyBankPayment ?? 0m) +
+                                   (item.YearlyOtherPayment ?? 0m);
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row4_Col{col}", FormatNumber(colTotal));
+                }
+                else
+                {
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row4_Col{col}", "");
                 }
             }
         }
