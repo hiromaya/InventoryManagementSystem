@@ -1109,13 +1109,16 @@ namespace InventorySystem.Data.Repositories
                 _logger.LogInformation("月次データ集計を開始: JobDate={JobDate}", jobDate);
                 
                 var startDate = new DateTime(jobDate.Year, jobDate.Month, 1);
-                var endDate = jobDate.AddDays(-1);
+                var endDate = jobDate; // ✅ 当日までを含める
                 
-                // 前日までのデータがない場合は空リストを返す
-                if (endDate < startDate)
+                // デバッグログ追加
+                _logger.LogInformation("月次集計期間: {StartDate:yyyy-MM-dd} ～ {EndDate:yyyy-MM-dd}", 
+                    startDate, endDate);
+                
+                // 月初でも当日分を集計する
+                if (jobDate.Day == 1)
                 {
-                    _logger.LogInformation("月初のため月次データなし");
-                    return new List<BusinessDailyReportItem>();
+                    _logger.LogInformation("月初のため当日分のみ集計");
                 }
                 
                 // 各テーブルを個別に集計（並列実行）
@@ -1323,19 +1326,22 @@ namespace InventorySystem.Data.Repositories
             {
                 _logger.LogInformation("年次データ集計を開始: JobDate={JobDate}", jobDate);
                 
-                // 年度初めから前日までの累計を取得
+                // 年度初めから当日までの累計を取得
                 var startDate = new DateTime(jobDate.Year, 4, 1); // 4月開始の会計年度
                 if (jobDate.Month < 4)
                 {
                     startDate = new DateTime(jobDate.Year - 1, 4, 1);
                 }
-                var endDate = jobDate.AddDays(-1);
+                var endDate = jobDate; // ✅ 当日までを含める
                 
-                // 前日までのデータがない場合は空リストを返す
-                if (endDate < startDate)
+                // デバッグログ追加
+                _logger.LogInformation("年次集計期間: {StartDate:yyyy-MM-dd} ～ {EndDate:yyyy-MM-dd}", 
+                    startDate, endDate);
+                
+                // 年度初でも当日分を集計する
+                if (jobDate == startDate)
                 {
-                    _logger.LogInformation("年度初のため年次データなし");
-                    return new List<BusinessDailyReportItem>();
+                    _logger.LogInformation("年度初のため当日分のみ集計");
                 }
                 
                 // 売上と仕入を個別に集計（年計は4項目のみ）

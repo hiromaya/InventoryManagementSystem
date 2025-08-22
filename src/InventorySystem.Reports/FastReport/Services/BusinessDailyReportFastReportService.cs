@@ -97,11 +97,53 @@ namespace InventorySystem.Reports.FastReport.Services
 
                 _logger.LogInformation("分類名設定完了");
 
+                // テンプレート検証（デバッグ用）
+                ValidateReportTemplate(report);
+
                 // 4ページのデータパラメータ設定（日計・月計・年計）
                 SetPage1DataParameters(report, dailyItems, monthlyItems.ToList(), yearlyItems.ToList());
                 SetPage2DataParameters(report, dailyItems, monthlyItems.ToList(), yearlyItems.ToList());
                 SetPage3DataParameters(report, dailyItems, monthlyItems.ToList(), yearlyItems.ToList());
                 SetPage4DataParameters(report, dailyItems, monthlyItems.ToList(), yearlyItems.ToList());
+
+                // PDFエクスポート前の最終確認
+                _logger.LogInformation("========== PDF生成前の最終確認 ==========");
+
+                // Page2の9列目確認
+                try
+                {
+                    var page2Col9Customer = report.GetParameterValue("Page2_CustomerName9")?.ToString() ?? "";
+                    var page2Col9Supplier = report.GetParameterValue("Page2_SupplierName9")?.ToString() ?? "";
+                    _logger.LogWarning($"Page2の9列目設定値: Customer='{page2Col9Customer}', Supplier='{page2Col9Supplier}'");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Page2パラメータ取得エラー: {ex.Message}");
+                }
+
+                // Page3の9列目確認  
+                try
+                {
+                    var page3Col9Customer = report.GetParameterValue("Page3_CustomerName9")?.ToString() ?? "";
+                    var page3Col9Supplier = report.GetParameterValue("Page3_SupplierName9")?.ToString() ?? "";
+                    _logger.LogWarning($"Page3の9列目設定値: Customer='{page3Col9Customer}', Supplier='{page3Col9Supplier}'");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Page3パラメータ取得エラー: {ex.Message}");
+                }
+
+                // FastReportのページ数確認
+                var pageCount = report.Pages.Count;
+                _logger.LogInformation($"FastReportページ数: {pageCount}");
+
+                for (int i = 0; i < pageCount; i++)
+                {
+                    var page = report.Pages[i];
+                    _logger.LogInformation($"Page{i}: Name='{page.Name}', Type={page.GetType().Name}");
+                }
+
+                _logger.LogInformation("========================================");
 
                 _logger.LogInformation("レポート準備中...");
                 report.Prepare();
@@ -1354,6 +1396,48 @@ namespace InventorySystem.Reports.FastReport.Services
                     report.SetParameterValue($"{pagePrefix}Yearly_Row4_Col{col}", "");
                 }
             }
+        }
+
+        /// <summary>
+        /// FastReportテンプレートの構造を検証
+        /// </summary>
+        private void ValidateReportTemplate(FR.Report report)
+        {
+            _logger.LogInformation("===== FastReportテンプレート検証開始 =====");
+            
+            // パラメータ一覧を確認
+            foreach (var param in report.Dictionary.Parameters)
+            {
+                if (param.Name.Contains("Page2_") && param.Name.Contains("9"))
+                {
+                    _logger.LogInformation($"パラメータ発見: {param.Name} = '{param.Value}'");
+                }
+                if (param.Name.Contains("Page3_") && param.Name.Contains("9"))
+                {
+                    _logger.LogInformation($"パラメータ発見: {param.Name} = '{param.Value}'");
+                }
+            }
+            
+            // TextObjectの確認（Page2とPage3の9列目）
+            foreach (var page in report.Pages)
+            {
+                if (page is FR.ReportPage reportPage)
+                {
+                    foreach (var band in reportPage.AllObjects)
+                    {
+                        if (band is FR.TextObject textObj)
+                        {
+                            if (textObj.Name.Contains("Header_C9") || textObj.Name.Contains("Header_S9") ||
+                                textObj.Name.Contains("CustomerName9") || textObj.Name.Contains("SupplierName9"))
+                            {
+                                _logger.LogWarning($"TextObject発見: {textObj.Name} at {textObj.Left}, Text='{textObj.Text}'");
+                            }
+                        }
+                    }
+                }
+            }
+            
+            _logger.LogInformation("===== FastReportテンプレート検証終了 =====");
         }
 
         /// <summary>
