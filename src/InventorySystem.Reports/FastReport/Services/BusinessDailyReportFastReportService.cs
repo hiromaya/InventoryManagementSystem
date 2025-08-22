@@ -1405,17 +1405,36 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             _logger.LogInformation("===== FastReportテンプレート検証開始 =====");
             
-            // パラメータ一覧を確認
-            foreach (FR.Parameter param in report.Dictionary.Parameters)
+            // パラメータ一覧を確認（簡略化）
+            try
             {
-                if (param.Name.Contains("Page2_") && param.Name.Contains("9"))
+                var paramCount = report.Dictionary.Parameters.Count;
+                _logger.LogInformation($"FastReportパラメータ総数: {paramCount}");
+                
+                // Page2_CustomerName9とPage3_CustomerName9の存在確認のみ
+                try 
                 {
-                    _logger.LogInformation($"パラメータ発見: {param.Name} = '{param.Value}'");
+                    var page2Test = report.GetParameterValue("Page2_CustomerName9");
+                    _logger.LogInformation($"Page2_CustomerName9パラメータ取得: 成功");
                 }
-                if (param.Name.Contains("Page3_") && param.Name.Contains("9"))
+                catch (Exception ex)
                 {
-                    _logger.LogInformation($"パラメータ発見: {param.Name} = '{param.Value}'");
+                    _logger.LogWarning($"Page2_CustomerName9パラメータ取得: 失敗 - {ex.Message}");
                 }
+                
+                try 
+                {
+                    var page3Test = report.GetParameterValue("Page3_CustomerName9");
+                    _logger.LogInformation($"Page3_CustomerName9パラメータ取得: 成功");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Page3_CustomerName9パラメータ取得: 失敗 - {ex.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"パラメータ一覧確認エラー: {ex.Message}");
             }
             
             // TextObjectの確認（Page2とPage3の9列目）
