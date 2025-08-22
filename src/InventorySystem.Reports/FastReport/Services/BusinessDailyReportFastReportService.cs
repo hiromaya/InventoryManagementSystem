@@ -990,7 +990,7 @@ namespace InventorySystem.Reports.FastReport.Services
             if (totalAll != null) // Page1のみ合計列あり
             {
                 var purchaseTotalAll = (totalAll.MonthlyCashPurchase ?? 0m) + (totalAll.MonthlyCashPurchaseTax ?? 0m) +
-                                       (totalAll.MonthlyCreditPurchase ?? 0m) + (totalAll.MonthlyPurchaseDiscount ?? 0m) +
+                                       (totalAll.MonthlyCreditPurchase ?? 0m) - (totalAll.MonthlyPurchaseDiscount ?? 0m) +
                                        (totalAll.MonthlyCreditPurchaseTax ?? 0m);
                 report.SetParameterValue($"{pagePrefix}Monthly_Row12_Total", FormatNumber(purchaseTotalAll));
             }
@@ -1000,7 +1000,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 if (item != null)
                 {
                     var colTotal = (item.MonthlyCashPurchase ?? 0m) + (item.MonthlyCashPurchaseTax ?? 0m) +
-                                   (item.MonthlyCreditPurchase ?? 0m) + (item.MonthlyPurchaseDiscount ?? 0m) +
+                                   (item.MonthlyCreditPurchase ?? 0m) - (item.MonthlyPurchaseDiscount ?? 0m) +
                                    (item.MonthlyCreditPurchaseTax ?? 0m);
                     report.SetParameterValue($"{pagePrefix}Monthly_Row12_Col{col}", FormatNumber(colTotal));
                 }
@@ -1080,7 +1080,8 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// 指定ページの年計データ設定（4行）
         /// </summary>
-        private void SetPageYearlyData(FR.Report report, List<BusinessDailyReportItem> yearlyItems, string pagePrefix, int startClassCode, int endClassCode, int maxColumns)
+        private void SetPageYearlyData(FR.Report report, List<BusinessDailyReportItem> yearlyItems, 
+            string pagePrefix, int startClassCode, int endClassCode, int maxColumns)
         {
             // 分類別データを辞書化（列番号をキーとする）
             var dataByClass = new Dictionary<int, BusinessDailyReportItem>();
@@ -1098,12 +1099,21 @@ namespace InventorySystem.Reports.FastReport.Services
                 totalAll = yearlyItems.FirstOrDefault(x => x.ClassificationCode == "000");
             }
 
-            // 行1：売上計（年計）
-            if (totalAll != null) // Page1のみ合計列あり
+            // デバッグログ追加
+            _logger.LogDebug($"年計データ設定開始 - Page: {pagePrefix}, データ件数: {yearlyItems?.Count ?? 0}");
+            if (yearlyItems?.Any() == true)
             {
-                var yearlyTotalSales = (totalAll.YearlyCashSales ?? 0m) + (totalAll.YearlyCashSalesTax ?? 0m) +
-                                       (totalAll.YearlyCreditSales ?? 0m) + (totalAll.YearlySalesDiscount ?? 0m) +
-                                       (totalAll.YearlyCreditSalesTax ?? 0m);
+                var sample = yearlyItems.First();
+                _logger.LogDebug($"年計サンプル - 分類{sample.ClassificationCode}: " +
+                    $"現金売上={sample.YearlyCashSales}, 掛売上={sample.YearlyCreditSales}");
+            }
+
+            // 行1：売上（現金売上＋掛売上－売上値引）
+            if (totalAll != null)
+            {
+                var yearlyTotalSales = (totalAll.YearlyCashSales ?? 0m) + 
+                                      (totalAll.YearlyCreditSales ?? 0m) - 
+                                      (totalAll.YearlySalesDiscount ?? 0m);
                 report.SetParameterValue($"{pagePrefix}Yearly_Row1_Total", FormatNumber(yearlyTotalSales));
             }
             for (int col = 1; col <= maxColumns; col++)
@@ -1111,9 +1121,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 var item = dataByClass[col];
                 if (item != null)
                 {
-                    var colTotal = (item.YearlyCashSales ?? 0m) + (item.YearlyCashSalesTax ?? 0m) +
-                                   (item.YearlyCreditSales ?? 0m) + (item.YearlySalesDiscount ?? 0m) +
-                                   (item.YearlyCreditSalesTax ?? 0m);
+                    var colTotal = (item.YearlyCashSales ?? 0m) + 
+                                  (item.YearlyCreditSales ?? 0m) - 
+                                  (item.YearlySalesDiscount ?? 0m);
                     report.SetParameterValue($"{pagePrefix}Yearly_Row1_Col{col}", FormatNumber(colTotal));
                 }
                 else
@@ -1122,22 +1132,20 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
             }
 
-            // 行2：仕入計（年計）
-            if (totalAll != null) // Page1のみ合計列あり
+            // 行2：売上消費税（現金売上消費税＋掛売上消費税）
+            if (totalAll != null)
             {
-                var yearlyTotalPurchase = (totalAll.YearlyCashPurchase ?? 0m) + (totalAll.YearlyCashPurchaseTax ?? 0m) +
-                                          (totalAll.YearlyCreditPurchase ?? 0m) + (totalAll.YearlyPurchaseDiscount ?? 0m) +
-                                          (totalAll.YearlyCreditPurchaseTax ?? 0m);
-                report.SetParameterValue($"{pagePrefix}Yearly_Row2_Total", FormatNumber(yearlyTotalPurchase));
+                var yearlyTotalSalesTax = (totalAll.YearlyCashSalesTax ?? 0m) + 
+                                          (totalAll.YearlyCreditSalesTax ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Yearly_Row2_Total", FormatNumber(yearlyTotalSalesTax));
             }
             for (int col = 1; col <= maxColumns; col++)
             {
                 var item = dataByClass[col];
                 if (item != null)
                 {
-                    var colTotal = (item.YearlyCashPurchase ?? 0m) + (item.YearlyCashPurchaseTax ?? 0m) +
-                                   (item.YearlyCreditPurchase ?? 0m) + (item.YearlyPurchaseDiscount ?? 0m) +
-                                   (item.YearlyCreditPurchaseTax ?? 0m);
+                    var colTotal = (item.YearlyCashSalesTax ?? 0m) + 
+                                  (item.YearlyCreditSalesTax ?? 0m);
                     report.SetParameterValue($"{pagePrefix}Yearly_Row2_Col{col}", FormatNumber(colTotal));
                 }
                 else
@@ -1146,20 +1154,22 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
             }
 
-            // 行3：入金計（年計）
-            if (totalAll != null) // Page1のみ合計列あり
+            // 行3：仕入（現金仕入＋掛仕入－仕入値引）
+            if (totalAll != null)
             {
-                var yearlyTotalReceipt = (totalAll.YearlyCashReceipt ?? 0m) + (totalAll.YearlyBankReceipt ?? 0m) +
-                                         (totalAll.YearlyOtherReceipt ?? 0m);
-                report.SetParameterValue($"{pagePrefix}Yearly_Row3_Total", FormatNumber(yearlyTotalReceipt));
+                var yearlyTotalPurchase = (totalAll.YearlyCashPurchase ?? 0m) + 
+                                          (totalAll.YearlyCreditPurchase ?? 0m) - 
+                                          (totalAll.YearlyPurchaseDiscount ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Yearly_Row3_Total", FormatNumber(yearlyTotalPurchase));
             }
             for (int col = 1; col <= maxColumns; col++)
             {
                 var item = dataByClass[col];
                 if (item != null)
                 {
-                    var colTotal = (item.YearlyCashReceipt ?? 0m) + (item.YearlyBankReceipt ?? 0m) +
-                                   (item.YearlyOtherReceipt ?? 0m);
+                    var colTotal = (item.YearlyCashPurchase ?? 0m) + 
+                                  (item.YearlyCreditPurchase ?? 0m) - 
+                                  (item.YearlyPurchaseDiscount ?? 0m);
                     report.SetParameterValue($"{pagePrefix}Yearly_Row3_Col{col}", FormatNumber(colTotal));
                 }
                 else
@@ -1168,20 +1178,20 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
             }
 
-            // 行4：支払計（年計）
-            if (totalAll != null) // Page1のみ合計列あり
+            // 行4：仕入消費税（現金仕入消費税＋掛仕入消費税）
+            if (totalAll != null)
             {
-                var yearlyTotalPayment = (totalAll.YearlyCashPayment ?? 0m) + (totalAll.YearlyBankPayment ?? 0m) +
-                                         (totalAll.YearlyOtherPayment ?? 0m);
-                report.SetParameterValue($"{pagePrefix}Yearly_Row4_Total", FormatNumber(yearlyTotalPayment));
+                var yearlyTotalPurchaseTax = (totalAll.YearlyCashPurchaseTax ?? 0m) + 
+                                             (totalAll.YearlyCreditPurchaseTax ?? 0m);
+                report.SetParameterValue($"{pagePrefix}Yearly_Row4_Total", FormatNumber(yearlyTotalPurchaseTax));
             }
             for (int col = 1; col <= maxColumns; col++)
             {
                 var item = dataByClass[col];
                 if (item != null)
                 {
-                    var colTotal = (item.YearlyCashPayment ?? 0m) + (item.YearlyBankPayment ?? 0m) +
-                                   (item.YearlyOtherPayment ?? 0m);
+                    var colTotal = (item.YearlyCashPurchaseTax ?? 0m) + 
+                                  (item.YearlyCreditPurchaseTax ?? 0m);
                     report.SetParameterValue($"{pagePrefix}Yearly_Row4_Col{col}", FormatNumber(colTotal));
                 }
                 else
