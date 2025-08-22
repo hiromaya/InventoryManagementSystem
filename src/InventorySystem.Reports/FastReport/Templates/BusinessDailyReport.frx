@@ -1514,10 +1514,6 @@
     <Parameter Name="Page4_Yearly_Row4_Col7" DataType="System.String" AsString=""/>
     <Parameter Name="Page4_Yearly_Row4_Col8" DataType="System.String" AsString=""/>
     <Parameter Name="Page4_Yearly_Row4_Col9" DataType="System.String" AsString=""/>
-    <Parameter Name="Page2_CustomerName9" DataType="System.String" AsString=""/>
-    <Parameter Name="Page2_SupplierName9" DataType="System.String" AsString=""/>
-    <Parameter Name="Page3_CustomerName9" DataType="System.String" AsString=""/>
-    <Parameter Name="Page3_SupplierName9" DataType="System.String" AsString=""/>
   </Dictionary>
   <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" Watermark.Font="MS UI Gothic, 60pt">
     <ReportTitleBand Name="ReportTitle" Width="1512" Height="52.92">

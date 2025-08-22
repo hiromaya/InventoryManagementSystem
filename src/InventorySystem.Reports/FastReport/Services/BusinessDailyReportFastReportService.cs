@@ -1406,7 +1406,7 @@ namespace InventorySystem.Reports.FastReport.Services
             _logger.LogInformation("===== FastReportテンプレート検証開始 =====");
             
             // パラメータ一覧を確認
-            foreach (var param in report.Dictionary.Parameters)
+            foreach (FR.Parameter param in report.Dictionary.Parameters)
             {
                 if (param.Name.Contains("Page2_") && param.Name.Contains("9"))
                 {
