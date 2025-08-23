@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="2025-08-06" ReportInfo.Modified="08/23/2025 19:26:49" ReportInfo.CreatorVersion="2024.1.3.0">
+<Report ScriptLanguage="CSharp" ReportInfo.Created="2025-08-06" ReportInfo.Modified="08/23/2025 22:19:56" ReportInfo.CreatorVersion="2024.1.3.0">
   <Dictionary>
     <Parameter Name="CreateDate" DataType="System.String" AsString=""/>
     <Parameter Name="JobDate" DataType="System.String" AsString=""/>
@@ -1530,7 +1530,7 @@
       <TextObject Name="CreateDate" Left="30" Top="34.02" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Title" Left="538.65" Top="34.02" Width="434.7" Height="18.9" Text="※ [JobDate]　営　業　日　報　（１）　※" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </ReportTitleBand>
-    <PageHeaderBand Name="PageHeader" Top="56.92" Width="1512" Height="37.8">
+    <PageHeaderBand Name="PageHeader" Top="56.12" Width="1512" Height="37.8">
       <LineObject Name="HeaderMiddle" Top="18.9" Width="1512" Border.Style="Dash" Border.Width="2"/>
       <TextObject Name="Header_Total" Left="172" Width="130" Height="18.9" Text="合　　計" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       <TextObject Name="Header_C1" Left="307.3" Width="130" Height="18.9" Text="[CustomerName1]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -1550,7 +1550,7 @@
       <TextObject Name="Header_S7" Left="1207.3" Top="18.9" Width="130" Height="18.9" Text="[SupplierName7]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header_S8" Left="1352.3" Top="18.9" Width="130" Height="18.9" Text="[SupplierName8]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    <DataBand Name="DataBand" Top="98.72" Width="1512" Height="920">
+    <DataBand Name="DataBand" Top="97.12" Width="1512" Height="920">
       <LineObject Name="DataTopLine" Width="1512" Border.Style="Dash" Border.Width="2"/>
       <TextObject Name="D_Sec" Top="15.12" Width="70" Height="18.9" Text="【日計】" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       <TextObject Name="D_Item1" Left="70" Width="102" Height="18.9" Text="現金売上" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -2059,7 +2059,7 @@
       <LineObject Name="MLine15_Part2" Left="602.3" Top="672.84" Width="293" Border.Width="0.5"/>
       <LineObject Name="MLine15_Part3" Left="910" Top="672.84" Width="272" Border.Width="0.5"/>
       <LineObject Name="MLine15_Part4" Left="1197.3" Top="672.84" Width="315" Border.Width="0.5"/>
-      <TextObject Name="M_Item16" Left="70" Top="710.64" Width="102" Height="18.9" Text="支払と現金支払" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="M_Item16" Left="70" Top="710.64" Width="102" Height="18.9" Text="支払と現金支払" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_Total" Left="172" Top="710.64" Width="130" Height="18.9" Text="[Monthly_Row16_Total]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_C1" Left="307.3" Top="710.64" Width="130" Height="18.9" Text="[Monthly_Row16_Col1]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_C2" Left="452.3" Top="710.64" Width="130" Height="18.9" Text="[Monthly_Row16_Col2]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -2187,7 +2187,7 @@
       <TextObject Name="CreateDate" Left="30" Top="34.02" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Title" Left="538.65" Top="34.02" Width="434.7" Height="18.9" Text="※ [JobDate]　営　業　日　報　（２）　※" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </ReportTitleBand>
-    <PageHeaderBand Name="PageHeader" Top="57.22" Width="1512" Height="37.8">
+    <PageHeaderBand Name="PageHeader" Top="56.12" Width="1512" Height="37.8">
       <LineObject Name="HeaderMiddle" Top="18.9" Width="1512" Border.Style="Dash" Border.Width="2"/>
       <TextObject Name="Header_C1" Left="172" Width="130" Height="18.9" Text="[Page2_CustomerName1]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header_C2" Left="307.3" Width="130" Height="18.9" Text="[Page2_CustomerName2]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -2208,7 +2208,7 @@
       <TextObject Name="Header_S8" Left="1207.3" Top="18.9" Width="130" Height="18.9" Text="[Page2_SupplierName8]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header_S9" Left="1352.3" Top="18.9" Width="130" Height="18.9" Text="[Page2_SupplierName9]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    <DataBand Name="DataBand" Top="99.32" Width="1512" Height="920">
+    <DataBand Name="DataBand" Top="97.12" Width="1512" Height="920">
       <LineObject Name="DataTopLine" Width="1512" Border.Style="Dash" Border.Width="2"/>
       <TextObject Name="D_Sec" Top="15.12" Width="70" Height="18.9" Text="【日計】" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       <TextObject Name="D_Item1" Left="70" Width="102" Height="18.9" Text="現金売上" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -2701,7 +2701,7 @@
       <LineObject Name="MLine15_Part2" Left="602.3" Top="672.84" Width="293" Border.Width="0.5"/>
       <LineObject Name="MLine15_Part3" Left="910" Top="672.84" Width="272" Border.Width="0.5"/>
       <LineObject Name="MLine15_Part4" Left="1197.3" Top="672.84" Width="315" Border.Width="0.5"/>
-      <TextObject Name="M_Item16" Left="70" Top="710.64" Width="102" Height="18.9" Text="支払と現金支払" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="M_Item16" Left="70" Top="710.64" Width="102" Height="18.9" Text="支払と現金支払" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_C1" Left="172" Top="710.64" Width="130" Height="18.9" Text="[Page2_Monthly_Row16_Col1]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_C2" Left="307.3" Top="710.64" Width="130" Height="18.9" Text="[Page2_Monthly_Row16_Col2]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_C3" Left="452.3" Top="710.64" Width="130" Height="18.9" Text="[Page2_Monthly_Row16_Col3]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -2830,7 +2830,7 @@
       <TextObject Name="CreateDate" Left="30" Top="34.02" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Title" Left="538.65" Top="34.02" Width="434.7" Height="18.9" Text="※ [JobDate]　営　業　日　報　（３）　※" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </ReportTitleBand>
-    <PageHeaderBand Name="PageHeader" Top="57.22" Width="1512" Height="37.8">
+    <PageHeaderBand Name="PageHeader" Top="56.12" Width="1512" Height="37.8">
       <LineObject Name="HeaderMiddle" Top="18.9" Width="1512" Border.Style="Dash" Border.Width="2"/>
       <TextObject Name="Header_C1" Left="172" Width="130" Height="18.9" Text="[Page3_CustomerName1]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header_C2" Left="307.3" Width="130" Height="18.9" Text="[Page3_CustomerName2]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -2851,7 +2851,7 @@
       <TextObject Name="Header_S8" Left="1207.3" Top="18.9" Width="130" Height="18.9" Text="[Page3_SupplierName8]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header_S9" Left="1352.3" Top="18.9" Width="130" Height="18.9" Text="[Page3_SupplierName9]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    <DataBand Name="DataBand" Top="99.32" Width="1512" Height="920">
+    <DataBand Name="DataBand" Top="97.12" Width="1512" Height="920">
       <LineObject Name="DataTopLine" Width="1512" Border.Style="Dash" Border.Width="2"/>
       <TextObject Name="D_Sec" Top="15.12" Width="70" Height="18.9" Text="【日計】" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       <TextObject Name="D_Item1" Left="70" Width="102" Height="18.9" Text="現金売上" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -3344,7 +3344,7 @@
       <LineObject Name="MLine15_Part2" Left="602.3" Top="672.84" Width="293" Border.Width="0.5"/>
       <LineObject Name="MLine15_Part3" Left="910" Top="672.84" Width="272" Border.Width="0.5"/>
       <LineObject Name="MLine15_Part4" Left="1197.3" Top="672.84" Width="315" Border.Width="0.5"/>
-      <TextObject Name="M_Item16" Left="70" Top="710.64" Width="102" Height="18.9" Text="支払と現金支払" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="M_Item16" Left="70" Top="710.64" Width="102" Height="18.9" Text="支払と現金支払" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_C1" Left="172" Top="710.64" Width="130" Height="18.9" Text="[Page3_Monthly_Row16_Col1]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_C2" Left="307.3" Top="710.64" Width="130" Height="18.9" Text="[Page3_Monthly_Row16_Col2]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_C3" Left="452.3" Top="710.64" Width="130" Height="18.9" Text="[Page3_Monthly_Row16_Col3]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -3473,7 +3473,7 @@
       <TextObject Name="CreateDate" Left="30" Top="34.02" Width="340.2" Height="18.9" Text="作成日 [CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Title" Left="538.65" Top="34.02" Width="434.7" Height="18.9" Text="※ [JobDate]　営　業　日　報　（４）　※" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </ReportTitleBand>
-    <PageHeaderBand Name="PageHeader" Top="57.22" Width="1512" Height="37.8">
+    <PageHeaderBand Name="PageHeader" Top="56.12" Width="1512" Height="37.8">
       <LineObject Name="HeaderMiddle" Top="18.9" Width="1512" Border.Style="Dash" Border.Width="2"/>
       <TextObject Name="Header_C1" Left="172" Width="130" Height="18.9" Text="[Page4_CustomerName1]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header_C2" Left="307.3" Width="130" Height="18.9" Text="[Page4_CustomerName2]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -3494,7 +3494,7 @@
       <TextObject Name="Header_S8" Left="1207.3" Top="18.9" Width="130" Height="18.9" Text="[Page4_SupplierName8]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header_S9" Left="1352.3" Top="18.9" Width="130" Height="18.9" Text="[Page4_SupplierName9]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    <DataBand Name="DataBand" Top="99.32" Width="1512" Height="920">
+    <DataBand Name="DataBand" Top="97.12" Width="1512" Height="920">
       <LineObject Name="DataTopLine" Width="1512" Border.Style="Dash" Border.Width="2"/>
       <TextObject Name="D_Sec" Top="15.12" Width="70" Height="18.9" Text="【日計】" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
       <TextObject Name="D_Item1" Left="70" Width="102" Height="18.9" Text="現金売上" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
@@ -3987,7 +3987,7 @@
       <LineObject Name="MLine15_Part2" Left="602.3" Top="672.84" Width="293" Border.Width="0.5"/>
       <LineObject Name="MLine15_Part3" Left="910" Top="672.84" Width="272" Border.Width="0.5"/>
       <LineObject Name="MLine15_Part4" Left="1197.3" Top="672.84" Width="315" Border.Width="0.5"/>
-      <TextObject Name="M_Item16" Left="70" Top="710.64" Width="102" Height="18.9" Text="支払と現金支払" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="M_Item16" Left="70" Top="710.64" Width="102" Height="18.9" Text="支払と現金支払" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_C1" Left="172" Top="710.64" Width="130" Height="18.9" Text="[Page4_Monthly_Row16_Col1]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_C2" Left="307.3" Top="710.64" Width="130" Height="18.9" Text="[Page4_Monthly_Row16_Col2]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="M_R16_C3" Left="452.3" Top="710.64" Width="130" Height="18.9" Text="[Page4_Monthly_Row16_Col3]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
