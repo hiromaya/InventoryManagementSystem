@@ -379,10 +379,10 @@ namespace InventorySystem.Reports.FastReport.Services
             SetDailyData(report, dailyItems);
             
             // 月計18行
-            SetPageMonthlyData(report, monthlyItems, "");
+            SetPageMonthlyData(report, monthlyItems, "", 1, 8, 8);
             
             // 年計4行
-            SetPageYearlyData(report, yearlyItems, "");
+            SetPageYearlyData(report, yearlyItems, "", 1, 8, 8);
         }
 
         /// <summary>
