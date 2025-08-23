@@ -59,23 +59,6 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogInformation($"処理日付: {jobDate:yyyy-MM-dd}");
                 _logger.LogInformation($"日計データ件数: {dailyItems?.Count ?? 0}");
 
-                // 特定分類の存在確認
-                var has017 = dailyItems?.Any(x => x.ClassificationCode == "017") ?? false;
-                var has026 = dailyItems?.Any(x => x.ClassificationCode == "026") ?? false;
-                _logger.LogWarning($"★ 分類017存在: {has017}");
-                _logger.LogWarning($"★ 分類026存在: {has026}");
-
-                if (has017)
-                {
-                    var item017 = dailyItems.First(x => x.ClassificationCode == "017");
-                    _logger.LogWarning($"★ 分類017データ: CustomerClassName='{item017.CustomerClassName}', SupplierClassName='{item017.SupplierClassName}'");
-                }
-
-                if (has026)
-                {
-                    var item026 = dailyItems.First(x => x.ClassificationCode == "026");
-                    _logger.LogWarning($"★ 分類026データ: CustomerClassName='{item026.CustomerClassName}', SupplierClassName='{item026.SupplierClassName}'");
-                }
                 
                 // 月計・年計データの取得（Repository経由）
                 var monthlyItems = await _repository.GetMonthlyDataAsync(jobDate);
@@ -106,44 +89,6 @@ namespace InventorySystem.Reports.FastReport.Services
                 SetPage3DataParameters(report, dailyItems, monthlyItems.ToList(), yearlyItems.ToList());
                 SetPage4DataParameters(report, dailyItems, monthlyItems.ToList(), yearlyItems.ToList());
 
-                // PDFエクスポート前の最終確認
-                _logger.LogInformation("========== PDF生成前の最終確認 ==========");
-
-                // Page2の9列目確認
-                try
-                {
-                    var page2Col9Customer = report.GetParameterValue("Page2_CustomerName9")?.ToString() ?? "";
-                    var page2Col9Supplier = report.GetParameterValue("Page2_SupplierName9")?.ToString() ?? "";
-                    _logger.LogWarning($"Page2の9列目設定値: Customer='{page2Col9Customer}', Supplier='{page2Col9Supplier}'");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning($"Page2パラメータ取得エラー: {ex.Message}");
-                }
-
-                // Page3の9列目確認  
-                try
-                {
-                    var page3Col9Customer = report.GetParameterValue("Page3_CustomerName9")?.ToString() ?? "";
-                    var page3Col9Supplier = report.GetParameterValue("Page3_SupplierName9")?.ToString() ?? "";
-                    _logger.LogWarning($"Page3の9列目設定値: Customer='{page3Col9Customer}', Supplier='{page3Col9Supplier}'");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning($"Page3パラメータ取得エラー: {ex.Message}");
-                }
-
-                // FastReportのページ数確認
-                var pageCount = report.Pages.Count;
-                _logger.LogInformation($"FastReportページ数: {pageCount}");
-
-                for (int i = 0; i < pageCount; i++)
-                {
-                    var page = report.Pages[i];
-                    _logger.LogInformation($"Page{i}: Name='{page.Name}', Type={page.GetType().Name}");
-                }
-
-                _logger.LogInformation("========================================");
 
                 _logger.LogInformation("レポート準備中...");
                 report.Prepare();
@@ -212,69 +157,20 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private async Task SetClassificationNamesForPage2(FR.Report report, List<BusinessDailyReportItem> dailyItems)
         {
-            // デバッグ：メソッド開始ログ
-            _logger.LogDebug("========== SetClassificationNamesForPage2 開始 ==========");
-            _logger.LogDebug($"dailyItems総数: {dailyItems?.Count ?? 0}");
-            
-            // デバッグ：分類009～017のデータ存在確認
-            for (int checkCode = 9; checkCode <= 17; checkCode++)
-            {
-                var checkCodeStr = checkCode.ToString("000");
-                var exists = dailyItems?.Any(x => x.ClassificationCode == checkCodeStr) ?? false;
-                _logger.LogDebug($"分類{checkCodeStr}の存在: {exists}");
-            }
-            
             for (int i = 1; i <= 9; i++)
             {
                 var code = (i + 8).ToString("000"); // 009～017
                 var item = dailyItems.FirstOrDefault(x => x.ClassificationCode == code);
                 
-                // デバッグ：データ取得状況
-                if (item != null)
-                {
-                    _logger.LogDebug($"[Page2] Loop {i}: 分類{code} 取得成功");
-                    _logger.LogDebug($"  - CustomerClassName: '{item.CustomerClassName}'");
-                    _logger.LogDebug($"  - SupplierClassName: '{item.SupplierClassName}'");
-                }
-                else
-                {
-                    _logger.LogWarning($"[Page2] Loop {i}: 分類{code} データなし！");
-                }
+                var customerName = TruncateToLength(item?.CustomerClassName ?? "", 6);
+                var supplierName = TruncateToLength(item?.SupplierClassName ?? "", 6);
                 
-                // TruncateToLength前の値
-                var beforeCustomer = item?.CustomerClassName ?? "";
-                var beforeSupplier = item?.SupplierClassName ?? "";
-                
-                var customerName = TruncateToLength(beforeCustomer, 6);
-                var supplierName = TruncateToLength(beforeSupplier, 6);
-                
-                // デバッグ：TruncateToLength処理結果
-                _logger.LogDebug($"[Page2] TruncateToLength処理:");
-                _logger.LogDebug($"  - Customer: '{beforeCustomer}' → '{customerName}'");
-                _logger.LogDebug($"  - Supplier: '{beforeSupplier}' → '{supplierName}'");
-                
-                // パラメータ設定
                 var customerParam = $"Page2_CustomerName{i}";
                 var supplierParam = $"Page2_SupplierName{i}";
                 
                 report.SetParameterValue(customerParam, customerName);
                 report.SetParameterValue(supplierParam, supplierName);
-                
-                // デバッグ：設定値の確認
-                _logger.LogDebug($"[Page2] パラメータ設定完了:");
-                _logger.LogDebug($"  - {customerParam} = '{customerName}'");
-                _logger.LogDebug($"  - {supplierParam} = '{supplierName}'");
-                
-                // 特に問題の9列目を強調
-                if (i == 9)
-                {
-                    _logger.LogWarning($"★★★ Page2 9列目（分類017）設定 ★★★");
-                    _logger.LogWarning($"  {customerParam} = '{customerName}'");
-                    _logger.LogWarning($"  {supplierParam} = '{supplierName}'");
-                }
             }
-            
-            _logger.LogDebug("========== SetClassificationNamesForPage2 終了 ==========");
         }
 
         /// <summary>
@@ -282,69 +178,20 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private async Task SetClassificationNamesForPage3(FR.Report report, List<BusinessDailyReportItem> dailyItems)
         {
-            // デバッグ：メソッド開始ログ
-            _logger.LogDebug("========== SetClassificationNamesForPage3 開始 ==========");
-            _logger.LogDebug($"dailyItems総数: {dailyItems?.Count ?? 0}");
-            
-            // デバッグ：分類018～026のデータ存在確認
-            for (int checkCode = 18; checkCode <= 26; checkCode++)
-            {
-                var checkCodeStr = checkCode.ToString("000");
-                var exists = dailyItems?.Any(x => x.ClassificationCode == checkCodeStr) ?? false;
-                _logger.LogDebug($"分類{checkCodeStr}の存在: {exists}");
-            }
-            
             for (int i = 1; i <= 9; i++)
             {
                 var code = (i + 17).ToString("000"); // 018～026
                 var item = dailyItems.FirstOrDefault(x => x.ClassificationCode == code);
                 
-                // デバッグ：データ取得状況
-                if (item != null)
-                {
-                    _logger.LogDebug($"[Page3] Loop {i}: 分類{code} 取得成功");
-                    _logger.LogDebug($"  - CustomerClassName: '{item.CustomerClassName}'");
-                    _logger.LogDebug($"  - SupplierClassName: '{item.SupplierClassName}'");
-                }
-                else
-                {
-                    _logger.LogWarning($"[Page3] Loop {i}: 分類{code} データなし！");
-                }
+                var customerName = TruncateToLength(item?.CustomerClassName ?? "", 6);
+                var supplierName = TruncateToLength(item?.SupplierClassName ?? "", 6);
                 
-                // TruncateToLength前の値
-                var beforeCustomer = item?.CustomerClassName ?? "";
-                var beforeSupplier = item?.SupplierClassName ?? "";
-                
-                var customerName = TruncateToLength(beforeCustomer, 6);
-                var supplierName = TruncateToLength(beforeSupplier, 6);
-                
-                // デバッグ：TruncateToLength処理結果
-                _logger.LogDebug($"[Page3] TruncateToLength処理:");
-                _logger.LogDebug($"  - Customer: '{beforeCustomer}' → '{customerName}'");
-                _logger.LogDebug($"  - Supplier: '{beforeSupplier}' → '{supplierName}'");
-                
-                // パラメータ設定
                 var customerParam = $"Page3_CustomerName{i}";
                 var supplierParam = $"Page3_SupplierName{i}";
                 
                 report.SetParameterValue(customerParam, customerName);
                 report.SetParameterValue(supplierParam, supplierName);
-                
-                // デバッグ：設定値の確認
-                _logger.LogDebug($"[Page3] パラメータ設定完了:");
-                _logger.LogDebug($"  - {customerParam} = '{customerName}'");
-                _logger.LogDebug($"  - {supplierParam} = '{supplierName}'");
-                
-                // 特に問題の9列目を強調
-                if (i == 9)
-                {
-                    _logger.LogWarning($"★★★ Page3 9列目（分類026）設定 ★★★");
-                    _logger.LogWarning($"  {customerParam} = '{customerName}'");
-                    _logger.LogWarning($"  {supplierParam} = '{supplierName}'");
-                }
             }
-            
-            _logger.LogDebug("========== SetClassificationNamesForPage3 終了 ==========");
         }
 
         /// <summary>
@@ -591,61 +438,81 @@ namespace InventorySystem.Reports.FastReport.Services
             }
         }
 
-        /// <summary>
-        /// 月計データ設定（18行）
-        /// </summary>
-        private void SetMonthlyData(FR.Report report, List<BusinessDailyReportItem> items)
-        {
-            // 分類001〜008のデータを取得
-            var dataByClass = new Dictionary<int, BusinessDailyReportItem>();
-            const int maxColumns = 8; // Page1は8列固定
-            for (int i = 1; i <= 8; i++)
-            {
-                var code = i.ToString("000");
-                dataByClass[i] = items.FirstOrDefault(x => x.ClassificationCode == code);
-            }
-
-            // 合計を計算
-            var total = CalculateTotal(items);
-
-            // 月計は日計と同じ18行構成で設定
-            // 行1〜18まで同様の処理（Monthly_Row1〜Monthly_Row18）
-            for (int row = 1; row <= 18; row++)
-            {
-                // 簡略化のため、月計は0として設定（実装時に詳細化）
-                report.SetParameterValue($"Monthly_Row{row}_Total", "");
-                for (int col = 1; col <= maxColumns; col++)
-                {
-                    report.SetParameterValue($"Monthly_Row{row}_Col{col}", "");
-                }
-            }
-        }
 
 
         /// <summary>
-        /// 合計計算
+        /// 合計計算（分類000があればそれを使用、なければ001-035を合計）
         /// </summary>
         private BusinessDailyReportItem CalculateTotal(List<BusinessDailyReportItem> items)
         {
-            return new BusinessDailyReportItem
+            // 分類000があればそれを返す（既に合計値が設定済み）
+            var total000 = items.FirstOrDefault(x => x.ClassificationCode == "000");
+            if (total000 != null)
             {
-                DailyCashSales = items.Sum(x => x.DailyCashSales ?? 0),
-                DailyCashSalesTax = items.Sum(x => x.DailyCashSalesTax ?? 0),
-                DailyCreditSales = items.Sum(x => x.DailyCreditSales ?? 0),
-                DailySalesDiscount = items.Sum(x => x.DailySalesDiscount ?? 0),
-                DailyCreditSalesTax = items.Sum(x => x.DailyCreditSalesTax ?? 0),
-                DailyCashPurchase = items.Sum(x => x.DailyCashPurchase ?? 0),
-                DailyCashPurchaseTax = items.Sum(x => x.DailyCashPurchaseTax ?? 0),
-                DailyCreditPurchase = items.Sum(x => x.DailyCreditPurchase ?? 0),
-                DailyPurchaseDiscount = items.Sum(x => x.DailyPurchaseDiscount ?? 0),
-                DailyCreditPurchaseTax = items.Sum(x => x.DailyCreditPurchaseTax ?? 0),
-                DailyCashReceipt = items.Sum(x => x.DailyCashReceipt ?? 0),
-                DailyBankReceipt = items.Sum(x => x.DailyBankReceipt ?? 0),
-                DailyOtherReceipt = items.Sum(x => x.DailyOtherReceipt ?? 0),
-                DailyCashPayment = items.Sum(x => x.DailyCashPayment ?? 0),
-                DailyBankPayment = items.Sum(x => x.DailyBankPayment ?? 0),
-                DailyOtherPayment = items.Sum(x => x.DailyOtherPayment ?? 0)
+                _logger.LogDebug("分類000を使用して合計計算: DailyCreditSales={Value}", total000.DailyCreditSales ?? 0);
+                return total000;
+            }
+            
+            // 分類000がない場合は001-035を合計（000を除外）
+            var itemsWithoutTotal = items.Where(x => x.ClassificationCode != "000").ToList();
+            _logger.LogDebug("分類000なし、{Count}件から合計計算", itemsWithoutTotal.Count);
+            
+            var calculatedTotal = new BusinessDailyReportItem
+            {
+                DailyCashSales = itemsWithoutTotal.Sum(x => x.DailyCashSales ?? 0),
+                DailyCashSalesTax = itemsWithoutTotal.Sum(x => x.DailyCashSalesTax ?? 0),
+                DailyCreditSales = itemsWithoutTotal.Sum(x => x.DailyCreditSales ?? 0),
+                DailySalesDiscount = itemsWithoutTotal.Sum(x => x.DailySalesDiscount ?? 0),
+                DailyCreditSalesTax = itemsWithoutTotal.Sum(x => x.DailyCreditSalesTax ?? 0),
+                DailyCashPurchase = itemsWithoutTotal.Sum(x => x.DailyCashPurchase ?? 0),
+                DailyCashPurchaseTax = itemsWithoutTotal.Sum(x => x.DailyCashPurchaseTax ?? 0),
+                DailyCreditPurchase = itemsWithoutTotal.Sum(x => x.DailyCreditPurchase ?? 0),
+                DailyPurchaseDiscount = itemsWithoutTotal.Sum(x => x.DailyPurchaseDiscount ?? 0),
+                DailyCreditPurchaseTax = itemsWithoutTotal.Sum(x => x.DailyCreditPurchaseTax ?? 0),
+                DailyCashReceipt = itemsWithoutTotal.Sum(x => x.DailyCashReceipt ?? 0),
+                DailyBankReceipt = itemsWithoutTotal.Sum(x => x.DailyBankReceipt ?? 0),
+                DailyOtherReceipt = itemsWithoutTotal.Sum(x => x.DailyOtherReceipt ?? 0),
+                DailyCashPayment = itemsWithoutTotal.Sum(x => x.DailyCashPayment ?? 0),
+                DailyBankPayment = itemsWithoutTotal.Sum(x => x.DailyBankPayment ?? 0),
+                DailyOtherPayment = itemsWithoutTotal.Sum(x => x.DailyOtherPayment ?? 0),
+                // 月計項目
+                MonthlyCashSales = itemsWithoutTotal.Sum(x => x.MonthlyCashSales ?? 0),
+                MonthlyCashSalesTax = itemsWithoutTotal.Sum(x => x.MonthlyCashSalesTax ?? 0),
+                MonthlyCreditSales = itemsWithoutTotal.Sum(x => x.MonthlyCreditSales ?? 0),
+                MonthlySalesDiscount = itemsWithoutTotal.Sum(x => x.MonthlySalesDiscount ?? 0),
+                MonthlyCreditSalesTax = itemsWithoutTotal.Sum(x => x.MonthlyCreditSalesTax ?? 0),
+                MonthlyCashPurchase = itemsWithoutTotal.Sum(x => x.MonthlyCashPurchase ?? 0),
+                MonthlyCashPurchaseTax = itemsWithoutTotal.Sum(x => x.MonthlyCashPurchaseTax ?? 0),
+                MonthlyCreditPurchase = itemsWithoutTotal.Sum(x => x.MonthlyCreditPurchase ?? 0),
+                MonthlyPurchaseDiscount = itemsWithoutTotal.Sum(x => x.MonthlyPurchaseDiscount ?? 0),
+                MonthlyCreditPurchaseTax = itemsWithoutTotal.Sum(x => x.MonthlyCreditPurchaseTax ?? 0),
+                MonthlyCashReceipt = itemsWithoutTotal.Sum(x => x.MonthlyCashReceipt ?? 0),
+                MonthlyBankReceipt = itemsWithoutTotal.Sum(x => x.MonthlyBankReceipt ?? 0),
+                MonthlyOtherReceipt = itemsWithoutTotal.Sum(x => x.MonthlyOtherReceipt ?? 0),
+                MonthlyCashPayment = itemsWithoutTotal.Sum(x => x.MonthlyCashPayment ?? 0),
+                MonthlyBankPayment = itemsWithoutTotal.Sum(x => x.MonthlyBankPayment ?? 0),
+                MonthlyOtherPayment = itemsWithoutTotal.Sum(x => x.MonthlyOtherPayment ?? 0),
+                // 年計項目
+                YearlyCashSales = itemsWithoutTotal.Sum(x => x.YearlyCashSales ?? 0),
+                YearlyCashSalesTax = itemsWithoutTotal.Sum(x => x.YearlyCashSalesTax ?? 0),
+                YearlyCreditSales = itemsWithoutTotal.Sum(x => x.YearlyCreditSales ?? 0),
+                YearlySalesDiscount = itemsWithoutTotal.Sum(x => x.YearlySalesDiscount ?? 0),
+                YearlyCreditSalesTax = itemsWithoutTotal.Sum(x => x.YearlyCreditSalesTax ?? 0),
+                YearlyCashPurchase = itemsWithoutTotal.Sum(x => x.YearlyCashPurchase ?? 0),
+                YearlyCashPurchaseTax = itemsWithoutTotal.Sum(x => x.YearlyCashPurchaseTax ?? 0),
+                YearlyCreditPurchase = itemsWithoutTotal.Sum(x => x.YearlyCreditPurchase ?? 0),
+                YearlyPurchaseDiscount = itemsWithoutTotal.Sum(x => x.YearlyPurchaseDiscount ?? 0),
+                YearlyCreditPurchaseTax = itemsWithoutTotal.Sum(x => x.YearlyCreditPurchaseTax ?? 0),
+                YearlyCashReceipt = itemsWithoutTotal.Sum(x => x.YearlyCashReceipt ?? 0),
+                YearlyBankReceipt = itemsWithoutTotal.Sum(x => x.YearlyBankReceipt ?? 0),
+                YearlyOtherReceipt = itemsWithoutTotal.Sum(x => x.YearlyOtherReceipt ?? 0),
+                YearlyCashPayment = itemsWithoutTotal.Sum(x => x.YearlyCashPayment ?? 0),
+                YearlyBankPayment = itemsWithoutTotal.Sum(x => x.YearlyBankPayment ?? 0),
+                YearlyOtherPayment = itemsWithoutTotal.Sum(x => x.YearlyOtherPayment ?? 0)
             };
+            
+            _logger.LogDebug("計算済み合計: DailyCreditSales={Value}", calculatedTotal.DailyCreditSales ?? 0);
+            return calculatedTotal;
         }
 
         /// <summary>
@@ -1377,60 +1244,41 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private void ValidateReportTemplate(FR.Report report)
         {
-            _logger.LogInformation("===== FastReportテンプレート検証開始 =====");
+            // 本番環境では詳細なテンプレート検証は不要
+            #if DEBUG
+            _logger.LogDebug("FastReportテンプレート検証開始（デバッグモード）");
             
-            // パラメータ一覧を確認（簡略化）
             try
             {
                 var paramCount = report.Dictionary.Parameters.Count;
-                _logger.LogInformation($"FastReportパラメータ総数: {paramCount}");
+                _logger.LogDebug($"FastReportパラメータ総数: {paramCount}");
                 
-                // Page2_CustomerName9とPage3_CustomerName9の存在確認のみ
-                try 
+                // デバッグ環境でのみ詳細検証
+                foreach (var page in report.Pages)
                 {
-                    var page2Test = report.GetParameterValue("Page2_CustomerName9");
-                    _logger.LogInformation($"Page2_CustomerName9パラメータ取得: 成功");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning($"Page2_CustomerName9パラメータ取得: 失敗 - {ex.Message}");
-                }
-                
-                try 
-                {
-                    var page3Test = report.GetParameterValue("Page3_CustomerName9");
-                    _logger.LogInformation($"Page3_CustomerName9パラメータ取得: 成功");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning($"Page3_CustomerName9パラメータ取得: 失敗 - {ex.Message}");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning($"パラメータ一覧確認エラー: {ex.Message}");
-            }
-            
-            // TextObjectの確認（Page2とPage3の9列目）
-            foreach (var page in report.Pages)
-            {
-                if (page is FR.ReportPage reportPage)
-                {
-                    foreach (var band in reportPage.AllObjects)
+                    if (page is FR.ReportPage reportPage)
                     {
-                        if (band is FR.TextObject textObj)
+                        foreach (var band in reportPage.AllObjects)
                         {
-                            if (textObj.Name.Contains("Header_C9") || textObj.Name.Contains("Header_S9") ||
-                                textObj.Name.Contains("CustomerName9") || textObj.Name.Contains("SupplierName9"))
+                            if (band is FR.TextObject textObj)
                             {
-                                _logger.LogWarning($"TextObject発見: {textObj.Name} at {textObj.Left}, Text='{textObj.Text}'");
+                                if (textObj.Name.Contains("Header_C9") || textObj.Name.Contains("Header_S9") ||
+                                    textObj.Name.Contains("CustomerName9") || textObj.Name.Contains("SupplierName9"))
+                                {
+                                    _logger.LogDebug($"TextObject: {textObj.Name} at {textObj.Left}");
+                                }
                             }
                         }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogDebug($"テンプレート検証エラー（デバッグ）: {ex.Message}");
+            }
             
-            _logger.LogInformation("===== FastReportテンプレート検証終了 =====");
+            _logger.LogDebug("FastReportテンプレート検証終了");
+            #endif
         }
 
         /// <summary>
@@ -1454,28 +1302,22 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private string TruncateToLength(string value, int maxLength)
         {
-            // デバッグ：メソッドの動作確認
             if (value == null)
             {
-                _logger.LogDebug($"TruncateToLength: null → 空文字列");
                 return "";
             }
             
             if (string.IsNullOrEmpty(value))
             {
-                _logger.LogDebug($"TruncateToLength: 空文字列 → そのまま");
                 return "";
             }
             
             if (value.Length <= maxLength)
             {
-                _logger.LogDebug($"TruncateToLength: '{value}'（{value.Length}文字） → そのまま");
                 return value;
             }
             
-            var result = value.Substring(0, maxLength);
-            _logger.LogDebug($"TruncateToLength: '{value}'（{value.Length}文字） → '{result}'（{maxLength}文字に切り詰め）");
-            return result;
+            return value.Substring(0, maxLength);
         }
 
         /// <summary>
