@@ -379,10 +379,10 @@ namespace InventorySystem.Reports.FastReport.Services
             SetDailyData(report, dailyItems);
             
             // 月計18行
-            SetMonthlyData(report, monthlyItems);
+            SetPageMonthlyData(report, monthlyItems, "");
             
             // 年計4行
-            SetYearlyData(report, yearlyItems);
+            SetPageYearlyData(report, yearlyItems, "");
         }
 
         /// <summary>
@@ -459,7 +459,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"Daily_Row6_Col{col}", "");
+                    report.SetParameterValue($"Daily_Row6_Col{col}", "0");
                 }
             }
 
@@ -520,7 +520,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"Daily_Row12_Col{col}", "");
+                    report.SetParameterValue($"Daily_Row12_Col{col}", "0");
                 }
             }
 
@@ -553,7 +553,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"Daily_Row15_Col{col}", "");
+                    report.SetParameterValue($"Daily_Row15_Col{col}", "0");
                 }
             }
 
@@ -586,7 +586,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"Daily_Row18_Col{col}", "");
+                    report.SetParameterValue($"Daily_Row18_Col{col}", "0");
                 }
             }
         }
@@ -621,32 +621,6 @@ namespace InventorySystem.Reports.FastReport.Services
             }
         }
 
-        /// <summary>
-        /// 年計データ設定（4行のみ）
-        /// </summary>
-        private void SetYearlyData(FR.Report report, List<BusinessDailyReportItem> items)
-        {
-            // 年計は4項目のみ
-            // 分類001〜008のデータを取得
-            var dataByClass = new Dictionary<int, BusinessDailyReportItem>();
-            const int maxColumns = 8; // Page1は8列固定
-            for (int i = 1; i <= 8; i++)
-            {
-                var code = i.ToString("000");
-                dataByClass[i] = items.FirstOrDefault(x => x.ClassificationCode == code);
-            }
-
-            // 年計4行を設定（Yearly_Row1〜Yearly_Row4）
-            for (int row = 1; row <= 4; row++)
-            {
-                // 簡略化のため、年計は0として設定（実装時に詳細化）
-                report.SetParameterValue($"Yearly_Row{row}_Total", "");
-                for (int col = 1; col <= maxColumns; col++)
-                {
-                    report.SetParameterValue($"Yearly_Row{row}_Col{col}", "");
-                }
-            }
-        }
 
         /// <summary>
         /// 合計計算
@@ -834,7 +808,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"{pagePrefix}Daily_Row6_Col{col}", "");
+                    report.SetParameterValue($"{pagePrefix}Daily_Row6_Col{col}", "0");
                 }
             }
 
@@ -913,7 +887,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"{pagePrefix}Daily_Row12_Col{col}", "");
+                    report.SetParameterValue($"{pagePrefix}Daily_Row12_Col{col}", "0");
                 }
             }
 
@@ -955,7 +929,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"{pagePrefix}Daily_Row15_Col{col}", "");
+                    report.SetParameterValue($"{pagePrefix}Daily_Row15_Col{col}", "0");
                 }
             }
 
@@ -997,7 +971,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"{pagePrefix}Daily_Row18_Col{col}", "");
+                    report.SetParameterValue($"{pagePrefix}Daily_Row18_Col{col}", "0");
                 }
             }
         }
@@ -1018,7 +992,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 000（合計）データを取得（Page1のみ）
             BusinessDailyReportItem? totalAll = null;
-            if (pagePrefix == "Page1_")
+            if (string.IsNullOrEmpty(pagePrefix))
             {
                 totalAll = monthlyItems.FirstOrDefault(x => x.ClassificationCode == "000");
             }
@@ -1098,7 +1072,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"{pagePrefix}Monthly_Row6_Col{col}", "");
+                    report.SetParameterValue($"{pagePrefix}Monthly_Row6_Col{col}", "0");
                 }
             }
 
@@ -1177,7 +1151,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"{pagePrefix}Monthly_Row12_Col{col}", "");
+                    report.SetParameterValue($"{pagePrefix}Monthly_Row12_Col{col}", "0");
                 }
             }
 
@@ -1223,7 +1197,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"{pagePrefix}Monthly_Row15_Col{col}", "");
+                    report.SetParameterValue($"{pagePrefix}Monthly_Row15_Col{col}", "0");
                 }
             }
 
@@ -1269,7 +1243,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"{pagePrefix}Monthly_Row18_Col{col}", "");
+                    report.SetParameterValue($"{pagePrefix}Monthly_Row18_Col{col}", "0");
                 }
             }
         }
@@ -1291,7 +1265,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
             // 000（合計）データを取得（Page1のみ）
             BusinessDailyReportItem? totalAll = null;
-            if (pagePrefix == "Page1_")
+            if (string.IsNullOrEmpty(pagePrefix))
             {
                 totalAll = yearlyItems.FirstOrDefault(x => x.ClassificationCode == "000");
             }
@@ -1325,7 +1299,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"{pagePrefix}Yearly_Row1_Col{col}", "");
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row1_Col{col}", "0");
                 }
             }
 
@@ -1347,7 +1321,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"{pagePrefix}Yearly_Row2_Col{col}", "");
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row2_Col{col}", "0");
                 }
             }
 
@@ -1371,7 +1345,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"{pagePrefix}Yearly_Row3_Col{col}", "");
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row3_Col{col}", "0");
                 }
             }
 
@@ -1393,7 +1367,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 else
                 {
-                    report.SetParameterValue($"{pagePrefix}Yearly_Row4_Col{col}", "");
+                    report.SetParameterValue($"{pagePrefix}Yearly_Row4_Col{col}", "0");
                 }
             }
         }
@@ -1464,11 +1438,8 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private string FormatNumber(decimal? value)
         {
-            // NULLの場合のみ空文字を返す
-            if (value == null) return "";
-            
-            // ゼロの場合は "0" を返す
-            if (value == 0) return "0";
+            // NULLまたは0の場合は "0" を返す
+            if (value == null || value == 0) return "0";
 
             // マイナス値は▲記号
             if (value < 0)
