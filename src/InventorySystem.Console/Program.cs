@@ -302,6 +302,12 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
             // Process 2-5: 売上伝票への在庫単価書き込みと粗利計算サービス
             builder.Services.AddScoped<GrossProfitCalculationService>();
 
+            // SE3: マスタ同期サービス（商品勘定・在庫表担当）
+            builder.Services.AddScoped<InventorySystem.Data.Services.IMasterSyncService>(provider =>
+                new InventorySystem.Data.Services.MasterSyncService(
+                    connectionString,
+                    provider.GetRequiredService<ILogger<InventorySystem.Data.Services.MasterSyncService>>()));
+
             var host = builder.Build();
 
             // Initialize department folders at startup
@@ -1795,6 +1801,26 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         await cpInventoryRepository.CalculateDailyStockAsync();
                         await cpInventoryRepository.SetDailyFlagToProcessedAsync();
                         System.Console.WriteLine("✅ CP在庫マスタ作成完了（仮テーブル）");
+
+                        // 【追加】マスタ同期処理
+                        System.Console.WriteLine("🔄 等級・階級マスタの同期を開始します");
+                        var masterSyncService = scopedServices.GetRequiredService<InventorySystem.Data.Services.IMasterSyncService>();
+                        var syncResult = await masterSyncService.SyncFromCpInventoryMasterAsync(jobDate);
+
+                        if (syncResult.Success)
+                        {
+                            logger.LogInformation(
+                                "マスタ同期完了 - 等級: 新規{GradeInserted}件/スキップ{GradeSkipped}件, " +
+                                "階級: 新規{ClassInserted}件/スキップ{ClassSkipped}件",
+                                syncResult.GradeInserted, syncResult.GradeSkipped,
+                                syncResult.ClassInserted, syncResult.ClassSkipped);
+                            System.Console.WriteLine($"✅ マスタ同期完了 - 等級: 新規{syncResult.GradeInserted}件, 階級: 新規{syncResult.ClassInserted}件");
+                        }
+                        else
+                        {
+                            logger.LogWarning("マスタ同期で警告が発生: {Message}", syncResult.ErrorMessage);
+                            System.Console.WriteLine($"⚠️ マスタ同期で警告が発生しましたが、処理を継続します: {syncResult.ErrorMessage}");
+                        }
 
                         // 3. 商品勘定帳票を作成
                         System.Console.WriteLine("📋 商品勘定帳票生成中...");

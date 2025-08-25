@@ -11,6 +11,10 @@ public class CpInventoryMaster
     public string ProductCategory1 { get; set; } = string.Empty; // 商品分類1
     public string ProductCategory2 { get; set; } = string.Empty; // 商品分類2
     
+    // マスタ参照情報（商品勘定・在庫表で使用）
+    public string GradeName { get; set; } = string.Empty;        // 等級名
+    public string ClassName { get; set; } = string.Empty;        // 階級名
+    
     // 日付管理
     public DateTime JobDate { get; set; }                        // 汎用日付2（ジョブデート）
     public DateTime CreatedDate { get; set; }                    // 作成日
