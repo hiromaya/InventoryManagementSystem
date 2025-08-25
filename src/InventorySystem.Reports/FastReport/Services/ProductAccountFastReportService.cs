@@ -559,7 +559,22 @@ namespace InventorySystem.Reports.FastReport.Services
                     DepartmentCode = departmentCode 
                 });
                 
-                foreach (var model in results)
+                // デバッグログ: SQLクエリ実行直後
+                _logger.LogCritical("=== 商品勘定SQLクエリ結果確認 ===");
+                var resultsList = results.ToList();
+                if (resultsList.Any())
+                {
+                    var firstItem = resultsList.First();
+                    _logger.LogCritical($"1件目のデータ確認:");
+                    _logger.LogCritical($"  ProductCode: {firstItem.ProductCode}");
+                    _logger.LogCritical($"  GradeCode: {firstItem.GradeCode}");
+                    _logger.LogCritical($"  GradeName: '{firstItem.GradeName}'");  // 空文字確認のため''で囲む
+                    _logger.LogCritical($"  ClassCode: {firstItem.ClassCode}");
+                    _logger.LogCritical($"  ClassName: '{firstItem.ClassName}'");  // 空文字確認のため''で囲む
+                }
+                _logger.LogCritical($"取得件数: {resultsList.Count}");
+                
+                foreach (var model in resultsList)
                 {
                     // 担当者名を取得
                     if (!string.IsNullOrEmpty(model.ProductCategory1))
@@ -805,6 +820,27 @@ namespace InventorySystem.Reports.FastReport.Services
             var dataTable = CreateDataTable(reportData);
             report.RegisterData(dataTable, "ProductAccount");
             
+            // デバッグログ: FastReport登録直後
+            _logger.LogCritical("=== FastReport データ登録確認 ===");
+            var registeredData = report.GetDataSource("ProductAccount");
+            if (registeredData != null)
+            {
+                _logger.LogCritical($"登録されたデータソース行数: {registeredData.RowCount}");
+                
+                // データソースの列を確認
+                if (registeredData.Columns != null)
+                {
+                    _logger.LogCritical("利用可能な列:");
+                    foreach (DataColumn col in registeredData.Columns)
+                    {
+                        if (col.ColumnName.Contains("Grade") || col.ColumnName.Contains("Class"))
+                        {
+                            _logger.LogCritical($"  - {col.ColumnName} ({col.DataType.Name})");
+                        }
+                    }
+                }
+            }
+            
             // データソース検証と有効化
             var registeredDataSource = report.GetDataSource("ProductAccount");
             if (registeredDataSource != null)
@@ -1026,8 +1062,19 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("RowSequence", typeof(string));         // 表示順序
             
             // データ追加時のフォーマット処理
+            int debugCount = 0;
             foreach (var item in reportData)
             {
+                if (debugCount < 3)  // 最初の3件のみログ出力
+                {
+                    _logger.LogCritical($"=== DataTable追加データ {debugCount + 1} ===");
+                    _logger.LogCritical($"  GradeCode: {item.GradeCode}");
+                    _logger.LogCritical($"  GradeName: '{item.GradeName}'");
+                    _logger.LogCritical($"  ClassCode: {item.ClassCode}");
+                    _logger.LogCritical($"  ClassName: '{item.ClassName}'");
+                    debugCount++;
+                }
+                
                 var row = table.NewRow();
                 
                 // 担当者情報
@@ -1066,6 +1113,35 @@ namespace InventorySystem.Reports.FastReport.Services
             
             // デバッグログを追加
             _logger.LogInformation("CreateDataTable完了: {Count}件のデータを追加", table.Rows.Count);
+            
+            // デバッグログ: DataTable完成後
+            _logger.LogCritical("=== DataTable最終確認 ===");
+            _logger.LogCritical($"DataTable行数: {table.Rows.Count}");
+            if (table.Rows.Count > 0)
+            {
+                var firstRow = table.Rows[0];
+                _logger.LogCritical($"1行目のGradeName: '{firstRow["GradeName"]}'");
+                _logger.LogCritical($"1行目のClassName: '{firstRow["ClassName"]}'");
+                
+                // 空でないデータを探す
+                int nonEmptyCount = 0;
+                foreach (DataRow dr in table.Rows)
+                {
+                    if (!string.IsNullOrEmpty(dr["GradeName"]?.ToString()) || 
+                        !string.IsNullOrEmpty(dr["ClassName"]?.ToString()))
+                    {
+                        nonEmptyCount++;
+                        if (nonEmptyCount == 1)  // 最初の非空データのみログ
+                        {
+                            _logger.LogCritical($"非空データ発見:");
+                            _logger.LogCritical($"  行番号: {table.Rows.IndexOf(dr)}");
+                            _logger.LogCritical($"  GradeName: '{dr["GradeName"]}'");
+                            _logger.LogCritical($"  ClassName: '{dr["ClassName"]}'");
+                        }
+                    }
+                }
+                _logger.LogCritical($"GradeName/ClassNameが空でない行数: {nonEmptyCount}/{table.Rows.Count}");
+            }
             
             return table;
         }
