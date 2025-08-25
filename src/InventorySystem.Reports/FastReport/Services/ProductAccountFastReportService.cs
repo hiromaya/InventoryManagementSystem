@@ -375,6 +375,21 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             
             _logger.LogInformation("ストアドプロシージャから{Count}件のデータを取得", reportModels.Count);
+            
+            // デバッグログ: ストアドプロシージャデータ確認
+            _logger.LogCritical("=== ストアドプロシージャデータ確認 ===");
+            _logger.LogCritical($"取得件数: {reportModels.Count}");
+            if (reportModels.Count > 0)
+            {
+                var firstItem = reportModels.First();
+                _logger.LogCritical($"1件目のデータ確認:");
+                _logger.LogCritical($"  ProductCode: {firstItem.ProductCode}");
+                _logger.LogCritical($"  GradeCode: {firstItem.GradeCode}");
+                _logger.LogCritical($"  GradeName: '{firstItem.GradeName}'");
+                _logger.LogCritical($"  ClassCode: {firstItem.ClassCode}");
+                _logger.LogCritical($"  ClassName: '{firstItem.ClassName}'");
+            }
+            
             return reportModels;
         }
 
@@ -728,6 +743,35 @@ namespace InventorySystem.Reports.FastReport.Services
             // フラットデータをDataTableに変換
             var dataTable = CreateFlatDataTable(flatData);
             
+            // デバッグログ: フラットデータ版DataTable確認
+            _logger.LogCritical("=== フラットデータ版DataTable確認 ===");
+            _logger.LogCritical($"DataTable行数: {dataTable.Rows.Count}");
+            if (dataTable.Rows.Count > 0)
+            {
+                var firstRow = dataTable.Rows[0];
+                _logger.LogCritical($"1行目のGradeName: '{firstRow["GradeName"]}'");
+                _logger.LogCritical($"1行目のClassName: '{firstRow["ClassName"]}'");
+                
+                // 空でないデータを探す
+                int nonEmptyCount = 0;
+                foreach (DataRow dr in dataTable.Rows)
+                {
+                    if (!string.IsNullOrEmpty(dr["GradeName"]?.ToString()) || 
+                        !string.IsNullOrEmpty(dr["ClassName"]?.ToString()))
+                    {
+                        nonEmptyCount++;
+                        if (nonEmptyCount == 1)  // 最初の非空データのみログ
+                        {
+                            _logger.LogCritical($"非空データ発見:");
+                            _logger.LogCritical($"  行番号: {dataTable.Rows.IndexOf(dr)}");
+                            _logger.LogCritical($"  GradeName: '{dr["GradeName"]}'");
+                            _logger.LogCritical($"  ClassName: '{dr["ClassName"]}'");
+                        }
+                    }
+                }
+                _logger.LogCritical($"GradeName/ClassNameが空でない行数: {nonEmptyCount}/{dataTable.Rows.Count}");
+            }
+            
             // FastReportにデータソースを登録
             report.RegisterData(dataTable, "ProductAccount");
             
@@ -989,8 +1033,19 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("RowSequence", typeof(string));
             
             // データ追加
+            _logger.LogCritical("=== フラットデータ処理開始 ===");
+            _logger.LogCritical($"フラットデータ件数: {flatData.Count}");
+            int debugCount = 0;
             foreach (var item in flatData)
             {
+                if (debugCount < 3)  // 最初の3件のみログ出力
+                {
+                    _logger.LogCritical($"=== フラットデータ {debugCount + 1} ===");
+                    _logger.LogCritical($"  GradeName: '{item.GradeName}'");
+                    _logger.LogCritical($"  ClassName: '{item.ClassName}'");
+                    debugCount++;
+                }
+                
                 var row = table.NewRow();
                 
                 // 基本フィールド（既にフォーマット済み）
