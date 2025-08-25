@@ -404,9 +404,9 @@ namespace InventorySystem.Reports.FastReport.Services
                             cp.ShippingMarkName,
                             cp.ShippingMarkName as ManualShippingMark,
                             cp.GradeCode,
-                            ISNULL(g.GradeName, '') as GradeName,
+                            cp.GradeName,
                             cp.ClassCode,
-                            ISNULL(c.ClassName, '') as ClassName,
+                            cp.ClassName,
                             '' as VoucherNumber,
                             '' as VoucherType,
                             '前残' as DisplayCategory,
@@ -420,8 +420,6 @@ namespace InventorySystem.Reports.FastReport.Services
                             '' as CustomerSupplierName,
                             'Previous' as RecordType  -- 重要：前残高のRecordType
                         FROM CpInventoryMaster cp
-                        LEFT JOIN GradeMaster g ON cp.GradeCode = g.GradeCode
-                        LEFT JOIN ClassMaster c ON cp.ClassCode = c.ClassCode
                         WHERE cp.JobDate = @JobDate
                           AND (@DepartmentCode IS NULL OR cp.ProductCategory1 = @DepartmentCode)
                           AND cp.PreviousDayStock <> 0
@@ -437,9 +435,9 @@ namespace InventorySystem.Reports.FastReport.Services
                             s.ShippingMarkName,
                             s.ShippingMarkName as ManualShippingMark,
                             s.GradeCode,
-                            ISNULL(g.GradeName, '') as GradeName,
+                            ISNULL(cp.GradeName, '') as GradeName,
                             s.ClassCode,
-                            ISNULL(c.ClassName, '') as ClassName,
+                            ISNULL(cp.ClassName, '') as ClassName,
                             s.VoucherNumber,
                             s.VoucherType,  -- VoucherCategoryではない
                             CASE s.VoucherType
@@ -458,8 +456,12 @@ namespace InventorySystem.Reports.FastReport.Services
                             'Sales' as RecordType
                         FROM SalesVouchers s
                         LEFT JOIN ProductMaster pm ON s.ProductCode = pm.ProductCode
-                        LEFT JOIN GradeMaster g ON s.GradeCode = g.GradeCode
-                        LEFT JOIN ClassMaster c ON s.ClassCode = c.ClassCode
+                        LEFT JOIN CpInventoryMaster cp ON s.ProductCode = cp.ProductCode 
+                          AND s.GradeCode = cp.GradeCode 
+                          AND s.ClassCode = cp.ClassCode 
+                          AND s.ShippingMarkCode = cp.ShippingMarkCode 
+                          AND s.ShippingMarkName = cp.ShippingMarkName
+                          AND cp.JobDate = @JobDate
                         WHERE s.JobDate = @JobDate
                           AND s.DetailType = '1'
                           AND s.IsActive = 1
@@ -475,9 +477,9 @@ namespace InventorySystem.Reports.FastReport.Services
                             p.ShippingMarkName,
                             p.ShippingMarkName as ManualShippingMark,
                             p.GradeCode,
-                            ISNULL(g.GradeName, '') as GradeName,
+                            ISNULL(cp.GradeName, '') as GradeName,
                             p.ClassCode,
-                            ISNULL(c.ClassName, '') as ClassName,
+                            ISNULL(cp.ClassName, '') as ClassName,
                             p.VoucherNumber,
                             p.VoucherType,  -- VoucherCategoryではない
                             CASE p.VoucherType
@@ -496,8 +498,12 @@ namespace InventorySystem.Reports.FastReport.Services
                             'Purchase' as RecordType
                         FROM PurchaseVouchers p
                         LEFT JOIN ProductMaster pm ON p.ProductCode = pm.ProductCode
-                        LEFT JOIN GradeMaster g ON p.GradeCode = g.GradeCode
-                        LEFT JOIN ClassMaster c ON p.ClassCode = c.ClassCode
+                        LEFT JOIN CpInventoryMaster cp ON p.ProductCode = cp.ProductCode 
+                          AND p.GradeCode = cp.GradeCode 
+                          AND p.ClassCode = cp.ClassCode 
+                          AND p.ShippingMarkCode = cp.ShippingMarkCode 
+                          AND p.ShippingMarkName = cp.ShippingMarkName
+                          AND cp.JobDate = @JobDate
                         WHERE p.JobDate = @JobDate
                           AND p.DetailType = '1'
                           AND p.IsActive = 1
@@ -513,9 +519,9 @@ namespace InventorySystem.Reports.FastReport.Services
                             ia.ShippingMarkName,
                             ia.ShippingMarkName as ManualShippingMark,
                             ia.GradeCode,
-                            ISNULL(g.GradeName, '') as GradeName,
+                            ISNULL(cp.GradeName, '') as GradeName,
                             ia.ClassCode,
-                            ISNULL(c.ClassName, '') as ClassName,
+                            ISNULL(cp.ClassName, '') as ClassName,
                             ia.VoucherNumber,
                             ia.VoucherType,
                             CASE ia.CategoryCode
@@ -535,8 +541,12 @@ namespace InventorySystem.Reports.FastReport.Services
                             'Adjustment' as RecordType
                         FROM InventoryAdjustments ia
                         LEFT JOIN ProductMaster pm ON ia.ProductCode = pm.ProductCode
-                        LEFT JOIN GradeMaster g ON ia.GradeCode = g.GradeCode
-                        LEFT JOIN ClassMaster c ON ia.ClassCode = c.ClassCode
+                        LEFT JOIN CpInventoryMaster cp ON ia.ProductCode = cp.ProductCode 
+                          AND ia.GradeCode = cp.GradeCode 
+                          AND ia.ClassCode = cp.ClassCode 
+                          AND ia.ShippingMarkCode = cp.ShippingMarkCode 
+                          AND ia.ShippingMarkName = cp.ShippingMarkName
+                          AND cp.JobDate = @JobDate
                         WHERE ia.JobDate = @JobDate
                           AND ia.IsActive = 1
                     )

@@ -19,6 +19,7 @@ BEGIN
             ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
             ProductName, Unit, StandardPrice,
             ProductCategory1, ProductCategory2,
+            GradeName, ClassName,
             JobDate,
             CreatedDate, UpdatedDate,
             PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice,
@@ -45,20 +46,32 @@ BEGIN
             DepartmentCode
         )
         SELECT 
-            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
-            ProductName, Unit, StandardPrice,
+            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ShippingMarkName,
+            im.ProductName, im.Unit, im.StandardPrice,
             -- 特殊処理ルール: 荷印名による商品分類1の変更（ProductMasterなし）
             CASE 
-                WHEN LEFT(ShippingMarkName, 4) = '9aaa' THEN '8'
-                WHEN LEFT(ShippingMarkName, 4) = '1aaa' THEN '6'
-                WHEN LEFT(ShippingMarkName, 4) = '0999' THEN '6'
+                WHEN LEFT(im.ShippingMarkName, 4) = '9aaa' THEN '8'
+                WHEN LEFT(im.ShippingMarkName, 4) = '1aaa' THEN '6'
+                WHEN LEFT(im.ShippingMarkName, 4) = '0999' THEN '6'
                 ELSE '00'  -- デフォルト値
             END AS ProductCategory1,
             '00' AS ProductCategory2,  -- デフォルト値
-            JobDate,
+            ISNULL(gm.GradeName, 
+                CASE 
+                    WHEN im.GradeCode = '000' THEN '未分類'
+                    WHEN im.GradeCode IS NULL OR im.GradeCode = '' THEN ''
+                    ELSE 'Grade-' + im.GradeCode
+                END) AS GradeName,
+            ISNULL(cm.ClassName, 
+                CASE 
+                    WHEN im.ClassCode = '000' THEN '未分類'
+                    WHEN im.ClassCode IS NULL OR im.ClassCode = '' THEN ''
+                    ELSE 'Class-' + im.ClassCode
+                END) AS ClassName,
+            im.JobDate,
             GETDATE(), GETDATE(),
-            CurrentStock, CurrentStockAmount,
-            CASE WHEN CurrentStock = 0 THEN 0 ELSE CurrentStockAmount / CurrentStock END,
+            im.CurrentStock, im.CurrentStockAmount,
+            CASE WHEN im.CurrentStock = 0 THEN 0 ELSE im.CurrentStockAmount / im.CurrentStock END,
             0, 0, 0,
             '9',
             0, 0, 0, 0,
@@ -76,8 +89,10 @@ BEGIN
             0, 0,
             0, 0, 0,
             'DeptA'
-        FROM dbo.InventoryMaster
-        WHERE JobDate = @JobDate;
+        FROM dbo.InventoryMaster im
+        LEFT JOIN GradeMaster gm ON im.GradeCode = gm.GradeCode
+        LEFT JOIN ClassMaster cm ON im.ClassCode = cm.ClassCode
+        WHERE im.JobDate = @JobDate;
         
         -- 作成件数を返す
         SELECT @@ROWCOUNT AS CreatedCount;
