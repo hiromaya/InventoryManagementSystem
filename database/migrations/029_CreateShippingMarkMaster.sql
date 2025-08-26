@@ -11,7 +11,7 @@ BEGIN
     -- テーブル作成
     CREATE TABLE [dbo].[ShippingMarkMaster] (
         [ShippingMarkCode] NVARCHAR(15) NOT NULL,
-        [ManualShippingMark] NVARCHAR(100) NOT NULL,
+        [ShippingMarkName] NVARCHAR(100) NOT NULL,
         [SearchKana] NVARCHAR(100) NULL,
         [NumericValue1] DECIMAL(18,4) NULL,
         [NumericValue2] DECIMAL(18,4) NULL,
@@ -32,8 +32,8 @@ BEGIN
     );
 
     -- インデックス作成
-    CREATE NONCLUSTERED INDEX [IX_ShippingMarkMaster_ManualShippingMark] 
-    ON [dbo].[ShippingMarkMaster] ([ManualShippingMark]);
+    CREATE NONCLUSTERED INDEX [IX_ShippingMarkMaster_ShippingMarkName] 
+    ON [dbo].[ShippingMarkMaster] ([ShippingMarkName]);
     
     CREATE NONCLUSTERED INDEX [IX_ShippingMarkMaster_SearchKana] 
     ON [dbo].[ShippingMarkMaster] ([SearchKana]) 

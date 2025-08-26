@@ -135,14 +135,14 @@ public class InventoryKey
     /// <param name="gradeCode">等級コード（3桁に左0埋め）</param>
     /// <param name="classCode">階級コード（3桁に左0埋め）</param>
     /// <param name="shippingMarkCode">荷印コード（4桁に左0埋め）</param>
-    /// <param name="shippingMarkName">荷印名（8桁固定）</param>
-    public InventoryKey(string productCode, string gradeCode, string classCode, string shippingMarkCode, string shippingMarkName)
+    /// <param name="manualShippingMark">荷印名（8桁固定）</param>
+    public InventoryKey(string productCode, string gradeCode, string classCode, string shippingMarkCode, string manualShippingMark)
     {
         ProductCode = productCode ?? string.Empty;      // セッターで自動0埋め
         GradeCode = gradeCode ?? string.Empty;          // セッターで自動0埋め
         ClassCode = classCode ?? string.Empty;          // セッターで自動0埋め
         ShippingMarkCode = shippingMarkCode ?? string.Empty; // セッターで自動0埋め
-        ManualShippingMark = shippingMarkName ?? string.Empty; // セッターで自動8桁化
+        ManualShippingMark = manualShippingMark ?? string.Empty; // セッターで自動8桁化
     }
     
     /// <summary>

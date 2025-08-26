@@ -77,7 +77,7 @@ BEGIN
             -- 5項目キー
             im.ProductCode, im.GradeCode, im.ClassCode, 
             im.ShippingMarkCode, 
-            ISNULL(sm.ManualShippingMark, '荷' + im.ShippingMarkCode) as ManualShippingMark,  -- 荷印マスタ名
+            ISNULL(sm.ShippingMarkName, '荷' + im.ShippingMarkCode) as ManualShippingMark,  -- 荷印マスタ名
             im.ManualShippingMark as ManualShippingMark,  -- InventoryMasterの手入力値
             -- 管理項目
             im.ProductName, 

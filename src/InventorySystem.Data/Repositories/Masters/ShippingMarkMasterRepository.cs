@@ -28,7 +28,7 @@ public class ShippingMarkMasterRepository : IShippingMarkMasterRepository
         const string sql = @"
             SELECT 
                 ShippingMarkCode,
-                ManualShippingMark,
+                ShippingMarkName,
                 SearchKana,
                 NumericValue1, NumericValue2, NumericValue3, NumericValue4, NumericValue5,
                 DateValue1, DateValue2, DateValue3, DateValue4, DateValue5,
@@ -48,7 +48,7 @@ public class ShippingMarkMasterRepository : IShippingMarkMasterRepository
         const string sql = @"
             SELECT 
                 ShippingMarkCode,
-                ManualShippingMark,
+                ShippingMarkName,
                 SearchKana,
                 NumericValue1, NumericValue2, NumericValue3, NumericValue4, NumericValue5,
                 DateValue1, DateValue2, DateValue3, DateValue4, DateValue5,
@@ -71,7 +71,7 @@ public class ShippingMarkMasterRepository : IShippingMarkMasterRepository
             ON target.ShippingMarkCode = source.ShippingMarkCode
             WHEN MATCHED THEN
                 UPDATE SET 
-                    ManualShippingMark = @ManualShippingMark,
+                    ShippingMarkName = @ShippingMarkName,
                     SearchKana = @SearchKana,
                     NumericValue1 = @NumericValue1, NumericValue2 = @NumericValue2, 
                     NumericValue3 = @NumericValue3, NumericValue4 = @NumericValue4, 
@@ -84,12 +84,12 @@ public class ShippingMarkMasterRepository : IShippingMarkMasterRepository
                     TextValue5 = @TextValue5
             WHEN NOT MATCHED THEN
                 INSERT (
-                    ShippingMarkCode, ManualShippingMark, SearchKana,
+                    ShippingMarkCode, ShippingMarkName, SearchKana,
                     NumericValue1, NumericValue2, NumericValue3, NumericValue4, NumericValue5,
                     DateValue1, DateValue2, DateValue3, DateValue4, DateValue5,
                     TextValue1, TextValue2, TextValue3, TextValue4, TextValue5
                 ) VALUES (
-                    @ShippingMarkCode, @ManualShippingMark, @SearchKana,
+                    @ShippingMarkCode, @ShippingMarkName, @SearchKana,
                     @NumericValue1, @NumericValue2, @NumericValue3, @NumericValue4, @NumericValue5,
                     @DateValue1, @DateValue2, @DateValue3, @DateValue4, @DateValue5,
                     @TextValue1, @TextValue2, @TextValue3, @TextValue4, @TextValue5
@@ -119,7 +119,7 @@ public class ShippingMarkMasterRepository : IShippingMarkMasterRepository
             ON target.ShippingMarkCode = source.ShippingMarkCode
             WHEN MATCHED THEN
                 UPDATE SET 
-                    ManualShippingMark = @ManualShippingMark,
+                    ShippingMarkName = @ShippingMarkName,
                     SearchKana = @SearchKana,
                     NumericValue1 = @NumericValue1, NumericValue2 = @NumericValue2, 
                     NumericValue3 = @NumericValue3, NumericValue4 = @NumericValue4, 
@@ -132,12 +132,12 @@ public class ShippingMarkMasterRepository : IShippingMarkMasterRepository
                     TextValue5 = @TextValue5
             WHEN NOT MATCHED THEN
                 INSERT (
-                    ShippingMarkCode, ManualShippingMark, SearchKana,
+                    ShippingMarkCode, ShippingMarkName, SearchKana,
                     NumericValue1, NumericValue2, NumericValue3, NumericValue4, NumericValue5,
                     DateValue1, DateValue2, DateValue3, DateValue4, DateValue5,
                     TextValue1, TextValue2, TextValue3, TextValue4, TextValue5
                 ) VALUES (
-                    @ShippingMarkCode, @ManualShippingMark, @SearchKana,
+                    @ShippingMarkCode, @ShippingMarkName, @SearchKana,
                     @NumericValue1, @NumericValue2, @NumericValue3, @NumericValue4, @NumericValue5,
                     @DateValue1, @DateValue2, @DateValue3, @DateValue4, @DateValue5,
                     @TextValue1, @TextValue2, @TextValue3, @TextValue4, @TextValue5
