@@ -1534,7 +1534,6 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 商品情報列はすべて空
                 ProductName = "",
                 ManualShippingMark = "",
-                ManualShippingMark = "",
                 GradeName = "",
                 ClassName = "",
                 VoucherNumber = "",
@@ -1579,7 +1578,6 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // 商品情報列はすべて空
                 ProductName = "",
-                ManualShippingMark = "",
                 ManualShippingMark = "",
                 GradeName = "",
                 ClassName = "",
