@@ -68,7 +68,7 @@ BEGIN
             MonthlyProcessingQuantity, MonthlyProcessingAmount,
             MonthlyTransferQuantity, MonthlyTransferAmount,
             MonthlyGrossProfit, MonthlyWalkingAmount, MonthlyIncentiveAmount,
-            -- その他（CpInventoryMasterに存在する場合）
+            -- その他
             DepartmentCode
         )
         SELECT 
@@ -77,7 +77,7 @@ BEGIN
             im.GradeCode, 
             im.ClassCode, 
             im.ShippingMarkCode, 
-            im.ManualShippingMark,  -- ShippingMarkNameから変更済み
+            im.ManualShippingMark,
             -- 管理項目
             im.ProductName, 
             COALESCE(u.UnitName, im.Unit, '') AS Unit,
@@ -124,31 +124,31 @@ BEGIN
                 AND (@JobDate IS NULL OR im2.JobDate <= @JobDate)
                 AND im2.JobDate > im.JobDate
         )
-        -- 伝票に存在する5項目キーのみ（伝票テーブルが存在する場合）
+        -- 伝票に存在する5項目キーのみ
         AND EXISTS (
-            SELECT 1 FROM SalesSlips ss
-            WHERE (@JobDate IS NULL OR ss.SlipDate <= @JobDate) 
-            AND ss.ProductCode = im.ProductCode
-            AND ss.GradeCode = im.GradeCode
-            AND ss.ClassCode = im.ClassCode
-            AND ss.ShippingMarkCode = im.ShippingMarkCode
-            AND ss.ManualShippingMark = im.ManualShippingMark
+            SELECT 1 FROM SalesVouchers sv
+            WHERE (@JobDate IS NULL OR sv.VoucherDate <= @JobDate)  -- ← VoucherDateに修正
+            AND sv.ProductCode = im.ProductCode
+            AND sv.GradeCode = im.GradeCode
+            AND sv.ClassCode = im.ClassCode
+            AND sv.ShippingMarkCode = im.ShippingMarkCode
+            AND sv.ManualShippingMark = im.ManualShippingMark
             UNION
-            SELECT 1 FROM PurchaseSlips ps
-            WHERE (@JobDate IS NULL OR ps.SlipDate <= @JobDate)
-            AND ps.ProductCode = im.ProductCode
-            AND ps.GradeCode = im.GradeCode
-            AND ps.ClassCode = im.ClassCode
-            AND ps.ShippingMarkCode = im.ShippingMarkCode
-            AND ps.ManualShippingMark = im.ManualShippingMark
+            SELECT 1 FROM PurchaseVouchers pv
+            WHERE (@JobDate IS NULL OR pv.VoucherDate <= @JobDate)  -- ← VoucherDateに修正
+            AND pv.ProductCode = im.ProductCode
+            AND pv.GradeCode = im.GradeCode
+            AND pv.ClassCode = im.ClassCode
+            AND pv.ShippingMarkCode = im.ShippingMarkCode
+            AND pv.ManualShippingMark = im.ManualShippingMark
             UNION
-            SELECT 1 FROM OrderSlips os
-            WHERE (@JobDate IS NULL OR os.SlipDate <= @JobDate)
-            AND os.ProductCode = im.ProductCode
-            AND os.GradeCode = im.GradeCode
-            AND os.ClassCode = im.ClassCode
-            AND os.ShippingMarkCode = im.ShippingMarkCode
-            AND os.ManualShippingMark = im.ManualShippingMark
+            SELECT 1 FROM InventoryAdjustments ia
+            WHERE (@JobDate IS NULL OR ia.JobDate <= @JobDate)  -- ← JobDateに修正
+            AND ia.ProductCode = im.ProductCode
+            AND ia.GradeCode = im.GradeCode
+            AND ia.ClassCode = im.ClassCode
+            AND ia.ShippingMarkCode = im.ShippingMarkCode
+            AND ia.ManualShippingMark = im.ManualShippingMark
         );
         
         SET @CreatedCount = @@ROWCOUNT;
