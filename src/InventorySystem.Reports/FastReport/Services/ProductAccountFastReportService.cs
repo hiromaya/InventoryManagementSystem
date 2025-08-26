@@ -450,9 +450,9 @@ namespace InventorySystem.Reports.FastReport.Services
                             s.ShippingMarkName,
                             s.ShippingMarkName as ManualShippingMark,
                             s.GradeCode,
-                            ISNULL(cp.GradeName, '') as GradeName,
+                            cp.GradeName,
                             s.ClassCode,
-                            ISNULL(cp.ClassName, '') as ClassName,
+                            cp.ClassName,
                             s.VoucherNumber,
                             s.VoucherType,  -- VoucherCategoryではない
                             CASE s.VoucherType
@@ -492,9 +492,9 @@ namespace InventorySystem.Reports.FastReport.Services
                             p.ShippingMarkName,
                             p.ShippingMarkName as ManualShippingMark,
                             p.GradeCode,
-                            ISNULL(cp.GradeName, '') as GradeName,
+                            cp.GradeName,
                             p.ClassCode,
-                            ISNULL(cp.ClassName, '') as ClassName,
+                            cp.ClassName,
                             p.VoucherNumber,
                             p.VoucherType,  -- VoucherCategoryではない
                             CASE p.VoucherType
@@ -534,9 +534,9 @@ namespace InventorySystem.Reports.FastReport.Services
                             ia.ShippingMarkName,
                             ia.ShippingMarkName as ManualShippingMark,
                             ia.GradeCode,
-                            ISNULL(cp.GradeName, '') as GradeName,
+                            cp.GradeName,
                             ia.ClassCode,
-                            ISNULL(cp.ClassName, '') as ClassName,
+                            cp.ClassName,
                             ia.VoucherNumber,
                             ia.VoucherType,
                             CASE ia.CategoryCode
