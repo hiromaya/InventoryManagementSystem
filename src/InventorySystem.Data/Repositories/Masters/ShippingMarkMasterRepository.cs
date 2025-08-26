@@ -202,4 +202,27 @@ public class ShippingMarkMasterRepository : IShippingMarkMasterRepository
         using var connection = new SqlConnection(_connectionString);
         return await connection.ExecuteScalarAsync<int>(sql);
     }
+
+    /// <summary>
+    /// 荷印コードから荷印名を取得
+    /// </summary>
+    public async Task<string?> GetNameByCodeAsync(string shippingMarkCode)
+    {
+        if (string.IsNullOrWhiteSpace(shippingMarkCode))
+            return null;
+
+        const string sql = "SELECT ShippingMarkName FROM ShippingMarkMaster WHERE ShippingMarkCode = @ShippingMarkCode";
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var name = await connection.QueryFirstOrDefaultAsync<string>(sql, new { ShippingMarkCode = shippingMarkCode });
+            return name;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "荷印名の取得でエラーが発生しました。荷印コード: {Code}", shippingMarkCode);
+            return null;
+        }
+    }
 }

@@ -7,6 +7,7 @@ public class UnmatchItem
     public string CustomerName { get; set; } = string.Empty;     // 取引先名
     public InventoryKey Key { get; set; } = new();              // 在庫キー（商品コード、荷印コード等）
     public string ProductName { get; set; } = string.Empty;      // 商品名
+    public string ShippingMarkName { get; set; } = string.Empty; // 荷印名（表示用）
     public string GradeName { get; set; } = string.Empty;        // 等級名
     public string ClassName { get; set; } = string.Empty;        // 階級名
     public decimal Quantity { get; set; }                        // 数量

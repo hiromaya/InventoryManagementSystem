@@ -54,7 +54,7 @@
       <TextObject Name="Data4" Left="290" Width="45" Height="20" Text="[UnmatchItems.ProductCode]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data5" Left="335" Width="185" Height="20" Text="[UnmatchItems.ProductName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="Data6" Left="520" Width="35" Height="20" Text="[UnmatchItems.ShippingMarkCode]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="Data7" Left="555" Width="135" Height="20" Text="[UnmatchItems.ManualShippingMark]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
+      <TextObject Name="Data7" Left="555" Width="135" Height="20" Text="[UnmatchItems.ShippingMarkName]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="Data8" Left="690" Width="115" Height="20" Text="[UnmatchItems.ManualShippingMark]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 8pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="Data9" Left="805" Width="40" Height="20" Text="[UnmatchItems.GradeCode]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
       <TextObject Name="Data10" Left="845" Width="75" Height="20" Text="[UnmatchItems.GradeName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>

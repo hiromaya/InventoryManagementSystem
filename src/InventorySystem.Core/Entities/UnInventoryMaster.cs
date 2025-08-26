@@ -59,6 +59,11 @@ namespace InventorySystem.Core.Entities
             set => Key.ManualShippingMark = value;
         }
 
+        /// <summary>
+        /// 荷印名（荷印マスタから取得した表示用名称）
+        /// </summary>
+        public string ShippingMarkName { get; set; } = string.Empty;
+
         // DataSetIdプロパティを削除（使い捨てテーブル設計によりDataSetId管理を廃止）
 
         /// <summary>

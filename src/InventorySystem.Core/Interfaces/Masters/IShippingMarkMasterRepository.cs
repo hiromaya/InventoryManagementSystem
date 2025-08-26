@@ -41,4 +41,11 @@ public interface IShippingMarkMasterRepository
     /// 荷印マスタ数を取得
     /// </summary>
     Task<int> GetCountAsync();
+
+    /// <summary>
+    /// 荷印コードから荷印名を取得
+    /// </summary>
+    /// <param name="shippingMarkCode">荷印コード</param>
+    /// <returns>荷印名（存在しない場合はnull）</returns>
+    Task<string?> GetNameByCodeAsync(string shippingMarkCode);
 }

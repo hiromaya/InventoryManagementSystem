@@ -445,6 +445,8 @@ public class UnmatchListService : IUnmatchListService
                     sales.ProductCode, sales.GradeCode, sales.ClassCode, sales.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromSalesVoucher(sales, "", productCategory1);
+                // 荷印名を荷印マスタから取得して設定
+                unmatchItem.ShippingMarkName = await _shippingMarkMasterRepository.GetNameByCodeAsync(sales.ShippingMarkCode) ?? "";
                 // ★修正: AlertTypeとAlertType2を正しく設定
                 unmatchItem.AlertType = "在庫マスタ無";   // 左側：在庫マスタ無
                 // unmatchItem.AlertType2 = "該当無";     // 右側：該当無 ← 2025/7/29 コメントアウト（該当無アラート削除）
@@ -519,6 +521,8 @@ public class UnmatchListService : IUnmatchListService
                     purchase.ProductCode, purchase.GradeCode, purchase.ClassCode, purchase.ShippingMarkCode);
                 
                 var unmatchItem = UnmatchItem.FromPurchaseVoucher(purchase, "", productCategory1);
+                // 荷印名を荷印マスタから取得して設定
+                unmatchItem.ShippingMarkName = await _shippingMarkMasterRepository.GetNameByCodeAsync(purchase.ShippingMarkCode) ?? "";
                 // ★修正: AlertTypeとAlertType2を正しく設定
                 unmatchItem.AlertType = "在庫マスタ無";   // 左側：在庫マスタ無
                 // unmatchItem.AlertType2 = "該当無";     // 右側：該当無 ← 2025/7/29 コメントアウト（該当無アラート削除）
@@ -641,6 +645,8 @@ public class UnmatchListService : IUnmatchListService
                 // 単位コードで集計先を判定
                 string adjustmentType = GetAdjustmentType(adjustment.UnitCode);
                 var unmatchItem = UnmatchItem.FromInventoryAdjustment(adjustment, adjustmentType, productCategory1);
+                // 荷印名を荷印マスタから取得して設定
+                unmatchItem.ShippingMarkName = await _shippingMarkMasterRepository.GetNameByCodeAsync(adjustment.ShippingMarkCode) ?? "";
                 // ★修正: AlertTypeとAlertType2を正しく設定
                 unmatchItem.AlertType = "在庫マスタ無";   // 左側：在庫マスタ無
                 // unmatchItem.AlertType2 = "該当無";     // 右側：該当無 ← 2025/7/29 コメントアウト（該当無アラート削除）

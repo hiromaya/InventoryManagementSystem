@@ -25,11 +25,13 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
         const string sql = """
             INSERT INTO UnInventoryMaster (
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
+                ShippingMarkName,
                 PreviousDayStock, DailyStock, DailyFlag, JobDate,
                 CreatedDate, UpdatedDate
             )
             SELECT 
                 i.ProductCode, i.GradeCode, i.ClassCode, i.ShippingMarkCode, i.ManualShippingMark,
+                ISNULL(sm.ShippingMarkName, '') as ShippingMarkName,
                 ISNULL(i.PreviousMonthQuantity, 0),
                 0 as DailyStock,
                 '9' as DailyFlag,
@@ -37,6 +39,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 GETDATE(),
                 GETDATE()
             FROM InventoryMaster i
+            LEFT JOIN ShippingMarkMaster sm ON i.ShippingMarkCode = sm.ShippingMarkCode
             WHERE (@TargetDate IS NULL OR i.JobDate = @TargetDate)
                 -- ☆5項目主キー全てのマスタ存在チェックを追加☆
                 -- 1. 商品マスタ：必須チェック（'00000'以外は必ずマスタに存在する必要がある）
@@ -495,6 +498,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 ManualShippingMark = item.ManualShippingMark ?? string.Empty  // 8桁固定（正規化済み）
             },
             // DataSetIdプロパティを削除（使い捨てテーブル設計）
+            ShippingMarkName = item.ShippingMarkName ?? string.Empty,
             PreviousDayStock = item.PreviousDayStock ?? 0,
             DailyStock = item.DailyStock ?? 0,
             DailyFlag = dailyFlag,
