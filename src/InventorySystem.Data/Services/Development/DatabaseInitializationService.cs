@@ -105,12 +105,14 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "procedures/sp_MergeInitialInventory.sql",                              // 初期在庫マージ（最優先）
         "procedures/sp_UpdateOrCreateInventoryMasterCumulative.sql",            // 在庫マスタ累積更新
         "procedures/sp_MergeInventoryMasterCumulative.sql",                     // 累積在庫マージ
-        "procedures/sp_CreateCpInventoryFromInventoryMasterWithProductInfo.sql", // 商品情報付きCP在庫作成
-        "procedures/sp_CreateCpInventoryFromInventoryMasterCumulative.sql",     // CP在庫作成
         "procedures/sp_CreateProductLedgerData.sql",                            // 商品勘定帳票データ生成
         
         // === UN在庫マスタ作成（アンマッチチェック専用） ===
         "060_CreateUnInventoryMaster.sql",                                     // UN在庫マスタテーブル作成
+        
+        // === CP在庫マスタ・UN在庫マスタの名称カラム追加（ストアドプロシージャ作成前に必須） ===
+        "061_AddGradeClassNamesToCpInventoryMaster.sql",                       // CpInventoryMasterにGradeName/ClassName追加
+        "062_UpdateCpInventoryMasterNames.sql",                                // 既存データのGradeName/ClassName更新
         "063_AddShippingMarkNameToUnInventoryMaster.sql",                      // UN在庫マスタにShippingMarkNameカラム追加
         
         // === 営業日報テーブル作成（SE1担当） ===
@@ -125,7 +127,11 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         // "052_Phase3_MigrateDataAndSync.sql",       // データ移行と同期（05_create_master_tables.sqlで完了）
         // "053_Phase5_Cleanup.sql"                   // 古いカラムの削除（05_create_master_tables.sqlで完了）
         "050_Phase1_CheckCurrentSchema.sql",       // スキーマ確認のみ実行
-        "054_CreateJobExecutionLog.sql"            // ジョブ実行ログテーブル作成（DataSetIdManager用）
+        "054_CreateJobExecutionLog.sql",           // ジョブ実行ログテーブル作成（DataSetIdManager用）
+        
+        // === CP在庫マスタ依存ストアドプロシージャ（カラム追加後に作成） ===
+        "procedures/sp_CreateCpInventoryFromInventoryMasterWithProductInfo.sql", // 商品情報付きCP在庫作成
+        "procedures/sp_CreateCpInventoryFromInventoryMasterCumulative.sql"       // CP在庫作成
     };
     
     // 旧テーブル定義（後方互換性のため一時的に保持）
