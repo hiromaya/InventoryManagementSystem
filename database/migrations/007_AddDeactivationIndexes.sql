@@ -25,7 +25,7 @@ BEGIN TRY
     -- 実際に存在するカラムでインデックスを作成
     CREATE INDEX IX_InventoryMaster_Deactivation 
     ON InventoryMaster(IsActive, CurrentStock, UpdatedDate) 
-    INCLUDE (JobDate, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, DailyStock);
+    INCLUDE (JobDate, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, DailyStock);
     
     PRINT '✅ Index IX_InventoryMaster_Deactivation created successfully';
     
