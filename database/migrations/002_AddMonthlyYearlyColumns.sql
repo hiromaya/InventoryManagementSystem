@@ -5,13 +5,50 @@
 -- 目的: BusinessDailyReportテーブルに月計16項目・年計16項目を追加
 -- ====================================================================
 
--- USE文をコメントアウト（データベースを既に選択している場合は不要）
--- USE InventoryManagementDB;
--- GO
-
--- 現在のデータベース名を表示（確認用）
 PRINT '現在のデータベース: ' + DB_NAME();
 PRINT '';
+
+-- ====================================================================
+-- 0. BusinessDailyReportテーブルの存在確認と作成
+-- ====================================================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'BusinessDailyReport')
+BEGIN
+    CREATE TABLE BusinessDailyReport (
+        ClassificationCode NVARCHAR(3) NOT NULL PRIMARY KEY,
+        CustomerClassName NVARCHAR(100) NOT NULL DEFAULT '',
+        SupplierClassName NVARCHAR(100) NOT NULL DEFAULT '',
+        
+        -- 日計16項目（基本）
+        DailyCashSales DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCashSalesTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCreditSales DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailySalesDiscount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCreditSalesTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCashPurchase DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCashPurchaseTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCreditPurchase DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyPurchaseDiscount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCreditPurchaseTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCashReceipt DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyBankReceipt DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyOtherReceipt DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCashPayment DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyBankPayment DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyOtherPayment DECIMAL(18,2) NOT NULL DEFAULT 0,
+        
+        -- 管理項目
+        CreatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),
+        UpdatedDate DATETIME2 NOT NULL DEFAULT GETDATE()
+    );
+    
+    PRINT 'BusinessDailyReportテーブルを作成しました（日計項目のみ）';
+    PRINT '月計・年計カラムを追加します...';
+END
+ELSE
+BEGIN
+    PRINT 'BusinessDailyReportテーブルは既に存在します';
+END
+GO
 
 -- ====================================================================
 -- 1. 月計カラム追加（16項目）
