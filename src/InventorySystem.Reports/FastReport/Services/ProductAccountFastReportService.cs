@@ -278,21 +278,8 @@ namespace InventorySystem.Reports.FastReport.Services
 
             try
             {
-                // まずストアドプロシージャの実行を試行
-                try
-                {
-                    return ExecuteStoredProcedure(jobDate, departmentCode);
-                }
-                catch (SqlException sqlEx) when (sqlEx.Number == 2812)
-                {
-                    _logger.LogWarning("ストアドプロシージャ sp_CreateProductLedgerData が見つかりません。直接データ取得にフォールバックします。");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "ストアドプロシージャ実行エラー。直接データ取得にフォールバックします。");
-                }
-
-                // 直接データ取得にフォールバック
+                _logger.LogCritical("=== GetReportDataDirectly メソッド使用（修正版） ===");
+                // 直接データ取得を優先使用（等級名・階級名修正版）
                 return GetReportDataDirectly(jobDate, departmentCode);
             }
             catch (Exception ex)
@@ -307,6 +294,7 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private IEnumerable<ProductAccountReportModel> ExecuteStoredProcedure(DateTime jobDate, string? departmentCode)
         {
+            _logger.LogCritical("=== ExecuteStoredProcedure メソッド実行中（非推奨） ===");
             var reportModels = new List<ProductAccountReportModel>();
             
             using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
@@ -398,6 +386,7 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private IEnumerable<ProductAccountReportModel> GetReportDataDirectly(DateTime jobDate, string? departmentCode)
         {
+            _logger.LogCritical("=== GetReportDataDirectly メソッド実行中（修正版） ===");
             _logger.LogInformation("直接データ取得モードで商品勘定データを準備します");
             
             var reportModels = new List<ProductAccountReportModel>();
@@ -419,9 +408,19 @@ namespace InventorySystem.Reports.FastReport.Services
                             cp.ShippingMarkName,
                             cp.ShippingMarkName as ManualShippingMark,
                             cp.GradeCode,
-                            cp.GradeName,
+                            ISNULL(cp.GradeName, 
+                                CASE 
+                                    WHEN cp.GradeCode = '000' THEN '未分類'
+                                    WHEN cp.GradeCode IS NULL OR cp.GradeCode = '' THEN ''
+                                    ELSE 'Grade-' + cp.GradeCode
+                                END) as GradeName,
                             cp.ClassCode,
-                            cp.ClassName,
+                            ISNULL(cp.ClassName, 
+                                CASE 
+                                    WHEN cp.ClassCode = '000' THEN '未分類'
+                                    WHEN cp.ClassCode IS NULL OR cp.ClassCode = '' THEN ''
+                                    ELSE 'Class-' + cp.ClassCode
+                                END) as ClassName,
                             '' as VoucherNumber,
                             '' as VoucherType,
                             '前残' as DisplayCategory,
@@ -450,9 +449,19 @@ namespace InventorySystem.Reports.FastReport.Services
                             s.ShippingMarkName,
                             s.ShippingMarkName as ManualShippingMark,
                             s.GradeCode,
-                            cp.GradeName,
+                            ISNULL(cp.GradeName, 
+                                CASE 
+                                    WHEN s.GradeCode = '000' THEN '未分類'
+                                    WHEN s.GradeCode IS NULL OR s.GradeCode = '' THEN ''
+                                    ELSE 'Grade-' + s.GradeCode
+                                END) as GradeName,
                             s.ClassCode,
-                            cp.ClassName,
+                            ISNULL(cp.ClassName, 
+                                CASE 
+                                    WHEN s.ClassCode = '000' THEN '未分類'
+                                    WHEN s.ClassCode IS NULL OR s.ClassCode = '' THEN ''
+                                    ELSE 'Class-' + s.ClassCode
+                                END) as ClassName,
                             s.VoucherNumber,
                             s.VoucherType,  -- VoucherCategoryではない
                             CASE s.VoucherType
@@ -492,9 +501,19 @@ namespace InventorySystem.Reports.FastReport.Services
                             p.ShippingMarkName,
                             p.ShippingMarkName as ManualShippingMark,
                             p.GradeCode,
-                            cp.GradeName,
+                            ISNULL(cp.GradeName, 
+                                CASE 
+                                    WHEN p.GradeCode = '000' THEN '未分類'
+                                    WHEN p.GradeCode IS NULL OR p.GradeCode = '' THEN ''
+                                    ELSE 'Grade-' + p.GradeCode
+                                END) as GradeName,
                             p.ClassCode,
-                            cp.ClassName,
+                            ISNULL(cp.ClassName, 
+                                CASE 
+                                    WHEN p.ClassCode = '000' THEN '未分類'
+                                    WHEN p.ClassCode IS NULL OR p.ClassCode = '' THEN ''
+                                    ELSE 'Class-' + p.ClassCode
+                                END) as ClassName,
                             p.VoucherNumber,
                             p.VoucherType,  -- VoucherCategoryではない
                             CASE p.VoucherType
@@ -534,9 +553,19 @@ namespace InventorySystem.Reports.FastReport.Services
                             ia.ShippingMarkName,
                             ia.ShippingMarkName as ManualShippingMark,
                             ia.GradeCode,
-                            cp.GradeName,
+                            ISNULL(cp.GradeName, 
+                                CASE 
+                                    WHEN ia.GradeCode = '000' THEN '未分類'
+                                    WHEN ia.GradeCode IS NULL OR ia.GradeCode = '' THEN ''
+                                    ELSE 'Grade-' + ia.GradeCode
+                                END) as GradeName,
                             ia.ClassCode,
-                            cp.ClassName,
+                            ISNULL(cp.ClassName, 
+                                CASE 
+                                    WHEN ia.ClassCode = '000' THEN '未分類'
+                                    WHEN ia.ClassCode IS NULL OR ia.ClassCode = '' THEN ''
+                                    ELSE 'Class-' + ia.ClassCode
+                                END) as ClassName,
                             ia.VoucherNumber,
                             ia.VoucherType,
                             CASE ia.CategoryCode
