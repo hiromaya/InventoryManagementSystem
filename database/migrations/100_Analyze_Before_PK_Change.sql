@@ -47,11 +47,11 @@ WITH DuplicateKeys AS (
         GradeCode, 
         ClassCode, 
         ShippingMarkCode, 
-        ShippingMarkName,
+        ManualShippingMark,
         COUNT(DISTINCT JobDate) as JobDateCount,
         COUNT(*) as RecordCount
     FROM InventoryMaster
-    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
     HAVING COUNT(*) > 1
 )
 SELECT 
@@ -69,13 +69,13 @@ SELECT TOP 20
     GradeCode, 
     ClassCode, 
     ShippingMarkCode, 
-    LEFT(ShippingMarkName, 20) as ShippingMarkName_Short,
+    LEFT(ManualShippingMark, 20) as ManualShippingMark_Short,
     COUNT(DISTINCT JobDate) as JobDateCount,
     MIN(JobDate) as MinJobDate,
     MAX(JobDate) as MaxJobDate,
     COUNT(*) as RecordCount
 FROM InventoryMaster
-GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
 HAVING COUNT(*) > 1
 ORDER BY COUNT(*) DESC, ProductCode;
 
@@ -93,9 +93,9 @@ WITH DuplicateSample AS (
         GradeCode, 
         ClassCode, 
         ShippingMarkCode, 
-        ShippingMarkName
+        ManualShippingMark
     FROM InventoryMaster
-    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
     HAVING COUNT(*) > 1
 )
 SELECT 
@@ -111,7 +111,7 @@ INNER JOIN DuplicateSample ds
     AND im.GradeCode = ds.GradeCode
     AND im.ClassCode = ds.ClassCode
     AND im.ShippingMarkCode = ds.ShippingMarkCode
-    AND im.ShippingMarkName = ds.ShippingMarkName
+    AND im.ManualShippingMark = ds.ManualShippingMark
 ORDER BY im.ProductCode, im.JobDate;
 
 IF @@ROWCOUNT = 0
@@ -128,10 +128,10 @@ WITH LatestJobDates AS (
         GradeCode, 
         ClassCode, 
         ShippingMarkCode, 
-        ShippingMarkName,
+        ManualShippingMark,
         MAX(JobDate) as LatestJobDate
     FROM InventoryMaster
-    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
 )
 SELECT 
     LatestJobDate,
@@ -147,13 +147,13 @@ SELECT
     'Current' as Status,
     COUNT(*) as RecordCount,
     ISNULL(SUM(DATALENGTH(ProductCode) + DATALENGTH(GradeCode) + DATALENGTH(ClassCode) + 
-        DATALENGTH(ShippingMarkCode) + DATALENGTH(ShippingMarkName)) / 1024.0 / 1024.0, 0) as EstimatedSizeMB
+        DATALENGTH(ShippingMarkCode) + DATALENGTH(ManualShippingMark)) / 1024.0 / 1024.0, 0) as EstimatedSizeMB
 FROM InventoryMaster
 UNION ALL
 SELECT 
     'After PK Change' as Status,
     COUNT(DISTINCT ProductCode + '|' + GradeCode + '|' + ClassCode + '|' + 
-           ShippingMarkCode + '|' + ShippingMarkName) as RecordCount,
+           ShippingMarkCode + '|' + ManualShippingMark) as RecordCount,
     NULL as EstimatedSizeMB
 FROM InventoryMaster;
 PRINT '';
@@ -215,13 +215,13 @@ DECLARE @MaxDuplicates INT;
 
 SELECT @TotalRecords = COUNT(*) FROM InventoryMaster;
 SELECT @UniqueKeys = COUNT(DISTINCT ProductCode + '|' + GradeCode + '|' + ClassCode + '|' + 
-                            ShippingMarkCode + '|' + ShippingMarkName) FROM InventoryMaster;
+                            ShippingMarkCode + '|' + ManualShippingMark) FROM InventoryMaster;
 SET @DuplicateKeys = @TotalRecords - @UniqueKeys;
 
 SELECT @MaxDuplicates = ISNULL(MAX(cnt), 0) FROM (
     SELECT COUNT(*) as cnt
     FROM InventoryMaster
-    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
 ) t;
 
 PRINT '- 総レコード数: ' + CAST(@TotalRecords as VARCHAR(20));
@@ -251,7 +251,7 @@ PRINT '【参考】テストデータ投入サンプル：';
 PRINT '/*';
 PRINT '-- サンプルデータ投入（同じ5項目キーで異なるJobDateのデータ）';
 PRINT 'INSERT INTO InventoryMaster (';
-PRINT '    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, JobDate,';
+PRINT '    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, JobDate,';
 PRINT '    PreviousStock, PreviousAmount, CurrentStock, CurrentStockAmount,';
 PRINT '    DailyStock, DailyStockAmount, ProductName, ProductCategory1';
 PRINT ') VALUES';
