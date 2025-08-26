@@ -14,7 +14,7 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_InventoryMaster_JobDat
 BEGIN
     CREATE NONCLUSTERED INDEX IX_InventoryMaster_JobDate
     ON InventoryMaster (JobDate)
-    INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, DailyFlag);
+    INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, DailyFlag);
 END
 GO
 
@@ -23,7 +23,7 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_InventoryMaster_JobDat
 BEGIN
     CREATE NONCLUSTERED INDEX IX_InventoryMaster_JobDate_DailyFlag
     ON InventoryMaster (JobDate, DailyFlag)
-    INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+    INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
 END
 GO
 
@@ -53,7 +53,7 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_SalesVoucher_JobDate')
 BEGIN
     CREATE NONCLUSTERED INDEX IX_SalesVoucher_JobDate
     ON SalesVoucher (JobDate)
-    INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, Quantity, SalesUnitPrice, InventoryUnitPrice);
+    INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, Quantity, SalesUnitPrice, InventoryUnitPrice);
 END
 GO
 
@@ -61,7 +61,7 @@ GO
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_SalesVoucher_InventoryKey')
 BEGIN
     CREATE NONCLUSTERED INDEX IX_SalesVoucher_InventoryKey
-    ON SalesVoucher (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, JobDate);
+    ON SalesVoucher (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, JobDate);
 END
 GO
 
@@ -82,7 +82,7 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_PurchaseVoucher_JobDat
 BEGIN
     CREATE NONCLUSTERED INDEX IX_PurchaseVoucher_JobDate
     ON PurchaseVoucher (JobDate)
-    INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, Quantity, PurchaseUnitPrice);
+    INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, Quantity, PurchaseUnitPrice);
 END
 GO
 
@@ -90,7 +90,7 @@ GO
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_PurchaseVoucher_InventoryKey')
 BEGIN
     CREATE NONCLUSTERED INDEX IX_PurchaseVoucher_InventoryKey
-    ON PurchaseVoucher (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, JobDate);
+    ON PurchaseVoucher (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, JobDate);
 END
 GO
 

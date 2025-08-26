@@ -30,7 +30,7 @@ BEGIN
         -- 在庫マスタから伝票に関連する商品をCP在庫マスタに挿入
         INSERT INTO CpInventoryMaster (
             -- 5項目キー
-            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
             ManualShippingMark,  -- 手入力荷印（追加）
             -- 管理項目
             ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
@@ -77,7 +77,7 @@ BEGIN
             -- 5項目キー
             im.ProductCode, im.GradeCode, im.ClassCode, 
             im.ShippingMarkCode, 
-            ISNULL(sm.ShippingMarkName, '荷' + im.ShippingMarkCode) as ShippingMarkName,  -- 荷印マスタ名
+            ISNULL(sm.ManualShippingMark, '荷' + im.ShippingMarkCode) as ManualShippingMark,  -- 荷印マスタ名
             im.ManualShippingMark as ManualShippingMark,  -- InventoryMasterの手入力値
             -- 管理項目
             im.ProductName, 
@@ -138,7 +138,7 @@ BEGIN
             AND sv.GradeCode = im.GradeCode
             AND sv.ClassCode = im.ClassCode
             AND sv.ShippingMarkCode = im.ShippingMarkCode
-            AND sv.ShippingMarkName = im.ManualShippingMark
+            AND sv.ManualShippingMark = im.ManualShippingMark
             UNION
             SELECT 1 FROM PurchaseVouchers pv
             WHERE (@JobDate IS NULL OR pv.JobDate <= @JobDate)
@@ -146,7 +146,7 @@ BEGIN
             AND pv.GradeCode = im.GradeCode
             AND pv.ClassCode = im.ClassCode
             AND pv.ShippingMarkCode = im.ShippingMarkCode
-            AND pv.ShippingMarkName = im.ManualShippingMark
+            AND pv.ManualShippingMark = im.ManualShippingMark
             UNION
             SELECT 1 FROM InventoryAdjustments ia
             WHERE (@JobDate IS NULL OR ia.JobDate <= @JobDate)
@@ -154,7 +154,7 @@ BEGIN
             AND ia.GradeCode = im.GradeCode
             AND ia.ClassCode = im.ClassCode
             AND ia.ShippingMarkCode = im.ShippingMarkCode
-            AND ia.ShippingMarkName = im.ManualShippingMark
+            AND ia.ManualShippingMark = im.ManualShippingMark
         );
         
         SET @CreatedCount = @@ROWCOUNT;

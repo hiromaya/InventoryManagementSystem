@@ -57,7 +57,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,        -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,        -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL, -- 荷印コード
-        ShippingMarkName NVARCHAR(50) NOT NULL, -- 荷印名
+        ManualShippingMark NVARCHAR(50) NOT NULL, -- 荷印名
         Quantity DECIMAL(13,4) NOT NULL,        -- 数量
         UnitPrice DECIMAL(16,4) NOT NULL,       -- 単価
         Amount DECIMAL(16,4) NOT NULL,          -- 金額
@@ -81,7 +81,7 @@ BEGIN
     CREATE INDEX IX_SalesVouchers_VoucherNumber ON SalesVouchers(VoucherNumber);
     CREATE INDEX IX_SalesVouchers_CustomerCode ON SalesVouchers(CustomerCode);
     CREATE INDEX IX_SalesVouchers_ProductCategory1 ON SalesVouchers(ProductCategory1);
-    CREATE INDEX IX_SalesVouchers_InventoryKey ON SalesVouchers(ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+    CREATE INDEX IX_SalesVouchers_InventoryKey ON SalesVouchers(ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
     CREATE INDEX IX_SalesVouchers_VoucherType ON SalesVouchers(VoucherType, DetailType);
     
     PRINT 'SalesVouchers テーブルを作成しました。';
@@ -112,7 +112,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,        -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,        -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL, -- 荷印コード
-        ShippingMarkName NVARCHAR(50) NOT NULL, -- 荷印名
+        ManualShippingMark NVARCHAR(50) NOT NULL, -- 荷印名
         Quantity DECIMAL(13,4) NOT NULL,        -- 数量
         UnitPrice DECIMAL(16,4) NOT NULL,       -- 単価
         Amount DECIMAL(16,4) NOT NULL,          -- 金額
@@ -135,7 +135,7 @@ BEGIN
     CREATE INDEX IX_PurchaseVouchers_VoucherNumber ON PurchaseVouchers(VoucherNumber);
     CREATE INDEX IX_PurchaseVouchers_SupplierCode ON PurchaseVouchers(SupplierCode);
     CREATE INDEX IX_PurchaseVouchers_ProductCategory1 ON PurchaseVouchers(ProductCategory1);
-    CREATE INDEX IX_PurchaseVouchers_InventoryKey ON PurchaseVouchers(ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+    CREATE INDEX IX_PurchaseVouchers_InventoryKey ON PurchaseVouchers(ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
     CREATE INDEX IX_PurchaseVouchers_VoucherType ON PurchaseVouchers(VoucherType, DetailType);
     
     PRINT 'PurchaseVouchers テーブルを作成しました。';
@@ -164,7 +164,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,        -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,        -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL, -- 荷印コード
-        ShippingMarkName NVARCHAR(50) NOT NULL, -- 荷印名
+        ManualShippingMark NVARCHAR(50) NOT NULL, -- 荷印名
         Quantity DECIMAL(13,4) NOT NULL,        -- 数量
         UnitPrice DECIMAL(16,4) NOT NULL,       -- 単価
         Amount DECIMAL(16,4) NOT NULL,          -- 金額
@@ -187,7 +187,7 @@ BEGIN
     CREATE INDEX IX_InventoryAdjustments_VoucherNumber ON InventoryAdjustments(VoucherNumber);
     CREATE INDEX IX_InventoryAdjustments_UnitCode ON InventoryAdjustments(UnitCode);
     CREATE INDEX IX_InventoryAdjustments_ProductCategory1 ON InventoryAdjustments(ProductCategory1);
-    CREATE INDEX IX_InventoryAdjustments_InventoryKey ON InventoryAdjustments(ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+    CREATE INDEX IX_InventoryAdjustments_InventoryKey ON InventoryAdjustments(ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
     
     PRINT 'InventoryAdjustments テーブルを作成しました。';
 END

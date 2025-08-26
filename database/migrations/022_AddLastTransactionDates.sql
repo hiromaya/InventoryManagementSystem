@@ -26,7 +26,7 @@ SET LastSalesDate = (
       AND GradeCode = InventoryMaster.GradeCode
       AND ClassCode = InventoryMaster.ClassCode
       AND ShippingMarkCode = InventoryMaster.ShippingMarkCode
-      AND ShippingMarkName = InventoryMaster.ShippingMarkName
+      AND ManualShippingMark = InventoryMaster.ManualShippingMark
 )
 WHERE LastSalesDate IS NULL
   AND EXISTS (
@@ -36,7 +36,7 @@ WHERE LastSalesDate IS NULL
       AND GradeCode = InventoryMaster.GradeCode
       AND ClassCode = InventoryMaster.ClassCode
       AND ShippingMarkCode = InventoryMaster.ShippingMarkCode
-      AND ShippingMarkName = InventoryMaster.ShippingMarkName
+      AND ManualShippingMark = InventoryMaster.ManualShippingMark
   );
 PRINT '売上伝票データ更新完了: ' + CAST(@@ROWCOUNT AS NVARCHAR(10)) + '件';
 
@@ -52,7 +52,7 @@ SET LastPurchaseDate = (
       AND GradeCode = InventoryMaster.GradeCode
       AND ClassCode = InventoryMaster.ClassCode
       AND ShippingMarkCode = InventoryMaster.ShippingMarkCode
-      AND ShippingMarkName = InventoryMaster.ShippingMarkName
+      AND ManualShippingMark = InventoryMaster.ManualShippingMark
 )
 WHERE LastPurchaseDate IS NULL
   AND EXISTS (
@@ -62,7 +62,7 @@ WHERE LastPurchaseDate IS NULL
       AND GradeCode = InventoryMaster.GradeCode
       AND ClassCode = InventoryMaster.ClassCode
       AND ShippingMarkCode = InventoryMaster.ShippingMarkCode
-      AND ShippingMarkName = InventoryMaster.ShippingMarkName
+      AND ManualShippingMark = InventoryMaster.ManualShippingMark
   );
 PRINT '仕入伝票データ更新完了: ' + CAST(@@ROWCOUNT AS NVARCHAR(10)) + '件';
 

@@ -1,7 +1,7 @@
 -- =============================================
 -- 在庫マスタ重複レコードクリーンアップ
 -- 作成日: 2025-07-10
--- 説明: ShippingMarkName正規化不足による重複レコードを削除
+-- 説明: ManualShippingMark正規化不足による重複レコードを削除
 -- =============================================
 
 USE InventoryManagementDB;
@@ -13,7 +13,7 @@ SELECT
     GradeCode, 
     ClassCode, 
     ShippingMarkCode, 
-    LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as NormalizedShippingMarkName,
+    LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8) as NormalizedManualShippingMark,
     COUNT(*) as RecordCount
 FROM InventoryMaster
 GROUP BY 
@@ -21,7 +21,7 @@ GROUP BY
     GradeCode, 
     ClassCode, 
     ShippingMarkCode, 
-    LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
+    LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8)
 HAVING COUNT(*) > 1
 ORDER BY RecordCount DESC;
 
@@ -34,7 +34,7 @@ WITH DuplicateRecords AS (
                 GradeCode, 
                 ClassCode, 
                 ShippingMarkCode, 
-                LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
+                LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8)
             ORDER BY 
                 JobDate DESC, 
                 UpdatedDate DESC,
@@ -50,7 +50,7 @@ WHERE EXISTS (
       AND dr.GradeCode = InventoryMaster.GradeCode
       AND dr.ClassCode = InventoryMaster.ClassCode
       AND dr.ShippingMarkCode = InventoryMaster.ShippingMarkCode
-      AND dr.ShippingMarkName = InventoryMaster.ShippingMarkName
+      AND dr.ManualShippingMark = InventoryMaster.ManualShippingMark
       AND dr.JobDate = InventoryMaster.JobDate
       AND dr.CreatedDate = InventoryMaster.CreatedDate
       AND dr.rn > 1
@@ -60,7 +60,7 @@ WHERE EXISTS (
 SELECT 
     '削除後の重複チェック' as CheckResult,
     COUNT(*) as TotalRecords,
-    COUNT(DISTINCT CONCAT(ProductCode, GradeCode, ClassCode, ShippingMarkCode, LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8))) as UniqueKeys
+    COUNT(DISTINCT CONCAT(ProductCode, GradeCode, ClassCode, ShippingMarkCode, LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8))) as UniqueKeys
 FROM InventoryMaster;
 
 PRINT N'重複レコードのクリーンアップが完了しました。';

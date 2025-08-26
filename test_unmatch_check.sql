@@ -16,7 +16,7 @@ SELECT
     GradeCode,
     ClassCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     Quantity,
     DataSetId
 FROM SalesVouchers 
@@ -34,7 +34,7 @@ SELECT
     GradeCode,
     ClassCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     CurrentStock,
     JobDate,
     DataSetId
@@ -57,7 +57,7 @@ BEGIN
         GradeCode,
         ClassCode,
         ShippingMarkCode,
-        ShippingMarkName,
+        ManualShippingMark,
         PreviousDayStock,
         DailyStock,
         JobDate,
@@ -74,7 +74,7 @@ BEGIN
         GradeCode,
         ClassCode,
         ShippingMarkCode,
-        ShippingMarkName,
+        ManualShippingMark,
         PreviousDayStock,
         DailyStock,
         JobDate,

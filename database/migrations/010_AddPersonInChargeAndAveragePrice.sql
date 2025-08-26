@@ -55,7 +55,7 @@ IF NOT EXISTS (
 BEGIN
     CREATE INDEX IX_InventoryMaster_PersonInChargeCode 
     ON dbo.InventoryMaster (PersonInChargeCode)
-    INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+    INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
     
     PRINT 'IX_InventoryMaster_PersonInChargeCodeインデックスを作成しました。';
 END

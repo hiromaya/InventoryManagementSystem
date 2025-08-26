@@ -16,7 +16,7 @@ BEGIN
         [GradeCode] [nvarchar](3) NOT NULL,
         [ClassCode] [nvarchar](3) NOT NULL,
         [ShippingMarkCode] [nvarchar](4) NOT NULL,
-        [ShippingMarkName] [nvarchar](8) NOT NULL,
+        [ManualShippingMark] [nvarchar](8) NOT NULL,
         [ProductName] [nvarchar](50) NULL,
         [Quantity] [decimal](18, 2) NOT NULL DEFAULT (0),
         [Amount] [decimal](18, 2) NOT NULL DEFAULT (0),
@@ -59,7 +59,7 @@ BEGIN
         [GradeCode] ASC,
         [ClassCode] ASC,
         [ShippingMarkCode] ASC,
-        [ShippingMarkName] ASC
+        [ManualShippingMark] ASC
     )
     INCLUDE ([Quantity], [Amount], [UnitPrice], [UpdatedDate])
     WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
@@ -82,7 +82,7 @@ BEGIN
         [GradeCode] ASC,
         [ClassCode] ASC,
         [ShippingMarkCode] ASC,
-        [ShippingMarkName] ASC
+        [ManualShippingMark] ASC
     )
     INCLUDE ([JobDate], [DataSetId], [DailyStock], [DailyStockAmount])
     WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)

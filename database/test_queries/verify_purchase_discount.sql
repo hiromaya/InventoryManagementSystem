@@ -30,13 +30,13 @@ PRINT '2. 商品15020の詳細確認';
 PRINT '======================';
 
 SELECT 
-    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     DailyPurchaseDiscountAmount as 仕入値引,
     DailyDiscountAmount as 歩引額,
     JobDate
 FROM CpInventoryMaster
 WHERE ProductCode = '15020' AND JobDate = '2025-06-02'
-ORDER BY GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName;
+ORDER BY GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark;
 
 PRINT '';
 
@@ -58,7 +58,7 @@ LEFT JOIN CpInventoryMaster cp
     AND cp.GradeCode = pv.GradeCode
     AND cp.ClassCode = pv.ClassCode
     AND cp.ShippingMarkCode = pv.ShippingMarkCode
-    AND cp.ShippingMarkName = pv.ShippingMarkName
+    AND cp.ManualShippingMark = pv.ManualShippingMark
     AND cp.JobDate = pv.JobDate
 WHERE pv.JobDate = '2025-06-02' AND pv.DetailType = '3'
 GROUP BY pv.ProductCode
@@ -114,7 +114,7 @@ BEGIN
     
     -- 異常データの詳細表示
     SELECT TOP 10
-        ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+        ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
         DailyPurchaseDiscountAmount as 仕入値引,
         DailyDiscountAmount as 歩引額,
         CASE 
@@ -155,12 +155,12 @@ PRINT '=====================';
 
 -- 15020の全明細
 SELECT 
-    ProductCode + '_' + GradeCode + '_' + ClassCode + '_' + ShippingMarkCode + '_' + ShippingMarkName as 複合キー,
+    ProductCode + '_' + GradeCode + '_' + ClassCode + '_' + ShippingMarkCode + '_' + ManualShippingMark as 複合キー,
     DailyPurchaseDiscountAmount as 仕入値引,
     DailyDiscountAmount as 歩引額
 FROM CpInventoryMaster
 WHERE ProductCode = '15020' AND JobDate = '2025-06-02'
-ORDER BY GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName;
+ORDER BY GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark;
 
 -- 15020の合計額
 SELECT 

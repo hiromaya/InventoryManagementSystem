@@ -14,7 +14,7 @@ SELECT
     GradeCode,
     ClassCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     PreviousMonthQuantity,
     PreviousMonthAmount,
     CurrentStock,
@@ -62,7 +62,7 @@ GROUP BY UnmatchType;
 SELECT 
     JobDate,
     COUNT(*) as レコード数,
-    COUNT(DISTINCT ProductCode + GradeCode + ClassCode + ShippingMarkCode + ShippingMarkName) as ユニークキー数
+    COUNT(DISTINCT ProductCode + GradeCode + ClassCode + ShippingMarkCode + ManualShippingMark) as ユニークキー数
 FROM InventoryMaster
 GROUP BY JobDate
 ORDER BY JobDate DESC;

@@ -87,7 +87,7 @@ namespace InventorySystem.Core.Services
                     GradeCode,
                     ClassCode,
                     ShippingMarkCode,
-                    ShippingMarkName
+                    ManualShippingMark
                 FROM SalesVouchers
                 WHERE CONVERT(date, JobDate) = @jobDate
                     AND Quantity <> 0";
@@ -114,7 +114,7 @@ namespace InventorySystem.Core.Services
                         s.GradeCode,
                         s.ClassCode,
                         s.ShippingMarkCode,
-                        s.ShippingMarkName
+                        s.ManualShippingMark
                     FROM SalesVouchers s
                     WHERE CONVERT(date, s.JobDate) = @jobDate
                 ) AS source
@@ -122,7 +122,7 @@ namespace InventorySystem.Core.Services
                     AND target.GradeCode = source.GradeCode
                     AND target.ClassCode = source.ClassCode
                     AND target.ShippingMarkCode = source.ShippingMarkCode
-                    AND target.ShippingMarkName = source.ShippingMarkName
+                    AND target.ManualShippingMark = source.ManualShippingMark
                 WHEN MATCHED AND target.JobDate <> @jobDate THEN
                     UPDATE SET 
                         JobDate = @jobDate,
@@ -130,7 +130,7 @@ namespace InventorySystem.Core.Services
                         DataSetId = @dataSetId
                 WHEN NOT MATCHED THEN
                     INSERT (
-                        ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                        ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                         ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                         JobDate, CreatedDate, UpdatedDate,
                         CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount, DailyFlag,
@@ -141,7 +141,7 @@ namespace InventorySystem.Core.Services
                         source.GradeCode,
                         source.ClassCode,
                         source.ShippingMarkCode,
-                        source.ShippingMarkName,
+                        source.ManualShippingMark,
                         '商品名未設定',
                         'PCS',
                         0,
@@ -175,7 +175,7 @@ namespace InventorySystem.Core.Services
         public string GradeCode { get; set; }
         public string ClassCode { get; set; }
         public string ShippingMarkCode { get; set; }
-        public string ShippingMarkName { get; set; }
+        public string ManualShippingMark { get; set; }
     }
 }
 
@@ -247,7 +247,7 @@ public interface IInventoryService
 -- 処理前の確認
 SELECT 
     '売上商品' as 種別,
-    COUNT(DISTINCT CONCAT(ProductCode,'_',GradeCode,'_',ClassCode,'_',ShippingMarkCode,'_',ShippingMarkName)) as 件数
+    COUNT(DISTINCT CONCAT(ProductCode,'_',GradeCode,'_',ClassCode,'_',ShippingMarkCode,'_',ManualShippingMark)) as 件数
 FROM SalesVouchers
 WHERE CONVERT(date, JobDate) = '2025-06-12'
 UNION ALL

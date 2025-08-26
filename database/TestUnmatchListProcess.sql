@@ -17,7 +17,7 @@ ORDER BY JobDate DESC;
 SELECT 
     JobDate,
     COUNT(*) as SalesCount,
-    COUNT(DISTINCT ProductCode + '-' + GradeCode + '-' + ClassCode + '-' + ShippingMarkCode + '-' + ShippingMarkName) as UniqueProducts
+    COUNT(DISTINCT ProductCode + '-' + GradeCode + '-' + ClassCode + '-' + ShippingMarkCode + '-' + ManualShippingMark) as UniqueProducts
 FROM SalesVouchers
 WHERE JobDate = '2025-06-13'
 GROUP BY JobDate;
@@ -26,7 +26,7 @@ GROUP BY JobDate;
 SELECT 
     JobDate,
     COUNT(*) as PurchaseCount,
-    COUNT(DISTINCT ProductCode + '-' + GradeCode + '-' + ClassCode + '-' + ShippingMarkCode + '-' + ShippingMarkName) as UniqueProducts
+    COUNT(DISTINCT ProductCode + '-' + GradeCode + '-' + ClassCode + '-' + ShippingMarkCode + '-' + ManualShippingMark) as UniqueProducts
 FROM PurchaseVouchers
 WHERE JobDate = '2025-06-13'
 GROUP BY JobDate;
@@ -57,7 +57,7 @@ WHERE DataSetId = @LatestDataSetId;
 SELECT TOP 10
     ProductCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     PreviousDayStock,
     DailySalesQuantity,
     DailyPurchaseQuantity,
@@ -81,7 +81,7 @@ WHERE JobDate = '2025-06-13';
 SELECT TOP 10
     ProductCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     ProductName,
     JobDate,
     CreatedDate
@@ -106,7 +106,7 @@ WHERE sv.JobDate = '2025-06-13'
             AND im.GradeCode = sv.GradeCode
             AND im.ClassCode = sv.ClassCode
             AND im.ShippingMarkCode = sv.ShippingMarkCode
-            AND im.ShippingMarkName = sv.ShippingMarkName
+            AND im.ManualShippingMark = sv.ManualShippingMark
             AND im.JobDate = sv.JobDate
     );
 
@@ -122,7 +122,7 @@ WHERE sv.JobDate = '2025-06-13'
             AND cp.GradeCode = sv.GradeCode
             AND cp.ClassCode = sv.ClassCode
             AND cp.ShippingMarkCode = sv.ShippingMarkCode
-            AND cp.ShippingMarkName = sv.ShippingMarkName
+            AND cp.ManualShippingMark = sv.ManualShippingMark
             AND cp.DataSetId = @LatestDataSetId
     );
 

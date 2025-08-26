@@ -39,9 +39,9 @@ SELECT
     COUNT(*) as DuplicateProductCount
 FROM (
     SELECT 
-        ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+        ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
     FROM CpInventoryMaster
-    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
     HAVING COUNT(DISTINCT DataSetId) > 1
 ) AS duplicates;
 
@@ -86,7 +86,7 @@ WHERE sv.JobDate = '2025-06-13'
             AND cp.GradeCode = sv.GradeCode
             AND cp.ClassCode = sv.ClassCode
             AND cp.ShippingMarkCode = sv.ShippingMarkCode
-            AND cp.ShippingMarkName = sv.ShippingMarkName
+            AND cp.ManualShippingMark = sv.ManualShippingMark
             AND cp.DataSetId = @LatestDataSetId
     );
 
@@ -103,7 +103,7 @@ WHERE pv.JobDate = '2025-06-13'
             AND cp.GradeCode = pv.GradeCode
             AND cp.ClassCode = pv.ClassCode
             AND cp.ShippingMarkCode = pv.ShippingMarkCode
-            AND cp.ShippingMarkName = pv.ShippingMarkName
+            AND cp.ManualShippingMark = pv.ManualShippingMark
             AND cp.DataSetId = @LatestDataSetId
     );
 
@@ -126,7 +126,7 @@ WHERE cp.DataSetId = @LatestDataSetId
             AND sv.GradeCode = cp.GradeCode
             AND sv.ClassCode = cp.ClassCode
             AND sv.ShippingMarkCode = cp.ShippingMarkCode
-            AND sv.ShippingMarkName = cp.ShippingMarkName
+            AND sv.ManualShippingMark = cp.ManualShippingMark
             AND sv.Quantity > 0
     );
 
@@ -140,9 +140,9 @@ DECLARE @DataSetCount INT, @DuplicateCount INT, @UnprocessedCount INT, @Unmatche
 
 SELECT @DataSetCount = COUNT(DISTINCT DataSetId) FROM CpInventoryMaster;
 SELECT @DuplicateCount = COUNT(*) FROM (
-    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
     FROM CpInventoryMaster
-    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
     HAVING COUNT(DISTINCT DataSetId) > 1
 ) AS dup;
 SELECT @UnprocessedCount = COUNT(*) FROM CpInventoryMaster WHERE DailyFlag = '9';
@@ -153,7 +153,7 @@ SELECT @UnmatchedCount = (
         SELECT 1 FROM CpInventoryMaster cp WHERE cp.DataSetId = @LatestDataSetId
         AND cp.ProductCode = sv.ProductCode AND cp.GradeCode = sv.GradeCode 
         AND cp.ClassCode = sv.ClassCode AND cp.ShippingMarkCode = sv.ShippingMarkCode
-        AND cp.ShippingMarkName = sv.ShippingMarkName
+        AND cp.ManualShippingMark = sv.ManualShippingMark
     )
 );
 SELECT @ZeroStockCount = COUNT(*) FROM CpInventoryMaster cp
@@ -161,7 +161,7 @@ WHERE cp.DataSetId = @LatestDataSetId AND cp.DailyStock = 0
 AND EXISTS (SELECT 1 FROM SalesVouchers sv WHERE sv.JobDate = '2025-06-13'
     AND sv.ProductCode = cp.ProductCode AND sv.GradeCode = cp.GradeCode 
     AND sv.ClassCode = cp.ClassCode AND sv.ShippingMarkCode = cp.ShippingMarkCode
-    AND sv.ShippingMarkName = cp.ShippingMarkName AND sv.Quantity > 0);
+    AND sv.ManualShippingMark = cp.ManualShippingMark AND sv.Quantity > 0);
 
 PRINT '=== 検証結果 ===';
 PRINT 'DataSetId数: ' + CAST(@DataSetCount AS NVARCHAR(10)) + ' (期待値: 1)';

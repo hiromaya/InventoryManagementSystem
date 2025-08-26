@@ -15,7 +15,7 @@ DELETE FROM InventoryMaster WHERE ProductCode LIKE '0000%';
 
 -- テスト用在庫マスタデータ
 INSERT INTO InventoryMaster (
-    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
     JobDate, CurrentStock, CurrentStockAmount
 ) VALUES
@@ -54,7 +54,7 @@ DELETE FROM SalesVouchers WHERE VoucherId LIKE 'TEST%';
 
 -- テスト用売上伝票データ
 INSERT INTO SalesVouchers (
-    VoucherId, LineNumber, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    VoucherId, LineNumber, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     VoucherType, DetailType, VoucherNumber, VoucherDate, JobDate,
     CustomerCode, CustomerName, Quantity, UnitPrice, Amount, InventoryUnitPrice
 ) VALUES
@@ -84,7 +84,7 @@ DELETE FROM PurchaseVouchers WHERE VoucherId LIKE 'TEST%';
 
 -- テスト用仕入伝票データ
 INSERT INTO PurchaseVouchers (
-    VoucherId, LineNumber, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    VoucherId, LineNumber, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     VoucherType, DetailType, VoucherNumber, VoucherDate, JobDate,
     SupplierCode, SupplierName, Quantity, UnitPrice, Amount
 ) VALUES
@@ -108,7 +108,7 @@ DELETE FROM InventoryAdjustments WHERE VoucherId LIKE 'TEST%';
 
 -- テスト用在庫調整データ
 INSERT INTO InventoryAdjustments (
-    VoucherId, LineNumber, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    VoucherId, LineNumber, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     VoucherType, DetailType, VoucherNumber, VoucherDate, JobDate,
     CustomerCode, CustomerName, CategoryCode, Quantity, UnitPrice, Amount
 ) VALUES

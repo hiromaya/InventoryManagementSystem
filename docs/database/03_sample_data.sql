@@ -13,7 +13,7 @@ DECLARE @DataSetId NVARCHAR(50) = 'SAMPLE_' + FORMAT(@JobDate, 'yyyyMMdd') + '_0
 -- 在庫マスタのサンプルデータ
 -- ==================================================
 INSERT INTO InventoryMaster (
-    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
     JobDate, CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
     DailyFlag, DataSetId
@@ -34,7 +34,7 @@ INSERT INTO InventoryMaster (
 -- ==================================================
 INSERT INTO SalesVoucher (
     VoucherId, LineNumber, VoucherDate, JobDate,
-    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     Quantity, SalesUnitPrice, SalesAmount, InventoryUnitPrice, DataSetId
 ) VALUES 
 (1001, 1, @JobDate, @JobDate, 'APPLE001', 'A', 'L', 'MK001', '青森産', 10.0, 1800.00, 18000.00, 1500.00, @DataSetId),
@@ -46,7 +46,7 @@ INSERT INTO SalesVoucher (
 -- ==================================================
 INSERT INTO PurchaseVoucher (
     VoucherId, LineNumber, VoucherDate, JobDate,
-    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     Quantity, PurchaseUnitPrice, PurchaseAmount, DataSetId
 ) VALUES 
 (2001, 1, @JobDate, @JobDate, 'APPLE001', 'A', 'L', 'MK001', '青森産', 30.0, 1400.00, 42000.00, @DataSetId),

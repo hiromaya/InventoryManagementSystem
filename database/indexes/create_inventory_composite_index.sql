@@ -16,7 +16,7 @@ ON InventoryMaster (
     GradeCode,
     ClassCode,
     ShippingMarkCode,
-    ShippingMarkName
+    ManualShippingMark
 )
 INCLUDE (
     ProductName,
@@ -48,7 +48,7 @@ ON CpInventoryMaster (
     GradeCode,
     ClassCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     DataSetId
 );
 GO
@@ -64,7 +64,7 @@ ON SalesVouchers (
     GradeCode,
     ClassCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     JobDate
 );
 GO
@@ -80,7 +80,7 @@ ON PurchaseVouchers (
     GradeCode,
     ClassCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     JobDate
 );
 GO
@@ -96,7 +96,7 @@ ON InventoryAdjustments (
     GradeCode,
     ClassCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     JobDate
 );
 GO

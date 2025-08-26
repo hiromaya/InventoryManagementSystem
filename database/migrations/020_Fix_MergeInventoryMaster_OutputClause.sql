@@ -33,15 +33,15 @@ BEGIN
     BEGIN TRANSACTION;
     
     BEGIN TRY
-        -- ShippingMarkNameの空白を統一的に処理するためのCTE
+        -- ManualShippingMarkの空白を統一的に処理するためのCTE
         WITH CurrentDayTransactions AS (
-            -- 当日の取引データを集計（ShippingMarkNameをトリミング）
+            -- 当日の取引データを集計（ManualShippingMarkをトリミング）
             SELECT 
                 ProductCode,
                 GradeCode,
                 ClassCode,
                 ShippingMarkCode,
-                LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName,  -- 8桁固定長に正規化
+                LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8) as ManualShippingMark,  -- 8桁固定長に正規化
                 SUM(SalesQty) as TotalSalesQty,
                 SUM(PurchaseQty) as TotalPurchaseQty,
                 SUM(AdjustmentQty) as TotalAdjustmentQty,
@@ -51,7 +51,7 @@ BEGIN
             FROM (
                 -- 売上データ
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     -Quantity as SalesQty,  -- 売上はマイナス
                     0 as PurchaseQty,
                     0 as AdjustmentQty,
@@ -65,7 +65,7 @@ BEGIN
                 
                 -- 仕入データ
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     0 as SalesQty,
                     Quantity as PurchaseQty,  -- 仕入はプラス
                     0 as AdjustmentQty,
@@ -79,7 +79,7 @@ BEGIN
                 
                 -- 在庫調整データ
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     0 as SalesQty,
                     0 as PurchaseQty,
                     Quantity as AdjustmentQty,
@@ -89,7 +89,7 @@ BEGIN
                 FROM InventoryAdjustments 
                 WHERE CAST(JobDate AS DATE) = CAST(@JobDate AS DATE)
             ) AS AllTransactions
-            GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
+            GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8)
         )
         
         -- MERGE文で在庫マスタを更新
@@ -111,7 +111,7 @@ BEGIN
             AND target.GradeCode = source.GradeCode
             AND target.ClassCode = source.ClassCode
             AND target.ShippingMarkCode = source.ShippingMarkCode
-            AND LEFT(RTRIM(COALESCE(target.ShippingMarkName, '')) + REPLICATE(' ', 8), 8) = source.ShippingMarkName  -- 8桁固定長で比較
+            AND LEFT(RTRIM(COALESCE(target.ManualShippingMark, '')) + REPLICATE(' ', 8), 8) = source.ManualShippingMark  -- 8桁固定長で比較
         )
         
         -- 既存レコード：在庫を累積更新
@@ -134,7 +134,7 @@ BEGIN
         -- 新規レコード：前月末在庫を考慮して作成
         WHEN NOT MATCHED THEN
             INSERT (
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, 
@@ -145,7 +145,7 @@ BEGIN
             )
             VALUES (
                 source.ProductCode, source.GradeCode, source.ClassCode, 
-                source.ShippingMarkCode, source.ShippingMarkName,
+                source.ShippingMarkCode, source.ManualShippingMark,
                 source.ProductName,
                 source.UnitName,
                 source.StandardPrice,

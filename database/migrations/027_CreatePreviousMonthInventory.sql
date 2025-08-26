@@ -16,7 +16,7 @@ BEGIN
         GradeCode NVARCHAR(3) NOT NULL,
         ClassCode NVARCHAR(3) NOT NULL,
         ShippingMarkCode NVARCHAR(4) NOT NULL,
-        ShippingMarkName NVARCHAR(8) NOT NULL,
+        ManualShippingMark NVARCHAR(8) NOT NULL,
         
         -- 商品情報
         ProductName NVARCHAR(100) NOT NULL DEFAULT '',
@@ -39,7 +39,7 @@ BEGIN
             GradeCode,
             ClassCode,
             ShippingMarkCode,
-            ShippingMarkName,
+            ManualShippingMark,
             YearMonth
         )
     );
@@ -58,7 +58,7 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID(N'[dbo].[Pr
 BEGIN
     CREATE NONCLUSTERED INDEX IX_PreviousMonthInventory_YearMonth 
     ON PreviousMonthInventory (YearMonth)
-    INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, Quantity, Amount);
+    INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, Quantity, Amount);
     
     PRINT 'IX_PreviousMonthInventory_YearMonth インデックスを作成しました。';
 END

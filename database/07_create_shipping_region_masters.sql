@@ -3,7 +3,7 @@ IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sh
 BEGIN
     CREATE TABLE [dbo].[ShippingMarkMaster](
         [ShippingMarkCode] [nvarchar](10) NOT NULL,
-        [ShippingMarkName] [nvarchar](50) NOT NULL,
+        [ManualShippingMark] [nvarchar](50) NOT NULL,
         [SearchKana] [nvarchar](50) NULL,
         [NumericValue1] [decimal](18, 4) NULL,
         [NumericValue2] [decimal](18, 4) NULL,
@@ -94,7 +94,7 @@ GO
 -- 荷印マスタ未設定
 IF NOT EXISTS (SELECT * FROM ShippingMarkMaster WHERE ShippingMarkCode = '未設定')
 BEGIN
-    INSERT INTO ShippingMarkMaster (ShippingMarkCode, ShippingMarkName, SearchKana)
+    INSERT INTO ShippingMarkMaster (ShippingMarkCode, ManualShippingMark, SearchKana)
     VALUES ('未設定', '荷印未設定', 'ミセッテイ')
     PRINT '荷印マスタに未設定レコードを追加しました。'
 END

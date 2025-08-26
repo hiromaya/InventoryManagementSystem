@@ -27,7 +27,7 @@ VALUES
     ('GradeCode', 'nvarchar', 15, 0, NULL),
     ('ClassCode', 'nvarchar', 15, 0, NULL),
     ('ShippingMarkCode', 'nvarchar', 15, 0, NULL),
-    ('ShippingMarkName', 'nvarchar', 50, 0, NULL),
+    ('ManualShippingMark', 'nvarchar', 50, 0, NULL),
     ('ProductName', 'nvarchar', 100, 0, NULL),
     ('Unit', 'nvarchar', 10, 0, NULL),
     ('StandardPrice', 'decimal', NULL, 0, '((0))'),

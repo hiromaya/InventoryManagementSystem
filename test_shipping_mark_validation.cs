@@ -9,7 +9,7 @@ namespace TestShippingMarkValidation
             Console.WriteLine("=== 荷印名・荷印コード検証テスト ===");
 
             // テストデータ
-            string[] testShippingMarkNames = {
+            string[] testManualShippingMarks = {
                 "        ",  // 空白8文字
                 " ｺｳ     ",  // 有効な荷印名
                 " 3X12   ",  // 有効な荷印名
@@ -26,7 +26,7 @@ namespace TestShippingMarkValidation
             };
 
             Console.WriteLine("--- 荷印名テスト ---");
-            foreach (var name in testShippingMarkNames)
+            foreach (var name in testManualShippingMarks)
             {
                 bool isValidByIsNullOrEmpty = string.IsNullOrEmpty(name);
                 bool isValidByIsNullOrWhiteSpace = string.IsNullOrWhiteSpace(name);

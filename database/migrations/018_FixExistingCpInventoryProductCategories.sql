@@ -18,9 +18,9 @@ END
 UPDATE CpInventoryMaster
 SET 
     ProductCategory1 = CASE 
-        WHEN LEFT(ShippingMarkName, 4) = '9aaa' THEN '8'
-        WHEN LEFT(ShippingMarkName, 4) = '1aaa' THEN '6'
-        WHEN LEFT(ShippingMarkName, 4) = '0999' THEN '6'
+        WHEN LEFT(ManualShippingMark, 4) = '9aaa' THEN '8'
+        WHEN LEFT(ManualShippingMark, 4) = '1aaa' THEN '6'
+        WHEN LEFT(ManualShippingMark, 4) = '0999' THEN '6'
         WHEN ProductCategory1 IS NULL OR ProductCategory1 = '' THEN '00'
         ELSE ProductCategory1  -- 既存の値を保持
     END,
@@ -30,7 +30,7 @@ SET
     END,
     UpdatedDate = GETDATE()
 WHERE 
-    (LEFT(ShippingMarkName, 4) IN ('9aaa', '1aaa', '0999'))
+    (LEFT(ManualShippingMark, 4) IN ('9aaa', '1aaa', '0999'))
     OR (ProductCategory1 IS NULL OR ProductCategory1 = '');
 
 PRINT CONCAT('CP在庫マスタの商品分類を更新しました。影響行数: ', @@ROWCOUNT);
@@ -41,9 +41,9 @@ BEGIN
     UPDATE InventoryMaster
     SET 
         ProductCategory1 = CASE 
-            WHEN LEFT(ShippingMarkName, 4) = '9aaa' THEN '8'
-            WHEN LEFT(ShippingMarkName, 4) = '1aaa' THEN '6'
-            WHEN LEFT(ShippingMarkName, 4) = '0999' THEN '6'
+            WHEN LEFT(ManualShippingMark, 4) = '9aaa' THEN '8'
+            WHEN LEFT(ManualShippingMark, 4) = '1aaa' THEN '6'
+            WHEN LEFT(ManualShippingMark, 4) = '0999' THEN '6'
             WHEN ProductCategory1 IS NULL OR ProductCategory1 = '' THEN '00'
             ELSE ProductCategory1  -- 既存の値を保持
         END,
@@ -53,7 +53,7 @@ BEGIN
         END,
         UpdatedDate = GETDATE()
     WHERE 
-        (LEFT(ShippingMarkName, 4) IN ('9aaa', '1aaa', '0999'))
+        (LEFT(ManualShippingMark, 4) IN ('9aaa', '1aaa', '0999'))
         OR (ProductCategory1 IS NULL OR ProductCategory1 = '');
 
     PRINT CONCAT('在庫マスタの商品分類を更新しました。影響行数: ', @@ROWCOUNT);
@@ -74,13 +74,13 @@ ORDER BY ProductCategory1;
 PRINT '';
 PRINT '===== 荷印名パターン別データ件数 =====';
 SELECT 
-    LEFT(ShippingMarkName, 4) AS 荷印パターン,
+    LEFT(ManualShippingMark, 4) AS 荷印パターン,
     ProductCategory1 AS 商品分類1,
     COUNT(*) AS 件数
 FROM CpInventoryMaster
-WHERE LEFT(ShippingMarkName, 4) IN ('9aaa', '1aaa', '0999')
-GROUP BY LEFT(ShippingMarkName, 4), ProductCategory1
-ORDER BY LEFT(ShippingMarkName, 4), ProductCategory1;
+WHERE LEFT(ManualShippingMark, 4) IN ('9aaa', '1aaa', '0999')
+GROUP BY LEFT(ManualShippingMark, 4), ProductCategory1
+ORDER BY LEFT(ManualShippingMark, 4), ProductCategory1;
 
 PRINT '';
 PRINT 'Migration 018: 商品分類の更新が完了しました。';

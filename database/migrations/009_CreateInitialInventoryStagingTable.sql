@@ -24,7 +24,7 @@ CREATE TABLE InitialInventory_Staging (
     GradeCode NVARCHAR(15) NOT NULL,
     ClassCode NVARCHAR(15) NOT NULL,
     ShippingMarkCode NVARCHAR(15) NOT NULL,
-    ShippingMarkName NVARCHAR(50) NOT NULL,
+    ManualShippingMark NVARCHAR(50) NOT NULL,
     PersonInChargeCode INT NOT NULL,
     PreviousStockQuantity DECIMAL(18,4) NOT NULL,
     PreviousStockAmount DECIMAL(18,4) NOT NULL,
@@ -49,7 +49,7 @@ CREATE INDEX IX_InitialInventory_Staging_ProcessId
 ON InitialInventory_Staging (ProcessId, ProcessStatus);
 
 CREATE INDEX IX_InitialInventory_Staging_Keys
-ON InitialInventory_Staging (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+ON InitialInventory_Staging (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
 GO
 
 -- エラーログテーブル作成
@@ -67,7 +67,7 @@ CREATE TABLE InitialInventory_ErrorLog (
     GradeCode NVARCHAR(15) NULL,
     ClassCode NVARCHAR(15) NULL,
     ShippingMarkCode NVARCHAR(15) NULL,
-    ShippingMarkName NVARCHAR(50) NULL,
+    ManualShippingMark NVARCHAR(50) NULL,
     ErrorType NVARCHAR(50) NOT NULL,
     ErrorMessage NVARCHAR(MAX) NOT NULL,
     ErrorDate DATETIME2 NOT NULL DEFAULT GETDATE(),

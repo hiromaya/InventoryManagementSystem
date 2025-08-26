@@ -7,13 +7,13 @@
 -- 文字化けしている荷印名を持つレコードを表示
 SELECT TOP 20
     ShippingMarkCode,
-    ShippingMarkName,
-    CAST(ShippingMarkName AS VARBINARY(MAX)) as BinaryData,
+    ManualShippingMark,
+    CAST(ManualShippingMark AS VARBINARY(MAX)) as BinaryData,
     ProductCode,
     GradeCode,
     ClassCode
 FROM InventoryMaster
-WHERE ShippingMarkName LIKE '%?%'
+WHERE ManualShippingMark LIKE '%?%'
 ORDER BY ShippingMarkCode;
 
 -- =========================================
@@ -31,14 +31,14 @@ PRINT 'Latest DataSetId: ' + @LatestDataSetId;
 SELECT TOP 20
     DataSetId,
     ShippingMarkCode,
-    ShippingMarkName,
-    CAST(ShippingMarkName AS VARBINARY(MAX)) as BinaryData,
+    ManualShippingMark,
+    CAST(ManualShippingMark AS VARBINARY(MAX)) as BinaryData,
     ProductCode,
     GradeCode,
     ClassCode
 FROM CpInventoryMaster
 WHERE DataSetId = @LatestDataSetId
-    AND ShippingMarkName LIKE '%?%'
+    AND ManualShippingMark LIKE '%?%'
 ORDER BY ShippingMarkCode;
 
 -- =========================================
@@ -49,7 +49,7 @@ SELECT
     COUNT(*) as GarbledCount,
     COUNT(DISTINCT ShippingMarkCode) as UniqueShippingMarkCodes
 FROM InventoryMaster
-WHERE ShippingMarkName LIKE '%?%';
+WHERE ManualShippingMark LIKE '%?%';
 
 -- CP在庫マスタの文字化け件数（最新データセット）
 SELECT 
@@ -57,7 +57,7 @@ SELECT
     COUNT(DISTINCT ShippingMarkCode) as UniqueShippingMarkCodes
 FROM CpInventoryMaster
 WHERE DataSetId = @LatestDataSetId
-    AND ShippingMarkName LIKE '%?%';
+    AND ManualShippingMark LIKE '%?%';
 
 -- =========================================
 -- 4. 売上伝票との比較
@@ -65,11 +65,11 @@ WHERE DataSetId = @LatestDataSetId
 -- 売上伝票の荷印名と在庫マスタの荷印名を比較
 SELECT TOP 10
     sv.ShippingMarkCode,
-    sv.ShippingMarkName as SalesShippingMarkName,
-    im.ShippingMarkName as InventoryShippingMarkName,
+    sv.ManualShippingMark as SalesManualShippingMark,
+    im.ManualShippingMark as InventoryManualShippingMark,
     CASE 
-        WHEN im.ShippingMarkName LIKE '%?%' THEN '文字化け'
-        WHEN im.ShippingMarkName IS NULL THEN 'マスタなし'
+        WHEN im.ManualShippingMark LIKE '%?%' THEN '文字化け'
+        WHEN im.ManualShippingMark IS NULL THEN 'マスタなし'
         ELSE '正常'
     END as Status
 FROM SalesVouchers sv
@@ -79,8 +79,8 @@ LEFT JOIN InventoryMaster im
     AND sv.GradeCode = im.GradeCode
     AND sv.ClassCode = im.ClassCode
 WHERE sv.JobDate = CAST(GETDATE() AS DATE)
-    AND sv.ShippingMarkName IS NOT NULL
-    AND sv.ShippingMarkName != ''
+    AND sv.ManualShippingMark IS NOT NULL
+    AND sv.ManualShippingMark != ''
 ORDER BY sv.ShippingMarkCode;
 
 -- =========================================
@@ -91,11 +91,11 @@ SELECT TOP 10
     cp.DataSetId,
     cp.ProductCode,
     cp.ShippingMarkCode,
-    cp.ShippingMarkName as CP_ShippingMarkName,
-    im.ShippingMarkName as IM_ShippingMarkName,
+    cp.ManualShippingMark as CP_ManualShippingMark,
+    im.ManualShippingMark as IM_ManualShippingMark,
     CASE 
-        WHEN im.ShippingMarkName IS NULL THEN '在庫マスタなし'
-        WHEN im.ShippingMarkName LIKE '%?%' THEN '在庫マスタも文字化け'
+        WHEN im.ManualShippingMark IS NULL THEN '在庫マスタなし'
+        WHEN im.ManualShippingMark LIKE '%?%' THEN '在庫マスタも文字化け'
         ELSE '修復可能'
     END as RepairStatus
 FROM CpInventoryMaster cp
@@ -105,7 +105,7 @@ LEFT JOIN InventoryMaster im
     AND cp.ClassCode = im.ClassCode 
     AND cp.ShippingMarkCode = im.ShippingMarkCode
 WHERE cp.DataSetId = @LatestDataSetId
-    AND cp.ShippingMarkName LIKE '%?%'
+    AND cp.ManualShippingMark LIKE '%?%'
 ORDER BY RepairStatus, cp.ShippingMarkCode;
 
 -- =========================================
@@ -123,5 +123,5 @@ SELECT
     COLLATION_NAME
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME IN ('InventoryMaster', 'CpInventoryMaster', 'SalesVouchers')
-    AND COLUMN_NAME = 'ShippingMarkName'
+    AND COLUMN_NAME = 'ManualShippingMark'
     AND COLLATION_NAME IS NOT NULL;

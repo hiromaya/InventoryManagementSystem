@@ -29,7 +29,7 @@ BEGIN
             GradeCode NVARCHAR(15) NOT NULL,
             ClassCode NVARCHAR(15) NOT NULL,
             ShippingMarkCode NVARCHAR(15) NOT NULL,
-            ShippingMarkName NVARCHAR(50) NOT NULL,
+            ManualShippingMark NVARCHAR(50) NOT NULL,
             ProductName NVARCHAR(100) NOT NULL,
             ProductCategory1 NVARCHAR(10) NOT NULL,  -- 担当者コード
             
@@ -49,12 +49,12 @@ BEGIN
             SortKeyPart2 INT NOT NULL,            -- 日付部分（YYYYMMDD形式の数値）
             SortKeyPart3 NVARCHAR(20) NOT NULL,   -- 伝票番号部分
             
-            PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName)
+            PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark)
         );
         
         -- CpInventoryMasterからデータを取得
         INSERT INTO #CPInventoryMaster (
-            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
             ProductName, ProductCategory1,
             PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice,
             CurrentStock, CurrentStockAmount, CurrentUnitPrice,
@@ -65,7 +65,7 @@ BEGIN
             cp.GradeCode,
             cp.ClassCode,
             cp.ShippingMarkCode,
-            cp.ShippingMarkName,
+            cp.ManualShippingMark,
             cp.ProductName,
             cp.ProductCategory1,
             cp.PreviousDayStock,
@@ -95,7 +95,7 @@ BEGIN
                 cp.ProductCode,
                 cp.ProductName,
                 cp.ShippingMarkCode,
-                cp.ShippingMarkName,
+                cp.ManualShippingMark,
                 cp.ManualShippingMark as ManualShippingMark,
                 cp.GradeCode,
                 ISNULL(gm.GradeName, '') as GradeName,
@@ -133,8 +133,8 @@ BEGIN
                 s.ProductCode,
                 cp.ProductName,  -- CpInventoryMasterから取得
                 s.ShippingMarkCode,
-                s.ShippingMarkName,
-                s.ShippingMarkName as ManualShippingMark,  -- 伝票の手入力項目  -- 売上伝票の手入力項目
+                s.ManualShippingMark,
+                s.ManualShippingMark as ManualShippingMark,  -- 伝票の手入力項目  -- 売上伝票の手入力項目
                 s.GradeCode,
                 ISNULL(gm.GradeName, '') as GradeName,
                 s.ClassCode,
@@ -170,7 +170,7 @@ BEGIN
                 s.GradeCode = cp.GradeCode AND
                 s.ClassCode = cp.ClassCode AND
                 s.ShippingMarkCode = cp.ShippingMarkCode AND
-                s.ShippingMarkName = cp.ShippingMarkName
+                s.ManualShippingMark = cp.ManualShippingMark
             LEFT JOIN GradeMaster gm ON s.GradeCode = gm.GradeCode
             LEFT JOIN ClassMaster cm ON s.ClassCode = cm.ClassCode
             WHERE s.JobDate = @JobDate
@@ -183,8 +183,8 @@ BEGIN
                 p.ProductCode,
                 cp.ProductName,
                 p.ShippingMarkCode,
-                p.ShippingMarkName,
-                RIGHT('        ' + ISNULL(p.ShippingMarkName, ''), 8) as ManualShippingMark,
+                p.ManualShippingMark,
+                RIGHT('        ' + ISNULL(p.ManualShippingMark, ''), 8) as ManualShippingMark,
                 p.GradeCode,
                 ISNULL(gm.GradeName, '') as GradeName,
                 p.ClassCode,
@@ -219,7 +219,7 @@ BEGIN
                 p.GradeCode = cp.GradeCode AND
                 p.ClassCode = cp.ClassCode AND
                 p.ShippingMarkCode = cp.ShippingMarkCode AND
-                p.ShippingMarkName = cp.ShippingMarkName
+                p.ManualShippingMark = cp.ManualShippingMark
             LEFT JOIN GradeMaster gm ON p.GradeCode = gm.GradeCode
             LEFT JOIN ClassMaster cm ON p.ClassCode = cm.ClassCode
             WHERE p.JobDate = @JobDate
@@ -232,8 +232,8 @@ BEGIN
                 a.ProductCode,
                 cp.ProductName,
                 a.ShippingMarkCode,
-                a.ShippingMarkName,
-                RIGHT('        ' + ISNULL(a.ShippingMarkName, ''), 8) as ManualShippingMark,
+                a.ManualShippingMark,
+                RIGHT('        ' + ISNULL(a.ManualShippingMark, ''), 8) as ManualShippingMark,
                 a.GradeCode,
                 ISNULL(gm.GradeName, '') as GradeName,
                 a.ClassCode,
@@ -274,7 +274,7 @@ BEGIN
                 a.GradeCode = cp.GradeCode AND
                 a.ClassCode = cp.ClassCode AND
                 a.ShippingMarkCode = cp.ShippingMarkCode AND
-                a.ShippingMarkName = cp.ShippingMarkName
+                a.ManualShippingMark = cp.ManualShippingMark
             LEFT JOIN GradeMaster gm ON a.GradeCode = gm.GradeCode
             LEFT JOIN ClassMaster cm ON a.ClassCode = cm.ClassCode
             WHERE a.JobDate = @JobDate
@@ -315,7 +315,7 @@ BEGIN
             ProductCode,
             ProductName,
             ShippingMarkCode,
-            ShippingMarkName,
+            ManualShippingMark,
             ManualShippingMark,
             GradeCode,
             GradeName,

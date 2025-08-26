@@ -63,7 +63,7 @@ IF NOT EXISTS (
 BEGIN
     CREATE INDEX IX_InventoryMaster_ImportType_IsActive
     ON InventoryMaster(ImportType, IsActive)
-    INCLUDE (JobDate, DataSetId, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+    INCLUDE (JobDate, DataSetId, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
     
     PRINT 'IX_InventoryMaster_ImportType_IsActiveインデックスを作成しました。';
 END

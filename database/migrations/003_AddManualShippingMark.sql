@@ -1,7 +1,7 @@
 -- =============================================
 -- CP在庫マスタ ManualShippingMarkカラム追加
 -- 作成日: 2025-08-26
--- 目的: ShippingMarkNameを荷印マスタ名、ManualShippingMarkを手入力値として分離
+-- 目的: ManualShippingMarkを荷印マスタ名、ManualShippingMarkを手入力値として分離
 -- =============================================
 
 USE InventoryManagementDB;
@@ -25,9 +25,9 @@ BEGIN
 END
 GO
 
--- 既存データの移行（ShippingMarkNameの値をManualShippingMarkにコピー）
+-- 既存データの移行（ManualShippingMarkの値をManualShippingMarkにコピー）
 UPDATE CpInventoryMaster
-SET ManualShippingMark = ShippingMarkName
+SET ManualShippingMark = ManualShippingMark
 WHERE ManualShippingMark = '';
 GO
 

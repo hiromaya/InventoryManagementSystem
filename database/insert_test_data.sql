@@ -16,7 +16,7 @@ DELETE FROM ProcessingHistory;
 -- 1. 在庫マスタ テストデータ
 -- ===================================================================
 INSERT INTO InventoryMaster (
-    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
     JobDate, CreatedDate, UpdatedDate,
     CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
@@ -43,7 +43,7 @@ INSERT INTO InventoryMaster (
 -- ===================================================================
 INSERT INTO SalesVoucher (
     VoucherNumber, VoucherType, DetailType, LineNumber, VoucherDate, JobDate,
-    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     CustomerCode, CustomerName, TransactionType,
     Quantity, UnitPrice, Amount, InventoryUnitPrice
 ) VALUES
@@ -65,7 +65,7 @@ INSERT INTO SalesVoucher (
 -- ===================================================================
 INSERT INTO PurchaseVoucher (
     VoucherNumber, VoucherType, DetailType, LineNumber, VoucherDate, JobDate,
-    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     SupplierCode, SupplierName, TransactionType,
     Quantity, UnitPrice, Amount
 ) VALUES
@@ -84,7 +84,7 @@ INSERT INTO PurchaseVoucher (
 -- ===================================================================
 INSERT INTO InventoryAdjustment (
     VoucherNumber, VoucherType, DetailType, LineNumber, VoucherDate, JobDate,
-    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     Quantity, UnitPrice, Amount, UnitCode, ReasonCode
 ) VALUES
 -- 在庫調整（増加）

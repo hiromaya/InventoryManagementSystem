@@ -23,11 +23,11 @@ SELECT
     GradeCode,
     ClassCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     COUNT(DISTINCT DataSetId) as DataSetCount,
     COUNT(*) as TotalRecords
 FROM CpInventoryMaster
-GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
 HAVING COUNT(DISTINCT DataSetId) > 1
 ORDER BY COUNT(DISTINCT DataSetId) DESC;
 

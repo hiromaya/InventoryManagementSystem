@@ -180,7 +180,7 @@ IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sh
 BEGIN
     CREATE TABLE ShippingMarkMaster (
         ShippingMarkCode NVARCHAR(15) NOT NULL PRIMARY KEY, -- 荷印コード
-        ShippingMarkName NVARCHAR(50) NOT NULL,            -- 荷印名
+        ManualShippingMark NVARCHAR(50) NOT NULL,            -- 荷印名
         SearchKana NVARCHAR(100),                           -- 検索カナ
         NumericValue1 DECIMAL(16,4),                       -- 汎用数値1
         NumericValue2 DECIMAL(16,4),                       -- 汎用数値2
@@ -202,7 +202,7 @@ BEGIN
     );
     
     -- インデックス
-    CREATE INDEX IX_ShippingMarkMaster_ShippingMarkName ON ShippingMarkMaster(ShippingMarkName);
+    CREATE INDEX IX_ShippingMarkMaster_ManualShippingMark ON ShippingMarkMaster(ManualShippingMark);
     CREATE INDEX IX_ShippingMarkMaster_SearchKana ON ShippingMarkMaster(SearchKana);
 END
 GO

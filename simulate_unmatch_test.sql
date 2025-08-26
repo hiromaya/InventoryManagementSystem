@@ -46,7 +46,7 @@ PRINT 'Step 4: UN在庫マスタ作成シミュレーション';
 -- 4.1: 伝票に存在する5項目キーを抽出（アンマッチ対象のみ）
 WITH VoucherKeys AS (
     -- 売上伝票（出荷データのみ: 数量>0）
-    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName 
+    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark 
     FROM SalesVouchers 
     WHERE JobDate = @JobDate 
     AND VoucherType IN ('51', '52')  -- 掛売・現売
@@ -57,7 +57,7 @@ WITH VoucherKeys AS (
     UNION
     
     -- 仕入伝票（仕入返品のみ: 数量<0）
-    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName 
+    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark 
     FROM PurchaseVouchers 
     WHERE JobDate = @JobDate 
     AND VoucherType IN ('11', '12')  -- 掛仕入・現金仕入
@@ -68,7 +68,7 @@ WITH VoucherKeys AS (
     UNION
     
     -- 在庫調整（出荷データのみ: 数量>0）
-    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName 
+    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark 
     FROM InventoryAdjustments 
     WHERE JobDate = @JobDate
     AND VoucherType = '71'           -- 在庫調整伝票
@@ -87,7 +87,7 @@ PRINT '';
 PRINT 'Step 4.2: 商品コード88888の5項目キー';
 WITH VoucherKeys AS (
     -- 同じクエリ
-    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName 
+    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark 
     FROM SalesVouchers 
     WHERE JobDate = @JobDate 
     AND VoucherType IN ('51', '52')
@@ -97,7 +97,7 @@ WITH VoucherKeys AS (
     
     UNION
     
-    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName 
+    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark 
     FROM PurchaseVouchers 
     WHERE JobDate = @JobDate 
     AND VoucherType IN ('11', '12')
@@ -107,7 +107,7 @@ WITH VoucherKeys AS (
     
     UNION
     
-    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName 
+    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark 
     FROM InventoryAdjustments 
     WHERE JobDate = @JobDate
     AND VoucherType = '71'
@@ -121,7 +121,7 @@ SELECT
     GradeCode,
     ClassCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     '伝票存在' as 状態
 FROM VoucherKeys
 WHERE ProductCode = '88888';
@@ -134,7 +134,7 @@ SELECT
     GradeCode,
     ClassCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     CurrentStock,
     JobDate,
     IsActive,
@@ -150,7 +150,7 @@ PRINT '';
 PRINT 'Step 6: アンマッチ検出シミュレーション';
 
 WITH VoucherKeys AS (
-    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName 
+    SELECT DISTINCT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark 
     FROM SalesVouchers 
     WHERE JobDate = @JobDate 
     AND VoucherType IN ('51', '52')
@@ -164,7 +164,7 @@ SELECT
     vk.GradeCode,
     vk.ClassCode,
     vk.ShippingMarkCode,
-    vk.ShippingMarkName,
+    vk.ManualShippingMark,
     CASE 
         WHEN im.ProductCode IS NULL THEN 'アンマッチ: 在庫マスタ該当無'
         WHEN ISNULL(im.CurrentStock, 0) = 0 THEN 'アンマッチ: 在庫0（旧仕様）'
@@ -177,7 +177,7 @@ LEFT JOIN InventoryMaster im ON (
     AND im.GradeCode = vk.GradeCode
     AND im.ClassCode = vk.ClassCode
     AND im.ShippingMarkCode = vk.ShippingMarkCode
-    AND im.ShippingMarkName = vk.ShippingMarkName
+    AND im.ManualShippingMark = vk.ManualShippingMark
     AND im.JobDate <= @JobDate
     AND im.IsActive = 1
 );

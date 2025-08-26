@@ -53,10 +53,10 @@ WITH ProductKeys AS (
         GradeCode, 
         ClassCode, 
         ShippingMarkCode, 
-        ShippingMarkName,
+        ManualShippingMark,
         COUNT(DISTINCT JobDate) as DateCount
     FROM InventoryMaster
-    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
     HAVING COUNT(DISTINCT JobDate) > 1
 )
 SELECT 

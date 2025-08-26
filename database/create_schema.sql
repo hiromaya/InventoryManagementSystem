@@ -22,7 +22,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL,     -- 荷印コード
-        ShippingMarkName NVARCHAR(50) NOT NULL,     -- 荷印名
+        ManualShippingMark NVARCHAR(50) NOT NULL,     -- 荷印名
         
         -- 基本情報
         ProductName NVARCHAR(100) NOT NULL,         -- 商品名
@@ -55,7 +55,7 @@ BEGIN
         DataSetId NVARCHAR(50) NOT NULL DEFAULT '',
         
         -- 制約（5項目主キー - JobDateは含まない）
-        CONSTRAINT PK_InventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName)
+        CONSTRAINT PK_InventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark)
     );
     
     -- インデックス
@@ -75,7 +75,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,
         ClassCode NVARCHAR(15) NOT NULL,
         ShippingMarkCode NVARCHAR(15) NOT NULL,
-        ShippingMarkName NVARCHAR(50) NOT NULL,
+        ManualShippingMark NVARCHAR(50) NOT NULL,
         
         -- 基本情報
         ProductName NVARCHAR(100) NOT NULL,
@@ -140,7 +140,7 @@ BEGIN
         DataSetId NVARCHAR(50) NOT NULL,
         
         -- 制約
-        CONSTRAINT PK_CpInventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, DataSetId)
+        CONSTRAINT PK_CpInventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, DataSetId)
     );
     
     -- インデックス
@@ -167,7 +167,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,
         ClassCode NVARCHAR(15) NOT NULL,
         ShippingMarkCode NVARCHAR(15) NOT NULL,
-        ShippingMarkName NVARCHAR(50) NOT NULL,
+        ManualShippingMark NVARCHAR(50) NOT NULL,
         
         -- 取引先情報
         CustomerCode NVARCHAR(20) NOT NULL,
@@ -188,7 +188,7 @@ BEGIN
     -- インデックス
     CREATE INDEX IX_SalesVoucher_JobDate ON SalesVoucher (JobDate);
     CREATE INDEX IX_SalesVoucher_VoucherType ON SalesVoucher (VoucherType);
-    CREATE INDEX IX_SalesVoucher_Key ON SalesVoucher (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+    CREATE INDEX IX_SalesVoucher_Key ON SalesVoucher (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
 END;
 
 -- ===================================================================
@@ -210,7 +210,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,
         ClassCode NVARCHAR(15) NOT NULL,
         ShippingMarkCode NVARCHAR(15) NOT NULL,
-        ShippingMarkName NVARCHAR(50) NOT NULL,
+        ManualShippingMark NVARCHAR(50) NOT NULL,
         
         -- 取引先情報
         SupplierCode NVARCHAR(20) NOT NULL,
@@ -230,7 +230,7 @@ BEGIN
     -- インデックス
     CREATE INDEX IX_PurchaseVoucher_JobDate ON PurchaseVoucher (JobDate);
     CREATE INDEX IX_PurchaseVoucher_VoucherType ON PurchaseVoucher (VoucherType);
-    CREATE INDEX IX_PurchaseVoucher_Key ON PurchaseVoucher (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+    CREATE INDEX IX_PurchaseVoucher_Key ON PurchaseVoucher (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
 END;
 
 -- ===================================================================
@@ -252,7 +252,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,
         ClassCode NVARCHAR(15) NOT NULL,
         ShippingMarkCode NVARCHAR(15) NOT NULL,
-        ShippingMarkName NVARCHAR(50) NOT NULL,
+        ManualShippingMark NVARCHAR(50) NOT NULL,
         
         -- 調整情報
         Quantity DECIMAL(18,4) NOT NULL,
@@ -272,7 +272,7 @@ BEGIN
     -- インデックス
     CREATE INDEX IX_InventoryAdjustment_JobDate ON InventoryAdjustment (JobDate);
     CREATE INDEX IX_InventoryAdjustment_VoucherType ON InventoryAdjustment (VoucherType);
-    CREATE INDEX IX_InventoryAdjustment_Key ON InventoryAdjustment (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+    CREATE INDEX IX_InventoryAdjustment_Key ON InventoryAdjustment (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
 END;
 
 -- ===================================================================

@@ -64,7 +64,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL,     -- 荷印コード
-        ShippingMarkName NVARCHAR(50) NOT NULL,     -- 荷印マスタ名（例：荷7011）
+        ManualShippingMark NVARCHAR(50) NOT NULL,     -- 荷印マスタ名（例：荷7011）
         ManualShippingMark NVARCHAR(8) NOT NULL DEFAULT '',  -- 手入力荷印（例：ｺｳ）
         ProductName NVARCHAR(100) NOT NULL,         -- 商品名
         Unit NVARCHAR(10) NOT NULL,                 -- 単位
@@ -148,7 +148,7 @@ BEGIN
         MonthlyWalkingAmount DECIMAL(18,4) NOT NULL DEFAULT 0,        -- 月計歩引き額
         MonthlyIncentiveAmount DECIMAL(18,4) NOT NULL DEFAULT 0,      -- 月計奨励金
         
-        CONSTRAINT PK_CpInventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName)
+        CONSTRAINT PK_CpInventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark)
     );
     PRINT 'CpInventoryMaster テーブルを作成しました';
     
@@ -172,7 +172,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL,     -- 荷印コード
-        ShippingMarkName NVARCHAR(50) NOT NULL,     -- 荷印名
+        ManualShippingMark NVARCHAR(8) NOT NULL,    -- 手入力荷印（8文字固定）
         VoucherType NVARCHAR(10) NOT NULL,          -- 伝票種類
         DetailType NVARCHAR(10) NOT NULL,           -- 明細種類
         VoucherNumber NVARCHAR(20) NOT NULL,        -- 伝票番号
@@ -213,7 +213,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL,     -- 荷印コード
-        ShippingMarkName NVARCHAR(50) NOT NULL,     -- 荷印名
+        ManualShippingMark NVARCHAR(8) NOT NULL,    -- 手入力荷印（8文字固定）
         VoucherType NVARCHAR(10) NOT NULL,          -- 伝票種類
         DetailType NVARCHAR(10) NOT NULL,           -- 明細種類
         VoucherNumber NVARCHAR(20) NOT NULL,        -- 伝票番号
@@ -251,7 +251,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL,     -- 荷印コード
-        ShippingMarkName NVARCHAR(50) NOT NULL,     -- 荷印名
+        ManualShippingMark NVARCHAR(8) NOT NULL,    -- 手入力荷印（8文字固定）
         VoucherType NVARCHAR(10) NOT NULL,          -- 伝票種類
         DetailType NVARCHAR(10) NOT NULL,           -- 明細種類
         VoucherNumber NVARCHAR(20) NOT NULL,        -- 伝票番号
@@ -285,7 +285,7 @@ IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sh
 BEGIN
     CREATE TABLE ShippingMarkMaster (
         ShippingMarkCode NVARCHAR(15) NOT NULL,         -- 荷印コード（主キー）
-        ShippingMarkName NVARCHAR(100) NOT NULL,        -- 荷印名
+        ManualShippingMark NVARCHAR(100) NOT NULL,        -- 荷印名
         SearchKana NVARCHAR(100) NULL,                  -- 検索用カナ
         NumericValue1 DECIMAL(18,4) NULL,               -- 数値項目1
         NumericValue2 DECIMAL(18,4) NULL,               -- 数値項目2
@@ -308,7 +308,7 @@ BEGIN
     PRINT 'ShippingMarkMaster テーブルを作成しました';
     
     -- インデックス作成
-    CREATE INDEX IX_ShippingMarkMaster_ShippingMarkName ON ShippingMarkMaster(ShippingMarkName);
+    CREATE INDEX IX_ShippingMarkMaster_ManualShippingMark ON ShippingMarkMaster(ManualShippingMark);
     CREATE INDEX IX_ShippingMarkMaster_SearchKana ON ShippingMarkMaster(SearchKana);
 END
 

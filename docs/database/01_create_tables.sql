@@ -26,7 +26,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL,     -- 荷印コード
-        ShippingMarkName NVARCHAR(50) NOT NULL,     -- 荷印名
+        ManualShippingMark NVARCHAR(50) NOT NULL,     -- 荷印名
         
         -- 基本情報
         ProductName NVARCHAR(100) NOT NULL,         -- 商品名
@@ -60,7 +60,7 @@ BEGIN
         
         -- 複合主キー
         CONSTRAINT PK_InventoryMaster PRIMARY KEY (
-            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, JobDate
+            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, JobDate
         )
     );
 END
@@ -82,7 +82,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,
         ClassCode NVARCHAR(15) NOT NULL,
         ShippingMarkCode NVARCHAR(15) NOT NULL,
-        ShippingMarkName NVARCHAR(50) NOT NULL,
+        ManualShippingMark NVARCHAR(50) NOT NULL,
         
         -- 売上情報
         Quantity DECIMAL(18,4) NOT NULL DEFAULT 0,         -- 数量
@@ -114,7 +114,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,
         ClassCode NVARCHAR(15) NOT NULL,
         ShippingMarkCode NVARCHAR(15) NOT NULL,
-        ShippingMarkName NVARCHAR(50) NOT NULL,
+        ManualShippingMark NVARCHAR(50) NOT NULL,
         
         -- 仕入情報
         Quantity DECIMAL(18,4) NOT NULL DEFAULT 0,           -- 数量
