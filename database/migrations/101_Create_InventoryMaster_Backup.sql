@@ -27,7 +27,7 @@ CREATE TABLE InventoryMaster_Backup_20250720 (
     GradeCode NVARCHAR(15) NOT NULL,
     ClassCode NVARCHAR(15) NOT NULL,
     ShippingMarkCode NVARCHAR(15) NOT NULL,
-    ShippingMarkName NVARCHAR(50) NOT NULL,
+    ManualShippingMark NVARCHAR(50) NOT NULL,
     ProductName NVARCHAR(100) NOT NULL,
     Unit NVARCHAR(20) NOT NULL,
     StandardPrice DECIMAL(18,4) NOT NULL,
@@ -64,7 +64,7 @@ DECLARE @sql NVARCHAR(MAX);
 -- 固定のINSERT文とSELECT文を構築
 SET @sql = '
 INSERT INTO InventoryMaster_Backup_20250720 (
-    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
     JobDate, CreatedDate, UpdatedDate, CurrentStock, CurrentStockAmount,
     DailyStock, DailyStockAmount, DailyFlag, DataSetId,
@@ -72,7 +72,7 @@ INSERT INTO InventoryMaster_Backup_20250720 (
     PreviousMonthQuantity, PreviousMonthAmount
 )
 SELECT 
-    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
     ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
     JobDate, CreatedDate, UpdatedDate, CurrentStock, CurrentStockAmount,
     DailyStock, DailyStockAmount, DailyFlag, DataSetId,';
@@ -118,7 +118,7 @@ ON InventoryMaster_Backup_20250720 (
     GradeCode, 
     ClassCode, 
     ShippingMarkCode, 
-    ShippingMarkName, 
+    ManualShippingMark, 
     JobDate
 );
 GO
@@ -186,7 +186,7 @@ SELECT
     GradeCode,
     ClassCode,
     ShippingMarkCode,
-    ShippingMarkName,
+    ManualShippingMark,
     JobDate,
     ProductName,
     Unit,

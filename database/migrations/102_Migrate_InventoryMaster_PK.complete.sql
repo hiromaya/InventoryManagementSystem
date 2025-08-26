@@ -15,7 +15,7 @@ IF EXISTS (
     FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
     WHERE TABLE_NAME = 'InventoryMaster' 
     AND CONSTRAINT_NAME = 'PK_InventoryMaster'
-    AND COLUMN_NAME NOT IN ('ProductCode', 'GradeCode', 'ClassCode', 'ShippingMarkCode', 'ShippingMarkName')
+    AND COLUMN_NAME NOT IN ('ProductCode', 'GradeCode', 'ClassCode', 'ShippingMarkCode', 'ManualShippingMark')
 )
 BEGIN
     PRINT '102_Migrate_InventoryMaster_PK.sql は既に実行済みです。スキップします。';
@@ -55,7 +55,7 @@ BEGIN TRY
         GradeCode NVARCHAR(15) NOT NULL,
         ClassCode NVARCHAR(15) NOT NULL,
         ShippingMarkCode NVARCHAR(15) NOT NULL,
-        ShippingMarkName NVARCHAR(50) NOT NULL,
+        ManualShippingMark NVARCHAR(50) NOT NULL,
         ProductName NVARCHAR(100) NOT NULL,
         Unit NVARCHAR(20) NOT NULL,
         StandardPrice DECIMAL(18,4) NOT NULL,
@@ -105,7 +105,7 @@ BEGIN TRY
         im.GradeCode,
         im.ClassCode,
         im.ShippingMarkCode,
-        im.ShippingMarkName,
+        im.ManualShippingMark,
         im.ProductName,
         im.Unit,
         im.StandardPrice,
@@ -146,16 +146,16 @@ BEGIN TRY
             GradeCode,
             ClassCode,
             ShippingMarkCode,
-            ShippingMarkName,
+            ManualShippingMark,
             MAX(JobDate) as LatestJobDate
         FROM InventoryMaster
-        GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+        GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
     ) latest
     ON im.ProductCode = latest.ProductCode
         AND im.GradeCode = latest.GradeCode
         AND im.ClassCode = latest.ClassCode
         AND im.ShippingMarkCode = latest.ShippingMarkCode
-        AND im.ShippingMarkName = latest.ShippingMarkName
+        AND im.ManualShippingMark = latest.ManualShippingMark
         AND im.JobDate = latest.LatestJobDate;';
 
     -- 動的SQLを実行
@@ -189,7 +189,7 @@ BEGIN TRY
         GradeCode, 
         ClassCode, 
         ShippingMarkCode, 
-        ShippingMarkName
+        ManualShippingMark
     );
 
     -- 6. JobDateに非クラスター化インデックスを作成（検索パフォーマンス用）
