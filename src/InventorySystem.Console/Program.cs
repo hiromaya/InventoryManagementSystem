@@ -3609,6 +3609,36 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                                         var result = await optimizationService.OptimizeAsync(currentDate, dataSetId);
                                         processedCounts[$"在庫マスタ最適化_{currentDate:yyyy-MM-dd}"] = result.InsertedCount + result.UpdatedCount;
 
+                                        // CP在庫マスタの等級名・階級名設定処理を追加
+                                        var masterSyncService = scopedServices.GetService<IMasterSyncService>();
+                                        if (masterSyncService != null)
+                                        {
+                                            System.Console.WriteLine($"[{currentDate:yyyy-MM-dd}] CP在庫マスタの等級名・階級名を設定中...");
+                                            var masterSyncConnectionString = scopedServices.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection");
+                                            
+                                            using var connection = new SqlConnection(masterSyncConnectionString);
+                                            await connection.OpenAsync();
+                                            using var transaction = connection.BeginTransaction();
+                                            
+                                            try
+                                            {
+                                                await masterSyncService.UpdateCpInventoryMasterNamesAsync(connection, transaction, currentDate);
+                                                await transaction.CommitAsync();
+                                                System.Console.WriteLine($"✅ CP在庫マスタの等級名・階級名設定完了 [{currentDate:yyyy-MM-dd}]");
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                await transaction.RollbackAsync();
+                                                logger.LogWarning(ex, "CP在庫マスタの等級名・階級名設定でエラーが発生しました: {Message}", ex.Message);
+                                                System.Console.WriteLine($"⚠️ CP在庫マスタの等級名・階級名設定エラー: {ex.Message}");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            logger.LogWarning("MasterSyncServiceが未実装のため、CP在庫マスタの等級名・階級名設定をスキップします");
+                                            System.Console.WriteLine($"⚠️ MasterSyncServiceが未実装のため、CP在庫マスタの等級名・階級名設定をスキップ");
+                                        }
+
                                         // カバレッジ率を計算（簡易版）
                                         var coverageRate = result.ProcessedCount > 0 ?
                                             (double)(result.InsertedCount + result.UpdatedCount) / result.ProcessedCount : 0.0;

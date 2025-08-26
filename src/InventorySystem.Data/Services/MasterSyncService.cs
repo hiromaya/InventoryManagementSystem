@@ -126,7 +126,7 @@ public class MasterSyncService : IMasterSyncService
         return await command.ExecuteNonQueryAsync();
     }
 
-    private async Task UpdateCpInventoryMasterNamesAsync(SqlConnection connection, SqlTransaction transaction, DateTime jobDate)
+    public async Task UpdateCpInventoryMasterNamesAsync(SqlConnection connection, SqlTransaction transaction, DateTime jobDate)
     {
         const string sql = @"
             UPDATE cp

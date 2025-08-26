@@ -1,10 +1,12 @@
 using InventorySystem.Core.Models;
+using Microsoft.Data.SqlClient;
 
 namespace InventorySystem.Data.Services;
 
 public interface IMasterSyncService
 {
     Task<MasterSyncResult> SyncFromCpInventoryMasterAsync(DateTime jobDate);
+    Task UpdateCpInventoryMasterNamesAsync(SqlConnection connection, SqlTransaction transaction, DateTime jobDate);
 }
 
 public class MasterSyncResult
