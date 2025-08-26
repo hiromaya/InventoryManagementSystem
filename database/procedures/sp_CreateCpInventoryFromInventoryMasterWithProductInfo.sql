@@ -1,8 +1,8 @@
 -- ====================================================================
--- CP在庫マスタ作成ストアドプロシージャ（ProductMasterなし版）
+-- CP在庫マスタ作成ストアドプロシージャ（完全修正版）
 -- 作成日: 2025-01-07
--- 修正日: 2025-08-26（カラム数一致エラー修正）
--- 用途: 商品日報の大分類計表示のため、商品分類1を設定する
+-- 修正日: 2025-08-26
+-- 修正内容：DepartmentCodeカラムを削除、カラム数を正確に一致
 -- ====================================================================
 
 CREATE OR ALTER PROCEDURE sp_CreateCpInventoryFromInventoryMasterWithProductInfo
@@ -14,63 +14,46 @@ BEGIN
     BEGIN TRANSACTION;
     
     BEGIN TRY
-        -- CP在庫マスタに在庫マスタのデータを挿入（ProductMasterなし）
-        -- ※カラム数を正確に一致させる
+        -- CP在庫マスタに在庫マスタのデータを挿入
         INSERT INTO dbo.CpInventoryMaster (
-            -- 基本情報（5項目キー）: 5カラム
             ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
-            -- 商品情報: 3カラム
             ProductName, Unit, StandardPrice,
-            -- 商品分類: 2カラム
             ProductCategory1, ProductCategory2,
-            -- マスタ名称: 2カラム
             GradeName, ClassName,
-            -- 日付情報: 3カラム
-            JobDate, CreatedDate, UpdatedDate,
-            -- 前日在庫: 3カラム
+            JobDate,
+            CreatedDate, UpdatedDate,
             PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice,
-            -- 当日在庫: 4カラム
-            DailyStock, DailyStockAmount, DailyUnitPrice, DailyFlag,
-            -- 当日売上: 4カラム
+            DailyStock, DailyStockAmount, DailyUnitPrice,
+            DailyFlag,
             DailySalesQuantity, DailySalesAmount,
             DailySalesReturnQuantity, DailySalesReturnAmount,
-            -- 当日仕入: 4カラム
             DailyPurchaseQuantity, DailyPurchaseAmount,
             DailyPurchaseReturnQuantity, DailyPurchaseReturnAmount,
-            -- 当日調整: 2カラム
             DailyInventoryAdjustmentQuantity, DailyInventoryAdjustmentAmount,
-            -- 当日加工: 2カラム
             DailyProcessingQuantity, DailyProcessingAmount,
-            -- 当日振替: 2カラム
             DailyTransferQuantity, DailyTransferAmount,
-            -- 当日入出庫: 4カラム
             DailyReceiptQuantity, DailyReceiptAmount,
             DailyShipmentQuantity, DailyShipmentAmount,
-            -- 当日粗利等: 5カラム
-            DailyGrossProfit, DailyWalkingAmount, DailyIncentiveAmount, 
-            DailyDiscountAmount, DailyPurchaseDiscountAmount,
-            -- 月間売上: 4カラム
+            DailyGrossProfit, DailyWalkingAmount, DailyIncentiveAmount, DailyDiscountAmount, DailyPurchaseDiscountAmount,
             MonthlySalesQuantity, MonthlySalesAmount,
             MonthlySalesReturnQuantity, MonthlySalesReturnAmount,
-            -- 月間仕入: 4カラム
             MonthlyPurchaseQuantity, MonthlyPurchaseAmount,
             MonthlyPurchaseReturnQuantity, MonthlyPurchaseReturnAmount,
-            -- 月間調整: 2カラム
             MonthlyInventoryAdjustmentQuantity, MonthlyInventoryAdjustmentAmount,
-            -- 月間加工: 2カラム
             MonthlyProcessingQuantity, MonthlyProcessingAmount,
-            -- 月間振替: 2カラム
             MonthlyTransferQuantity, MonthlyTransferAmount,
-            -- 月間粗利等: 3カラム
             MonthlyGrossProfit, MonthlyWalkingAmount, MonthlyIncentiveAmount
-            -- 合計: 63カラム
         )
         SELECT 
-            -- 基本情報（5項目キー）: 5値
-            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ManualShippingMark,
-            -- 商品情報: 3値
-            im.ProductName, im.Unit, im.StandardPrice,
-            -- 商品分類: 2値
+            im.ProductCode, 
+            im.GradeCode, 
+            im.ClassCode, 
+            im.ShippingMarkCode, 
+            im.ManualShippingMark,
+            im.ProductName, 
+            im.Unit, 
+            im.StandardPrice,
+            -- 特殊処理ルール: 荷印名による商品分類1の変更
             CASE 
                 WHEN LEFT(im.ManualShippingMark, 4) = '9aaa' THEN '8'
                 WHEN LEFT(im.ManualShippingMark, 4) = '1aaa' THEN '6'
@@ -78,7 +61,6 @@ BEGIN
                 ELSE '00'
             END AS ProductCategory1,
             '00' AS ProductCategory2,
-            -- マスタ名称: 2値
             ISNULL(gm.GradeName, 
                 CASE 
                     WHEN im.GradeCode = '000' THEN '未分類'
@@ -91,41 +73,59 @@ BEGIN
                     WHEN im.ClassCode IS NULL OR im.ClassCode = '' THEN ''
                     ELSE 'Class-' + im.ClassCode
                 END) AS ClassName,
-            -- 日付情報: 3値
-            im.JobDate, GETDATE(), GETDATE(),
-            -- 前日在庫: 3値（在庫数、金額、単価）
-            im.CurrentStock, 
-            im.CurrentStockAmount,
-            CASE WHEN im.CurrentStock = 0 THEN 0 ELSE im.CurrentStockAmount / im.CurrentStock END,
-            -- 当日在庫: 4値（在庫数、金額、単価、フラグ）
-            0, 0, 0, '9',
-            -- 当日売上: 4値
-            0, 0, 0, 0,
-            -- 当日仕入: 4値
-            0, 0, 0, 0,
-            -- 当日調整: 2値
-            0, 0,
-            -- 当日加工: 2値
-            0, 0,
-            -- 当日振替: 2値
-            0, 0,
-            -- 当日入出庫: 4値
-            0, 0, 0, 0,
-            -- 当日粗利等: 5値
-            0, 0, 0, 0, 0,
-            -- 月間売上: 4値
-            0, 0, 0, 0,
-            -- 月間仕入: 4値
-            0, 0, 0, 0,
-            -- 月間調整: 2値
-            0, 0,
-            -- 月間加工: 2値
-            0, 0,
-            -- 月間振替: 2値
-            0, 0,
-            -- 月間粗利等: 3値
-            0, 0, 0
-            -- 合計: 63値
+            im.JobDate,
+            GETDATE() AS CreatedDate,
+            GETDATE() AS UpdatedDate,
+            im.CurrentStock AS PreviousDayStock,
+            im.CurrentStockAmount AS PreviousDayStockAmount,
+            CASE 
+                WHEN im.CurrentStock = 0 THEN 0 
+                ELSE im.CurrentStockAmount / im.CurrentStock 
+            END AS PreviousDayUnitPrice,
+            0 AS DailyStock,
+            0 AS DailyStockAmount,
+            0 AS DailyUnitPrice,
+            '9' AS DailyFlag,
+            0 AS DailySalesQuantity,
+            0 AS DailySalesAmount,
+            0 AS DailySalesReturnQuantity,
+            0 AS DailySalesReturnAmount,
+            0 AS DailyPurchaseQuantity,
+            0 AS DailyPurchaseAmount,
+            0 AS DailyPurchaseReturnQuantity,
+            0 AS DailyPurchaseReturnAmount,
+            0 AS DailyInventoryAdjustmentQuantity,
+            0 AS DailyInventoryAdjustmentAmount,
+            0 AS DailyProcessingQuantity,
+            0 AS DailyProcessingAmount,
+            0 AS DailyTransferQuantity,
+            0 AS DailyTransferAmount,
+            0 AS DailyReceiptQuantity,
+            0 AS DailyReceiptAmount,
+            0 AS DailyShipmentQuantity,
+            0 AS DailyShipmentAmount,
+            0 AS DailyGrossProfit,
+            0 AS DailyWalkingAmount,
+            0 AS DailyIncentiveAmount,
+            0 AS DailyDiscountAmount,
+            0 AS DailyPurchaseDiscountAmount,
+            0 AS MonthlySalesQuantity,
+            0 AS MonthlySalesAmount,
+            0 AS MonthlySalesReturnQuantity,
+            0 AS MonthlySalesReturnAmount,
+            0 AS MonthlyPurchaseQuantity,
+            0 AS MonthlyPurchaseAmount,
+            0 AS MonthlyPurchaseReturnQuantity,
+            0 AS MonthlyPurchaseReturnAmount,
+            0 AS MonthlyInventoryAdjustmentQuantity,
+            0 AS MonthlyInventoryAdjustmentAmount,
+            0 AS MonthlyProcessingQuantity,
+            0 AS MonthlyProcessingAmount,
+            0 AS MonthlyTransferQuantity,
+            0 AS MonthlyTransferAmount,
+            0 AS MonthlyGrossProfit,
+            0 AS MonthlyWalkingAmount,
+            0 AS MonthlyIncentiveAmount
         FROM dbo.InventoryMaster im
         LEFT JOIN dbo.GradeMaster gm ON im.GradeCode = gm.GradeCode
         LEFT JOIN dbo.ClassMaster cm ON im.ClassCode = cm.ClassCode
