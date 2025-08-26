@@ -10,7 +10,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,
         ClassCode NVARCHAR(15) NOT NULL,
         ShippingMarkCode NVARCHAR(15) NOT NULL,
-        ShippingMarkName NVARCHAR(50) NOT NULL,
+        ManualShippingMark NVARCHAR(50) NOT NULL,
         DataSetId NVARCHAR(100) NOT NULL,
         
         -- 数量データ（アンマッチチェック用）
@@ -25,7 +25,7 @@ BEGIN
         CreatedDate DATETIME2 DEFAULT GETDATE(),
         UpdatedDate DATETIME2 DEFAULT GETDATE(),
         
-        PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, DataSetId)
+        PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, DataSetId)
     );
 
     -- インデックス作成

@@ -86,7 +86,7 @@ BEGIN
     
     -- Step 5: 新しいプライマリキー制約の作成（5項目複合キーのみ）
     ALTER TABLE CpInventoryMaster ADD CONSTRAINT PK_CpInventoryMaster 
-        PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+        PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
     PRINT '✓ 新しいプライマリキー制約を作成しました（5項目複合キー）';
     
     PRINT '=== DataSetId削除処理完了 ===';

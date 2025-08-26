@@ -126,7 +126,7 @@ BEGIN TRY
         -- Step 5-4: 新しい主キー制約を作成（5項目複合キーのみ）
         PRINT '新しい主キー制約を作成中...';
         ALTER TABLE UnInventoryMaster ADD CONSTRAINT PK_UnInventoryMaster 
-            PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+            PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
         PRINT '✅ 新しい主キー制約を作成しました（5項目複合キー）。';
     END
     ELSE

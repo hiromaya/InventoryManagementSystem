@@ -16,7 +16,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,
         ClassCode NVARCHAR(15) NOT NULL,
         ShippingMarkCode NVARCHAR(15) NOT NULL,
-        ShippingMarkName NVARCHAR(50) NOT NULL,
+        ManualShippingMark NVARCHAR(50) NOT NULL,
         
         -- 在庫数量（アンマッチチェック用、最小限の項目のみ）
         PreviousDayStock DECIMAL(18,4) DEFAULT 0,
@@ -30,7 +30,7 @@ BEGIN
         
         -- 複合主キー（5項目キーのみ、DataSetIdは含まない）
         CONSTRAINT PK_UnInventoryMaster PRIMARY KEY (
-            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
         )
     );
     
