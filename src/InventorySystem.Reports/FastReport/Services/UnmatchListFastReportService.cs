@@ -72,9 +72,33 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogInformation("レポートテンプレートを読み込んでいます...");
                 report.Load(_templatePath);
                 
-                // .NET 8対応: ScriptLanguageを強制的にNoneに設定
+                // .NET 8対応: スクリプト完全無効化
                 try
                 {
+                    // スクリプト制限を無効化
+                    var scriptRestrictionsProperty = report.GetType().GetProperty("ScriptRestrictions");
+                    if (scriptRestrictionsProperty != null)
+                    {
+                        var restrictionsType = scriptRestrictionsProperty.PropertyType;
+                        if (restrictionsType.IsEnum)
+                        {
+                            var noneValue = Enum.GetValues(restrictionsType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
+                            if (noneValue != null)
+                            {
+                                scriptRestrictionsProperty.SetValue(report, noneValue);
+                                _logger.LogInformation("ScriptRestrictionsをNoneに設定しました");
+                            }
+                        }
+                    }
+                    
+                    // スクリプトテキストをクリア
+                    var scriptTextProperty = report.GetType().GetProperty("ScriptText");
+                    if (scriptTextProperty != null)
+                    {
+                        scriptTextProperty.SetValue(report, "");
+                        _logger.LogInformation("ScriptTextをクリアしました");
+                    }
+                    
                     // リフレクションを使用してScriptLanguageプロパティを取得
                     var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
                     if (scriptLanguageProperty != null)
@@ -94,7 +118,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+                    _logger.LogWarning($"スクリプト無効化設定時の警告: {ex.Message}");
                     // エラーが発生しても処理を継続
                 }
                 
@@ -144,7 +168,6 @@ namespace InventorySystem.Reports.FastReport.Services
                 dataTable.Columns.Add("ProductName", typeof(string));
                 dataTable.Columns.Add("ShippingMarkCode", typeof(string));
                 dataTable.Columns.Add("ManualShippingMark", typeof(string));
-                dataTable.Columns.Add("ManualInput", typeof(string));
                 dataTable.Columns.Add("GradeCode", typeof(string));
                 dataTable.Columns.Add("GradeName", typeof(string));
                 dataTable.Columns.Add("ClassCode", typeof(string));
@@ -218,7 +241,6 @@ namespace InventorySystem.Reports.FastReport.Services
                         productName,
                         shippingMarkCode,
                         displayManualShippingMark,
-                        displayManualShippingMark,  // ManualInput - 荷印名と同じ値
                         item.Key.GradeCode ?? "",
                         gradeName,
                         item.Key.ClassCode ?? "",
