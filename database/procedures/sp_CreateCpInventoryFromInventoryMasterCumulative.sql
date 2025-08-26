@@ -1,9 +1,3 @@
--- =============================================
--- 累積管理対応版 CP在庫マスタ作成ストアドプロシージャ
--- 作成日: 2025-07-10
--- 修正日: 2025-07-30 - DataSetId削除（仮テーブル設計）
--- 説明: 在庫マスタから指定日以前のアクティブな在庫で、対象期間の伝票に関連する5項目キーのレコードのみをCP在庫マスタにコピー
--- =============================================
 USE InventoryManagementDB;
 GO
 
@@ -14,7 +8,7 @@ END
 GO
 
 CREATE PROCEDURE sp_CreateCpInventoryFromInventoryMasterCumulative
-    @JobDate DATE = NULL  -- NULLの場合は全期間対象（DataSetIdパラメータは削除）
+    @JobDate DATE = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -24,21 +18,34 @@ BEGIN
     BEGIN TRANSACTION;
     
     BEGIN TRY
-        -- CP在庫マスタは仮テーブルなので全データを削除
+        -- CP在庫マスタをクリア
         TRUNCATE TABLE CpInventoryMaster;
         
-        -- 在庫マスタから伝票に関連する商品をCP在庫マスタに挿入
+        -- 在庫マスタからCP在庫マスタへデータ移行
         INSERT INTO CpInventoryMaster (
             -- 5項目キー
-            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
-            ManualShippingMark,  -- 手入力荷印（追加）
+            ProductCode, 
+            GradeCode, 
+            ClassCode, 
+            ShippingMarkCode, 
+            ManualShippingMark,
             -- 管理項目
-            ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
-            JobDate, CreatedDate, UpdatedDate,
+            ProductName, 
+            Unit, 
+            StandardPrice, 
+            ProductCategory1, 
+            ProductCategory2,
+            JobDate, 
+            CreatedDate, 
+            UpdatedDate,
             -- 前日在庫
-            PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice,
+            PreviousDayStock, 
+            PreviousDayStockAmount, 
+            PreviousDayUnitPrice,
             -- 当日在庫
-            DailyStock, DailyStockAmount, DailyUnitPrice,
+            DailyStock, 
+            DailyStockAmount, 
+            DailyUnitPrice,
             DailyFlag,
             -- 日計項目（22個）
             DailySalesQuantity, DailySalesAmount, 
@@ -61,60 +68,47 @@ BEGIN
             MonthlyProcessingQuantity, MonthlyProcessingAmount,
             MonthlyTransferQuantity, MonthlyTransferAmount,
             MonthlyGrossProfit, MonthlyWalkingAmount, MonthlyIncentiveAmount,
-            -- その他
-            GrossProfitOnSales,
-            PurchaseDiscountAmount,
-            InventoryDiscountAmount,
-            CalculatedDailyStock,
-            StockDifference,
-            StockDifferenceRatio,
-            IsDifferenceSignificant,
-            FinalPurchaseDate,
-            ProductManagerCode,
+            -- その他（CpInventoryMasterに存在する場合）
             DepartmentCode
         )
         SELECT 
             -- 5項目キー
-            im.ProductCode, im.GradeCode, im.ClassCode, 
+            im.ProductCode, 
+            im.GradeCode, 
+            im.ClassCode, 
             im.ShippingMarkCode, 
-            ISNULL(sm.ShippingMarkName, '荷' + im.ShippingMarkCode) as ManualShippingMark,  -- 荷印マスタ名
-            im.ManualShippingMark as ManualShippingMark,  -- InventoryMasterの手入力値
+            im.ManualShippingMark,  -- ShippingMarkNameから変更済み
             -- 管理項目
             im.ProductName, 
-            COALESCE(u.UnitName, im.Unit) AS Unit,
+            COALESCE(u.UnitName, im.Unit, '') AS Unit,
             im.StandardPrice, 
-            im.ProductCategory1, im.ProductCategory2,
+            im.ProductCategory1, 
+            im.ProductCategory2,
             im.JobDate, 
             GETDATE() AS CreatedDate, 
             GETDATE() AS UpdatedDate,
-            -- 前日在庫（在庫マスタの現在庫をコピー）
+            -- 前日在庫（InventoryMasterのCurrentStockとAveragePriceを使用）
             im.CurrentStock AS PreviousDayStock,
-            im.CurrentStock * im.UnitPrice AS PreviousDayStockAmount,
-            im.UnitPrice AS PreviousDayUnitPrice,
-            -- 当日在庫（初期値は前日在庫と同じ）
+            im.CurrentStockAmount AS PreviousDayStockAmount,
+            ISNULL(im.AveragePrice, 0) AS PreviousDayUnitPrice,
+            -- 当日在庫（初期値は前日と同じ）
             im.CurrentStock AS DailyStock,
-            im.CurrentStock * im.UnitPrice AS DailyStockAmount,
-            im.UnitPrice AS DailyUnitPrice,
-            '9' AS DailyFlag,  -- 未処理
-            -- 日計22個（すべて0で初期化）
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            -- 月計17個（すべて0で初期化）
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            im.CurrentStockAmount AS DailyStockAmount,
+            ISNULL(im.AveragePrice, 0) AS DailyUnitPrice,
+            ISNULL(im.DailyFlag, '9') AS DailyFlag,  -- 未処理フラグ
+            -- 日計項目（22個すべて0で初期化）
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            ISNULL(im.DailyGrossProfit, 0),  -- DailyGrossProfitは既存値を使用
+            0, 0, 0,
+            -- 月計項目（17個すべて0で初期化）
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
             -- その他
-            0 AS GrossProfitOnSales,
-            0 AS PurchaseDiscountAmount,
-            0 AS InventoryDiscountAmount,
-            0 AS CalculatedDailyStock,
-            0 AS StockDifference,
-            0 AS StockDifferenceRatio,
-            0 AS IsDifferenceSignificant,
-            im.FinalPurchaseDate,
-            im.ProductManagerCode,
-            'DeptA' AS DepartmentCode  -- 固定値（DataSetId廃止のため）
+            ISNULL(im.DepartmentCode, 'DEFAULT') AS DepartmentCode
         FROM InventoryMaster im
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
         LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode
-        LEFT JOIN ShippingMarkMaster sm ON im.ShippingMarkCode = sm.ShippingMarkCode
         WHERE im.IsActive = 1  -- アクティブな在庫のみ
         AND (@JobDate IS NULL OR im.JobDate <= @JobDate)  -- 指定日以前
         -- 最新の在庫レコードのみ取得
@@ -130,31 +124,31 @@ BEGIN
                 AND (@JobDate IS NULL OR im2.JobDate <= @JobDate)
                 AND im2.JobDate > im.JobDate
         )
-        -- 伝票に存在する5項目キーのみ
+        -- 伝票に存在する5項目キーのみ（伝票テーブルが存在する場合）
         AND EXISTS (
-            SELECT 1 FROM SalesVouchers sv 
-            WHERE (@JobDate IS NULL OR sv.JobDate <= @JobDate) 
-            AND sv.ProductCode = im.ProductCode
-            AND sv.GradeCode = im.GradeCode
-            AND sv.ClassCode = im.ClassCode
-            AND sv.ShippingMarkCode = im.ShippingMarkCode
-            AND sv.ManualShippingMark = im.ManualShippingMark
+            SELECT 1 FROM SalesSlips ss
+            WHERE (@JobDate IS NULL OR ss.SlipDate <= @JobDate) 
+            AND ss.ProductCode = im.ProductCode
+            AND ss.GradeCode = im.GradeCode
+            AND ss.ClassCode = im.ClassCode
+            AND ss.ShippingMarkCode = im.ShippingMarkCode
+            AND ss.ManualShippingMark = im.ManualShippingMark
             UNION
-            SELECT 1 FROM PurchaseVouchers pv
-            WHERE (@JobDate IS NULL OR pv.JobDate <= @JobDate)
-            AND pv.ProductCode = im.ProductCode
-            AND pv.GradeCode = im.GradeCode
-            AND pv.ClassCode = im.ClassCode
-            AND pv.ShippingMarkCode = im.ShippingMarkCode
-            AND pv.ManualShippingMark = im.ManualShippingMark
+            SELECT 1 FROM PurchaseSlips ps
+            WHERE (@JobDate IS NULL OR ps.SlipDate <= @JobDate)
+            AND ps.ProductCode = im.ProductCode
+            AND ps.GradeCode = im.GradeCode
+            AND ps.ClassCode = im.ClassCode
+            AND ps.ShippingMarkCode = im.ShippingMarkCode
+            AND ps.ManualShippingMark = im.ManualShippingMark
             UNION
-            SELECT 1 FROM InventoryAdjustments ia
-            WHERE (@JobDate IS NULL OR ia.JobDate <= @JobDate)
-            AND ia.ProductCode = im.ProductCode
-            AND ia.GradeCode = im.GradeCode
-            AND ia.ClassCode = im.ClassCode
-            AND ia.ShippingMarkCode = im.ShippingMarkCode
-            AND ia.ManualShippingMark = im.ManualShippingMark
+            SELECT 1 FROM OrderSlips os
+            WHERE (@JobDate IS NULL OR os.SlipDate <= @JobDate)
+            AND os.ProductCode = im.ProductCode
+            AND os.GradeCode = im.GradeCode
+            AND os.ClassCode = im.ClassCode
+            AND os.ShippingMarkCode = im.ShippingMarkCode
+            AND os.ManualShippingMark = im.ManualShippingMark
         );
         
         SET @CreatedCount = @@ROWCOUNT;
@@ -178,5 +172,5 @@ BEGIN
 END
 GO
 
-PRINT '✓ sp_CreateCpInventoryFromInventoryMasterCumulative を作成/更新しました（DataSetId削除版）';
+PRINT '✓ sp_CreateCpInventoryFromInventoryMasterCumulative を作成しました';
 GO
