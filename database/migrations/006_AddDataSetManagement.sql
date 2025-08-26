@@ -106,7 +106,7 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_InventoryMaster_DataSe
 BEGIN
     CREATE INDEX IX_InventoryMaster_DataSetId_IsActive 
     ON InventoryMaster(DataSetId, IsActive) 
-    INCLUDE (JobDate, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+    INCLUDE (JobDate, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
 END
 GO
 
@@ -114,7 +114,7 @@ GO
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_InventoryMaster_Active_Filtered')
 BEGIN
     CREATE INDEX IX_InventoryMaster_Active_Filtered
-    ON InventoryMaster (JobDate, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName)
+    ON InventoryMaster (JobDate, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark)
     WHERE IsActive = 1;
 END
 GO
