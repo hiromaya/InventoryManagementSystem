@@ -96,7 +96,7 @@ BEGIN
                 cp.ProductName,
                 cp.ShippingMarkCode,
                 cp.ShippingMarkName,
-                cp.ShippingMarkName as ManualShippingMark,
+                cp.ManualShippingMark as ManualShippingMark,
                 cp.GradeCode,
                 ISNULL(gm.GradeName, '') as GradeName,
                 cp.ClassCode,
@@ -134,7 +134,7 @@ BEGIN
                 cp.ProductName,  -- CpInventoryMasterから取得
                 s.ShippingMarkCode,
                 s.ShippingMarkName,
-                RIGHT('        ' + ISNULL(s.ShippingMarkName, ''), 8) as ManualShippingMark,
+                s.ShippingMarkName as ManualShippingMark,  -- 伝票の手入力項目  -- 売上伝票の手入力項目
                 s.GradeCode,
                 ISNULL(gm.GradeName, '') as GradeName,
                 s.ClassCode,

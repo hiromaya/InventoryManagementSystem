@@ -64,7 +64,8 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL,     -- 荷印コード
-        ShippingMarkName NVARCHAR(50) NOT NULL,     -- 荷印名
+        ShippingMarkName NVARCHAR(50) NOT NULL,     -- 荷印マスタ名（例：荷7011）
+        ManualShippingMark NVARCHAR(8) NOT NULL DEFAULT '',  -- 手入力荷印（例：ｺｳ）
         ProductName NVARCHAR(100) NOT NULL,         -- 商品名
         Unit NVARCHAR(10) NOT NULL,                 -- 単位
         StandardPrice DECIMAL(12,4) NOT NULL DEFAULT 0,    -- 標準単価

@@ -406,7 +406,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             ISNULL(cp.ProductCategory1, '') as ProductCategory1,
                             cp.ShippingMarkCode,
                             cp.ShippingMarkName,
-                            cp.ShippingMarkName as ManualShippingMark,
+                            cp.ManualShippingMark as ManualShippingMark,
                             cp.GradeCode,
                             ISNULL(cp.GradeName, 
                                 CASE 
@@ -447,7 +447,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             ISNULL(pm.ProductCategory1, '') as ProductCategory1,  -- 商品マスタから担当者取得
                             s.ShippingMarkCode,
                             s.ShippingMarkName,
-                            s.ShippingMarkName as ManualShippingMark,
+                            s.ShippingMarkName as ManualShippingMark,  -- 売上伝票の手入力値
                             s.GradeCode,
                             ISNULL(cp.GradeName, 
                                 CASE 
@@ -499,7 +499,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             ISNULL(pm.ProductCategory1, '') as ProductCategory1,
                             p.ShippingMarkCode,
                             p.ShippingMarkName,
-                            p.ShippingMarkName as ManualShippingMark,
+                            p.ShippingMarkName as ManualShippingMark,  -- 仕入伝票の手入力値
                             p.GradeCode,
                             ISNULL(cp.GradeName, 
                                 CASE 
@@ -551,7 +551,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             ISNULL(pm.ProductCategory1, '') as ProductCategory1,
                             ia.ShippingMarkCode,
                             ia.ShippingMarkName,
-                            ia.ShippingMarkName as ManualShippingMark,
+                            ia.ShippingMarkName as ManualShippingMark,  -- 在庫調整の手入力値
                             ia.GradeCode,
                             ISNULL(cp.GradeName, 
                                 CASE 

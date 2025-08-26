@@ -31,6 +31,7 @@ BEGIN
         INSERT INTO CpInventoryMaster (
             -- 5項目キー
             ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+            ManualShippingMark,  -- 手入力荷印（追加）
             -- 管理項目
             ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
             JobDate, CreatedDate, UpdatedDate,
@@ -75,7 +76,9 @@ BEGIN
         SELECT 
             -- 5項目キー
             im.ProductCode, im.GradeCode, im.ClassCode, 
-            im.ShippingMarkCode, im.ShippingMarkName,
+            im.ShippingMarkCode, 
+            ISNULL(sm.ShippingMarkName, '荷' + im.ShippingMarkCode) as ShippingMarkName,  -- 荷印マスタ名
+            im.ShippingMarkName as ManualShippingMark,  -- 既存のShippingMarkNameを手入力値として
             -- 管理項目
             im.ProductName, 
             COALESCE(u.UnitName, im.Unit) AS Unit,
@@ -111,6 +114,7 @@ BEGIN
         FROM InventoryMaster im
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
         LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode
+        LEFT JOIN ShippingMarkMaster sm ON im.ShippingMarkCode = sm.ShippingMarkCode
         WHERE im.IsActive = 1  -- アクティブな在庫のみ
         AND (@JobDate IS NULL OR im.JobDate <= @JobDate)  -- 指定日以前
         -- 最新の在庫レコードのみ取得

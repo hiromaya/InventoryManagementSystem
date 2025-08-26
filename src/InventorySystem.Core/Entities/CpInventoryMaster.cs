@@ -14,6 +14,7 @@ public class CpInventoryMaster
     // マスタ参照情報（商品勘定・在庫表で使用）
     public string GradeName { get; set; } = string.Empty;        // 等級名
     public string ClassName { get; set; } = string.Empty;        // 階級名
+    public string ManualShippingMark { get; set; } = string.Empty; // 手入力荷印（8文字固定）
     
     // 日付管理
     public DateTime JobDate { get; set; }                        // 汎用日付2（ジョブデート）
