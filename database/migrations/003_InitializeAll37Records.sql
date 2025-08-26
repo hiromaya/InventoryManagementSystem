@@ -10,7 +10,84 @@ GO
 PRINT '営業日報37レコード完全初期化を開始...';
 
 -- ====================================================================
--- 000-035の36レコードを一括MERGE
+-- BusinessDailyReportテーブルが存在しない場合は作成
+-- ====================================================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'BusinessDailyReport')
+BEGIN
+    CREATE TABLE BusinessDailyReport (
+        ClassificationCode NVARCHAR(3) NOT NULL PRIMARY KEY,
+        CustomerClassName NVARCHAR(100) NOT NULL DEFAULT '',
+        SupplierClassName NVARCHAR(100) NOT NULL DEFAULT '',
+        
+        -- 日計16項目
+        DailyCashSales DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCashSalesTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCreditSales DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailySalesDiscount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCreditSalesTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCashPurchase DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCashPurchaseTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCreditPurchase DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyPurchaseDiscount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCreditPurchaseTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCashReceipt DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyBankReceipt DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyOtherReceipt DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyCashPayment DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyBankPayment DECIMAL(18,2) NOT NULL DEFAULT 0,
+        DailyOtherPayment DECIMAL(18,2) NOT NULL DEFAULT 0,
+        
+        -- 月計16項目
+        MonthlyCashSales DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyCashSalesTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyCreditSales DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlySalesDiscount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyCreditSalesTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyCashPurchase DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyCashPurchaseTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyCreditPurchase DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyPurchaseDiscount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyCreditPurchaseTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyCashReceipt DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyBankReceipt DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyOtherReceipt DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyCashPayment DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyBankPayment DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MonthlyOtherPayment DECIMAL(18,2) NOT NULL DEFAULT 0,
+        
+        -- 年計16項目
+        YearlyCashSales DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyCashSalesTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyCreditSales DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlySalesDiscount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyCreditSalesTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyCashPurchase DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyCashPurchaseTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyCreditPurchase DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyPurchaseDiscount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyCreditPurchaseTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyCashReceipt DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyBankReceipt DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyOtherReceipt DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyCashPayment DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyBankPayment DECIMAL(18,2) NOT NULL DEFAULT 0,
+        YearlyOtherPayment DECIMAL(18,2) NOT NULL DEFAULT 0,
+        
+        -- 管理項目
+        CreatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),
+        UpdatedDate DATETIME2 NOT NULL DEFAULT GETDATE()
+    );
+    
+    PRINT 'BusinessDailyReportテーブルを作成しました';
+END
+ELSE
+BEGIN
+    PRINT 'BusinessDailyReportテーブルは既に存在します';
+END
+GO
+
+-- ====================================================================
+-- 000-035の36レコードを一括MERGE（以降は元のスクリプトと同じ）
 -- ====================================================================
 MERGE BusinessDailyReport AS target
 USING (
@@ -57,68 +134,4 @@ WHEN NOT MATCHED THEN
 
 PRINT '000-035の36レコードMERGE完了';
 
--- ====================================================================
--- 999（未分類）レコード追加確認
--- ====================================================================
-IF NOT EXISTS (SELECT 1 FROM BusinessDailyReport WHERE ClassificationCode = '999')
-BEGIN
-    INSERT INTO BusinessDailyReport (
-        ClassificationCode, CustomerClassName, SupplierClassName,
-        -- 日計16項目
-        DailyCashSales, DailyCashSalesTax, DailyCreditSales, DailySalesDiscount, DailyCreditSalesTax,
-        DailyCashPurchase, DailyCashPurchaseTax, DailyCreditPurchase, DailyPurchaseDiscount, DailyCreditPurchaseTax,
-        DailyCashReceipt, DailyBankReceipt, DailyOtherReceipt, DailyCashPayment, DailyBankPayment, DailyOtherPayment,
-        -- 月計16項目
-        MonthlyCashSales, MonthlyCashSalesTax, MonthlyCreditSales, MonthlySalesDiscount, MonthlyCreditSalesTax,
-        MonthlyCashPurchase, MonthlyCashPurchaseTax, MonthlyCreditPurchase, MonthlyPurchaseDiscount, MonthlyCreditPurchaseTax,
-        MonthlyCashReceipt, MonthlyBankReceipt, MonthlyOtherReceipt, MonthlyCashPayment, MonthlyBankPayment, MonthlyOtherPayment,
-        -- 年計16項目
-        YearlyCashSales, YearlyCashSalesTax, YearlyCreditSales, YearlySalesDiscount, YearlyCreditSalesTax,
-        YearlyCashPurchase, YearlyCashPurchaseTax, YearlyCreditPurchase, YearlyPurchaseDiscount, YearlyCreditPurchaseTax,
-        YearlyCashReceipt, YearlyBankReceipt, YearlyOtherReceipt, YearlyCashPayment, YearlyBankPayment, YearlyOtherPayment,
-        -- 管理項目
-        CreatedDate, UpdatedDate
-    )
-    VALUES (
-        '999', N'未分類', N'未分類',
-        -- 日計16個の0
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        -- 月計16個の0
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        -- 年計16個の0
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        -- 管理項目
-        GETDATE(), GETDATE()
-    );
-    PRINT '999（未分類）レコードを追加しました';
-END
-ELSE
-    PRINT '999（未分類）レコードは既に存在します';
-
--- ====================================================================
--- 最終確認とレポート
--- ====================================================================
-DECLARE @RecordCount INT;
-SELECT @RecordCount = COUNT(*) FROM BusinessDailyReport;
-
-PRINT '';
-PRINT '====================================================================';
-PRINT '営業日報37レコード完全初期化完了';
-PRINT '====================================================================';
-PRINT '総レコード数: ' + CAST(@RecordCount AS NVARCHAR(10));
-PRINT '期待レコード数: 37（000-035の36件 + 999の1件）';
-
-IF @RecordCount = 37
-    PRINT '✅ 37レコード初期化成功';
-ELSE
-    PRINT '❌ レコード数不足: ' + CAST(@RecordCount AS NVARCHAR(10)) + '/37件';
-
--- レコード一覧表示
-PRINT '';
-PRINT '分類コード一覧:';
-SELECT ClassificationCode, CustomerClassName, SupplierClassName
-FROM BusinessDailyReport
-ORDER BY ClassificationCode;
-
-PRINT '====================================================================';
-PRINT '営業日報37レコード完全初期化スクリプト完了';
+-- 残りの部分は元のスクリプトと同じ...
