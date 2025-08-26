@@ -76,9 +76,6 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "05_create_master_tables.sql",              // 完全版マスタテーブル作成（CreatedAt/UpdatedAt対応）
         
         // === CP在庫マスタカラム追加（ストアドプロシージャ作成前に必須） ===
-        "061_AddGradeClassNamesToCpInventoryMaster.sql",    // CpInventoryMasterにGradeName/ClassName追加
-        "062_UpdateCpInventoryMasterNames.sql",             // 既存データのGradeName/ClassName更新
-        
         "029_CreateShippingMarkMaster.sql",         // ShippingMarkMasterテーブル作成
         
         // === 重要マスタエンティティ追加 ===
