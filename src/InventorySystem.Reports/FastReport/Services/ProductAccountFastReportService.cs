@@ -155,16 +155,14 @@ namespace InventorySystem.Reports.FastReport.Services
                     .GroupBy(x => new 
                     { 
                         x.ProductCode, 
-                        x.ProductName,
                         x.ShippingMarkCode,
                         x.ManualShippingMark,
                         x.GradeCode,
-                        x.GradeName,
-                        x.ClassCode,
-                        x.ClassName
+                        x.ClassCode
                     })
                     .OrderBy(g => g.Key.ProductCode)
                     .ThenBy(g => g.Key.ShippingMarkCode)
+                    .ThenBy(g => g.Key.ManualShippingMark)
                     .ThenBy(g => g.Key.GradeCode)
                     .ThenBy(g => g.Key.ClassCode);
                 
@@ -403,8 +401,8 @@ namespace InventorySystem.Reports.FastReport.Services
                             ISNULL(cp.ProductName, '') as ProductName,
                             ISNULL(cp.ProductCategory1, '') as ProductCategory1,
                             cp.ShippingMarkCode,
+                            cp.ShippingMarkName,
                             cp.ManualShippingMark,
-                            cp.ManualShippingMark as ManualShippingMark,
                             cp.GradeCode,
                             ISNULL(cp.GradeName, 
                                 CASE 
@@ -444,8 +442,8 @@ namespace InventorySystem.Reports.FastReport.Services
                             ISNULL(s.ProductName, pm.ProductName) as ProductName,  -- 伝票の商品名、またはマスタから取得
                             ISNULL(pm.ProductCategory1, '') as ProductCategory1,  -- 商品マスタから担当者取得
                             s.ShippingMarkCode,
-                            s.ManualShippingMark,
-                            s.ManualShippingMark as ManualShippingMark,  -- 売上伝票の手入力値
+                            s.ShippingMarkName,
+                            s.ManualShippingMark,  -- 売上伝票の手入力値
                             s.GradeCode,
                             ISNULL(cp.GradeName, 
                                 CASE 
@@ -496,8 +494,8 @@ namespace InventorySystem.Reports.FastReport.Services
                             ISNULL(p.ProductName, pm.ProductName) as ProductName,  -- 伝票の商品名、またはマスタから取得
                             ISNULL(pm.ProductCategory1, '') as ProductCategory1,
                             p.ShippingMarkCode,
-                            p.ManualShippingMark,
-                            p.ManualShippingMark as ManualShippingMark,  -- 仕入伝票の手入力値
+                            p.ShippingMarkName,
+                            p.ManualShippingMark,  -- 仕入伝票の手入力値
                             p.GradeCode,
                             ISNULL(cp.GradeName, 
                                 CASE 
@@ -548,8 +546,8 @@ namespace InventorySystem.Reports.FastReport.Services
                             ISNULL(ia.ProductName, pm.ProductName) as ProductName,  -- 伝票の商品名、またはマスタから取得
                             ISNULL(pm.ProductCategory1, '') as ProductCategory1,
                             ia.ShippingMarkCode,
-                            ia.ManualShippingMark,
-                            ia.ManualShippingMark as ManualShippingMark,  -- 在庫調整の手入力値
+                            ia.ShippingMarkName,
+                            ia.ManualShippingMark,  -- 在庫調整の手入力値
                             ia.GradeCode,
                             ISNULL(cp.GradeName, 
                                 CASE 
@@ -1037,7 +1035,7 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("ProductCategory1Name", typeof(string));
             table.Columns.Add("ProductCode", typeof(string));
             table.Columns.Add("ProductName", typeof(string));
-            table.Columns.Add("ManualShippingMark", typeof(string));
+            table.Columns.Add("ShippingMarkName", typeof(string));
             table.Columns.Add("ManualShippingMark", typeof(string));
             table.Columns.Add("GradeName", typeof(string));
             table.Columns.Add("ClassName", typeof(string));
@@ -1080,7 +1078,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["ProductCategory1Name"] = item.ProductCategory1Name;
                 row["ProductCode"] = item.ProductCode;
                 row["ProductName"] = item.ProductName;
-                row["ManualShippingMark"] = item.ManualShippingMark;
+                row["ShippingMarkName"] = item.ShippingMarkName;
                 row["ManualShippingMark"] = item.ManualShippingMark;
                 row["GradeName"] = item.GradeName;
                 row["ClassName"] = item.ClassName;
@@ -1121,7 +1119,7 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("ProductCategory1Name", typeof(string));   // 担当者名
             table.Columns.Add("ProductCode", typeof(string));
             table.Columns.Add("ProductName", typeof(string));
-            table.Columns.Add("ManualShippingMark", typeof(string));
+            table.Columns.Add("ShippingMarkName", typeof(string));
             table.Columns.Add("ManualShippingMark", typeof(string));
             table.Columns.Add("GradeName", typeof(string));
             table.Columns.Add("ClassName", typeof(string));
@@ -1166,7 +1164,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 文字列フィールドはそのまま
                 row["ProductCode"] = item.ProductCode;
                 row["ProductName"] = item.ProductName;
-                row["ManualShippingMark"] = item.ManualShippingMark;
+                row["ShippingMarkName"] = item.ShippingMarkName;
                 row["ManualShippingMark"] = item.ManualShippingMark;
                 row["GradeName"] = item.GradeName;
                 row["ClassName"] = item.ClassName;
