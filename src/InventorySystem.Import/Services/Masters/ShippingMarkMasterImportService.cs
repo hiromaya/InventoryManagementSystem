@@ -56,7 +56,7 @@ public class ShippingMarkMasterImportService : IShippingMarkMasterImportService
                     if (!record.IsValid())
                     {
                         _logger.LogWarning("行 {Index}: 無効なレコード - 荷印コード: {Code}, 荷印名: {Name}", 
-                            index, record.ShippingMarkCode, record.ShippingMarkName);
+                            index, record.ShippingMarkCode, record.ManualShippingMark);
                         errorCount++;
                         continue;
                     }
@@ -65,7 +65,7 @@ public class ShippingMarkMasterImportService : IShippingMarkMasterImportService
                     var shippingMark = new ShippingMarkMaster
                     {
                         ShippingMarkCode = record.ShippingMarkCode!,
-                        ShippingMarkName = record.ShippingMarkName!,
+                        ManualShippingMark = record.ManualShippingMark!,
                         SearchKana = record.SearchKana,
                         NumericValue1 = record.NumericValue1,
                         NumericValue2 = record.NumericValue2,
@@ -89,7 +89,7 @@ public class ShippingMarkMasterImportService : IShippingMarkMasterImportService
                     
                     importedCount++;
                     _logger.LogDebug("行 {Index}: 荷印マスタ登録完了 - {Code}: {Name}", 
-                        index, record.ShippingMarkCode, record.ShippingMarkName);
+                        index, record.ShippingMarkCode, record.ManualShippingMark);
                 }
                 catch (Exception ex)
                 {

@@ -3788,17 +3788,17 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                     GradeCode,
                     ClassCode,
                     ShippingMarkCode,
-                    ShippingMarkName
+                    ManualShippingMark
                 FROM (
-                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                     FROM SalesVouchers
                     WHERE CONVERT(date, JobDate) = @jobDate
                     UNION
-                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                     FROM PurchaseVouchers
                     WHERE CONVERT(date, JobDate) = @jobDate
                     UNION
-                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                     FROM InventoryAdjustments
                     WHERE CONVERT(date, JobDate) = @jobDate
                 ) AS products
@@ -3807,7 +3807,7 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                 AND target.GradeCode = source.GradeCode
                 AND target.ClassCode = source.ClassCode
                 AND target.ShippingMarkCode = source.ShippingMarkCode
-                AND target.ShippingMarkName = source.ShippingMarkName
+                AND target.ManualShippingMark = source.ManualShippingMark
             WHEN MATCHED AND target.JobDate <> @jobDate THEN
                 UPDATE SET 
                     JobDate = @jobDate,
@@ -3815,7 +3815,7 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                     DataSetId = @dataSetId
             WHEN NOT MATCHED THEN
                 INSERT (
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                     JobDate, CreatedDate, UpdatedDate,
                     CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount, DailyFlag,
@@ -3827,7 +3827,7 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                     source.GradeCode,
                     source.ClassCode,
                     source.ShippingMarkCode,
-                    source.ShippingMarkName,
+                    source.ManualShippingMark,
                     '商品名未設定',
                     'PCS',
                     0,
@@ -4127,7 +4127,7 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                                     foreach (var missing in missingResult.MissingProducts.Take(10))
                                     {
                                         System.Console.WriteLine($"  商品コード:{missing.ProductCode}, 等級:{missing.GradeCode}, 階級:{missing.ClassCode}, " +
-                                                       $"荷印:{missing.ShippingMarkCode}, 荷印名:{missing.ShippingMarkName}, " +
+                                                       $"荷印:{missing.ShippingMarkCode}, 荷印名:{missing.ManualShippingMark}, " +
                                                        $"検出元:{missing.FoundInVoucherType}");
                                     }
                                     if (missingResult.MissingProducts.Count > 10)

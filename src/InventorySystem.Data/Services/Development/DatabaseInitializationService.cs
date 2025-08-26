@@ -217,7 +217,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 GradeCode NVARCHAR(3) NOT NULL,
                 ClassCode NVARCHAR(3) NOT NULL,
                 ShippingMarkCode NVARCHAR(4) NOT NULL,
-                ShippingMarkName NVARCHAR(8) NOT NULL,
+                ManualShippingMark NVARCHAR(8) NOT NULL,
                 ProductName NVARCHAR(100) NOT NULL DEFAULT '',
                 Unit NVARCHAR(10) NOT NULL DEFAULT 'PCS',
                 Quantity DECIMAL(18,4) NOT NULL DEFAULT 0,
@@ -232,7 +232,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                     GradeCode,
                     ClassCode,
                     ShippingMarkCode,
-                    ShippingMarkName,
+                    ManualShippingMark,
                     YearMonth
                 )
             )"
@@ -274,7 +274,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         },
         ["PreviousMonthInventory"] = new List<string>
         {
-            "CREATE NONCLUSTERED INDEX IX_PreviousMonthInventory_YearMonth ON PreviousMonthInventory(YearMonth) INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, Quantity, Amount)"
+            "CREATE NONCLUSTERED INDEX IX_PreviousMonthInventory_YearMonth ON PreviousMonthInventory(YearMonth) INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, Quantity, Amount)"
         }
     };
     

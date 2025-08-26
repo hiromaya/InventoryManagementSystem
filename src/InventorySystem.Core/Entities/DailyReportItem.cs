@@ -38,7 +38,7 @@ public class DailyReportItem
     /// <summary>
     /// 荷印名
     /// </summary>
-    public string ShippingMarkName { get; set; } = string.Empty;
+    public string ManualShippingMark { get; set; } = string.Empty;
     
     // === 日計項目（11項目） ===
     

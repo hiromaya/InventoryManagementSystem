@@ -97,13 +97,13 @@ namespace InventorySystem.Data.Services
                         AND im.GradeCode = pmi.GradeCode
                         AND im.ClassCode = pmi.ClassCode
                         AND im.ShippingMarkCode = pmi.ShippingMarkCode
-                        AND LEFT(RTRIM(COALESCE(im.ShippingMarkName, '')) + REPLICATE(' ', 8), 8) = LEFT(RTRIM(COALESCE(pmi.ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
+                        AND LEFT(RTRIM(COALESCE(im.ManualShippingMark, '')) + REPLICATE(' ', 8), 8) = LEFT(RTRIM(COALESCE(pmi.ManualShippingMark, '')) + REPLICATE(' ', 8), 8)
                     WHERE CAST(im.JobDate AS DATE) = CAST(@JobDate AS DATE)
                         AND CAST(pmi.JobDate AS DATE) = CAST(@JobDate AS DATE);
                     
                     -- 前月末在庫のみ存在する商品を新規追加
                     INSERT INTO InventoryMaster (
-                        ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                        ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                         ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                         JobDate, CreatedDate, UpdatedDate,
                         CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount, DailyFlag,
@@ -111,7 +111,7 @@ namespace InventorySystem.Data.Services
                     )
                     SELECT 
                         pmi.ProductCode, pmi.GradeCode, pmi.ClassCode, 
-                        pmi.ShippingMarkCode, LEFT(RTRIM(COALESCE(pmi.ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName,
+                        pmi.ShippingMarkCode, LEFT(RTRIM(COALESCE(pmi.ManualShippingMark, '')) + REPLICATE(' ', 8), 8) as ManualShippingMark,
                         COALESCE(pm.ProductName, '商' + pmi.ProductCode) as ProductName,
                         COALESCE(pm.UnitCode, 'PCS') as Unit,
                         COALESCE(pm.StandardPrice, 0) as StandardPrice,
@@ -131,7 +131,7 @@ namespace InventorySystem.Data.Services
                                 AND im.GradeCode = pmi.GradeCode
                                 AND im.ClassCode = pmi.ClassCode
                                 AND im.ShippingMarkCode = pmi.ShippingMarkCode
-                                AND LEFT(RTRIM(COALESCE(im.ShippingMarkName, '')) + REPLICATE(' ', 8), 8) = LEFT(RTRIM(COALESCE(pmi.ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
+                                AND LEFT(RTRIM(COALESCE(im.ManualShippingMark, '')) + REPLICATE(' ', 8), 8) = LEFT(RTRIM(COALESCE(pmi.ManualShippingMark, '')) + REPLICATE(' ', 8), 8)
                                 AND CAST(im.JobDate AS DATE) = CAST(@JobDate AS DATE)
                         );";
 
@@ -386,7 +386,7 @@ namespace InventorySystem.Data.Services
                     GradeCode,
                     ClassCode,
                     ShippingMarkCode,
-                    LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName
+                    LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8) as ManualShippingMark
                 FROM SalesVouchers
                 WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)";
             
@@ -409,7 +409,7 @@ namespace InventorySystem.Data.Services
                     GradeCode,
                     ClassCode,
                     ShippingMarkCode,
-                    LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName
+                    LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8) as ManualShippingMark
                 FROM PurchaseVouchers
                 WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)";
             
@@ -432,7 +432,7 @@ namespace InventorySystem.Data.Services
                     GradeCode,
                     ClassCode,
                     ShippingMarkCode,
-                    LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName
+                    LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8) as ManualShippingMark
                 FROM InventoryAdjustments
                 WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)";
             
@@ -465,7 +465,7 @@ namespace InventorySystem.Data.Services
             const string inheritSql = @"
                 -- 前日の在庫マスタを当日にコピー（CurrentStockを引き継ぎ）
                 INSERT INTO InventoryMaster (
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                     JobDate, CreatedDate, UpdatedDate,
                     CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount, DailyFlag,
@@ -474,7 +474,7 @@ namespace InventorySystem.Data.Services
                 SELECT 
                     prev.ProductCode, prev.GradeCode, prev.ClassCode, 
                     prev.ShippingMarkCode, 
-                    LEFT(RTRIM(COALESCE(prev.ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName,
+                    LEFT(RTRIM(COALESCE(prev.ManualShippingMark, '')) + REPLICATE(' ', 8), 8) as ManualShippingMark,
                     prev.ProductName, prev.Unit, prev.StandardPrice, 
                     prev.ProductCategory1, prev.ProductCategory2,
                     @JobDate, GETDATE(), GETDATE(),
@@ -491,8 +491,8 @@ namespace InventorySystem.Data.Services
                             AND curr.GradeCode = prev.GradeCode
                             AND curr.ClassCode = prev.ClassCode
                             AND curr.ShippingMarkCode = prev.ShippingMarkCode
-                            AND LEFT(RTRIM(COALESCE(curr.ShippingMarkName, '')) + REPLICATE(' ', 8), 8) = 
-                                LEFT(RTRIM(COALESCE(prev.ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
+                            AND LEFT(RTRIM(COALESCE(curr.ManualShippingMark, '')) + REPLICATE(' ', 8), 8) = 
+                                LEFT(RTRIM(COALESCE(prev.ManualShippingMark, '')) + REPLICATE(' ', 8), 8)
                             AND CAST(curr.JobDate AS DATE) = CAST(@JobDate AS DATE)
                     );";
             
@@ -581,17 +581,17 @@ namespace InventorySystem.Data.Services
                     AND NOT EXISTS (
                         SELECT 1 FROM (
                             SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, 
-                                   LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName
+                                   LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8) as ManualShippingMark
                             FROM SalesVouchers
                             WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                             UNION
                             SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, 
-                                   LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName
+                                   LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8) as ManualShippingMark
                             FROM PurchaseVouchers
                             WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                             UNION
                             SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, 
-                                   LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName
+                                   LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8) as ManualShippingMark
                             FROM InventoryAdjustments
                             WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                         ) AS v
@@ -599,7 +599,7 @@ namespace InventorySystem.Data.Services
                             AND v.GradeCode = InventoryMaster.GradeCode
                             AND v.ClassCode = InventoryMaster.ClassCode
                             AND v.ShippingMarkCode = InventoryMaster.ShippingMarkCode
-                            AND v.ShippingMarkName = LEFT(RTRIM(COALESCE(InventoryMaster.ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
+                            AND v.ManualShippingMark = LEFT(RTRIM(COALESCE(InventoryMaster.ManualShippingMark, '')) + REPLICATE(' ', 8), 8)
                     )";
 
             return await connection.ExecuteAsync(sql, new { jobDate }, transaction);
@@ -621,30 +621,30 @@ namespace InventorySystem.Data.Services
             {
                 const string sql = @"
                     WITH CurrentDayTransactions AS (
-                        -- 当日の取引データを集計（ShippingMarkNameをトリミング）
+                        -- 当日の取引データを集計（ManualShippingMarkをトリミング）
                         SELECT DISTINCT
                             ProductCode,
                             GradeCode,
                             ClassCode,
                             ShippingMarkCode,
-                            LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8) as ShippingMarkName
+                            LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8) as ManualShippingMark
                         FROM (
                             -- 売上データ
-                            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                             FROM SalesVouchers 
                             WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                             
                             UNION ALL
                             
                             -- 仕入データ
-                            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                             FROM PurchaseVouchers 
                             WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                             
                             UNION ALL
                             
                             -- 在庫調整データ
-                            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                             FROM InventoryAdjustments 
                             WHERE CAST(JobDate AS DATE) = CAST(@jobDate AS DATE)
                         ) AS AllTransactions
@@ -672,7 +672,7 @@ namespace InventorySystem.Data.Services
                         GradeCode,
                         ClassCode,
                         ShippingMarkCode,
-                        ShippingMarkName,
+                        ManualShippingMark,
                         ExclusionReason
                     FROM ExcludedProducts
                     ORDER BY ExclusionReason, ProductCode, GradeCode, ClassCode, ShippingMarkCode";
@@ -702,9 +702,9 @@ namespace InventorySystem.Data.Services
                             _logger.LogDebug(
                                 "  除外商品: ProductCode={ProductCode}, GradeCode={GradeCode}, " +
                                 "ClassCode={ClassCode}, ShippingMarkCode={ShippingMarkCode}, " +
-                                "ShippingMarkName='{ShippingMarkName}'",
+                                "ManualShippingMark='{ManualShippingMark}'",
                                 (string)product.ProductCode, (string)product.GradeCode, (string)product.ClassCode,
-                                (string)product.ShippingMarkCode, (string)product.ShippingMarkName);
+                                (string)product.ShippingMarkCode, (string)product.ManualShippingMark);
                         }
                         
                         if (group.Count() > 5)
@@ -738,7 +738,7 @@ namespace InventorySystem.Data.Services
         public string GradeCode { get; set; } = string.Empty;
         public string ClassCode { get; set; } = string.Empty;
         public string ShippingMarkCode { get; set; } = string.Empty;
-        public string ShippingMarkName { get; set; } = string.Empty;
+        public string ManualShippingMark { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -755,7 +755,7 @@ namespace InventorySystem.Data.Services
                 && x.GradeCode == y.GradeCode
                 && x.ClassCode == y.ClassCode
                 && x.ShippingMarkCode == y.ShippingMarkCode
-                && x.ShippingMarkName == y.ShippingMarkName;
+                && x.ManualShippingMark == y.ManualShippingMark;
         }
 
         public int GetHashCode(ProductKey obj)
@@ -765,7 +765,7 @@ namespace InventorySystem.Data.Services
                 obj.GradeCode,
                 obj.ClassCode,
                 obj.ShippingMarkCode,
-                obj.ShippingMarkName);
+                obj.ManualShippingMark);
         }
     }
 }

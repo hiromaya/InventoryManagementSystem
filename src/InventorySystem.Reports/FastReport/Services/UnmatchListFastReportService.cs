@@ -126,8 +126,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 最初の5件の文字列状態を確認
                 foreach (var (item, index) in unmatchList.Take(5).Select((i, idx) => (i, idx)))
                 {
-                    _logger.LogDebug("PDF生成 行{Index}: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}'", 
-                        index + 1, item.CustomerName, item.ProductName, item.Key.ShippingMarkName);
+                    _logger.LogDebug("PDF生成 行{Index}: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ManualShippingMark}'", 
+                        index + 1, item.CustomerName, item.ProductName, item.Key.ManualShippingMark);
                     
                     if (!string.IsNullOrEmpty(item.CustomerName))
                     {
@@ -143,7 +143,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 dataTable.Columns.Add("ProductCode", typeof(string));
                 dataTable.Columns.Add("ProductName", typeof(string));
                 dataTable.Columns.Add("ShippingMarkCode", typeof(string));
-                dataTable.Columns.Add("ShippingMarkName", typeof(string));
+                dataTable.Columns.Add("ManualShippingMark", typeof(string));
                 dataTable.Columns.Add("ManualInput", typeof(string));
                 dataTable.Columns.Add("GradeCode", typeof(string));
                 dataTable.Columns.Add("GradeName", typeof(string));
@@ -174,10 +174,10 @@ namespace InventorySystem.Reports.FastReport.Services
                     var productCode = item.Key.ProductCode ?? "";
                     var productName = item.ProductName ?? "";
                     var shippingMarkCode = item.Key.ShippingMarkCode ?? "";
-                    var shippingMarkName = item.Key.ShippingMarkName ?? "";
+                    var shippingMarkName = item.Key.ManualShippingMark ?? "";
                     
                     // デバッグログ追加（文字化け調査用）
-                    _logger.LogDebug("DataTable追加前: カテゴリ={Category}, 商品名={ProductName}, 荷印名={ShippingMarkName}", 
+                    _logger.LogDebug("DataTable追加前: カテゴリ={Category}, 商品名={ProductName}, 荷印名={ManualShippingMark}", 
                         categoryName, 
                         productName ?? "(null)", 
                         shippingMarkName ?? "(null)");
@@ -208,7 +208,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     var className = IsZeroCode(item.Key.ClassCode) ? "" : (item.ClassName ?? "");
                     
                     // 荷印名の設定（コード0の場合は空白）
-                    var displayShippingMarkName = IsZeroCode(item.Key.ShippingMarkCode) ? "" : shippingMarkName;
+                    var displayManualShippingMark = IsZeroCode(item.Key.ShippingMarkCode) ? "" : shippingMarkName;
                     
                     dataTable.Rows.Add(
                         categoryName,
@@ -217,8 +217,8 @@ namespace InventorySystem.Reports.FastReport.Services
                         productCode,
                         productName,
                         shippingMarkCode,
-                        displayShippingMarkName,
-                        displayShippingMarkName,  // ManualInput - 荷印名と同じ値
+                        displayManualShippingMark,
+                        displayManualShippingMark,  // ManualInput - 荷印名と同じ値
                         item.Key.GradeCode ?? "",
                         gradeName,
                         item.Key.ClassCode ?? "",

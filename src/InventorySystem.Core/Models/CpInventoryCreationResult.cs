@@ -108,7 +108,7 @@ namespace InventorySystem.Core.Models
         /// <summary>
         /// 荷印名
         /// </summary>
-        public string ShippingMarkName { get; set; } = string.Empty;
+        public string ManualShippingMark { get; set; } = string.Empty;
 
         /// <summary>
         /// どの伝票種別で見つかったか

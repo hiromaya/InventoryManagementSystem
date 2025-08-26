@@ -47,7 +47,7 @@ public class PurchaseVoucherCsv
     public string ShippingMarkCode { get; set; } = string.Empty;
     
     [Index(12)]
-    public string ShippingMarkName { get; set; } = string.Empty;
+    public string ManualShippingMark { get; set; } = string.Empty;
     
     [Index(13)]
     public decimal Quantity { get; set; }
@@ -87,7 +87,7 @@ public class PurchaseVoucherCsv
             GradeCode = GradeCode?.Trim() ?? string.Empty,
             ClassCode = ClassCode?.Trim() ?? string.Empty,
             ShippingMarkCode = ShippingMarkCode?.Trim() ?? string.Empty,
-            ShippingMarkName = ShippingMarkName?.Trim() ?? string.Empty,
+            ManualShippingMark = ManualShippingMark?.Trim() ?? string.Empty,
             Quantity = Quantity,
             UnitPrice = UnitPrice,
             Amount = Amount,
@@ -148,7 +148,7 @@ public class PurchaseVoucherCsv
 
         // 荷印コード・荷印名は必須
         if (string.IsNullOrWhiteSpace(ShippingMarkCode) ||
-            string.IsNullOrWhiteSpace(ShippingMarkName))
+            string.IsNullOrWhiteSpace(ManualShippingMark))
         {
             return false;
         }

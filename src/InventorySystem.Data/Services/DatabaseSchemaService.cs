@@ -277,7 +277,7 @@ BEGIN
     
     BEGIN TRY
         INSERT INTO CpInventoryMaster (
-            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
             ProductName, ProductCategory1, ProductCategory2, Unit, StandardPrice,
             JobDate, DataSetId, DepartmentCode,
             PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice, DailyFlag,
@@ -312,12 +312,12 @@ BEGIN
             CreatedDate, UpdatedDate
         )
         SELECT 
-            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ShippingMarkName,
+            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ManualShippingMark,
             im.ProductName, 
             CASE 
-                WHEN LEFT(im.ShippingMarkName, 4) = '9aaa' THEN '8'
-                WHEN LEFT(im.ShippingMarkName, 4) = '1aaa' THEN '6'
-                WHEN LEFT(im.ShippingMarkName, 4) = '0999' THEN '6'
+                WHEN LEFT(im.ManualShippingMark, 4) = '9aaa' THEN '8'
+                WHEN LEFT(im.ManualShippingMark, 4) = '1aaa' THEN '6'
+                WHEN LEFT(im.ManualShippingMark, 4) = '0999' THEN '6'
                 ELSE ISNULL(pm.ProductCategory1, '00')
             END AS ProductCategory1,
             ISNULL(pm.ProductCategory2, '00') AS ProductCategory2,
@@ -424,7 +424,7 @@ BEGIN
         
         -- CP在庫マスタの作成
         INSERT INTO CpInventoryMaster (
-            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
             ProductName, ProductCategory1, ProductCategory2, Unit, StandardPrice,
             JobDate, DepartmentCode,
             PreviousDayStock, PreviousDayStockAmount, PreviousDayUnitPrice, DailyFlag,
@@ -459,12 +459,12 @@ BEGIN
             CreatedDate, UpdatedDate
         )
         SELECT 
-            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ShippingMarkName,
+            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ManualShippingMark,
             ISNULL(pm.ProductName, im.ProductName) AS ProductName,
             CASE 
-                WHEN LEFT(im.ShippingMarkName, 4) = '9aaa' THEN '8'
-                WHEN LEFT(im.ShippingMarkName, 4) = '1aaa' THEN '6'
-                WHEN LEFT(im.ShippingMarkName, 4) = '0999' THEN '6'
+                WHEN LEFT(im.ManualShippingMark, 4) = '9aaa' THEN '8'
+                WHEN LEFT(im.ManualShippingMark, 4) = '1aaa' THEN '6'
+                WHEN LEFT(im.ManualShippingMark, 4) = '0999' THEN '6'
                 ELSE ISNULL(pm.ProductCategory1, '00')
             END AS ProductCategory1,
             ISNULL(pm.ProductCategory2, '00') AS ProductCategory2,

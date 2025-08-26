@@ -13,7 +13,7 @@ public class ShippingMarkMasterCsv
 
     [Name("荷印名")]
     [Index(1)]
-    public string ShippingMarkName { get; set; } = string.Empty;
+    public string ManualShippingMark { get; set; } = string.Empty;
 
     [Name("検索カナ")]
     [Index(2)]
@@ -85,6 +85,6 @@ public class ShippingMarkMasterCsv
     public bool IsValid()
     {
         return !string.IsNullOrWhiteSpace(ShippingMarkCode) && 
-               !string.IsNullOrWhiteSpace(ShippingMarkName);
+               !string.IsNullOrWhiteSpace(ManualShippingMark);
     }
 }

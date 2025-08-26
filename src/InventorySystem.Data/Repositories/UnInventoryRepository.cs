@@ -24,12 +24,12 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
     {
         const string sql = """
             INSERT INTO UnInventoryMaster (
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 PreviousDayStock, DailyStock, DailyFlag, JobDate,
                 CreatedDate, UpdatedDate
             )
             SELECT 
-                i.ProductCode, i.GradeCode, i.ClassCode, i.ShippingMarkCode, i.ShippingMarkName,
+                i.ProductCode, i.GradeCode, i.ClassCode, i.ShippingMarkCode, i.ManualShippingMark,
                 ISNULL(i.PreviousMonthQuantity, 0),
                 0 as DailyStock,
                 '9' as DailyFlag,
@@ -53,7 +53,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 AND (i.ShippingMarkCode = '0000' OR EXISTS (SELECT 1 FROM ShippingMarkMaster sm WHERE sm.ShippingMarkCode = i.ShippingMarkCode))
                 
                 -- 5. 荷印名：8文字固定長であることを確認（空白8文字も有効）
-                AND LEN(RTRIM(COALESCE(i.ShippingMarkName, ''))) <= 8
+                AND LEN(RTRIM(COALESCE(i.ManualShippingMark, ''))) <= 8
             """;
 
         try
@@ -122,7 +122,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
             LEFT JOIN (
                 SELECT 
                     s.ProductCode, s.GradeCode, s.ClassCode, 
-                    s.ShippingMarkCode, s.ShippingMarkName,
+                    s.ShippingMarkCode, s.ManualShippingMark,
                     SUM(s.Quantity) as SalesReturnQuantity
                 FROM SalesVouchers s
                 WHERE s.DataSetId = @DataSetId
@@ -131,13 +131,13 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 {dateCondition}
                 GROUP BY 
                     s.ProductCode, s.GradeCode, s.ClassCode, 
-                    s.ShippingMarkCode, s.ShippingMarkName
+                    s.ShippingMarkCode, s.ManualShippingMark
             ) sales ON 
                 un.ProductCode = sales.ProductCode
                 AND un.GradeCode = sales.GradeCode
                 AND un.ClassCode = sales.ClassCode
                 AND un.ShippingMarkCode = sales.ShippingMarkCode
-                AND un.ShippingMarkName = sales.ShippingMarkName
+                AND un.ManualShippingMark = sales.ManualShippingMark
             """;
 
         try
@@ -179,7 +179,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
             LEFT JOIN (
                 SELECT 
                     p.ProductCode, p.GradeCode, p.ClassCode, 
-                    p.ShippingMarkCode, p.ShippingMarkName,
+                    p.ShippingMarkCode, p.ManualShippingMark,
                     SUM(p.Quantity) as PurchaseQuantity
                 FROM PurchaseVouchers p
                 WHERE p.DataSetId = @DataSetId
@@ -188,13 +188,13 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 {dateCondition}
                 GROUP BY 
                     p.ProductCode, p.GradeCode, p.ClassCode, 
-                    p.ShippingMarkCode, p.ShippingMarkName
+                    p.ShippingMarkCode, p.ManualShippingMark
             ) purchase ON 
                 un.ProductCode = purchase.ProductCode
                 AND un.GradeCode = purchase.GradeCode
                 AND un.ClassCode = purchase.ClassCode
                 AND un.ShippingMarkCode = purchase.ShippingMarkCode
-                AND un.ShippingMarkName = purchase.ShippingMarkName
+                AND un.ManualShippingMark = purchase.ManualShippingMark
             """;
 
         try
@@ -236,7 +236,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
             LEFT JOIN (
                 SELECT 
                     ia.ProductCode, ia.GradeCode, ia.ClassCode, 
-                    ia.ShippingMarkCode, ia.ShippingMarkName,
+                    ia.ShippingMarkCode, ia.ManualShippingMark,
                     SUM(ia.Quantity) as AdjustmentQuantity
                 FROM InventoryAdjustments ia
                 WHERE ia.DataSetId = @DataSetId
@@ -246,13 +246,13 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 {dateCondition}
                 GROUP BY 
                     ia.ProductCode, ia.GradeCode, ia.ClassCode, 
-                    ia.ShippingMarkCode, ia.ShippingMarkName
+                    ia.ShippingMarkCode, ia.ManualShippingMark
             ) adjustment ON 
                 un.ProductCode = adjustment.ProductCode
                 AND un.GradeCode = adjustment.GradeCode
                 AND un.ClassCode = adjustment.ClassCode
                 AND un.ShippingMarkCode = adjustment.ShippingMarkCode
-                AND un.ShippingMarkName = adjustment.ShippingMarkName
+                AND un.ManualShippingMark = adjustment.ManualShippingMark
             """;
 
         try
@@ -339,7 +339,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
             AND GradeCode = @GradeCode
             AND ClassCode = @ClassCode
             AND ShippingMarkCode = @ShippingMarkCode
-            AND ShippingMarkName = @ShippingMarkName
+            AND ManualShippingMark = @ManualShippingMark
             """;
 
         try
@@ -351,7 +351,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 GradeCode = key.GradeCode,
                 ClassCode = key.ClassCode,
                 ShippingMarkCode = key.ShippingMarkCode,
-                ShippingMarkName = key.ShippingMarkName
+                ManualShippingMark = key.ManualShippingMark
             });
 
             return result != null ? MapToUnInventoryMaster(result) : null;
@@ -370,7 +370,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
     {
         const string sql = """
             SELECT * FROM UnInventoryMaster 
-            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             """;
 
         try
@@ -441,7 +441,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
         const string sql = """
             SELECT * FROM UnInventoryMaster 
             WHERE JobDate = @JobDate
-            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             """;
 
         try
@@ -492,7 +492,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 GradeCode = item.GradeCode ?? string.Empty,          // 冪等性のある3桁0埋め
                 ClassCode = item.ClassCode ?? string.Empty,          // 冪等性のある3桁0埋め
                 ShippingMarkCode = item.ShippingMarkCode ?? string.Empty, // 冪等性のある4桁0埋め
-                ShippingMarkName = item.ShippingMarkName ?? string.Empty  // 8桁固定（正規化済み）
+                ManualShippingMark = item.ManualShippingMark ?? string.Empty  // 8桁固定（正規化済み）
             },
             // DataSetIdプロパティを削除（使い捨てテーブル設計）
             PreviousDayStock = item.PreviousDayStock ?? 0,

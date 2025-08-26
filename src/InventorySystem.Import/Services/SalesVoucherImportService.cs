@@ -463,9 +463,9 @@ public class SalesVoucherImportService
                         {
                             _logger.LogDebug("得意先名バイト列: {Bytes}", BitConverter.ToString(Encoding.UTF8.GetBytes(record.CustomerName)));
                         }
-                        if (!string.IsNullOrEmpty(record.ShippingMarkName))
+                        if (!string.IsNullOrEmpty(record.ManualShippingMark))
                         {
-                            _logger.LogDebug("荷印名バイト列: {Bytes}", BitConverter.ToString(Encoding.UTF8.GetBytes(record.ShippingMarkName)));
+                            _logger.LogDebug("荷印名バイト列: {Bytes}", BitConverter.ToString(Encoding.UTF8.GetBytes(record.ManualShippingMark)));
                         }
                     }
                     

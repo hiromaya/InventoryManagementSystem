@@ -333,7 +333,7 @@ public class InitialInventoryImportService
                 GradeCode = record.GradeCode.PadLeft(3, '0'),
                 ClassCode = record.ClassCode.PadLeft(3, '0'),
                 ShippingMarkCode = record.ShippingMarkCode ?? "    ",  // 空白4文字をデフォルトとし、Trimしない
-                ShippingMarkName = record.ShippingMarkName ?? "        "  // 空白8文字をデフォルトとし、Trimしない
+                ManualShippingMark = record.ManualShippingMark ?? "        "  // 空白8文字をデフォルトとし、Trimしない
             },
             
             // 商品情報
@@ -423,7 +423,7 @@ public class InitialInventoryImportService
             if (record != null)
             {
                 await writer.WriteLineAsync($"{error},{record.ProductCode},{record.GradeCode}," +
-                    $"{record.ClassCode},{record.ShippingMarkCode},{record.ShippingMarkName}," +
+                    $"{record.ClassCode},{record.ShippingMarkCode},{record.ManualShippingMark}," +
                     $"{record.PreviousStockQuantity},{record.PreviousStockAmount}," +
                     $"{record.PreviousStockQuantity},{record.PreviousStockUnitPrice},{record.PreviousStockAmount}");
             }

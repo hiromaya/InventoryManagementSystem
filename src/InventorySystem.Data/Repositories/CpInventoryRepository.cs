@@ -72,7 +72,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
-                AND ShippingMarkName COLLATE Japanese_CI_AS = @ShippingMarkName COLLATE Japanese_CI_AS
+                AND ManualShippingMark COLLATE Japanese_CI_AS = @ManualShippingMark COLLATE Japanese_CI_AS
                 -- 仮テーブル設計：5項目複合キーで検索
             """;
 
@@ -83,7 +83,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             key.GradeCode, 
             key.ClassCode, 
             key.ShippingMarkCode, 
-            key.ShippingMarkName
+            key.ManualShippingMark
         });
 
         if (result == null) return null;
@@ -129,7 +129,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
-                AND ShippingMarkName COLLATE Japanese_CI_AS = @ShippingMarkName COLLATE Japanese_CI_AS
+                AND ManualShippingMark COLLATE Japanese_CI_AS = @ManualShippingMark COLLATE Japanese_CI_AS
                 -- 仮テーブル設計：5項目複合キーで更新
             """;
 
@@ -155,7 +155,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             cpInventory.DailyIncentiveAmount, cpInventory.DailyDiscountAmount,
             cpInventory.DailyPurchaseDiscountAmount,
             cpInventory.Key.ProductCode, cpInventory.Key.GradeCode, cpInventory.Key.ClassCode,
-            cpInventory.Key.ShippingMarkCode, cpInventory.Key.ShippingMarkName
+            cpInventory.Key.ShippingMarkCode, cpInventory.Key.ManualShippingMark
         });
     }
 
@@ -172,7 +172,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
-                AND ShippingMarkName COLLATE Japanese_CI_AS = @ShippingMarkName COLLATE Japanese_CI_AS
+                AND ManualShippingMark COLLATE Japanese_CI_AS = @ManualShippingMark COLLATE Japanese_CI_AS
                 -- 仮テーブル設計：5項目複合キーで更新
             """;
 
@@ -182,7 +182,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             cp.DailyStock, cp.DailyStockAmount, cp.DailyUnitPrice,
             cp.DailyFlag, cp.UpdatedDate,
             cp.Key.ProductCode, cp.Key.GradeCode, cp.Key.ClassCode,
-            cp.Key.ShippingMarkCode, cp.Key.ShippingMarkName
+            cp.Key.ShippingMarkCode, cp.Key.ManualShippingMark
         }));
     }
 
@@ -205,7 +205,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     SUM(CASE WHEN DetailType = '1' AND Quantity > 0 THEN Quantity ELSE 0 END) as SalesQuantity,
                     SUM(CASE WHEN DetailType = '1' AND Quantity > 0 THEN Amount ELSE 0 END) as SalesAmount
                 FROM SalesVouchers 
@@ -213,12 +213,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     {(jobDate.HasValue ? "AND" : "WHERE")} VoucherType IN ('51', '52')
                     AND DetailType IN ('1', '2')
                     AND ProductCode != '00000'
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) sales ON cp.ProductCode = sales.ProductCode 
                 AND cp.GradeCode = sales.GradeCode 
                 AND cp.ClassCode = sales.ClassCode 
                 AND cp.ShippingMarkCode = sales.ShippingMarkCode
-                AND cp.ShippingMarkName COLLATE Japanese_CI_AS = sales.ShippingMarkName COLLATE Japanese_CI_AS
+                AND cp.ManualShippingMark COLLATE Japanese_CI_AS = sales.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象
             """;
 
@@ -245,7 +245,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     SUM(Quantity) as PurchaseQuantity,
                     SUM(Amount) as PurchaseAmount
                 FROM PurchaseVouchers 
@@ -254,12 +254,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND DetailType IN ('1', '2')  -- 仕入、返品のみ（値引は別途計算）
                     AND Quantity > 0  -- 通常仕入（入荷データ）
                     AND ProductCode != '00000'
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) purchase ON cp.ProductCode = purchase.ProductCode 
                 AND cp.GradeCode = purchase.GradeCode 
                 AND cp.ClassCode = purchase.ClassCode 
                 AND cp.ShippingMarkCode = purchase.ShippingMarkCode
-                AND cp.ShippingMarkName COLLATE Japanese_CI_AS = purchase.ShippingMarkName COLLATE Japanese_CI_AS
+                AND cp.ManualShippingMark COLLATE Japanese_CI_AS = purchase.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象
             """;
 
@@ -290,7 +290,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     SUM(Quantity) as AdjustmentQuantity,
                     SUM(Amount) as AdjustmentAmount
                 FROM InventoryAdjustments 
@@ -300,12 +300,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND CategoryCode IN (1, 3, 6)  -- 在庫調整の単位コード
                     AND Quantity > 0  -- 入荷データ
                     AND ProductCode != '00000'
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) adj ON cp.ProductCode = adj.ProductCode 
                 AND cp.GradeCode = adj.GradeCode 
                 AND cp.ClassCode = adj.ClassCode 
                 AND cp.ShippingMarkCode = adj.ShippingMarkCode
-                AND cp.ShippingMarkName COLLATE Japanese_CI_AS = adj.ShippingMarkName COLLATE Japanese_CI_AS
+                AND cp.ManualShippingMark COLLATE Japanese_CI_AS = adj.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象
             """;
         
@@ -327,7 +327,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     SUM(Quantity) as ProcessingQuantity,
                     SUM(Amount) as ProcessingAmount
                 FROM InventoryAdjustments 
@@ -337,12 +337,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND CategoryCode IN (2, 5)  -- 加工費の単位コード
                     AND Quantity > 0  -- 入荷データ
                     AND ProductCode != '00000'
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) adj ON cp.ProductCode = adj.ProductCode 
                 AND cp.GradeCode = adj.GradeCode 
                 AND cp.ClassCode = adj.ClassCode 
                 AND cp.ShippingMarkCode = adj.ShippingMarkCode
-                AND cp.ShippingMarkName COLLATE Japanese_CI_AS = adj.ShippingMarkName COLLATE Japanese_CI_AS
+                AND cp.ManualShippingMark COLLATE Japanese_CI_AS = adj.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象
             """;
         
@@ -364,7 +364,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     SUM(Quantity) as TransferQuantity,
                     SUM(Amount) as TransferAmount
                 FROM InventoryAdjustments 
@@ -374,12 +374,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND CategoryCode = 4  -- 振替の単位コード
                     AND Quantity > 0  -- 入荷データ
                     AND ProductCode != '00000'
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) adj ON cp.ProductCode = adj.ProductCode 
                 AND cp.GradeCode = adj.GradeCode 
                 AND cp.ClassCode = adj.ClassCode 
                 AND cp.ShippingMarkCode = adj.ShippingMarkCode
-                AND cp.ShippingMarkName COLLATE Japanese_CI_AS = adj.ShippingMarkName COLLATE Japanese_CI_AS
+                AND cp.ManualShippingMark COLLATE Japanese_CI_AS = adj.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象
             """;
         
@@ -446,11 +446,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         return await connection.ExecuteAsync(sql, new { });
     }
 
-    public async Task<int> RepairShippingMarkNamesAsync()
+    public async Task<int> RepairManualShippingMarksAsync()
     {
         const string sql = """
             UPDATE cp
-            SET cp.ShippingMarkName = im.ShippingMarkName
+            SET cp.ManualShippingMark = im.ManualShippingMark
             FROM CpInventoryMaster cp
             INNER JOIN InventoryMaster im ON 
                 cp.ProductCode = im.ProductCode AND
@@ -458,20 +458,20 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 cp.ClassCode = im.ClassCode AND
                 cp.ShippingMarkCode = im.ShippingMarkCode
             -- 仮テーブル設計：全レコード対象
-                AND cp.ShippingMarkName LIKE '%?%'
+                AND cp.ManualShippingMark LIKE '%?%'
             """;
         
         using var connection = new SqlConnection(_connectionString);
         return await connection.ExecuteAsync(sql, new { });
     }
 
-    public async Task<int> CountGarbledShippingMarkNamesAsync()
+    public async Task<int> CountGarbledManualShippingMarksAsync()
     {
         const string sql = """
             SELECT COUNT(*)
             FROM CpInventoryMaster
             -- 仮テーブル設計：全レコード対象
-            WHERE ShippingMarkName LIKE '%?%'
+            WHERE ManualShippingMark LIKE '%?%'
             """;
         
         using var connection = new SqlConnection(_connectionString);
@@ -521,7 +521,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 GradeCode = row.GradeCode ?? string.Empty,
                 ClassCode = row.ClassCode ?? string.Empty,
                 ShippingMarkCode = row.ShippingMarkCode ?? string.Empty,
-                ShippingMarkName = row.ShippingMarkName ?? string.Empty
+                ManualShippingMark = row.ManualShippingMark ?? string.Empty
             },
             ProductName = row.ProductName ?? string.Empty,
             Unit = row.Unit ?? string.Empty,
@@ -633,7 +633,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     SUM(CASE WHEN DetailType = '1' THEN Quantity ELSE 0 END) as Quantity,
                     SUM(CASE WHEN DetailType = '1' THEN Amount ELSE 0 END) as Amount,
                     SUM(CASE WHEN DetailType = '2' THEN Quantity ELSE 0 END) as ReturnQuantity,
@@ -642,12 +642,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 WHERE JobDate >= @monthStartDate AND JobDate <= @jobDate
                     AND VoucherType IN ('51', '52')
                     AND ProductCode != '00000'
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) s ON cp.ProductCode = s.ProductCode 
                 AND cp.GradeCode = s.GradeCode 
                 AND cp.ClassCode = s.ClassCode 
                 AND cp.ShippingMarkCode = s.ShippingMarkCode 
-                AND cp.ShippingMarkName = s.ShippingMarkName
+                AND cp.ManualShippingMark = s.ManualShippingMark
             WHERE cp.JobDate = @jobDate";
         
         using var connection = CreateConnection();
@@ -668,19 +668,19 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     SUM(Quantity) as Quantity,
                     SUM(Amount) as Amount
                 FROM PurchaseVouchers
                 WHERE JobDate >= @monthStartDate AND JobDate <= @jobDate
                     AND VoucherType IN ('11', '12')
                     AND ProductCode != '00000'
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) p ON cp.ProductCode = p.ProductCode 
                 AND cp.GradeCode = p.GradeCode 
                 AND cp.ClassCode = p.ClassCode 
                 AND cp.ShippingMarkCode = p.ShippingMarkCode 
-                AND cp.ShippingMarkName = p.ShippingMarkName
+                AND cp.ManualShippingMark = p.ManualShippingMark
             WHERE cp.JobDate = @jobDate";
         
         using var connection = CreateConnection();
@@ -722,19 +722,19 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     SUM(Quantity) as Quantity,
                     SUM(Amount) as Amount
                 FROM InventoryAdjustments
                 WHERE JobDate >= @monthStartDate AND JobDate <= @jobDate
                     AND VoucherType IN ('71', '72')
                     AND DetailType IN ('1', '3', '4')
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) a ON cp.ProductCode = a.ProductCode 
                 AND cp.GradeCode = a.GradeCode 
                 AND cp.ClassCode = a.ClassCode 
                 AND cp.ShippingMarkCode = a.ShippingMarkCode 
-                AND cp.ShippingMarkName = a.ShippingMarkName
+                AND cp.ManualShippingMark = a.ManualShippingMark
             WHERE cp.JobDate = @jobDate";
         
         using var connection = CreateConnection();
@@ -752,18 +752,18 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     SUM(Amount) as DiscountAmount
                 FROM PurchaseVouchers
                 WHERE JobDate = @jobDate
                     AND VoucherType IN ('11', '12')
                     AND DetailType = '3'  -- 単品値引
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) pv ON cp.ProductCode = pv.ProductCode 
                 AND cp.GradeCode = pv.GradeCode 
                 AND cp.ClassCode = pv.ClassCode 
                 AND cp.ShippingMarkCode = pv.ShippingMarkCode 
-                AND cp.ShippingMarkName = pv.ShippingMarkName
+                AND cp.ManualShippingMark = pv.ManualShippingMark
             -- 仮テーブル設計：全レコード対象";
         
         using var connection = CreateConnection();
@@ -781,19 +781,19 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName,
+                    pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ManualShippingMark,
                     SUM(CASE WHEN sm.SupplierCategory1 = '01' THEN pv.Amount * 0.01 ELSE 0 END) as IncentiveAmount
                 FROM PurchaseVouchers pv
                 LEFT JOIN SupplierMaster sm ON pv.SupplierCode = sm.SupplierCode
                 WHERE pv.JobDate = @jobDate
                     AND pv.VoucherType IN ('11', '12')
                     AND pv.DetailType IN ('1', '3')  -- 仕入、単品値引
-                GROUP BY pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName
+                GROUP BY pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ManualShippingMark
             ) pv ON cp.ProductCode = pv.ProductCode 
                 AND cp.GradeCode = pv.GradeCode 
                 AND cp.ClassCode = pv.ClassCode 
                 AND cp.ShippingMarkCode = pv.ShippingMarkCode 
-                AND cp.ShippingMarkName = pv.ShippingMarkName
+                AND cp.ManualShippingMark = pv.ManualShippingMark
             -- 仮テーブル設計：全レコード対象";
         
         using var connection = CreateConnection();
@@ -811,19 +811,19 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName,
+                    sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ManualShippingMark,
                     SUM(sv.Amount * ISNULL(cm.WalkingRate, 0) / 100) as WalkingAmount
                 FROM SalesVouchers sv
                 LEFT JOIN CustomerMaster cm ON sv.CustomerCode = cm.CustomerCode
                 WHERE sv.JobDate = @jobDate
                     AND sv.VoucherType IN ('51', '52')
                     AND sv.DetailType IN ('1', '2', '3')  -- 売上、返品、単品値引
-                GROUP BY sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName
+                GROUP BY sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ManualShippingMark
             ) sv ON cp.ProductCode = sv.ProductCode 
                 AND cp.GradeCode = sv.GradeCode 
                 AND cp.ClassCode = sv.ClassCode 
                 AND cp.ShippingMarkCode = sv.ShippingMarkCode 
-                AND cp.ShippingMarkName = sv.ShippingMarkName
+                AND cp.ManualShippingMark = sv.ManualShippingMark
             -- 仮テーブル設計：全レコード対象";
         
         using var connection = CreateConnection();
@@ -916,7 +916,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 sv.GradeCode = cp.GradeCode AND
                 sv.ClassCode = cp.ClassCode AND
                 sv.ShippingMarkCode = cp.ShippingMarkCode AND
-                sv.ShippingMarkName COLLATE Japanese_CI_AS = cp.ShippingMarkName COLLATE Japanese_CI_AS
+                sv.ManualShippingMark COLLATE Japanese_CI_AS = cp.ManualShippingMark COLLATE Japanese_CI_AS
             WHERE sv.JobDate = @JobDate 
                 -- 仮テーブル設計：全レコード対象
                 AND sv.VoucherType IN ('51', '52')
@@ -932,19 +932,19 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     SUM(ISNULL(GrossProfit, 0)) as TotalGrossProfit
                 FROM SalesVouchers
                 WHERE JobDate = @JobDate
                     AND VoucherType IN ('51', '52')
                     AND DetailType IN ('1', '2', '3')
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) profit ON 
                 cp.ProductCode = profit.ProductCode AND
                 cp.GradeCode = profit.GradeCode AND
                 cp.ClassCode = profit.ClassCode AND
                 cp.ShippingMarkCode = profit.ShippingMarkCode AND
-                cp.ShippingMarkName COLLATE Japanese_CI_AS = profit.ShippingMarkName COLLATE Japanese_CI_AS
+                cp.ManualShippingMark COLLATE Japanese_CI_AS = profit.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象";
         
         var updateCount = await connection.ExecuteAsync(aggregateGrossProfitSql, new { JobDate = jobDate });
@@ -957,20 +957,20 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName,
+                    sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ManualShippingMark,
                     SUM(ROUND(sv.Amount * ISNULL(c.WalkingRate, 0) / 100, 0)) as WalkingAmount
                 FROM SalesVouchers sv
                 INNER JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
                 WHERE sv.JobDate = @JobDate
                     AND sv.VoucherType IN ('51', '52')
                     AND sv.DetailType IN ('1', '2', '3')
-                GROUP BY sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName
+                GROUP BY sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ManualShippingMark
             ) walk ON 
                 cp.ProductCode = walk.ProductCode AND
                 cp.GradeCode = walk.GradeCode AND
                 cp.ClassCode = walk.ClassCode AND
                 cp.ShippingMarkCode = walk.ShippingMarkCode AND
-                cp.ShippingMarkName COLLATE Japanese_CI_AS = walk.ShippingMarkName COLLATE Japanese_CI_AS
+                cp.ManualShippingMark COLLATE Japanese_CI_AS = walk.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象";
         
         await connection.ExecuteAsync(calculateWalkingAmountSql, new { JobDate = jobDate });
@@ -983,7 +983,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName,
+                    pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ManualShippingMark,
                     SUM(ROUND(pv.Amount * 0.01, 0)) as IncentiveAmount
                 FROM PurchaseVouchers pv
                 INNER JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
@@ -991,13 +991,13 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND pv.VoucherType IN ('11', '12')
                     AND pv.DetailType IN ('1', '3')
                     AND s.SupplierCategory1 = '01'
-                GROUP BY pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName
+                GROUP BY pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ManualShippingMark
             ) inc ON 
                 cp.ProductCode = inc.ProductCode AND
                 cp.GradeCode = inc.GradeCode AND
                 cp.ClassCode = inc.ClassCode AND
                 cp.ShippingMarkCode = inc.ShippingMarkCode AND
-                cp.ShippingMarkName COLLATE Japanese_CI_AS = inc.ShippingMarkName COLLATE Japanese_CI_AS
+                cp.ManualShippingMark COLLATE Japanese_CI_AS = inc.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象";
         
         await connection.ExecuteAsync(calculateIncentiveAmountSql, new { JobDate = jobDate });
@@ -1034,7 +1034,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.GradeCode = im.GradeCode
                 AND cp.ClassCode = im.ClassCode
                 AND cp.ShippingMarkCode = im.ShippingMarkCode
-                AND cp.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
+                AND cp.ManualShippingMark COLLATE Japanese_CI_AS = im.ManualShippingMark COLLATE Japanese_CI_AS
                 -- 累積管理：JobDateの条件を削除（最新の在庫情報を使用）
             -- 仮テーブル設計：全レコード対象;
             
@@ -1070,19 +1070,19 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     SUM(ISNULL(GrossProfit, 0)) as TotalGrossProfit
                 FROM SalesVouchers
                 WHERE JobDate >= @MonthStartDate AND JobDate <= @JobDate
                     AND VoucherType IN ('51', '52')
                     AND DetailType IN ('1', '2', '3')
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) profit ON 
                 cp.ProductCode = profit.ProductCode AND
                 cp.GradeCode = profit.GradeCode AND
                 cp.ClassCode = profit.ClassCode AND
                 cp.ShippingMarkCode = profit.ShippingMarkCode AND
-                cp.ShippingMarkName COLLATE Japanese_CI_AS = profit.ShippingMarkName COLLATE Japanese_CI_AS
+                cp.ManualShippingMark COLLATE Japanese_CI_AS = profit.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象";
         
         var updateCount = await connection.ExecuteAsync(calculateMonthlyGrossProfitSql, 
@@ -1096,20 +1096,20 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName,
+                    sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ManualShippingMark,
                     SUM(ROUND(sv.Amount * ISNULL(c.WalkingRate, 0) / 100, 0)) as WalkingAmount
                 FROM SalesVouchers sv
                 INNER JOIN CustomerMaster c ON sv.CustomerCode = c.CustomerCode
                 WHERE sv.JobDate >= @MonthStartDate AND sv.JobDate <= @JobDate
                     AND sv.VoucherType IN ('51', '52')
                     AND sv.DetailType IN ('1', '2', '3')
-                GROUP BY sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ShippingMarkName
+                GROUP BY sv.ProductCode, sv.GradeCode, sv.ClassCode, sv.ShippingMarkCode, sv.ManualShippingMark
             ) walk ON 
                 cp.ProductCode = walk.ProductCode AND
                 cp.GradeCode = walk.GradeCode AND
                 cp.ClassCode = walk.ClassCode AND
                 cp.ShippingMarkCode = walk.ShippingMarkCode AND
-                cp.ShippingMarkName COLLATE Japanese_CI_AS = walk.ShippingMarkName COLLATE Japanese_CI_AS
+                cp.ManualShippingMark COLLATE Japanese_CI_AS = walk.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象";
         
         await connection.ExecuteAsync(calculateMonthlyWalkingAmountSql, 
@@ -1123,7 +1123,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             FROM CpInventoryMaster cp
             LEFT JOIN (
                 SELECT 
-                    pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName,
+                    pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ManualShippingMark,
                     SUM(ROUND(pv.Amount * 0.01, 0)) as IncentiveAmount
                 FROM PurchaseVouchers pv
                 INNER JOIN SupplierMaster s ON pv.SupplierCode = s.SupplierCode
@@ -1131,13 +1131,13 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND pv.VoucherType IN ('11', '12')
                     AND pv.DetailType IN ('1', '3')
                     AND s.SupplierCategory1 = '01'
-                GROUP BY pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ShippingMarkName
+                GROUP BY pv.ProductCode, pv.GradeCode, pv.ClassCode, pv.ShippingMarkCode, pv.ManualShippingMark
             ) inc ON 
                 cp.ProductCode = inc.ProductCode AND
                 cp.GradeCode = inc.GradeCode AND
                 cp.ClassCode = inc.ClassCode AND
                 cp.ShippingMarkCode = inc.ShippingMarkCode AND
-                cp.ShippingMarkName COLLATE Japanese_CI_AS = inc.ShippingMarkName COLLATE Japanese_CI_AS
+                cp.ManualShippingMark COLLATE Japanese_CI_AS = inc.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象";
         
         await connection.ExecuteAsync(calculateMonthlyIncentiveAmountSql, 
@@ -1203,7 +1203,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             SELECT * FROM CpInventoryMaster 
             -- 仮テーブル設計：全レコード対象 
             WHERE JobDate = @JobDate
-            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
+            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark";
 
         try
         {

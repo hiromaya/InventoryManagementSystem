@@ -30,7 +30,7 @@ BEGIN
         FROM UnInventoryMaster un
         INNER JOIN (
             SELECT 
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 SUM(ABS(Quantity)) as TotalQuantity  -- 返品（マイナス）の絶対値で加算
             FROM SalesVouchers
             WHERE DataSetId = @DataSetId
@@ -39,13 +39,13 @@ BEGIN
             AND DetailType = '2'              -- 返品明細
             AND Quantity < 0                  -- 返品（マイナス数量）
             AND ProductCode != '00000'        -- 商品コード「00000」除外
-            GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
         ) sales_summary ON (
             un.ProductCode = sales_summary.ProductCode
             AND un.GradeCode = sales_summary.GradeCode
             AND un.ClassCode = sales_summary.ClassCode
             AND un.ShippingMarkCode = sales_summary.ShippingMarkCode
-            AND un.ShippingMarkName = sales_summary.ShippingMarkName
+            AND un.ManualShippingMark = sales_summary.ManualShippingMark
         )
         WHERE un.DataSetId = @DataSetId;
         

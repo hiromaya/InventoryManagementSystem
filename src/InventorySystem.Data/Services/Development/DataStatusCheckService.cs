@@ -221,7 +221,7 @@ public class DataStatusCheckService : IDataStatusCheckService
             
             // CP在庫マスタのアイテム数を取得（処理されたアイテム数の参考）
             status.ProcessedItemCount = await connection.ExecuteScalarAsync<int>(@"
-                SELECT COUNT(DISTINCT CONCAT(ProductCode, '-', GradeCode, '-', ClassCode, '-', ShippingMarkCode, '-', ShippingMarkName))
+                SELECT COUNT(DISTINCT CONCAT(ProductCode, '-', GradeCode, '-', ClassCode, '-', ShippingMarkCode, '-', ManualShippingMark))
                 FROM CpInventoryMaster
                 WHERE DataSetId = @DataSetId",
                 new { DataSetId = status.DataSetId });

@@ -27,7 +27,7 @@ BEGIN
         GradeCode NVARCHAR(15) NOT NULL,            -- 等級コード
         ClassCode NVARCHAR(15) NOT NULL,            -- 階級コード
         ShippingMarkCode NVARCHAR(15) NOT NULL,     -- 荷印コード
-        ShippingMarkName NVARCHAR(50) NOT NULL,     -- 荷印名
+        ManualShippingMark NVARCHAR(8) NOT NULL DEFAULT '',  -- 手入力荷印（8文字固定）
         ProductName NVARCHAR(100) NOT NULL,         -- 商品名
         Unit NVARCHAR(10) NOT NULL,                 -- 単位
         StandardPrice DECIMAL(12,4) NOT NULL DEFAULT 0,    -- 標準単価
@@ -43,7 +43,7 @@ BEGIN
         DailyFlag NCHAR(1) NOT NULL DEFAULT '9',           -- 当日発生フラグ
         DataSetId NVARCHAR(100),                           -- データセットID
         
-        CONSTRAINT PK_InventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName)
+        CONSTRAINT PK_InventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark)
     );
     PRINT 'InventoryMaster テーブルを作成しました';
     

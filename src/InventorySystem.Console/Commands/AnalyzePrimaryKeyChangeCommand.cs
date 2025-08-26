@@ -58,11 +58,11 @@ namespace InventorySystem.Console.Commands
                         GradeCode, 
                         ClassCode, 
                         ShippingMarkCode, 
-                        ShippingMarkName,
+                        ManualShippingMark,
                         COUNT(DISTINCT JobDate) as JobDateCount,
                         COUNT(*) as RecordCount
                     FROM InventoryMaster
-                    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                    GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                     HAVING COUNT(*) > 1
                 )
                 SELECT 
@@ -85,13 +85,13 @@ namespace InventorySystem.Console.Commands
                     GradeCode, 
                     ClassCode, 
                     ShippingMarkCode, 
-                    LEFT(ShippingMarkName, 20) as ShippingMarkName_Short,
+                    LEFT(ManualShippingMark, 20) as ManualShippingMark_Short,
                     COUNT(DISTINCT JobDate) as JobDateCount,
                     MIN(JobDate) as MinJobDate,
                     MAX(JobDate) as MaxJobDate,
                     COUNT(*) as RecordCount
                 FROM InventoryMaster
-                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                 HAVING COUNT(*) > 1
                 ORDER BY COUNT(*) DESC, ProductCode");
 
@@ -104,7 +104,7 @@ namespace InventorySystem.Console.Commands
             // 5. 削減見込み
             var uniqueKeys = await connection.QuerySingleAsync<int>(@"
                 SELECT COUNT(DISTINCT ProductCode + '|' + GradeCode + '|' + ClassCode + '|' + 
-                                    ShippingMarkCode + '|' + ShippingMarkName) 
+                                    ShippingMarkCode + '|' + ManualShippingMark) 
                 FROM InventoryMaster");
 
             var reductionCount = totalRecords - uniqueKeys;

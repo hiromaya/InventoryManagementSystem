@@ -25,11 +25,11 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
         const string sql = @"
             INSERT INTO SalesVouchers (
                 VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
-                CustomerCode, CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                CustomerCode, CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 Quantity, UnitPrice, Amount, InventoryUnitPrice, GrossProfit, CreatedDate, DataSetId
             ) VALUES (
                 @VoucherId, @LineNumber, @VoucherNumber, @VoucherDate, @JobDate, @VoucherType, @DetailType,
-                @CustomerCode, @CustomerName, @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                @CustomerCode, @CustomerName, @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ManualShippingMark,
                 @Quantity, @UnitPrice, @Amount, @InventoryUnitPrice, @GrossProfit, @CreatedDate, @DataSetId
             )";
 
@@ -73,7 +73,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
                 voucher.GradeCode,
                 voucher.ClassCode,
                 voucher.ShippingMarkCode,
-                voucher.ShippingMarkName,
+                voucher.ManualShippingMark,
                 voucher.Quantity,
                 voucher.UnitPrice,
                 voucher.Amount,
@@ -87,8 +87,8 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
             var sampleVouchers = vouchers.Take(5).ToList();
             foreach (var (voucher, index) in sampleVouchers.Select((v, i) => (v, i)))
             {
-                _logger.LogDebug("DB保存前 行{Index}: 得意先名='{CustomerName}', 荷印名='{ShippingMarkName}', 商品名='{ProductName}'", 
-                    index + 1, voucher.CustomerName, voucher.ShippingMarkName, voucher.ProductName);
+                _logger.LogDebug("DB保存前 行{Index}: 得意先名='{CustomerName}', 荷印名='{ManualShippingMark}', 商品名='{ProductName}'", 
+                    index + 1, voucher.CustomerName, voucher.ManualShippingMark, voucher.ProductName);
                 
                 if (!string.IsNullOrEmpty(voucher.CustomerName))
                 {
@@ -115,7 +115,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
     {
         const string sql = @"
             SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, CustomerCode,
-                   CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, InventoryUnitPrice, GrossProfit, CreatedDate
             FROM SalesVouchers 
             WHERE DataSetId = @DataSetId
@@ -142,7 +142,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
     {
         const string sql = @"
             SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType, CustomerCode,
-                   CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, InventoryUnitPrice, GrossProfit, CreatedDate
             FROM SalesVouchers 
             WHERE JobDate = @JobDate
@@ -183,7 +183,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
                 GradeCode = @GradeCode,
                 ClassCode = @ClassCode,
                 ShippingMarkCode = @ShippingMarkCode,
-                ShippingMarkName = @ShippingMarkName,
+                ManualShippingMark = @ManualShippingMark,
                 Quantity = @Quantity,
                 UnitPrice = @UnitPrice,
                 Amount = @Amount,
@@ -209,7 +209,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
                 voucher.GradeCode,
                 voucher.ClassCode,
                 voucher.ShippingMarkCode,
-                voucher.ShippingMarkName,
+                voucher.ManualShippingMark,
                 voucher.Quantity,
                 voucher.UnitPrice,
                 voucher.Amount,
@@ -329,7 +329,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
     {
         const string sql = @"
             SELECT VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
-                   CustomerCode, CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   CustomerCode, CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, InventoryUnitPrice, CreatedDate, DataSetId
             FROM SalesVouchers
             ORDER BY JobDate DESC, VoucherDate DESC, VoucherNumber, LineNumber";
@@ -360,7 +360,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
         const string sql = @"
             SELECT 
                 VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
-                CustomerCode, CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                CustomerCode, CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 Quantity, UnitPrice, Amount, InventoryUnitPrice, GrossProfit, WalkingDiscount, CreatedDate, DataSetId
             FROM SalesVouchers 
             WHERE JobDate = @JobDate 
@@ -473,7 +473,7 @@ public class SalesVoucherCsvRepository : BaseRepository, ISalesVoucherRepository
     {
         const string sql = @"
             SELECT VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
-                   CustomerCode, CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   CustomerCode, CustomerName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, InventoryUnitPrice, GrossProfit, CreatedDate, DataSetId, IsActive
             FROM SalesVouchers 
             WHERE JobDate = @jobDate AND IsActive = 1

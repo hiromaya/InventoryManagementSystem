@@ -53,7 +53,7 @@ public class InventoryMaster
         get
         {
             // アンマッチ・商品勘定でのみ除外
-            var markName = Key.ShippingMarkName?.ToUpper() ?? string.Empty;
+            var markName = Key.ManualShippingMark?.ToUpper() ?? string.Empty;
             var markCode = Key.ShippingMarkCode ?? string.Empty;
             
             return markName.StartsWith("EXIT") || 
@@ -65,7 +65,7 @@ public class InventoryMaster
     
     public string GetAdjustedProductCategory1()
     {
-        var markName = Key.ShippingMarkName ?? string.Empty;
+        var markName = Key.ManualShippingMark ?? string.Empty;
         
         // 特殊処理ルール
         if (markName.StartsWith("9aaa")) return "8";

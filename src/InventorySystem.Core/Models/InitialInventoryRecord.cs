@@ -28,7 +28,7 @@ public class InitialInventoryRecord
 
     [Name("荷印名")]
     [Index(4)]
-    public string ShippingMarkName { get; set; } = string.Empty;
+    public string ManualShippingMark { get; set; } = string.Empty;
 
     [Name("商品分類１担当者ＣＤ")]
     [Index(5)]
@@ -75,7 +75,7 @@ public sealed class InitialInventoryRecordMap : ClassMap<InitialInventoryRecord>
         Map(m => m.GradeCode).Index(1).Name("等級ＣＤ");
         Map(m => m.ClassCode).Index(2).Name("階級ＣＤ");
         Map(m => m.ShippingMarkCode).Index(3).Name("荷印ＣＤ");
-        Map(m => m.ShippingMarkName).Index(4).Name("荷印名");
+        Map(m => m.ManualShippingMark).Index(4).Name("荷印名");
         Map(m => m.PersonInChargeCode).Index(5).Name("商品分類１担当者ＣＤ");
         Map(m => m.PreviousStockQuantity).Index(9).Name("前日在庫数量");
         Map(m => m.PreviousStockUnitPrice).Index(10).Name("前日在庫単価");

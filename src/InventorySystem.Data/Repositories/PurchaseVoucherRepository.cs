@@ -27,7 +27,7 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
                 GradeCode,
                 ClassCode,
                 ShippingMarkCode,
-                ShippingMarkName,
+                ManualShippingMark,
                 Quantity,
                 UnitPrice as PurchaseUnitPrice,
                 Amount as PurchaseAmount,
@@ -57,12 +57,12 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
         const string sql = @"
             INSERT INTO PurchaseVouchers (
                 VoucherNumber, VoucherDate, JobDate,
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 Quantity, UnitPrice, Amount, DataSetId, VoucherType,
                 SupplierCode, DetailType
             ) VALUES (
                 @VoucherNumber, @VoucherDate, @JobDate,
-                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ManualShippingMark,
                 @Quantity, @UnitPrice, @Amount, @DataSetId, @VoucherType,
                 @SupplierCode, @DetailType
             )";
@@ -87,12 +87,12 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
         const string sql = @"
             INSERT INTO PurchaseVouchers (
                 VoucherNumber, VoucherDate, JobDate,
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 Quantity, UnitPrice, Amount, DataSetId, VoucherType,
                 SupplierCode, DetailType
             ) VALUES (
                 @VoucherNumber, @VoucherDate, @JobDate,
-                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ManualShippingMark,
                 @Quantity, @UnitPrice, @Amount, @DataSetId, @VoucherType,
                 @SupplierCode, @DetailType
             )";
@@ -130,7 +130,7 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
             GradeCode = row.GradeCode?.ToString() ?? string.Empty,
             ClassCode = row.ClassCode?.ToString() ?? string.Empty,
             ShippingMarkCode = row.ShippingMarkCode?.ToString() ?? string.Empty,
-            ShippingMarkName = row.ShippingMarkName?.ToString() ?? string.Empty,
+            ManualShippingMark = row.ManualShippingMark?.ToString() ?? string.Empty,
             Quantity = row.Quantity ?? 0m,
             UnitPrice = row.PurchaseUnitPrice ?? 0m,
             Amount = row.PurchaseAmount ?? 0m,
@@ -149,7 +149,7 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
             voucher.GradeCode,
             voucher.ClassCode,
             voucher.ShippingMarkCode,
-            voucher.ShippingMarkName,
+            voucher.ManualShippingMark,
             voucher.Quantity,
             UnitPrice = voucher.UnitPrice,
             Amount = voucher.Amount,
@@ -230,7 +230,7 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
                 GradeCode,
                 ClassCode,
                 ShippingMarkCode,
-                ShippingMarkName,
+                ManualShippingMark,
                 Quantity,
                 UnitPrice as PurchaseUnitPrice,
                 Amount as PurchaseAmount,
@@ -290,7 +290,7 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
                 GradeCode,
                 ClassCode,
                 ShippingMarkCode,
-                ShippingMarkName,
+                ManualShippingMark,
                 Quantity,
                 UnitPrice as PurchaseUnitPrice,
                 Amount as PurchaseAmount,
@@ -365,7 +365,7 @@ public class PurchaseVoucherRepository : BaseRepository, IPurchaseVoucherReposit
                 GradeCode,
                 ClassCode,
                 ShippingMarkCode,
-                ShippingMarkName,
+                ManualShippingMark,
                 Quantity,
                 UnitPrice as PurchaseUnitPrice,
                 Amount as PurchaseAmount,

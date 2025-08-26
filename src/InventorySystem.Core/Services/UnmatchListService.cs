@@ -176,7 +176,7 @@ public class UnmatchListService : IUnmatchListService
                 {
                     _logger.LogCritical("  [{Index}] Product={Product}, Grade={Grade}, Class={Class}, Mark={Mark}, Name='{Name}', PrevStock={PrevStock}, DailyStock={DailyStock}",
                         index + 1, record.Key.ProductCode, record.Key.GradeCode, record.Key.ClassCode, 
-                        record.Key.ShippingMarkCode, record.Key.ShippingMarkName, record.PreviousDayStock, record.DailyStock);
+                        record.Key.ShippingMarkCode, record.Key.ManualShippingMark, record.PreviousDayStock, record.DailyStock);
                 }
             }
             
@@ -350,7 +350,7 @@ public class UnmatchListService : IUnmatchListService
             .OrderBy(x => x.ProductCategory1)
             .ThenBy(x => x.Key.ProductCode)
             .ThenBy(x => x.Key.ShippingMarkCode)
-            .ThenBy(x => x.Key.ShippingMarkName)
+            .ThenBy(x => x.Key.ManualShippingMark)
             .ThenBy(x => x.Key.GradeCode)
             .ThenBy(x => x.Key.ClassCode);
     }
@@ -395,8 +395,8 @@ public class UnmatchListService : IUnmatchListService
         // 最初の5件の文字列状態を確認
         foreach (var (sales, index) in salesList.Select((s, i) => (s, i)))
         {
-            _logger.LogDebug("売上伝票 行{Index}: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}'", 
-                index + 1, sales.CustomerName, sales.ProductName, sales.ShippingMarkName);
+            _logger.LogDebug("売上伝票 行{Index}: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ManualShippingMark}'", 
+                index + 1, sales.CustomerName, sales.ProductName, sales.ManualShippingMark);
         }
 
         // UN在庫マスタとの照合
@@ -420,7 +420,7 @@ public class UnmatchListService : IUnmatchListService
                 GradeCode = sales.GradeCode,
                 ClassCode = sales.ClassCode,
                 ShippingMarkCode = sales.ShippingMarkCode,
-                ShippingMarkName = sales.ShippingMarkName
+                ManualShippingMark = sales.ManualShippingMark
             };
 
             var unInventory = await _unInventoryRepository.GetByKeyAsync(inventoryKey);
@@ -432,12 +432,12 @@ public class UnmatchListService : IUnmatchListService
                 {
                     _logger.LogCritical("在庫マスタ無サンプル: Product={Product}, Grade={Grade}, Class={Class}, Mark={Mark}, Name='{Name}'",
                         sales.ProductCode, sales.GradeCode, sales.ClassCode, 
-                        sales.ShippingMarkCode, sales.ShippingMarkName);
+                        sales.ShippingMarkCode, sales.ManualShippingMark);
                     
                     // デバッグ：InventoryKeyの0埋め結果を確認
                     _logger.LogCritical("  -> 0埋め後Key: Product={Product}, Grade={Grade}, Class={Class}, Mark={Mark}, Name='{Name}'",
                         inventoryKey.ProductCode, inventoryKey.GradeCode, inventoryKey.ClassCode, 
-                        inventoryKey.ShippingMarkCode, inventoryKey.ShippingMarkName);
+                        inventoryKey.ShippingMarkCode, inventoryKey.ManualShippingMark);
                 }
                 
                 // 在庫マスタ未登録エラー - 商品分類1を取得
@@ -451,8 +451,8 @@ public class UnmatchListService : IUnmatchListService
                 unmatchItems.Add(unmatchItem);
                 
                 // アンマッチ項目作成時の文字列状態を確認
-                _logger.LogDebug("アンマッチ項目作成: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ShippingMarkName}', カテゴリ={Category}", 
-                    unmatchItem.CustomerName, unmatchItem.ProductName, unmatchItem.Key.ShippingMarkName, unmatchItem.Category);
+                _logger.LogDebug("アンマッチ項目作成: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ManualShippingMark}', カテゴリ={Category}", 
+                    unmatchItem.CustomerName, unmatchItem.ProductName, unmatchItem.Key.ManualShippingMark, unmatchItem.Category);
             }
             // 在庫0エラー削除：マイナス在庫を許容（2025/07/26仕様変更）
             // 通常売上（数量>0）の出荷データのみをチェック
@@ -506,7 +506,7 @@ public class UnmatchListService : IUnmatchListService
                 GradeCode = purchase.GradeCode,
                 ClassCode = purchase.ClassCode,
                 ShippingMarkCode = purchase.ShippingMarkCode,
-                ShippingMarkName = purchase.ShippingMarkName
+                ManualShippingMark = purchase.ManualShippingMark
             };
 
             // UN在庫マスタから該当データを取得
@@ -541,7 +541,7 @@ public class UnmatchListService : IUnmatchListService
             GradeCode = gradeCode,
             ClassCode = classCode,
             ShippingMarkCode = shippingMarkCode,
-            ShippingMarkName = string.Empty // 荷印名は検索キーに含めない
+            ManualShippingMark = string.Empty // 荷印名は検索キーに含めない
         };
 
         var inventory = await _inventoryRepository.GetLatestByKeyAsync(inventoryKey);
@@ -625,7 +625,7 @@ public class UnmatchListService : IUnmatchListService
                 GradeCode = adjustment.GradeCode,
                 ClassCode = adjustment.ClassCode,
                 ShippingMarkCode = adjustment.ShippingMarkCode,
-                ShippingMarkName = adjustment.ShippingMarkName
+                ManualShippingMark = adjustment.ManualShippingMark
             };
 
             // UN在庫マスタから該当データを取得
@@ -739,7 +739,7 @@ public class UnmatchListService : IUnmatchListService
                     GradeCode = item.Key.GradeCode,
                     ClassCode = item.Key.ClassCode,
                     ShippingMarkCode = item.Key.ShippingMarkCode,
-                    ShippingMarkName = item.Key.ShippingMarkName
+                    ManualShippingMark = item.Key.ManualShippingMark
                 };
                 
                 var inventory = await _inventoryRepository.GetByKeyAsync(inventoryKey, item.JobDate);
@@ -783,7 +783,7 @@ public class UnmatchListService : IUnmatchListService
                 .Where(s => (s.VoucherType == "51" || s.VoucherType == "52") &&
                            (s.DetailType == "1" || s.DetailType == "2") &&
                            s.Quantity != 0)
-                .Select(s => new { s.ProductCode, s.GradeCode, s.ClassCode, s.ShippingMarkCode, s.ShippingMarkName })
+                .Select(s => new { s.ProductCode, s.GradeCode, s.ClassCode, s.ShippingMarkCode, s.ManualShippingMark })
                 .Distinct()
                 .ToList();
             
@@ -791,13 +791,13 @@ public class UnmatchListService : IUnmatchListService
                 .Where(p => (p.VoucherType == "11" || p.VoucherType == "12") &&
                            (p.DetailType == "1" || p.DetailType == "2") &&
                            p.Quantity != 0)
-                .Select(p => new { p.ProductCode, p.GradeCode, p.ClassCode, p.ShippingMarkCode, p.ShippingMarkName })
+                .Select(p => new { p.ProductCode, p.GradeCode, p.ClassCode, p.ShippingMarkCode, p.ManualShippingMark })
                 .Distinct()
                 .ToList();
             
             var adjustmentUniqueProducts = adjustmentProducts
                 .Where(a => a.Quantity != 0)
-                .Select(a => new { a.ProductCode, a.GradeCode, a.ClassCode, a.ShippingMarkCode, a.ShippingMarkName })
+                .Select(a => new { a.ProductCode, a.GradeCode, a.ClassCode, a.ShippingMarkCode, a.ManualShippingMark })
                 .Distinct()
                 .ToList();
             
@@ -808,8 +808,8 @@ public class UnmatchListService : IUnmatchListService
             // 最初の5件をログ出力して確認
             foreach (var (product, index) in salesUniqueProducts.Take(5).Select((p, i) => (p, i)))
             {
-                _logger.LogDebug("売上商品 {Index}: 商品={ProductCode}, 等級={GradeCode}, 階級={ClassCode}, 荷印={ShippingMarkCode}, 荷印名='{ShippingMarkName}'",
-                    index + 1, product.ProductCode, product.GradeCode, product.ClassCode, product.ShippingMarkCode, product.ShippingMarkName);
+                _logger.LogDebug("売上商品 {Index}: 商品={ProductCode}, 等級={GradeCode}, 階級={ClassCode}, 荷印={ShippingMarkCode}, 荷印名='{ManualShippingMark}'",
+                    index + 1, product.ProductCode, product.GradeCode, product.ClassCode, product.ShippingMarkCode, product.ManualShippingMark);
             }
             
             // 累積管理対応：UpdateOrCreateFromVouchersAsyncメソッドを使用
@@ -834,7 +834,7 @@ public class UnmatchListService : IUnmatchListService
             var allUniqueProducts = salesUniqueProducts
                 .Union(purchaseUniqueProducts)
                 .Union(adjustmentUniqueProducts)
-                .Select(p => $"{p.ProductCode}|{p.GradeCode}|{p.ClassCode}|{p.ShippingMarkCode}|{p.ShippingMarkName}")
+                .Select(p => $"{p.ProductCode}|{p.GradeCode}|{p.ClassCode}|{p.ShippingMarkCode}|{p.ManualShippingMark}")
                 .Distinct()
                 .Count();
             

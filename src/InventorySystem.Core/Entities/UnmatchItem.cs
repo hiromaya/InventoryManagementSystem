@@ -48,7 +48,7 @@ public class UnmatchItem
                 GradeCode = sales.GradeCode,
                 ClassCode = sales.ClassCode,
                 ShippingMarkCode = sales.ShippingMarkCode,
-                ShippingMarkName = sales.ShippingMarkName
+                ManualShippingMark = sales.ManualShippingMark
             },
             ProductName = sales.ProductName ?? string.Empty,
             GradeName = string.Empty,  // CSVに含まれていないため空文字
@@ -80,7 +80,7 @@ public class UnmatchItem
                 GradeCode = purchase.GradeCode,
                 ClassCode = purchase.ClassCode,
                 ShippingMarkCode = purchase.ShippingMarkCode,
-                ShippingMarkName = purchase.ShippingMarkName
+                ManualShippingMark = purchase.ManualShippingMark
             },
             ProductName = purchase.ProductName ?? string.Empty,
             GradeName = string.Empty,  // CSVに含まれていないため空文字

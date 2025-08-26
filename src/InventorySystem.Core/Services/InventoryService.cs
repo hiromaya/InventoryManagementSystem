@@ -244,13 +244,13 @@ public class InventoryService : IInventoryService
 
     private static string CreateKeyString(InventoryKey key, DateTime jobDate)
     {
-        return $"{key.ProductCode}|{key.GradeCode}|{key.ClassCode}|{key.ShippingMarkCode}|{key.ShippingMarkName}|{jobDate:yyyyMMdd}";
+        return $"{key.ProductCode}|{key.GradeCode}|{key.ClassCode}|{key.ShippingMarkCode}|{key.ManualShippingMark}|{jobDate:yyyyMMdd}";
     }
 
     private static bool IsExcludedFromCalculation(InventoryKey key)
     {
         // アンマッチ・商品勘定でのみ除外
-        var markName = key.ShippingMarkName?.ToUpper() ?? string.Empty;
+        var markName = key.ManualShippingMark?.ToUpper() ?? string.Empty;
         var markCode = key.ShippingMarkCode ?? string.Empty;
         
         return markName.StartsWith("EXIT") || 

@@ -104,7 +104,7 @@ public class SalesVoucher
     /// <summary>
     /// 荷印名
     /// </summary>
-    public string ShippingMarkName { get; set; } = string.Empty;
+    public string ManualShippingMark { get; set; } = string.Empty;
 
     /// <summary>
     /// 数量
@@ -245,7 +245,7 @@ public class SalesVoucher
             GradeCode = GradeCode,
             ClassCode = ClassCode,
             ShippingMarkCode = ShippingMarkCode,
-            ShippingMarkName = ShippingMarkName
+            ManualShippingMark = ManualShippingMark
         };
         return InventoryKey;
     }
@@ -257,9 +257,9 @@ public class SalesVoucher
     public bool ShouldBeExcluded()
     {
         // 荷印名の先頭4文字が「EXIT」「exit」
-        if (ShippingMarkName.Length >= 4)
+        if (ManualShippingMark.Length >= 4)
         {
-            var prefix = ShippingMarkName.Substring(0, 4).ToUpper();
+            var prefix = ManualShippingMark.Substring(0, 4).ToUpper();
             if (prefix == "EXIT")
             {
                 return true;
@@ -280,9 +280,9 @@ public class SalesVoucher
     /// </summary>
     public void ApplySpecialProcessingRules()
     {
-        if (ShippingMarkName.Length >= 4)
+        if (ManualShippingMark.Length >= 4)
         {
-            var prefix = ShippingMarkName.Substring(0, 4);
+            var prefix = ManualShippingMark.Substring(0, 4);
             
             if (prefix == "9aaa")
             {

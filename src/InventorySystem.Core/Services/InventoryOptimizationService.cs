@@ -122,7 +122,7 @@ public class InventoryOptimizationService : IInventoryOptimizationService
                     GradeCode = inventory.Key.GradeCode,
                     ClassCode = inventory.Key.ClassCode,
                     ShippingMarkCode = inventory.Key.ShippingMarkCode,
-                    ShippingMarkName = inventory.Key.ShippingMarkName
+                    ManualShippingMark = inventory.Key.ManualShippingMark
                 },
                 ProductName = inventory.ProductName,
                 Unit = inventory.Unit,
@@ -199,7 +199,7 @@ public class InventoryOptimizationService : IInventoryOptimizationService
                 sales.GradeCode,
                 sales.ClassCode,
                 sales.ShippingMarkCode,
-                sales.ShippingMarkName);
+                sales.ManualShippingMark);
 
             // 除外対象のデータはスキップ
             if (IsExcludedInventoryKey(key))
@@ -228,7 +228,7 @@ public class InventoryOptimizationService : IInventoryOptimizationService
                 purchase.GradeCode,
                 purchase.ClassCode,
                 purchase.ShippingMarkCode,
-                purchase.ShippingMarkName);
+                purchase.ManualShippingMark);
 
             // 除外対象のデータはスキップ
             if (IsExcludedInventoryKey(key))
@@ -267,7 +267,7 @@ public class InventoryOptimizationService : IInventoryOptimizationService
                 adjustment.GradeCode,
                 adjustment.ClassCode,
                 adjustment.ShippingMarkCode,
-                adjustment.ShippingMarkName);
+                adjustment.ManualShippingMark);
 
             // 除外対象のデータはスキップ
             if (IsExcludedInventoryKey(key))
@@ -308,7 +308,7 @@ public class InventoryOptimizationService : IInventoryOptimizationService
                 key.GradeCode,
                 key.ClassCode,
                 key.ShippingMarkCode,
-                key.ShippingMarkName),
+                key.ManualShippingMark),
             ProductName = string.Empty,
             Unit = string.Empty,
             StandardPrice = 0,
@@ -388,9 +388,9 @@ public class InventoryOptimizationService : IInventoryOptimizationService
             return true;
 
         // 荷印名先頭4文字が「EXIT」「exit」は除外
-        var shippingMarkPrefix = key.ShippingMarkName.Length >= 4 
-            ? key.ShippingMarkName.Substring(0, 4) 
-            : key.ShippingMarkName;
+        var shippingMarkPrefix = key.ManualShippingMark.Length >= 4 
+            ? key.ManualShippingMark.Substring(0, 4) 
+            : key.ManualShippingMark;
         
         if (shippingMarkPrefix.Equals("EXIT", StringComparison.OrdinalIgnoreCase))
             return true;

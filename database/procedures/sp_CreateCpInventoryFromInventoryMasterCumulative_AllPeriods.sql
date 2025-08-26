@@ -30,7 +30,7 @@ BEGIN
         -- 在庫マスタから伝票に関連する商品をCP在庫マスタに挿入
         INSERT INTO CpInventoryMaster (
             -- 5項目キー
-            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
             -- 管理項目
             ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
             JobDate, CreatedDate, UpdatedDate,
@@ -64,7 +64,7 @@ BEGIN
         )
         SELECT 
             -- 5項目キー
-            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ShippingMarkName,
+            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ManualShippingMark,
             -- 管理項目
             ISNULL(pm.ProductName, ''),
             ISNULL(u.UnitName, ''),  -- UnitMasterから単位名を取得
@@ -96,7 +96,7 @@ BEGIN
             AND sv.GradeCode = im.GradeCode
             AND sv.ClassCode = im.ClassCode
             AND sv.ShippingMarkCode = im.ShippingMarkCode
-            AND sv.ShippingMarkName = im.ShippingMarkName
+            AND sv.ManualShippingMark = im.ManualShippingMark
             UNION
             SELECT 1 FROM PurchaseVouchers pv
             WHERE (@JobDate IS NULL OR pv.JobDate = @JobDate)
@@ -104,7 +104,7 @@ BEGIN
             AND pv.GradeCode = im.GradeCode
             AND pv.ClassCode = im.ClassCode
             AND pv.ShippingMarkCode = im.ShippingMarkCode
-            AND pv.ShippingMarkName = im.ShippingMarkName
+            AND pv.ManualShippingMark = im.ManualShippingMark
             UNION
             SELECT 1 FROM InventoryAdjustments ia
             WHERE (@JobDate IS NULL OR ia.JobDate = @JobDate)
@@ -112,7 +112,7 @@ BEGIN
             AND ia.GradeCode = im.GradeCode
             AND ia.ClassCode = im.ClassCode
             AND ia.ShippingMarkCode = im.ShippingMarkCode
-            AND ia.ShippingMarkName = im.ShippingMarkName
+            AND ia.ManualShippingMark = im.ManualShippingMark
         );
         
         SET @CreatedCount = @@ROWCOUNT;

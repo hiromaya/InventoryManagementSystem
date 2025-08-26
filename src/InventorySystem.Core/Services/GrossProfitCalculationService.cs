@@ -174,7 +174,7 @@ namespace InventorySystem.Core.Services
                 voucher.GradeCode,
                 voucher.ClassCode,
                 voucher.ShippingMarkCode,
-                voucher.ShippingMarkName);
+                voucher.ManualShippingMark);
         }
 
         /// <summary>
@@ -187,7 +187,7 @@ namespace InventorySystem.Core.Services
                 cpInventory.Key.GradeCode,
                 cpInventory.Key.ClassCode,
                 cpInventory.Key.ShippingMarkCode,
-                cpInventory.Key.ShippingMarkName);
+                cpInventory.Key.ManualShippingMark);
         }
 
         /// <summary>
@@ -202,10 +202,10 @@ namespace InventorySystem.Core.Services
             var normalizedGradeCode = NormalizeKeyPart(gradeCode);
             var normalizedClassCode = NormalizeKeyPart(classCode);
             var normalizedShippingMarkCode = NormalizeKeyPart(shippingMarkCode);
-            var normalizedShippingMarkName = NormalizeKeyPart(shippingMarkName);
+            var normalizedManualShippingMark = NormalizeKeyPart(shippingMarkName);
 
             return $"{normalizedProductCode}_{normalizedGradeCode}_{normalizedClassCode}_" +
-                   $"{normalizedShippingMarkCode}_{normalizedShippingMarkName}";
+                   $"{normalizedShippingMarkCode}_{normalizedManualShippingMark}";
         }
 
         /// <summary>

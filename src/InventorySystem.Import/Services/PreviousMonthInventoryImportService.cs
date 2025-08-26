@@ -115,7 +115,7 @@ public class PreviousMonthInventoryImportService
                     var jobDate = ParseJobDate(record.JobDate);
                     
                     _logger.LogDebug("処理中レコード: 商品={Product}, 等級={Grade}, 階級={Class}, 荷印={Mark}, 荷印名={MarkName}, JobDate={JobDate:yyyy-MM-dd}",
-                        key.ProductCode, key.GradeCode, key.ClassCode, key.ShippingMarkCode, key.ShippingMarkName, jobDate);
+                        key.ProductCode, key.GradeCode, key.ClassCode, key.ShippingMarkCode, key.ManualShippingMark, jobDate);
 
                     // 在庫データを作成
                     var inventoryMaster = new InventoryMaster
@@ -126,7 +126,7 @@ public class PreviousMonthInventoryImportService
                             GradeCode = key.GradeCode,
                             ClassCode = key.ClassCode,
                             ShippingMarkCode = key.ShippingMarkCode,
-                            ShippingMarkName = key.ShippingMarkName
+                            ManualShippingMark = key.ManualShippingMark
                         },
                         PreviousMonthQuantity = record.Quantity,
                         PreviousMonthAmount = record.Amount,
@@ -309,7 +309,7 @@ public class PreviousMonthInventoryImportService
                     var key = record.GetNormalizedKey();
                     
                     _logger.LogDebug("処理中レコード: 商品={Product}, 等級={Grade}, 階級={Class}, 荷印={Mark}, 荷印名={MarkName}",
-                        key.ProductCode, key.GradeCode, key.ClassCode, key.ShippingMarkCode, key.ShippingMarkName);
+                        key.ProductCode, key.GradeCode, key.ClassCode, key.ShippingMarkCode, key.ManualShippingMark);
                     
                     // preserveCsvDatesモードの処理
                     DateTime recordJobDate;
@@ -348,7 +348,7 @@ public class PreviousMonthInventoryImportService
                         GradeCode = key.GradeCode,
                         ClassCode = key.ClassCode,
                         ShippingMarkCode = key.ShippingMarkCode,
-                        ShippingMarkName = key.ShippingMarkName
+                        ManualShippingMark = key.ManualShippingMark
                     };
                     // JobDateに関係なく既存レコードを検索
                     var inventoryMaster = await _inventoryRepository.GetByKeyAnyDateAsync(inventoryKey);

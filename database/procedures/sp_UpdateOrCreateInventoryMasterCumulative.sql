@@ -32,27 +32,27 @@ BEGIN
         FROM InventoryMaster im
         WHERE EXISTS (
             SELECT 1 FROM (
-                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                 FROM SalesVouchers WHERE JobDate = @JobDate
                 UNION
-                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                 FROM PurchaseVouchers WHERE JobDate = @JobDate
                 UNION
-                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                 FROM InventoryAdjustments WHERE JobDate = @JobDate
             ) v
             WHERE v.ProductCode = im.ProductCode
                 AND v.GradeCode = im.GradeCode
                 AND v.ClassCode = im.ClassCode
                 AND v.ShippingMarkCode = im.ShippingMarkCode
-                AND v.ShippingMarkName = im.ShippingMarkName
+                AND v.ManualShippingMark = im.ManualShippingMark
         );
         
         SET @UpdatedCount = @@ROWCOUNT;
         
         -- Step 2: 新規商品のみINSERT（既存の5項目キーと重複しないもののみ）
         INSERT INTO InventoryMaster (
-            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
             ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
             JobDate, CreatedDate, UpdatedDate,
             CurrentStock, CurrentStockAmount,
@@ -60,7 +60,7 @@ BEGIN
             PreviousMonthQuantity, PreviousMonthAmount
         )
         SELECT DISTINCT
-            v.ProductCode, v.GradeCode, v.ClassCode, v.ShippingMarkCode, v.ShippingMarkName,
+            v.ProductCode, v.GradeCode, v.ClassCode, v.ShippingMarkCode, v.ManualShippingMark,
             ISNULL(v.ProductName, ISNULL(pm.ProductName, '')), -- 伝票の商品名を優先、フォールバックとして商品マスタ
             ISNULL(u.UnitName, 'PCS'),
             ISNULL(pm.StandardPrice, 0),
@@ -69,13 +69,13 @@ BEGIN
             @JobDate, GETDATE(), GETDATE(),
             0, 0, 0, 0, '0', 0, 0
         FROM (
-            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, ProductName
+            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, ProductName
             FROM SalesVouchers WHERE JobDate = @JobDate
             UNION
-            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, ProductName
+            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, ProductName
             FROM PurchaseVouchers WHERE JobDate = @JobDate
             UNION
-            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, ProductName
+            SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, ProductName
             FROM InventoryAdjustments WHERE JobDate = @JobDate
         ) v
         LEFT JOIN ProductMaster pm ON v.ProductCode = pm.ProductCode
@@ -87,7 +87,7 @@ BEGIN
                 AND im.GradeCode = v.GradeCode
                 AND im.ClassCode = v.ClassCode
                 AND im.ShippingMarkCode = v.ShippingMarkCode
-                AND im.ShippingMarkName = v.ShippingMarkName
+                AND im.ManualShippingMark = v.ManualShippingMark
         );
         
         SET @InsertedCount = @@ROWCOUNT;

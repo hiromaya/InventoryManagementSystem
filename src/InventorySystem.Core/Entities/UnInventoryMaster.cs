@@ -53,10 +53,10 @@ namespace InventorySystem.Core.Entities
         /// <summary>
         /// 荷印名（5項目キーの一部）
         /// </summary>
-        public string ShippingMarkName
+        public string ManualShippingMark
         {
-            get => Key.ShippingMarkName;
-            set => Key.ShippingMarkName = value;
+            get => Key.ManualShippingMark;
+            set => Key.ManualShippingMark = value;
         }
 
         // DataSetIdプロパティを削除（使い捨てテーブル設計によりDataSetId管理を廃止）

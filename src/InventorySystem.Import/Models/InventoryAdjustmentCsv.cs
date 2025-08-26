@@ -44,7 +44,7 @@ public class InventoryAdjustmentCsv
     public string ShippingMarkCode { get; set; } = string.Empty;
     
     [Index(11)]
-    public string ShippingMarkName { get; set; } = string.Empty;
+    public string ManualShippingMark { get; set; } = string.Empty;
     
     [Index(12)]
     public decimal Quantity { get; set; }
@@ -89,7 +89,7 @@ public class InventoryAdjustmentCsv
             GradeCode = GradeCode?.Trim() ?? string.Empty,
             ClassCode = ClassCode?.Trim() ?? string.Empty,
             ShippingMarkCode = ShippingMarkCode?.Trim() ?? string.Empty,
-            ShippingMarkName = ShippingMarkName?.Trim() ?? string.Empty,
+            ManualShippingMark = ManualShippingMark?.Trim() ?? string.Empty,
             Quantity = Quantity,
             UnitPrice = UnitPrice,
             Amount = Amount,
@@ -142,7 +142,7 @@ public class InventoryAdjustmentCsv
             string.IsNullOrWhiteSpace(GradeCode) ||
             string.IsNullOrWhiteSpace(ClassCode) ||
             string.IsNullOrWhiteSpace(ShippingMarkCode) ||
-            string.IsNullOrWhiteSpace(ShippingMarkName))
+            string.IsNullOrWhiteSpace(ManualShippingMark))
         {
             return false;
         }

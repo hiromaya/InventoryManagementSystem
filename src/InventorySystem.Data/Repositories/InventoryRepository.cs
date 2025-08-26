@@ -17,7 +17,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     {
         const string sql = @"
             SELECT 
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
@@ -26,7 +26,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 IsActive, ParentDataSetId, ImportType, CreatedBy, CreatedAt, UpdatedAt
             FROM InventoryMaster 
             WHERE JobDate = @JobDate
-            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
+            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark";
 
         try
         {
@@ -46,7 +46,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     {
         const string sql = @"
             SELECT 
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
@@ -57,7 +57,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
-                AND ShippingMarkName = @ShippingMarkName 
+                AND ManualShippingMark = @ManualShippingMark 
                 AND JobDate = @JobDate";
 
         try
@@ -69,7 +69,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 key.GradeCode,
                 key.ClassCode,
                 key.ShippingMarkCode,
-                key.ShippingMarkName,
+                key.ManualShippingMark,
                 JobDate = jobDate
             });
 
@@ -86,14 +86,14 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     {
         const string sql = @"
             INSERT INTO InventoryMaster (
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
                 DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             ) VALUES (
-                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ManualShippingMark,
                 @ProductName, @Unit, @StandardPrice, @ProductCategory1, @ProductCategory2,
                 @JobDate, @CreatedDate, @UpdatedDate,
                 @CurrentStock, @CurrentStockAmount, @DailyStock, @DailyStockAmount,
@@ -142,7 +142,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
-                AND ShippingMarkName = @ShippingMarkName 
+                AND ManualShippingMark = @ManualShippingMark 
                 AND JobDate = @JobDate";
 
         try
@@ -205,14 +205,14 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     {
         const string sql = @"
             INSERT INTO InventoryMaster (
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
                 DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             ) VALUES (
-                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ManualShippingMark,
                 @ProductName, @Unit, @StandardPrice, @ProductCategory1, @ProductCategory2,
                 @JobDate, @CreatedDate, @UpdatedDate,
                 @CurrentStock, @CurrentStockAmount, @DailyStock, @DailyStockAmount,
@@ -246,7 +246,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 GradeCode = row.GradeCode ?? string.Empty,
                 ClassCode = row.ClassCode ?? string.Empty,
                 ShippingMarkCode = row.ShippingMarkCode ?? string.Empty,
-                ShippingMarkName = row.ShippingMarkName ?? string.Empty
+                ManualShippingMark = row.ManualShippingMark ?? string.Empty
             },
             ProductName = row.ProductName ?? string.Empty,
             Unit = row.Unit ?? string.Empty,
@@ -286,7 +286,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             GradeCode = inventory.Key.GradeCode,
             ClassCode = inventory.Key.ClassCode,
             ShippingMarkCode = inventory.Key.ShippingMarkCode,
-            ShippingMarkName = inventory.Key.ShippingMarkName,
+            ManualShippingMark = inventory.Key.ManualShippingMark,
             inventory.ProductName,
             inventory.Unit,
             inventory.StandardPrice,
@@ -361,17 +361,17 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             FROM InventoryMaster im
             WHERE EXISTS (
                 SELECT 1 FROM (
-                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                     FROM SalesVouchers WHERE JobDate = @JobDate
                     UNION
-                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                    SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                     FROM PurchaseVouchers WHERE JobDate = @JobDate
                 ) v
                 WHERE v.ProductCode = im.ProductCode
                     AND v.GradeCode = im.GradeCode
                     AND v.ClassCode = im.ClassCode
                     AND v.ShippingMarkCode = im.ShippingMarkCode
-                    AND v.ShippingMarkName COLLATE Japanese_CI_AS = im.ShippingMarkName COLLATE Japanese_CI_AS
+                    AND v.ManualShippingMark COLLATE Japanese_CI_AS = im.ManualShippingMark COLLATE Japanese_CI_AS
             )";
         
         try
@@ -393,7 +393,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     {
         const string sql = @"
             INSERT INTO InventoryMaster (
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, CreatedDate, UpdatedDate, DataSetId,
@@ -404,7 +404,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 combined.GradeCode, 
                 combined.ClassCode, 
                 combined.ShippingMarkCode, 
-                combined.ShippingMarkName COLLATE Japanese_CI_AS,
+                combined.ManualShippingMark COLLATE Japanese_CI_AS,
                 COALESCE(pm.ProductName, '商' + combined.ProductCode) AS ProductName,
                 COALESCE(pm.UnitCode, '個') AS Unit,
                 COALESCE(pm.StandardPrice, 0.0000) AS StandardPrice,
@@ -422,14 +422,14 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 ISNULL(pmi.Quantity, 0.0000), -- 前月末在庫数量
                 ISNULL(pmi.Amount, 0.0000)    -- 前月末在庫金額
             FROM (
-                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                 FROM SalesVouchers 
                 WHERE JobDate = @JobDate
                     AND (VoucherType = '51' OR VoucherType = '52')
                     AND (DetailType = '1' OR DetailType = '2')
                     AND Quantity != 0
                 UNION
-                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
                 FROM PurchaseVouchers 
                 WHERE JobDate = @JobDate
                     AND (VoucherType = '11' OR VoucherType = '12')
@@ -438,7 +438,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             ) AS combined
             LEFT JOIN ProductMaster pm ON pm.ProductCode = combined.ProductCode
             LEFT JOIN (
-                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                        PreviousMonthQuantity AS Quantity, PreviousMonthAmount AS Amount
                 FROM InventoryMaster
                 WHERE PreviousMonthQuantity IS NOT NULL OR PreviousMonthAmount IS NOT NULL
@@ -447,14 +447,14 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 AND pmi.GradeCode = combined.GradeCode
                 AND pmi.ClassCode = combined.ClassCode
                 AND pmi.ShippingMarkCode = combined.ShippingMarkCode
-                AND pmi.ShippingMarkName COLLATE Japanese_CI_AS = combined.ShippingMarkName COLLATE Japanese_CI_AS
+                AND pmi.ManualShippingMark COLLATE Japanese_CI_AS = combined.ManualShippingMark COLLATE Japanese_CI_AS
             WHERE NOT EXISTS (
                 SELECT 1 FROM InventoryMaster im
                 WHERE im.ProductCode = combined.ProductCode
                     AND im.GradeCode = combined.GradeCode
                     AND im.ClassCode = combined.ClassCode
                     AND im.ShippingMarkCode = combined.ShippingMarkCode
-                    AND im.ShippingMarkName COLLATE Japanese_CI_AS = combined.ShippingMarkName COLLATE Japanese_CI_AS
+                    AND im.ManualShippingMark COLLATE Japanese_CI_AS = combined.ManualShippingMark COLLATE Japanese_CI_AS
                     AND im.JobDate = @JobDate
             )";
         
@@ -469,7 +469,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             if (result > 0)
             {
                 const string detailSql = @"
-                    SELECT TOP 10 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, ProductName
+                    SELECT TOP 10 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, ProductName
                     FROM InventoryMaster
                     WHERE JobDate = @JobDate AND CreatedDate >= DATEADD(MINUTE, -1, GETDATE())
                     ORDER BY CreatedDate DESC";
@@ -477,7 +477,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 var newProducts = await connection.QueryAsync<dynamic>(detailSql, new { JobDate = jobDate });
                 foreach (var product in newProducts)
                 {
-                    LogDebug($"New product registered: ProductCode={product.ProductCode}, ProductName={product.ProductName}, ShippingMarkName={product.ShippingMarkName}");
+                    LogDebug($"New product registered: ProductCode={product.ProductCode}, ProductName={product.ProductName}, ManualShippingMark={product.ManualShippingMark}");
                 }
             }
             
@@ -510,7 +510,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 AND im.GradeCode = cp.GradeCode
                 AND im.ClassCode = cp.ClassCode
                 AND im.ShippingMarkCode = cp.ShippingMarkCode
-                AND im.ShippingMarkName COLLATE Japanese_CI_AS = cp.ShippingMarkName COLLATE Japanese_CI_AS
+                AND im.ManualShippingMark COLLATE Japanese_CI_AS = cp.ManualShippingMark COLLATE Japanese_CI_AS
             WHERE cp.DataSetId = @DataSetId";
         
         try
@@ -535,7 +535,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     {
         const string sql = @"
             SELECT TOP 1 
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
@@ -546,7 +546,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
-                AND ShippingMarkName COLLATE Japanese_CI_AS = @ShippingMarkName COLLATE Japanese_CI_AS
+                AND ManualShippingMark COLLATE Japanese_CI_AS = @ManualShippingMark COLLATE Japanese_CI_AS
             ORDER BY JobDate DESC";
 
         try
@@ -558,7 +558,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 GradeCode = key.GradeCode,
                 ClassCode = key.ClassCode,
                 ShippingMarkCode = key.ShippingMarkCode,
-                ShippingMarkName = key.ShippingMarkName
+                ManualShippingMark = key.ManualShippingMark
             });
 
             if (result != null)
@@ -585,7 +585,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
         const string sql = @"
             INSERT INTO InventoryMaster (
                 ProductCode, ProductName, GradeCode, ClassCode, 
-                ShippingMarkCode, ShippingMarkName, 
+                ShippingMarkCode, ManualShippingMark, 
                 Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CurrentStock, CurrentStockAmount, 
                 DailyStock, DailyStockAmount, DailyFlag, DataSetId,
@@ -597,7 +597,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 sv.GradeCode,
                 sv.ClassCode,
                 sv.ShippingMarkCode,
-                sv.ShippingMarkName,
+                sv.ManualShippingMark,
                 '個',  -- デフォルト単位
                 0,     -- 標準単価（後で商品マスタから更新）
                 '',    -- 商品分類1（後で商品マスタから更新）
@@ -615,7 +615,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 -- 売上伝票
                 SELECT DISTINCT 
                     ProductCode, ProductName, GradeCode, ClassCode, 
-                    ShippingMarkCode, ShippingMarkName, JobDate
+                    ShippingMarkCode, ManualShippingMark, JobDate
                 FROM SalesVouchers
                 WHERE JobDate = @JobDate
                 
@@ -624,7 +624,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 -- 仕入伝票
                 SELECT DISTINCT 
                     ProductCode, ProductName, GradeCode, ClassCode, 
-                    ShippingMarkCode, ShippingMarkName, JobDate
+                    ShippingMarkCode, ManualShippingMark, JobDate
                 FROM PurchaseVouchers
                 WHERE JobDate = @JobDate
                 
@@ -633,7 +633,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 -- 在庫調整
                 SELECT DISTINCT 
                     ProductCode, ProductName, GradeCode, ClassCode, 
-                    ShippingMarkCode, ShippingMarkName, JobDate
+                    ShippingMarkCode, ManualShippingMark, JobDate
                 FROM InventoryAdjustments
                 WHERE JobDate = @JobDate
             ) sv
@@ -643,7 +643,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                     AND im.GradeCode = sv.GradeCode
                     AND im.ClassCode = sv.ClassCode
                     AND im.ShippingMarkCode = sv.ShippingMarkCode
-                    AND im.ShippingMarkName = sv.ShippingMarkName
+                    AND im.ManualShippingMark = sv.ManualShippingMark
                     AND im.JobDate = sv.JobDate
             );";
 
@@ -658,7 +658,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             if (result > 0)
             {
                 const string countSql = @"
-                    SELECT COUNT(DISTINCT ProductCode + '_' + GradeCode + '_' + ClassCode + '_' + ShippingMarkCode + '_' + ShippingMarkName)
+                    SELECT COUNT(DISTINCT ProductCode + '_' + GradeCode + '_' + ClassCode + '_' + ShippingMarkCode + '_' + ManualShippingMark)
                     FROM InventoryMaster
                     WHERE JobDate = @JobDate";
                 
@@ -698,7 +698,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     {
         const string sql = @"
             SELECT 
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
@@ -707,7 +707,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 IsActive, ParentDataSetId, ImportType, CreatedBy, CreatedAt, UpdatedAt
             FROM InventoryMaster 
             WHERE JobDate = @JobDate AND IsActive = 1
-            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
+            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark";
     
         try
         {
@@ -775,7 +775,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     {
         const string sql = @"
             SELECT 
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
@@ -837,10 +837,10 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
         const string sql = @"
             WITH DuplicateRecords AS (
                 SELECT 
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     JobDate,
                     ROW_NUMBER() OVER (
-                        PARTITION BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName 
+                        PARTITION BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark 
                         ORDER BY JobDate DESC, UpdatedDate DESC
                     ) as rn
                 FROM InventoryMaster
@@ -853,7 +853,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                   AND dr.GradeCode = InventoryMaster.GradeCode
                   AND dr.ClassCode = InventoryMaster.ClassCode
                   AND dr.ShippingMarkCode = InventoryMaster.ShippingMarkCode
-                  AND dr.ShippingMarkName = InventoryMaster.ShippingMarkName
+                  AND dr.ManualShippingMark = InventoryMaster.ManualShippingMark
                   AND dr.JobDate = InventoryMaster.JobDate
                   AND dr.rn > 1
             );
@@ -912,7 +912,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     {
         const string sql = @"
             SELECT TOP 1 
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
@@ -923,8 +923,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 AND GradeCode = @GradeCode 
                 AND ClassCode = @ClassCode 
                 AND ShippingMarkCode = @ShippingMarkCode 
-                -- ShippingMarkNameは部分一致で検索（空白8文字の場合を考慮）
-                AND RTRIM(ShippingMarkName) = RTRIM(@ShippingMarkName)
+                -- ManualShippingMarkは部分一致で検索（空白8文字の場合を考慮）
+                AND RTRIM(ManualShippingMark) = RTRIM(@ManualShippingMark)
             ORDER BY JobDate DESC, UpdatedDate DESC";
 
         try
@@ -936,7 +936,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 GradeCode = key.GradeCode,
                 ClassCode = key.ClassCode,
                 ShippingMarkCode = key.ShippingMarkCode,
-                ShippingMarkName = key.ShippingMarkName
+                ManualShippingMark = key.ManualShippingMark
             });
 
             if (result != null)
@@ -1045,7 +1045,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
         const string sql = @"
             SELECT * FROM InventoryMaster 
             WHERE IsActive = 1
-            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName";
+            ORDER BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark";
         
         try
         {
@@ -1075,7 +1075,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                     @GradeCode as GradeCode,
                     @ClassCode as ClassCode,
                     @ShippingMarkCode as ShippingMarkCode,
-                    @ShippingMarkName as ShippingMarkName,
+                    @ManualShippingMark as ManualShippingMark,
                     @ProductName as ProductName,
                     @Unit as Unit,
                     @StandardPrice as StandardPrice,
@@ -1091,7 +1091,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 target.GradeCode = source.GradeCode AND
                 target.ClassCode = source.ClassCode AND
                 target.ShippingMarkCode = source.ShippingMarkCode AND
-                target.ShippingMarkName COLLATE Japanese_CI_AS = source.ShippingMarkName COLLATE Japanese_CI_AS
+                target.ManualShippingMark COLLATE Japanese_CI_AS = source.ManualShippingMark COLLATE Japanese_CI_AS
             )
             WHEN MATCHED THEN
                 UPDATE SET 
@@ -1109,7 +1109,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                     UpdatedDate = GETDATE()
             WHEN NOT MATCHED THEN
                 INSERT (
-                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                    ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                     ProductName, Unit, StandardPrice,
                     CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                     PreviousMonthQuantity, PreviousMonthAmount,
@@ -1117,7 +1117,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 )
                 VALUES (
                     source.ProductCode, source.GradeCode, source.ClassCode, 
-                    source.ShippingMarkCode, source.ShippingMarkName,
+                    source.ShippingMarkCode, source.ManualShippingMark,
                     source.ProductName, source.Unit, source.StandardPrice,
                     source.CurrentStock, source.CurrentStockAmount, 
                     source.DailyStock, source.DailyStockAmount,
@@ -1141,7 +1141,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                     GradeCode = inventory.Key.GradeCode,
                     ClassCode = inventory.Key.ClassCode,
                     ShippingMarkCode = inventory.Key.ShippingMarkCode,
-                    ShippingMarkName = inventory.Key.ShippingMarkName,
+                    ManualShippingMark = inventory.Key.ManualShippingMark,
                     inventory.ProductName,
                     inventory.Unit,
                     inventory.StandardPrice,
@@ -1176,7 +1176,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
     {
         const string sql = @"
             SELECT 
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
@@ -1284,11 +1284,11 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                       AND GradeCode = @GradeCode
                       AND ClassCode = @ClassCode
                       AND ShippingMarkCode = @ShippingMarkCode
-                      AND ShippingMarkName = @ShippingMarkName";
+                      AND ManualShippingMark = @ManualShippingMark";
                 
                 var insertSql = @"
                     INSERT INTO InventoryMaster (
-                        ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                        ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                         ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                         JobDate, CreatedDate, UpdatedDate,
                         CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
@@ -1296,7 +1296,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                         FinalGrossProfit, DataSetId, PreviousMonthQuantity, PreviousMonthAmount,
                         IsActive, ImportType, CreatedBy
                     ) VALUES (
-                        @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                        @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ManualShippingMark,
                         @ProductName, @Unit, @StandardPrice, @ProductCategory1, @ProductCategory2,
                         @JobDate, @CreatedDate, @UpdatedDate,
                         @CurrentStock, @CurrentStockAmount, @DailyStock, @DailyStockAmount,
@@ -1316,7 +1316,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                         GradeCode = inv.Key.GradeCode,
                         ClassCode = inv.Key.ClassCode,
                         ShippingMarkCode = inv.Key.ShippingMarkCode,
-                        ShippingMarkName = inv.Key.ShippingMarkName,
+                        ManualShippingMark = inv.Key.ManualShippingMark,
                         inv.ProductName,
                         inv.Unit,
                         inv.StandardPrice,
@@ -1400,7 +1400,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                             @GradeCode as GradeCode,
                             @ClassCode as ClassCode,
                             @ShippingMarkCode as ShippingMarkCode,
-                            @ShippingMarkName as ShippingMarkName,
+                            @ManualShippingMark as ManualShippingMark,
                             @ProductName as ProductName,
                             @Unit as Unit,
                             @StandardPrice as StandardPrice,
@@ -1416,7 +1416,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                         target.GradeCode = source.GradeCode AND
                         target.ClassCode = source.ClassCode AND
                         target.ShippingMarkCode = source.ShippingMarkCode AND
-                        target.ShippingMarkName COLLATE Japanese_CI_AS = source.ShippingMarkName COLLATE Japanese_CI_AS
+                        target.ManualShippingMark COLLATE Japanese_CI_AS = source.ManualShippingMark COLLATE Japanese_CI_AS
                     )
                     WHEN MATCHED THEN
                         UPDATE SET 
@@ -1436,7 +1436,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                             IsActive = 1
                     WHEN NOT MATCHED THEN
                         INSERT (
-                            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                             ProductName, Unit, StandardPrice,
                             CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                             PreviousMonthQuantity, PreviousMonthAmount,
@@ -1444,7 +1444,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                         )
                         VALUES (
                             source.ProductCode, source.GradeCode, source.ClassCode, 
-                            source.ShippingMarkCode, source.ShippingMarkName,
+                            source.ShippingMarkCode, source.ManualShippingMark,
                             source.ProductName, source.Unit, source.StandardPrice,
                             source.CurrentStock, source.CurrentStockAmount, 
                             source.DailyStock, source.DailyStockAmount,
@@ -1468,7 +1468,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                             GradeCode = inventory.Key.GradeCode,
                             ClassCode = inventory.Key.ClassCode,
                             ShippingMarkCode = inventory.Key.ShippingMarkCode,
-                            ShippingMarkName = inventory.Key.ShippingMarkName,
+                            ManualShippingMark = inventory.Key.ManualShippingMark,
                             inventory.ProductName,
                             inventory.Unit,
                             inventory.StandardPrice,
@@ -1611,18 +1611,18 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             INNER JOIN (
                 SELECT DISTINCT 
                     ProductCode, GradeCode, ClassCode, 
-                    ShippingMarkCode, ShippingMarkName,
+                    ShippingMarkCode, ManualShippingMark,
                     MAX(JobDate) as JobDate
                 FROM SalesVouchers
                 WHERE JobDate = @JobDate
                 GROUP BY ProductCode, GradeCode, ClassCode, 
-                         ShippingMarkCode, ShippingMarkName
+                         ShippingMarkCode, ManualShippingMark
             ) sv ON 
                 im.ProductCode = sv.ProductCode AND
                 im.GradeCode = sv.GradeCode AND
                 im.ClassCode = sv.ClassCode AND
                 im.ShippingMarkCode = sv.ShippingMarkCode AND
-                im.ShippingMarkName = sv.ShippingMarkName
+                im.ManualShippingMark = sv.ManualShippingMark
             WHERE sv.JobDate > ISNULL(im.LastSalesDate, '1900-01-01')";
         
         try
@@ -1651,18 +1651,18 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             INNER JOIN (
                 SELECT DISTINCT 
                     ProductCode, GradeCode, ClassCode, 
-                    ShippingMarkCode, ShippingMarkName,
+                    ShippingMarkCode, ManualShippingMark,
                     MAX(JobDate) as JobDate
                 FROM PurchaseVouchers
                 WHERE JobDate = @JobDate
                 GROUP BY ProductCode, GradeCode, ClassCode, 
-                         ShippingMarkCode, ShippingMarkName
+                         ShippingMarkCode, ManualShippingMark
             ) pv ON 
                 im.ProductCode = pv.ProductCode AND
                 im.GradeCode = pv.GradeCode AND
                 im.ClassCode = pv.ClassCode AND
                 im.ShippingMarkCode = pv.ShippingMarkCode AND
-                im.ShippingMarkName = pv.ShippingMarkName
+                im.ManualShippingMark = pv.ManualShippingMark
             WHERE pv.JobDate > ISNULL(im.LastPurchaseDate, '1900-01-01')";
         
         try

@@ -27,7 +27,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
                 GradeCode,
                 ClassCode,
                 ShippingMarkCode,
-                ShippingMarkName,
+                ManualShippingMark,
                 Quantity,
                 UnitPrice as SalesUnitPrice,
                 Amount as SalesAmount,
@@ -60,12 +60,12 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
         const string sql = @"
             INSERT INTO SalesVouchers (
                 VoucherNumber, VoucherDate, JobDate,
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 Quantity, UnitPrice, Amount, DataSetId, VoucherType,
                 CustomerCode, DetailType
             ) VALUES (
                 @VoucherNumber, @VoucherDate, @JobDate,
-                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ManualShippingMark,
                 @Quantity, @UnitPrice, @Amount, @DataSetId, @VoucherType,
                 @CustomerCode, @DetailType
             )";
@@ -90,12 +90,12 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
         const string sql = @"
             INSERT INTO SalesVouchers (
                 VoucherNumber, VoucherDate, JobDate,
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 Quantity, UnitPrice, Amount, DataSetId, VoucherType,
                 CustomerCode, DetailType
             ) VALUES (
                 @VoucherNumber, @VoucherDate, @JobDate,
-                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ManualShippingMark,
                 @Quantity, @UnitPrice, @Amount, @DataSetId, @VoucherType,
                 @CustomerCode, @DetailType
             )";
@@ -133,7 +133,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
             GradeCode = row.GradeCode?.ToString() ?? string.Empty,
             ClassCode = row.ClassCode?.ToString() ?? string.Empty,
             ShippingMarkCode = row.ShippingMarkCode?.ToString() ?? string.Empty,
-            ShippingMarkName = row.ShippingMarkName?.ToString() ?? string.Empty,
+            ManualShippingMark = row.ManualShippingMark?.ToString() ?? string.Empty,
             Quantity = row.Quantity ?? 0m,
             UnitPrice = row.SalesUnitPrice ?? 0m,
             Amount = row.SalesAmount ?? 0m,
@@ -153,7 +153,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
             voucher.GradeCode,
             voucher.ClassCode,
             voucher.ShippingMarkCode,
-            voucher.ShippingMarkName,
+            voucher.ManualShippingMark,
             voucher.Quantity,
             UnitPrice = voucher.UnitPrice,
             Amount = voucher.Amount,
@@ -234,7 +234,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
                 GradeCode,
                 ClassCode,
                 ShippingMarkCode,
-                ShippingMarkName,
+                ManualShippingMark,
                 Quantity,
                 UnitPrice as SalesUnitPrice,
                 Amount as SalesAmount,
@@ -297,7 +297,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
                 GradeCode,
                 ClassCode,
                 ShippingMarkCode,
-                ShippingMarkName,
+                ManualShippingMark,
                 Quantity,
                 UnitPrice as SalesUnitPrice,
                 Amount as SalesAmount,
@@ -344,7 +344,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
                 GradeCode,
                 ClassCode,
                 ShippingMarkCode,
-                ShippingMarkName,
+                ManualShippingMark,
                 Quantity,
                 UnitPrice,
                 Amount,
@@ -461,7 +461,7 @@ public class SalesVoucherRepository : BaseRepository, ISalesVoucherRepository
                 GradeCode,
                 ClassCode,
                 ShippingMarkCode,
-                ShippingMarkName,
+                ManualShippingMark,
                 Quantity,
                 UnitPrice as SalesUnitPrice,
                 Amount as SalesAmount,

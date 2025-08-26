@@ -30,7 +30,7 @@ BEGIN
         FROM UnInventoryMaster un
         INNER JOIN (
             SELECT 
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 SUM(Quantity) as TotalQuantity
             FROM InventoryAdjustments
             WHERE DataSetId = @DataSetId
@@ -40,13 +40,13 @@ BEGIN
             AND Quantity > 0                  -- 入荷調整（プラス数量）
             AND ProductCode != '00000'        -- 商品コード「00000」除外
             AND UnitCode NOT IN ('02', '05')  -- ギフト経費・加工費B除外
-            GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName
+            GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
         ) adjustment_summary ON (
             un.ProductCode = adjustment_summary.ProductCode
             AND un.GradeCode = adjustment_summary.GradeCode
             AND un.ClassCode = adjustment_summary.ClassCode
             AND un.ShippingMarkCode = adjustment_summary.ShippingMarkCode
-            AND un.ShippingMarkName = adjustment_summary.ShippingMarkName
+            AND un.ManualShippingMark = adjustment_summary.ManualShippingMark
         )
         WHERE un.DataSetId = @DataSetId;
         

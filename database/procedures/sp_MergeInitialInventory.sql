@@ -51,7 +51,7 @@ BEGIN
                 GradeCode = REPLICATE('0', 3 - LEN(GradeCode)) + GradeCode,
                 ClassCode = REPLICATE('0', 3 - LEN(ClassCode)) + ClassCode,
                 ShippingMarkCode = REPLICATE('0', 4 - LEN(ShippingMarkCode)) + ShippingMarkCode,
-                ShippingMarkName = LEFT(RTRIM(COALESCE(ShippingMarkName, '')) + REPLICATE(' ', 8), 8),
+                ManualShippingMark = LEFT(RTRIM(COALESCE(ManualShippingMark, '')) + REPLICATE(' ', 8), 8),
                 ProductName,
                 Unit,
                 ProductCategory1,
@@ -70,7 +70,7 @@ BEGIN
             AND target.GradeCode = source.GradeCode
             AND target.ClassCode = source.ClassCode
             AND target.ShippingMarkCode = source.ShippingMarkCode
-            AND target.ShippingMarkName = source.ShippingMarkName
+            AND target.ManualShippingMark = source.ManualShippingMark
             AND target.JobDate = @JobDate
         )
         
@@ -90,7 +90,7 @@ BEGIN
         -- 新規レコード作成
         WHEN NOT MATCHED THEN
             INSERT (
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
                 PreviousMonthQuantity, PreviousMonthAmount,
@@ -101,7 +101,7 @@ BEGIN
             )
             VALUES (
                 source.ProductCode, source.GradeCode, source.ClassCode,
-                source.ShippingMarkCode, source.ShippingMarkName,
+                source.ShippingMarkCode, source.ManualShippingMark,
                 source.ProductName, source.Unit, source.StandardPrice,
                 source.ProductCategory1, source.ProductCategory2,
                 @JobDate, GETDATE(), GETDATE(),
@@ -124,7 +124,7 @@ BEGIN
         -- 4. 重複等でマージされなかったレコードをエラーとして記録
         INSERT INTO InitialInventory_ErrorLog (
             ProcessId, StagingId, ProductCode, GradeCode, ClassCode,
-            ShippingMarkCode, ShippingMarkName, ErrorType, ErrorMessage
+            ShippingMarkCode, ManualShippingMark, ErrorType, ErrorMessage
         )
         SELECT 
             @ProcessId,
@@ -133,7 +133,7 @@ BEGIN
             s.GradeCode,
             s.ClassCode,
             s.ShippingMarkCode,
-            s.ShippingMarkName,
+            s.ManualShippingMark,
             'DUPLICATE',
             '既存の在庫マスタレコードと重複しています'
         FROM InitialInventory_Staging s
@@ -146,7 +146,7 @@ BEGIN
                     AND im.GradeCode = REPLICATE('0', 3 - LEN(s.GradeCode)) + s.GradeCode
                     AND im.ClassCode = REPLICATE('0', 3 - LEN(s.ClassCode)) + s.ClassCode
                     AND im.ShippingMarkCode = REPLICATE('0', 4 - LEN(s.ShippingMarkCode)) + s.ShippingMarkCode
-                    AND im.ShippingMarkName = LEFT(RTRIM(COALESCE(s.ShippingMarkName, '')) + REPLICATE(' ', 8), 8)
+                    AND im.ManualShippingMark = LEFT(RTRIM(COALESCE(s.ManualShippingMark, '')) + REPLICATE(' ', 8), 8)
                     AND im.JobDate = @JobDate
             );
         

@@ -24,11 +24,11 @@ public class PurchaseVoucherCsvRepository : BaseRepository, IPurchaseVoucherRepo
         const string sql = @"
             INSERT INTO PurchaseVouchers (
                 VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
-                SupplierCode, SupplierName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                SupplierCode, SupplierName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 Quantity, UnitPrice, Amount, CreatedDate, DataSetId
             ) VALUES (
                 @VoucherId, @LineNumber, @VoucherNumber, @VoucherDate, @JobDate, @VoucherType, @DetailType,
-                @SupplierCode, @SupplierName, @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                @SupplierCode, @SupplierName, @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ManualShippingMark,
                 @Quantity, @UnitPrice, @Amount, @CreatedDate, @DataSetId
             )";
 
@@ -53,7 +53,7 @@ public class PurchaseVoucherCsvRepository : BaseRepository, IPurchaseVoucherRepo
                 voucher.GradeCode,
                 voucher.ClassCode,
                 voucher.ShippingMarkCode,
-                voucher.ShippingMarkName,
+                voucher.ManualShippingMark,
                 voucher.Quantity,
                 voucher.UnitPrice,
                 voucher.Amount,
@@ -80,7 +80,7 @@ public class PurchaseVoucherCsvRepository : BaseRepository, IPurchaseVoucherRepo
     {
         const string sql = @"
             SELECT VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
-                   SupplierCode, SupplierName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   SupplierCode, SupplierName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, CreatedDate, DataSetId
             FROM PurchaseVouchers 
             WHERE DataSetId = @DataSetId
@@ -107,7 +107,7 @@ public class PurchaseVoucherCsvRepository : BaseRepository, IPurchaseVoucherRepo
     {
         const string sql = @"
             SELECT VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
-                   SupplierCode, SupplierName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   SupplierCode, SupplierName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, CreatedDate, DataSetId
             FROM PurchaseVouchers 
             WHERE JobDate = @JobDate
@@ -148,7 +148,7 @@ public class PurchaseVoucherCsvRepository : BaseRepository, IPurchaseVoucherRepo
                 GradeCode = @GradeCode,
                 ClassCode = @ClassCode,
                 ShippingMarkCode = @ShippingMarkCode,
-                ShippingMarkName = @ShippingMarkName,
+                ManualShippingMark = @ManualShippingMark,
                 Quantity = @Quantity,
                 UnitPrice = @UnitPrice,
                 Amount = @Amount
@@ -173,7 +173,7 @@ public class PurchaseVoucherCsvRepository : BaseRepository, IPurchaseVoucherRepo
                 voucher.GradeCode,
                 voucher.ClassCode,
                 voucher.ShippingMarkCode,
-                voucher.ShippingMarkName,
+                voucher.ManualShippingMark,
                 voucher.Quantity,
                 voucher.UnitPrice,
                 voucher.Amount
@@ -292,7 +292,7 @@ public class PurchaseVoucherCsvRepository : BaseRepository, IPurchaseVoucherRepo
     {
         const string sql = @"
             SELECT VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
-                   SupplierCode, SupplierName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   SupplierCode, SupplierName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, CreatedDate, DataSetId
             FROM PurchaseVouchers
             ORDER BY JobDate DESC, VoucherDate DESC, VoucherNumber, LineNumber";
@@ -350,7 +350,7 @@ public class PurchaseVoucherCsvRepository : BaseRepository, IPurchaseVoucherRepo
     {
         const string sql = @"
             SELECT VoucherId, LineNumber, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
-                   SupplierCode, SupplierName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   SupplierCode, SupplierName, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, CreatedDate, DataSetId, IsActive
             FROM PurchaseVouchers 
             WHERE JobDate = @jobDate AND IsActive = 1

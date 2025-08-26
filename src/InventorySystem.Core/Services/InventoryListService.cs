@@ -158,7 +158,7 @@ public class InventoryListService : IInventoryListService
                 ProductCategory1 = cpInventory.ProductCategory1 ?? string.Empty,
                 ProductName = cpInventory.ProductName ?? cpInventory.Key.ProductCode, // 仮実装：商品コード表示
                 ShippingMarkCode = cpInventory.Key.ShippingMarkCode,
-                ShippingMarkName = cpInventory.Key.ShippingMarkName,
+                ManualShippingMark = cpInventory.Key.ManualShippingMark,
                 GradeCode = cpInventory.Key.GradeCode,
                 GradeName = cpInventory.Key.GradeCode, // 仮実装：等級コード表示
                 ClassCode = cpInventory.Key.ClassCode,
@@ -185,7 +185,7 @@ public class InventoryListService : IInventoryListService
         var sortedItems = inventoryItems
             .OrderBy(item => item.ProductCode)
             .ThenBy(item => item.ShippingMarkCode)
-            .ThenBy(item => item.ShippingMarkName)
+            .ThenBy(item => item.ManualShippingMark)
             .ThenBy(item => item.GradeCode)
             .ThenBy(item => item.ClassCode)
             .ToList();

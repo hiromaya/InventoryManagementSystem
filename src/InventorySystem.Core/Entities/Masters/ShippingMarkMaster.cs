@@ -13,7 +13,7 @@ public class ShippingMarkMaster
     /// <summary>
     /// 荷印名
     /// </summary>
-    public required string ShippingMarkName { get; set; }
+    public required string ManualShippingMark { get; set; }
 
     /// <summary>
     /// 検索カナ

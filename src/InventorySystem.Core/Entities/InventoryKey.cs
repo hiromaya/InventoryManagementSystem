@@ -6,7 +6,7 @@ public class InventoryKey
     private string _gradeCode = string.Empty;
     private string _classCode = string.Empty;
     private string _shippingMarkCode = string.Empty;
-    private string _shippingMarkName = string.Empty;
+    private string _manualShippingMark = string.Empty;
 
     /// <summary>
     /// 商品コード（5桁左0埋め、冪等性あり）
@@ -142,24 +142,24 @@ public class InventoryKey
         GradeCode = gradeCode ?? string.Empty;          // セッターで自動0埋め
         ClassCode = classCode ?? string.Empty;          // セッターで自動0埋め
         ShippingMarkCode = shippingMarkCode ?? string.Empty; // セッターで自動0埋め
-        ShippingMarkName = shippingMarkName ?? string.Empty; // セッターで自動8桁化
+        ManualShippingMark = shippingMarkName ?? string.Empty; // セッターで自動8桁化
     }
     
     /// <summary>
     /// 荷印名（8桁固定長で正規化される）
     /// </summary>
-    public string ShippingMarkName 
+    public string ManualShippingMark 
     { 
-        get => _shippingMarkName;
-        set => _shippingMarkName = NormalizeShippingMarkName(value);
+        get => _manualShippingMark;
+        set => _manualShippingMark = NormalizeManualShippingMark(value);
     }
 
     /// <summary>
-    /// ShippingMarkNameを8桁固定長に正規化する
+    /// ManualShippingMarkを8桁固定長に正規化する
     /// </summary>
     /// <param name="value">正規化する荷印名</param>
     /// <returns>8桁固定長の荷印名</returns>
-    public static string NormalizeShippingMarkName(string? value)
+    public static string NormalizeManualShippingMark(string? value)
     {
         if (string.IsNullOrEmpty(value))
             return new string(' ', 8);
@@ -176,9 +176,9 @@ public class InventoryKey
     /// 荷印名を設定する（明示的な正規化メソッド）
     /// </summary>
     /// <param name="value">荷印名</param>
-    public void SetShippingMarkName(string? value)
+    public void SetManualShippingMark(string? value)
     {
-        _shippingMarkName = NormalizeShippingMarkName(value);
+        _manualShippingMark = NormalizeManualShippingMark(value);
     }
 
     public override bool Equals(object? obj)
@@ -189,16 +189,16 @@ public class InventoryKey
                GradeCode == other.GradeCode &&
                ClassCode == other.ClassCode &&
                ShippingMarkCode == other.ShippingMarkCode &&
-               ShippingMarkName == other.ShippingMarkName;
+               ManualShippingMark == other.ManualShippingMark;
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+        return HashCode.Combine(ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
     }
 
     public override string ToString()
     {
-        return $"{ProductCode}-{GradeCode}-{ClassCode}-{ShippingMarkCode}-{ShippingMarkName}";
+        return $"{ProductCode}-{GradeCode}-{ClassCode}-{ShippingMarkCode}-{ManualShippingMark}";
     }
 }

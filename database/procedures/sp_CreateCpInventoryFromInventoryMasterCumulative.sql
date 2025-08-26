@@ -78,7 +78,7 @@ BEGIN
             im.ProductCode, im.GradeCode, im.ClassCode, 
             im.ShippingMarkCode, 
             ISNULL(sm.ShippingMarkName, '荷' + im.ShippingMarkCode) as ShippingMarkName,  -- 荷印マスタ名
-            im.ShippingMarkName as ManualShippingMark,  -- 既存のShippingMarkNameを手入力値として
+            im.ManualShippingMark as ManualShippingMark,  -- InventoryMasterの手入力値
             -- 管理項目
             im.ProductName, 
             COALESCE(u.UnitName, im.Unit) AS Unit,
@@ -125,7 +125,7 @@ BEGIN
                 AND im2.GradeCode = im.GradeCode
                 AND im2.ClassCode = im.ClassCode
                 AND im2.ShippingMarkCode = im.ShippingMarkCode
-                AND im2.ShippingMarkName = im.ShippingMarkName
+                AND im2.ManualShippingMark = im.ManualShippingMark
                 AND im2.IsActive = 1
                 AND (@JobDate IS NULL OR im2.JobDate <= @JobDate)
                 AND im2.JobDate > im.JobDate
@@ -138,7 +138,7 @@ BEGIN
             AND sv.GradeCode = im.GradeCode
             AND sv.ClassCode = im.ClassCode
             AND sv.ShippingMarkCode = im.ShippingMarkCode
-            AND sv.ShippingMarkName = im.ShippingMarkName
+            AND sv.ShippingMarkName = im.ManualShippingMark
             UNION
             SELECT 1 FROM PurchaseVouchers pv
             WHERE (@JobDate IS NULL OR pv.JobDate <= @JobDate)
@@ -146,7 +146,7 @@ BEGIN
             AND pv.GradeCode = im.GradeCode
             AND pv.ClassCode = im.ClassCode
             AND pv.ShippingMarkCode = im.ShippingMarkCode
-            AND pv.ShippingMarkName = im.ShippingMarkName
+            AND pv.ShippingMarkName = im.ManualShippingMark
             UNION
             SELECT 1 FROM InventoryAdjustments ia
             WHERE (@JobDate IS NULL OR ia.JobDate <= @JobDate)
@@ -154,7 +154,7 @@ BEGIN
             AND ia.GradeCode = im.GradeCode
             AND ia.ClassCode = im.ClassCode
             AND ia.ShippingMarkCode = im.ShippingMarkCode
-            AND ia.ShippingMarkName = im.ShippingMarkName
+            AND ia.ShippingMarkName = im.ManualShippingMark
         );
         
         SET @CreatedCount = @@ROWCOUNT;

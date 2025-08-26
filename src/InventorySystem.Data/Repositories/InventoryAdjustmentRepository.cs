@@ -26,12 +26,12 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
             INSERT INTO InventoryAdjustments (
                 VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
                 CustomerCode, CustomerName, CategoryCode,
-                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 Quantity, UnitPrice, Amount
             ) VALUES (
                 @VoucherId, @LineNumber, @DataSetId, @VoucherNumber, @VoucherDate, @JobDate, @VoucherType, @DetailType,
                 @CustomerCode, @CustomerName, @CategoryCode,
-                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ShippingMarkName,
+                @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ManualShippingMark,
                 @Quantity, @UnitPrice, @Amount
             )";
 
@@ -57,7 +57,7 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
                 adj.GradeCode,
                 adj.ClassCode,
                 adj.ShippingMarkCode,
-                adj.ShippingMarkName,
+                adj.ManualShippingMark,
                 adj.Quantity,
                 adj.UnitPrice,
                 adj.Amount
@@ -83,7 +83,7 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
         const string sql = @"
             SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
                    CustomerCode, CustomerName, CategoryCode,
-                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, CreatedDate
             FROM InventoryAdjustments 
             WHERE DataSetId = @DataSetId
@@ -111,7 +111,7 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
         const string sql = @"
             SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
                    CustomerCode, CustomerName, CategoryCode,
-                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, CreatedDate
             FROM InventoryAdjustments 
             WHERE JobDate = @JobDate
@@ -139,14 +139,14 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
         const string sql = @"
             SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
                    CustomerCode, CustomerName, CategoryCode,
-                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, CreatedDate
             FROM InventoryAdjustments 
             WHERE ProductCode = @ProductCode 
               AND GradeCode = @GradeCode 
               AND ClassCode = @ClassCode 
               AND ShippingMarkCode = @ShippingMarkCode 
-              AND ShippingMarkName = @ShippingMarkName 
+              AND ManualShippingMark = @ManualShippingMark 
               AND JobDate = @JobDate
             ORDER BY VoucherNumber";
 
@@ -159,7 +159,7 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
                 inventoryKey.GradeCode,
                 inventoryKey.ClassCode,
                 inventoryKey.ShippingMarkCode,
-                inventoryKey.ShippingMarkName,
+                inventoryKey.ManualShippingMark,
                 JobDate = jobDate.Date
             });
             
@@ -191,7 +191,7 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
                 GradeCode = @GradeCode,
                 ClassCode = @ClassCode,
                 ShippingMarkCode = @ShippingMarkCode,
-                ShippingMarkName = @ShippingMarkName,
+                ManualShippingMark = @ManualShippingMark,
                 Quantity = @Quantity,
                 UnitPrice = @UnitPrice,
                 Amount = @Amount
@@ -217,7 +217,7 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
                 adjustment.GradeCode,
                 adjustment.ClassCode,
                 adjustment.ShippingMarkCode,
-                adjustment.ShippingMarkName,
+                adjustment.ManualShippingMark,
                 adjustment.Quantity,
                 adjustment.UnitPrice,
                 adjustment.Amount
@@ -426,7 +426,7 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
         const string sql = @"
             SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
                    CustomerCode, CustomerName, CategoryCode,
-                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, CreatedDate
             FROM InventoryAdjustments 
             ORDER BY JobDate DESC, VoucherDate DESC, VoucherId DESC";
@@ -486,7 +486,7 @@ public class InventoryAdjustmentRepository : BaseRepository, IInventoryAdjustmen
         const string sql = @"
             SELECT VoucherId, LineNumber, DataSetId, VoucherNumber, VoucherDate, JobDate, VoucherType, DetailType,
                    CustomerCode, CustomerName, CategoryCode,
-                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+                   ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                    Quantity, UnitPrice, Amount, CreatedDate, IsActive
             FROM InventoryAdjustments 
             WHERE JobDate = @jobDate AND IsActive = 1

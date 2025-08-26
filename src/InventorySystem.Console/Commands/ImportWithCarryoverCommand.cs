@@ -229,7 +229,7 @@ public class ImportWithCarryoverCommand
     {
         // 現在在庫を辞書化（5項目キーで管理）
         var inventoryDict = currentInventory.ToDictionary(
-            i => $"{i.Key.ProductCode}_{i.Key.GradeCode}_{i.Key.ClassCode}_{i.Key.ShippingMarkCode}_{i.Key.ShippingMarkName}",
+            i => $"{i.Key.ProductCode}_{i.Key.GradeCode}_{i.Key.ClassCode}_{i.Key.ShippingMarkCode}_{i.Key.ManualShippingMark}",
             i => new InventoryMaster
             {
                 Key = i.Key,
@@ -254,7 +254,7 @@ public class ImportWithCarryoverCommand
         // 売上伝票の反映（在庫減少）
         foreach (var sales in salesVouchers)
         {
-            var key = $"{sales.ProductCode}_{sales.GradeCode}_{sales.ClassCode}_{sales.ShippingMarkCode}_{sales.ShippingMarkName}";
+            var key = $"{sales.ProductCode}_{sales.GradeCode}_{sales.ClassCode}_{sales.ShippingMarkCode}_{sales.ManualShippingMark}";
             if (inventoryDict.TryGetValue(key, out var inv))
             {
                 inv.DailyStock -= sales.Quantity;
@@ -283,7 +283,7 @@ public class ImportWithCarryoverCommand
         // 仕入伝票の反映（在庫増加）
         foreach (var purchase in purchaseVouchers)
         {
-            var key = $"{purchase.ProductCode}_{purchase.GradeCode}_{purchase.ClassCode}_{purchase.ShippingMarkCode}_{purchase.ShippingMarkName}";
+            var key = $"{purchase.ProductCode}_{purchase.GradeCode}_{purchase.ClassCode}_{purchase.ShippingMarkCode}_{purchase.ManualShippingMark}";
             if (inventoryDict.TryGetValue(key, out var inv))
             {
                 inv.DailyStock += purchase.Quantity;
@@ -312,7 +312,7 @@ public class ImportWithCarryoverCommand
         // 在庫調整の反映（区分1, 4, 6のみ）
         foreach (var adj in adjustmentVouchers.Where(a => a.CategoryCode == 1 || a.CategoryCode == 4 || a.CategoryCode == 6))
         {
-            var key = $"{adj.ProductCode}_{adj.GradeCode}_{adj.ClassCode}_{adj.ShippingMarkCode}_{adj.ShippingMarkName}";
+            var key = $"{adj.ProductCode}_{adj.GradeCode}_{adj.ClassCode}_{adj.ShippingMarkCode}_{adj.ManualShippingMark}";
             if (inventoryDict.TryGetValue(key, out var inv))
             {
                 inv.DailyStock += adj.Quantity;
@@ -354,7 +354,7 @@ public class ImportWithCarryoverCommand
                 GradeCode = voucher.GradeCode,
                 ClassCode = voucher.ClassCode,
                 ShippingMarkCode = voucher.ShippingMarkCode,
-                ShippingMarkName = voucher.ShippingMarkName
+                ManualShippingMark = voucher.ManualShippingMark
             },
             ProductName = voucher.ProductName ?? "商品名未設定",
             Unit = "PCS",
@@ -388,7 +388,7 @@ public class ImportWithCarryoverCommand
                 GradeCode = voucher.GradeCode,
                 ClassCode = voucher.ClassCode,
                 ShippingMarkCode = voucher.ShippingMarkCode,
-                ShippingMarkName = voucher.ShippingMarkName
+                ManualShippingMark = voucher.ManualShippingMark
             },
             ProductName = voucher.ProductName ?? "商品名未設定",
             Unit = "PCS",
@@ -422,7 +422,7 @@ public class ImportWithCarryoverCommand
                 GradeCode = voucher.GradeCode,
                 ClassCode = voucher.ClassCode,
                 ShippingMarkCode = voucher.ShippingMarkCode,
-                ShippingMarkName = voucher.ShippingMarkName
+                ManualShippingMark = voucher.ManualShippingMark
             },
             ProductName = voucher.ProductName ?? "商品名未設定",
             Unit = "PCS",
@@ -660,7 +660,7 @@ public class InventoryKeyEqualityComparer : IEqualityComparer<InventoryKey>
                x.GradeCode == y.GradeCode &&
                x.ClassCode == y.ClassCode &&
                x.ShippingMarkCode == y.ShippingMarkCode &&
-               x.ShippingMarkName == y.ShippingMarkName;
+               x.ManualShippingMark == y.ManualShippingMark;
     }
 
     public int GetHashCode(InventoryKey obj)
@@ -670,6 +670,6 @@ public class InventoryKeyEqualityComparer : IEqualityComparer<InventoryKey>
             obj.GradeCode,
             obj.ClassCode,
             obj.ShippingMarkCode,
-            obj.ShippingMarkName);
+            obj.ManualShippingMark);
     }
 }

@@ -103,7 +103,7 @@ namespace InventorySystem.Core.Services
                     im.Key.GradeCode,
                     im.Key.ClassCode,
                     im.Key.ShippingMarkCode,
-                    im.Key.ShippingMarkName
+                    im.Key.ManualShippingMark
                 }).ToHashSet();
 
                 result.InventoryMasterCount = inventoryProducts.Count;
@@ -120,7 +120,7 @@ namespace InventorySystem.Core.Services
                         s.GradeCode,
                         s.ClassCode,
                         s.ShippingMarkCode,
-                        s.ShippingMarkName
+                        s.ManualShippingMark
                     })
                     .Distinct()
                     .ToList();
@@ -139,7 +139,7 @@ namespace InventorySystem.Core.Services
                         p.GradeCode,
                         p.ClassCode,
                         p.ShippingMarkCode,
-                        p.ShippingMarkName
+                        p.ManualShippingMark
                     })
                     .Distinct()
                     .ToList();
@@ -158,7 +158,7 @@ namespace InventorySystem.Core.Services
                         a.GradeCode,
                         a.ClassCode,
                         a.ShippingMarkCode,
-                        a.ShippingMarkName
+                        a.ManualShippingMark
                     })
                     .Distinct()
                     .ToList();
@@ -179,7 +179,7 @@ namespace InventorySystem.Core.Services
                             GradeCode = salesProduct.GradeCode,
                             ClassCode = salesProduct.ClassCode,
                             ShippingMarkCode = salesProduct.ShippingMarkCode,
-                            ShippingMarkName = salesProduct.ShippingMarkName,
+                            ManualShippingMark = salesProduct.ManualShippingMark,
                             FoundInVoucherType = "売上伝票",
                             VoucherCount = 1
                         });
@@ -196,7 +196,7 @@ namespace InventorySystem.Core.Services
                             mp.GradeCode == purchaseProduct.GradeCode &&
                             mp.ClassCode == purchaseProduct.ClassCode &&
                             mp.ShippingMarkCode == purchaseProduct.ShippingMarkCode &&
-                            mp.ShippingMarkName == purchaseProduct.ShippingMarkName);
+                            mp.ManualShippingMark == purchaseProduct.ManualShippingMark);
 
                         if (existing != null)
                         {
@@ -211,7 +211,7 @@ namespace InventorySystem.Core.Services
                                 GradeCode = purchaseProduct.GradeCode,
                                 ClassCode = purchaseProduct.ClassCode,
                                 ShippingMarkCode = purchaseProduct.ShippingMarkCode,
-                                ShippingMarkName = purchaseProduct.ShippingMarkName,
+                                ManualShippingMark = purchaseProduct.ManualShippingMark,
                                 FoundInVoucherType = "仕入伝票",
                                 VoucherCount = 1
                             });
@@ -229,7 +229,7 @@ namespace InventorySystem.Core.Services
                             mp.GradeCode == adjustmentProduct.GradeCode &&
                             mp.ClassCode == adjustmentProduct.ClassCode &&
                             mp.ShippingMarkCode == adjustmentProduct.ShippingMarkCode &&
-                            mp.ShippingMarkName == adjustmentProduct.ShippingMarkName);
+                            mp.ManualShippingMark == adjustmentProduct.ManualShippingMark);
 
                         if (existing != null)
                         {
@@ -244,7 +244,7 @@ namespace InventorySystem.Core.Services
                                 GradeCode = adjustmentProduct.GradeCode,
                                 ClassCode = adjustmentProduct.ClassCode,
                                 ShippingMarkCode = adjustmentProduct.ShippingMarkCode,
-                                ShippingMarkName = adjustmentProduct.ShippingMarkName,
+                                ManualShippingMark = adjustmentProduct.ManualShippingMark,
                                 FoundInVoucherType = "在庫調整",
                                 VoucherCount = 1
                             });

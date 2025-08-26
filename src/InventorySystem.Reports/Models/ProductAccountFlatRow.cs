@@ -33,12 +33,6 @@ public class ProductAccountFlatRow
     public string ProductName { get; set; } = string.Empty;
 
     /// <summary>
-    /// 荷印名
-    /// </summary>
-    [MaxLength(50)]
-    public string ShippingMarkName { get; set; } = string.Empty;
-
-    /// <summary>
     /// 手入力荷印（8文字固定）
     /// </summary>
     [MaxLength(8)]

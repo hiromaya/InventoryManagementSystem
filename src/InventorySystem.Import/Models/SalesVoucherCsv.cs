@@ -47,7 +47,7 @@ public class SalesVoucherCsv
     public string ShippingMarkCode { get; set; } = string.Empty;
     
     [Index(12)]
-    public string ShippingMarkName { get; set; } = string.Empty;
+    public string ManualShippingMark { get; set; } = string.Empty;
     
     [Index(13)]
     public decimal Quantity { get; set; }
@@ -87,7 +87,7 @@ public class SalesVoucherCsv
             GradeCode = GradeCode?.Trim() ?? string.Empty,
             ClassCode = ClassCode?.Trim() ?? string.Empty,
             ShippingMarkCode = ShippingMarkCode?.Trim() ?? string.Empty,
-            ShippingMarkName = ShippingMarkName?.Trim() ?? string.Empty,
+            ManualShippingMark = ManualShippingMark?.Trim() ?? string.Empty,
             Quantity = Quantity,
             UnitPrice = UnitPrice,
             Amount = Amount,
@@ -143,7 +143,7 @@ public class SalesVoucherCsv
             string.IsNullOrWhiteSpace(GradeCode) ||
             string.IsNullOrWhiteSpace(ClassCode) ||
             string.IsNullOrWhiteSpace(ShippingMarkCode) ||
-            string.IsNullOrEmpty(ShippingMarkName))  // WhiteSpaceではなくEmptyに変更（空白8文字も有効）
+            string.IsNullOrEmpty(ManualShippingMark))  // WhiteSpaceではなくEmptyに変更（空白8文字も有効）
         {
             return false;
         }

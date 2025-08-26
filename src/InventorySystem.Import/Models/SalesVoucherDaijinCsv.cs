@@ -75,7 +75,7 @@ public class SalesVoucherDaijinCsv
     
     [Name("荷印名")]
     [Index(146)]  // 147列目
-    public string ShippingMarkName { get; set; } = string.Empty;
+    public string ManualShippingMark { get; set; } = string.Empty;
     
     [Name("数量")]
     [Index(95)]  // 96列目
@@ -178,7 +178,7 @@ public class SalesVoucherDaijinCsv
             // 荷印名は手入力項目（155列目、Index=154）から取得する
             // ※CSV内の141列目の「荷印名」フィールドは使用しない（マスタ参照値のため）
             // 伝票に直接入力された値を8桁固定で使用
-            ShippingMarkName = NormalizeShippingMarkName(HandInputItem),
+            ManualShippingMark = NormalizeManualShippingMark(HandInputItem),
             Quantity = Quantity,
             UnitPrice = UnitPrice,
             Amount = Amount,
@@ -199,7 +199,7 @@ public class SalesVoucherDaijinCsv
             GradeCode = salesVoucher.GradeCode,
             ClassCode = salesVoucher.ClassCode,
             ShippingMarkCode = salesVoucher.ShippingMarkCode,
-            ShippingMarkName = salesVoucher.ShippingMarkName
+            ManualShippingMark = salesVoucher.ManualShippingMark
         };
 
         // LineNumberの設定（階層情報から決定）
@@ -443,7 +443,7 @@ public class SalesVoucherDaijinCsv
     /// 2. 後方の空白をトリム
     /// 3. 8桁固定長に調整
     /// </summary>
-    private static string NormalizeShippingMarkName(string? input)
+    private static string NormalizeManualShippingMark(string? input)
     {
         if (input == null) return "        "; // 8桁空白
         

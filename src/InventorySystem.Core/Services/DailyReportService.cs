@@ -335,7 +335,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
                 GradeCode = firstCp.Key.GradeCode,
                 ClassCode = firstCp.Key.ClassCode,
                 ShippingMarkCode = firstCp.Key.ShippingMarkCode,
-                ShippingMarkName = firstCp.Key.ShippingMarkName,
+                ManualShippingMark = firstCp.Key.ManualShippingMark,
 
                 // 日計項目（集計）
                 DailySalesQuantity = group.Sum(cp => cp.DailySalesQuantity),
@@ -377,7 +377,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
             .OrderBy(item => item.ProductCategory1)      // 商品分類1（担当者コード）
             .ThenBy(item => item.ProductCode)            // 商品コード
             .ThenBy(item => item.ShippingMarkCode)       // 荷印コード
-            .ThenBy(item => item.ShippingMarkName)       // 荷印名
+            .ThenBy(item => item.ManualShippingMark)       // 荷印名
             .ThenBy(item => item.GradeCode)              // 等級コード
             .ThenBy(item => item.ClassCode)              // 階級コード
             .ToList();

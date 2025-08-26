@@ -28,7 +28,7 @@ public class InventoryListItem
     /// <summary>
     /// 荷印名
     /// </summary>
-    public string ShippingMarkName { get; set; } = string.Empty;
+    public string ManualShippingMark { get; set; } = string.Empty;
     
     /// <summary>
     /// 等級コード
@@ -94,7 +94,7 @@ public class InventoryListItem
         GradeCode = GradeCode,
         ClassCode = ClassCode,
         ShippingMarkCode = ShippingMarkCode,
-        ShippingMarkName = ShippingMarkName
+        ManualShippingMark = ManualShippingMark
     };
     
     /// <summary>

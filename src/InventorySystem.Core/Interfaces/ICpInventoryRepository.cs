@@ -74,16 +74,16 @@ public interface ICpInventoryRepository
     
     
     /// <summary>
-    /// 文字化けしたShippingMarkNameを修復する
+    /// 文字化けしたManualShippingMarkを修復する
     /// 仮テーブル設計：全レコード対象
     /// </summary>
-    Task<int> RepairShippingMarkNamesAsync();
+    Task<int> RepairManualShippingMarksAsync();
     
     /// <summary>
-    /// 文字化けしたShippingMarkNameの件数を取得する
+    /// 文字化けしたManualShippingMarkの件数を取得する
     /// 仮テーブル設計：全レコード対象
     /// </summary>
-    Task<int> CountGarbledShippingMarkNamesAsync();
+    Task<int> CountGarbledManualShippingMarksAsync();
     
     /// <summary>
     /// CP在庫マスタの全レコードを削除する

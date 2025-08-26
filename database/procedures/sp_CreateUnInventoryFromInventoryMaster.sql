@@ -40,7 +40,7 @@ BEGIN
             GradeCode, 
             ClassCode, 
             ShippingMarkCode, 
-            ShippingMarkName,
+            ManualShippingMark,
             DataSetId, 
             PreviousDayStock,    -- CurrentStockを前日在庫として使用
             DailyStock,          -- DailyStockをそのまま使用
@@ -54,7 +54,7 @@ BEGIN
             im.GradeCode, 
             im.ClassCode, 
             im.ShippingMarkCode, 
-            im.ShippingMarkName,
+            im.ManualShippingMark,
             @DataSetId, 
             im.CurrentStock,     -- 現在在庫を前日在庫として扱う
             im.DailyStock,       -- 当日在庫

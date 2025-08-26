@@ -16,7 +16,7 @@ BEGIN
     BEGIN TRY
         -- CP在庫マスタに在庫マスタのデータを挿入（ProductMasterなし）
         INSERT INTO dbo.CpInventoryMaster (
-            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName,
+            ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
             ProductName, Unit, StandardPrice,
             ProductCategory1, ProductCategory2,
             GradeName, ClassName,
@@ -46,13 +46,13 @@ BEGIN
             DepartmentCode
         )
         SELECT 
-            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ShippingMarkName,
+            im.ProductCode, im.GradeCode, im.ClassCode, im.ShippingMarkCode, im.ManualShippingMark,
             im.ProductName, im.Unit, im.StandardPrice,
             -- 特殊処理ルール: 荷印名による商品分類1の変更（ProductMasterなし）
             CASE 
-                WHEN LEFT(im.ShippingMarkName, 4) = '9aaa' THEN '8'
-                WHEN LEFT(im.ShippingMarkName, 4) = '1aaa' THEN '6'
-                WHEN LEFT(im.ShippingMarkName, 4) = '0999' THEN '6'
+                WHEN LEFT(im.ManualShippingMark, 4) = '9aaa' THEN '8'
+                WHEN LEFT(im.ManualShippingMark, 4) = '1aaa' THEN '6'
+                WHEN LEFT(im.ManualShippingMark, 4) = '0999' THEN '6'
                 ELSE '00'  -- デフォルト値
             END AS ProductCategory1,
             '00' AS ProductCategory2,  -- デフォルト値
