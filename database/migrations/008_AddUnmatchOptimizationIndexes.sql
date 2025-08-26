@@ -18,7 +18,7 @@ BEGIN TRY
     BEGIN
         CREATE INDEX IX_InventoryMaster_IsActive_JobDate 
         ON InventoryMaster(IsActive, JobDate) 
-        INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, CurrentStock, CurrentStockAmount);
+        INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, CurrentStock, CurrentStockAmount);
         
         PRINT '✅ InventoryMaster index for IsActive/JobDate created';
     END
@@ -37,7 +37,7 @@ BEGIN TRY
     BEGIN
         CREATE INDEX IX_SalesVouchers_JobDate_VoucherType 
         ON SalesVouchers(JobDate, VoucherType, DetailType) 
-        INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, Quantity);
+        INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, Quantity);
         
         PRINT '✅ SalesVouchers index for JobDate/VoucherType created';
     END
@@ -56,7 +56,7 @@ BEGIN TRY
     BEGIN
         CREATE INDEX IX_PurchaseVouchers_JobDate_VoucherType 
         ON PurchaseVouchers(JobDate, VoucherType, DetailType) 
-        INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, Quantity);
+        INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, Quantity);
         
         PRINT '✅ PurchaseVouchers index for JobDate/VoucherType created';
     END
@@ -75,7 +75,7 @@ BEGIN TRY
     BEGIN
         CREATE INDEX IX_InventoryAdjustments_JobDate_CategoryCode 
         ON InventoryAdjustments(JobDate, VoucherType, DetailType, CategoryCode) 
-        INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName, Quantity);
+        INCLUDE (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, Quantity);
         
         PRINT '✅ InventoryAdjustments index for JobDate/CategoryCode created';
     END
@@ -93,7 +93,7 @@ BEGIN TRY
     )
     BEGIN
         CREATE INDEX IX_CpInventoryMaster_5ItemKey_DataSetId 
-        ON CpInventoryMaster(DataSetId, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ShippingMarkName);
+        ON CpInventoryMaster(DataSetId, ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark);
         
         PRINT '✅ CpInventoryMaster 5-item key index created';
     END
