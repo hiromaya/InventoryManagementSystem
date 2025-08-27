@@ -35,6 +35,9 @@ BEGIN
             StandardPrice, 
             ProductCategory1, 
             ProductCategory2,
+            -- マスタ名称（追加）
+            GradeName,
+            ClassName,
             JobDate, 
             CreatedDate, 
             UpdatedDate,
@@ -79,11 +82,14 @@ BEGIN
             im.ShippingMarkCode, 
             im.ManualShippingMark,
             -- 管理項目
-            im.ProductName, 
+            ISNULL(pm.ProductName, im.ProductName) AS ProductName,
             COALESCE(u.UnitName, im.Unit, '') AS Unit,
             im.StandardPrice, 
-            im.ProductCategory1, 
-            im.ProductCategory2,
+            ISNULL(pm.ProductCategory1, im.ProductCategory1) AS ProductCategory1,
+            ISNULL(pm.ProductCategory2, im.ProductCategory2) AS ProductCategory2,
+            -- マスタ名称（マスタから取得）
+            ISNULL(gm.GradeName, '') AS GradeName,
+            ISNULL(cm.ClassName, '') AS ClassName,
             im.JobDate, 
             GETDATE() AS CreatedDate, 
             GETDATE() AS UpdatedDate,
@@ -109,6 +115,8 @@ BEGIN
         FROM InventoryMaster im
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
         LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode
+        LEFT JOIN GradeMaster gm ON im.GradeCode = gm.GradeCode
+        LEFT JOIN ClassMaster cm ON im.ClassCode = cm.ClassCode
         WHERE im.IsActive = 1  -- アクティブな在庫のみ
         AND (@JobDate IS NULL OR im.JobDate <= @JobDate)  -- 指定日以前
         -- 最新の在庫レコードのみ取得
