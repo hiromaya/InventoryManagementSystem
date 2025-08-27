@@ -111,6 +111,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "061_AddGradeClassNamesToCpInventoryMaster.sql",                       // CpInventoryMasterにGradeName/ClassName追加
         "062_UpdateCpInventoryMasterNames.sql",                                // 既存データのGradeName/ClassName更新
         "063_AddShippingMarkNameToUnInventoryMaster.sql",                      // UN在庫マスタにShippingMarkNameカラム追加
+        "064_AddShippingMarkNameToCpInventoryMaster.sql",                      // CP在庫マスタにShippingMarkNameカラム追加
         
         // === 営業日報テーブル作成（SE1担当） ===
         "042_CreateBusinessDailyReport.sql",                                   // 営業日報テーブル作成

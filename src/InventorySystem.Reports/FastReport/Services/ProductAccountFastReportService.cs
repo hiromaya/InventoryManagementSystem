@@ -401,6 +401,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             ISNULL(cp.ProductName, '') as ProductName,
                             ISNULL(cp.ProductCategory1, '') as ProductCategory1,
                             cp.ShippingMarkCode,
+                            cp.ShippingMarkName,
                             cp.ManualShippingMark,
                             cp.GradeCode,
                             cp.GradeName,
@@ -431,6 +432,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             ISNULL(s.ProductName, pm.ProductName) as ProductName,  -- 伝票の商品名、またはマスタから取得
                             ISNULL(pm.ProductCategory1, '') as ProductCategory1,  -- 商品マスタから担当者取得
                             s.ShippingMarkCode,
+                            cp.ShippingMarkName,
                             s.ManualShippingMark,  -- 売上伝票の手入力値
                             s.GradeCode,
                             cp.GradeName,
@@ -472,6 +474,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             ISNULL(p.ProductName, pm.ProductName) as ProductName,  -- 伝票の商品名、またはマスタから取得
                             ISNULL(pm.ProductCategory1, '') as ProductCategory1,
                             p.ShippingMarkCode,
+                            cp.ShippingMarkName,
                             p.ManualShippingMark,  -- 仕入伝票の手入力値
                             p.GradeCode,
                             cp.GradeName,
@@ -513,6 +516,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             ISNULL(ia.ProductName, pm.ProductName) as ProductName,  -- 伝票の商品名、またはマスタから取得
                             ISNULL(pm.ProductCategory1, '') as ProductCategory1,
                             ia.ShippingMarkCode,
+                            cp.ShippingMarkName,
                             ia.ManualShippingMark,  -- 在庫調整の手入力値
                             ia.GradeCode,
                             cp.GradeName,

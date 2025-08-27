@@ -27,7 +27,8 @@ BEGIN
             ProductCode, 
             GradeCode, 
             ClassCode, 
-            ShippingMarkCode, 
+            ShippingMarkCode,
+            ShippingMarkName,
             ManualShippingMark,
             -- 管理項目
             ProductName, 
@@ -79,7 +80,8 @@ BEGIN
             im.ProductCode, 
             im.GradeCode, 
             im.ClassCode, 
-            im.ShippingMarkCode, 
+            im.ShippingMarkCode,
+            ISNULL(sm.ShippingMarkName, im.ShippingMarkCode) AS ShippingMarkName,
             im.ManualShippingMark,
             -- 管理項目
             ISNULL(pm.ProductName, im.ProductName) AS ProductName,
@@ -117,6 +119,7 @@ BEGIN
         LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode
         LEFT JOIN GradeMaster gm ON im.GradeCode = gm.GradeCode
         LEFT JOIN ClassMaster cm ON im.ClassCode = cm.ClassCode
+        LEFT JOIN ShippingMarkMaster sm ON im.ShippingMarkCode = sm.ShippingMarkCode
         WHERE im.IsActive = 1  -- アクティブな在庫のみ
         AND (@JobDate IS NULL OR im.JobDate <= @JobDate)  -- 指定日以前
         -- 最新の在庫レコードのみ取得
