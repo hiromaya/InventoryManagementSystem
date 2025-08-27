@@ -1135,6 +1135,25 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             var table = new DataTable("ProductAccount");
             
+            // === デバッグ: フラットデータ確認ログ ===
+            _logger.LogCritical("=== フラットデータ→DataTable変換確認 ===");
+            var product00104Rows = flatData.Where(x => x.ProductCode == "00104").Take(5);
+            if (!product00104Rows.Any())
+            {
+                _logger.LogCritical("商品00104が見つかりません。代替として最初の5件を確認します");
+                product00104Rows = flatData.Take(5);
+            }
+            
+            _logger.LogCritical("フラットデータ荷印名確認（商品00104または代替5件）:");
+            foreach (var row in product00104Rows)
+            {
+                _logger.LogCritical("フラットデータ: 商品={ProductCode} 荷印コード={ShippingMarkCode} 荷印名='{ShippingMarkName}' 手入力='{ManualShippingMark}'", 
+                    row.ProductCode ?? "", 
+                    row.ShippingMarkCode ?? "", 
+                    row.ShippingMarkName ?? "", 
+                    row.ManualShippingMark ?? "");
+            }
+            
             // フラットデータの全フィールドを文字列型で定義
             table.Columns.Add("ProductCategory1", typeof(string));
             table.Columns.Add("ProductCategory1Name", typeof(string));
@@ -1208,6 +1227,27 @@ namespace InventorySystem.Reports.FastReport.Services
                 table.Rows.Add(row);
             }
             
+            // === デバッグ: DataTable作成後確認ログ ===
+            _logger.LogCritical("=== DataTable荷印名確認（商品00104） ===");
+            var dataTableRows = table.Rows.Cast<DataRow>()
+                .Where(r => r["ProductCode"]?.ToString() == "00104")
+                .Take(5);
+                
+            if (!dataTableRows.Any())
+            {
+                _logger.LogCritical("商品00104のDataTableが見つかりません。代替として最初の5件を確認します");
+                dataTableRows = table.Rows.Cast<DataRow>().Take(5);
+            }
+            
+            foreach (DataRow row in dataTableRows)
+            {
+                _logger.LogCritical("DataTable変換後: 商品={ProductCode} 荷印名='{ShippingMarkName}' 手入力='{ManualShippingMark}'", 
+                    row["ProductCode"]?.ToString() ?? "", 
+                    row["ShippingMarkName"]?.ToString() ?? "", 
+                    row["ManualShippingMark"]?.ToString() ?? "");
+            }
+            
+            _logger.LogCritical("DataTable総行数: {TotalRows}", table.Rows.Count);
             _logger.LogInformation("フラットDataTable作成完了: {Count}行", table.Rows.Count);
             return table;
         }
