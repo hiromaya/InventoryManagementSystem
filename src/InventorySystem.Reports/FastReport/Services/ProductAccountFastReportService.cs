@@ -410,9 +410,9 @@ namespace InventorySystem.Reports.FastReport.Services
                     var cpCheckResult = connection.QueryFirstOrDefault(cpInventoryCheckSql, new { JobDate = jobDate });
                     
                     _logger.LogDebug("CP在庫マスタ存在確認: 総件数={Total}, 荷印名有効={Valid}, 荷印名空={Empty}", 
-                        cpCheckResult?.TotalRecords ?? 0, 
-                        cpCheckResult?.ValidShippingMarkRecords ?? 0, 
-                        cpCheckResult?.EmptyShippingMarkRecords ?? 0);
+                        (int)(cpCheckResult?.TotalRecords ?? 0), 
+                        (int)(cpCheckResult?.ValidShippingMarkRecords ?? 0), 
+                        (int)(cpCheckResult?.EmptyShippingMarkRecords ?? 0));
                 }
                 catch (Exception ex)
                 {
@@ -464,9 +464,9 @@ namespace InventorySystem.Reports.FastReport.Services
                     foreach (var result in joinCheckResults)
                     {
                         _logger.LogDebug("商品={ProductCode} JOIN結果={JoinResult} 荷印名={ShippingMarkName}", 
-                            result.Sales_ProductCode ?? result.CP_ProductCode, 
-                            result.JoinResult,
-                            result.CP_ShippingMarkName ?? "");
+                            (string)(result.Sales_ProductCode ?? result.CP_ProductCode), 
+                            (string)result.JoinResult,
+                            (string)(result.CP_ShippingMarkName ?? ""));
                     }
                 }
                 catch (Exception ex)
@@ -504,13 +504,13 @@ namespace InventorySystem.Reports.FastReport.Services
                     foreach (var result in stringCheckResults)
                     {
                         _logger.LogDebug("商品={ProductCode} Sales手入力='{SalesManual}'({SalesLen}) CP手入力='{CpManual}'({CpLen}) 比較結果={CompareResult} 荷印名='{ShippingMarkName}'", 
-                            result.ProductCode,
-                            result.Sales_Manual ?? "",
-                            result.Sales_Length ?? 0,
-                            result.CP_Manual ?? "",
-                            result.CP_Length ?? 0,
-                            result.CompareResult,
-                            result.ShippingMarkName ?? "");
+                            (string)result.ProductCode,
+                            (string)(result.Sales_Manual ?? ""),
+                            (int)(result.Sales_Length ?? 0),
+                            (string)(result.CP_Manual ?? ""),
+                            (int)(result.CP_Length ?? 0),
+                            (string)result.CompareResult,
+                            (string)(result.ShippingMarkName ?? ""));
                     }
                 }
                 catch (Exception ex)
