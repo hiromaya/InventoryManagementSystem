@@ -382,6 +382,9 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private IEnumerable<ProductAccountReportModel> GetReportDataDirectly(DateTime jobDate, string? departmentCode)
         {
+            // === デバッグ開始ログ ===
+            _logger.LogDebug("=== 商品勘定 荷印名デバッグ開始 ===");
+            _logger.LogDebug("JobDate: {JobDate}, DepartmentCode: {DeptCode}", jobDate, departmentCode ?? "全部門");
             _logger.LogCritical("=== GetReportDataDirectly メソッド実行中（修正版） ===");
             _logger.LogInformation("直接データ取得モードで商品勘定データを準備します");
             
@@ -392,6 +395,128 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 簡易的な実装 - 販売伝票データから取得
                 var connectionString = _configuration.GetConnectionString("DefaultConnection");
                 using var connection = new SqlConnection(connectionString);
+                
+                // === デバッグ: CP在庫マスタ存在確認 ===
+                try
+                {
+                    var cpInventoryCheckSql = @"
+                        SELECT 
+                            COUNT(*) as TotalRecords,
+                            COUNT(CASE WHEN ShippingMarkName IS NOT NULL AND ShippingMarkName != '' THEN 1 END) as ValidShippingMarkRecords,
+                            COUNT(CASE WHEN ShippingMarkName IS NULL OR ShippingMarkName = '' THEN 1 END) as EmptyShippingMarkRecords
+                        FROM CpInventoryMaster 
+                        WHERE JobDate = @JobDate";
+                    
+                    var cpCheckResult = connection.QueryFirstOrDefault(cpInventoryCheckSql, new { JobDate = jobDate });
+                    
+                    _logger.LogDebug("CP在庫マスタ存在確認: 総件数={Total}, 荷印名有効={Valid}, 荷印名空={Empty}", 
+                        cpCheckResult?.TotalRecords ?? 0, 
+                        cpCheckResult?.ValidShippingMarkRecords ?? 0, 
+                        cpCheckResult?.EmptyShippingMarkRecords ?? 0);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "CP在庫マスタ存在確認クエリでエラーが発生");
+                }
+                
+                // === デバッグ: JOIN条件チェック（売上伝票とCP在庫マスタ） ===
+                try
+                {
+                    var joinCheckSql = @"
+                        SELECT TOP 10
+                            s.ProductCode as Sales_ProductCode,
+                            cp.ProductCode as CP_ProductCode,
+                            s.GradeCode as Sales_GradeCode, 
+                            cp.GradeCode as CP_GradeCode,
+                            s.ClassCode as Sales_ClassCode,
+                            cp.ClassCode as CP_ClassCode,
+                            s.ShippingMarkCode as Sales_ShippingMarkCode,
+                            cp.ShippingMarkCode as CP_ShippingMarkCode,
+                            s.ManualShippingMark as Sales_ManualShippingMark,
+                            cp.ManualShippingMark as CP_ManualShippingMark,
+                            cp.JobDate as CP_JobDate,
+                            cp.ShippingMarkName as CP_ShippingMarkName,
+                            CASE 
+                                WHEN s.ProductCode = cp.ProductCode AND
+                                     s.GradeCode = cp.GradeCode AND 
+                                     s.ClassCode = cp.ClassCode AND
+                                     s.ShippingMarkCode = cp.ShippingMarkCode AND
+                                     s.ManualShippingMark = cp.ManualShippingMark AND
+                                     cp.JobDate = @JobDate
+                                THEN 'JOIN成功'
+                                ELSE 'JOIN失敗'
+                            END as JoinResult
+                        FROM SalesVouchers s
+                        FULL OUTER JOIN CpInventoryMaster cp ON s.ProductCode = cp.ProductCode 
+                          AND s.GradeCode = cp.GradeCode 
+                          AND s.ClassCode = cp.ClassCode 
+                          AND s.ShippingMarkCode = cp.ShippingMarkCode 
+                          AND s.ManualShippingMark = cp.ManualShippingMark
+                          AND cp.JobDate = @JobDate
+                        WHERE s.JobDate = @JobDate
+                          AND s.DetailType = '1' 
+                          AND s.IsActive = 1
+                        ORDER BY s.VoucherNumber";
+                    
+                    var joinCheckResults = connection.Query(joinCheckSql, new { JobDate = jobDate });
+                    
+                    _logger.LogDebug("JOIN条件チェック結果（最初の10件）:");
+                    foreach (var result in joinCheckResults)
+                    {
+                        _logger.LogDebug("商品={ProductCode} JOIN結果={JoinResult} 荷印名={ShippingMarkName}", 
+                            result.Sales_ProductCode ?? result.CP_ProductCode, 
+                            result.JoinResult,
+                            result.CP_ShippingMarkName ?? "");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "JOIN条件チェッククエリでエラーが発生");
+                }
+                
+                // === デバッグ: 文字列比較詳細チェック ===
+                try
+                {
+                    var stringCheckSql = @"
+                        SELECT TOP 5
+                            s.ProductCode,
+                            s.ManualShippingMark as Sales_Manual,
+                            cp.ManualShippingMark as CP_Manual,
+                            LEN(s.ManualShippingMark) as Sales_Length,
+                            LEN(cp.ManualShippingMark) as CP_Length,
+                            ASCII(SUBSTRING(s.ManualShippingMark, 1, 1)) as Sales_FirstChar_ASCII,
+                            ASCII(SUBSTRING(cp.ManualShippingMark, 1, 1)) as CP_FirstChar_ASCII,
+                            CASE WHEN s.ManualShippingMark = cp.ManualShippingMark THEN '一致' ELSE '不一致' END as CompareResult,
+                            cp.ShippingMarkName
+                        FROM SalesVouchers s, CpInventoryMaster cp
+                        WHERE s.ProductCode = cp.ProductCode
+                          AND s.GradeCode = cp.GradeCode
+                          AND s.ClassCode = cp.ClassCode  
+                          AND s.ShippingMarkCode = cp.ShippingMarkCode
+                          AND s.JobDate = @JobDate
+                          AND cp.JobDate = @JobDate
+                          AND s.DetailType = '1'
+                          AND s.IsActive = 1";
+                    
+                    var stringCheckResults = connection.Query(stringCheckSql, new { JobDate = jobDate });
+                    
+                    _logger.LogDebug("文字列比較詳細チェック結果（最初の5件）:");
+                    foreach (var result in stringCheckResults)
+                    {
+                        _logger.LogDebug("商品={ProductCode} Sales手入力='{SalesManual}'({SalesLen}) CP手入力='{CpManual}'({CpLen}) 比較結果={CompareResult} 荷印名='{ShippingMarkName}'", 
+                            result.ProductCode,
+                            result.Sales_Manual ?? "",
+                            result.Sales_Length ?? 0,
+                            result.CP_Manual ?? "",
+                            result.CP_Length ?? 0,
+                            result.CompareResult,
+                            result.ShippingMarkName ?? "");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "文字列比較詳細チェッククエリでエラーが発生");
+                }
                 
                 var sql = @"
                     WITH ProductAccount AS (
@@ -558,6 +683,26 @@ namespace InventorySystem.Reports.FastReport.Services
                     JobDate = jobDate, 
                     DepartmentCode = departmentCode 
                 });
+                
+                // === デバッグ: メインクエリ結果確認 ===
+                _logger.LogDebug("メインクエリ実行完了: 取得件数={Count}", results?.Count() ?? 0);
+                
+                if (results?.Any() == true)
+                {
+                    var shippingMarkData = results.Where(r => !string.IsNullOrEmpty(r.ShippingMarkName)).Take(5);
+                    _logger.LogDebug("荷印名が設定されているデータ（最初の5件）:");
+                    foreach (var item in shippingMarkData)
+                    {
+                        _logger.LogDebug("商品={ProductCode} 荷印コード={ShippingMarkCode} 荷印名='{ShippingMarkName}' 手入力='{ManualShippingMark}'", 
+                            item.ProductCode, 
+                            item.ShippingMarkCode, 
+                            item.ShippingMarkName ?? "",
+                            item.ManualShippingMark ?? "");
+                    }
+                    
+                    var emptyShippingMarkCount = results.Count(r => string.IsNullOrEmpty(r.ShippingMarkName));
+                    _logger.LogDebug("荷印名が空または未設定のデータ件数: {EmptyCount}/{TotalCount}", emptyShippingMarkCount, results.Count());
+                }
                 
                 // デバッグログ: SQLクエリ実行直後
                 _logger.LogCritical("=== 商品勘定SQLクエリ結果確認 ===");
