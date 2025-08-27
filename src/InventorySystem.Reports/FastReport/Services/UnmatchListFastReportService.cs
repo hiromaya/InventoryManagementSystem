@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using FastReport;
 using FastReport.Export.Pdf;
@@ -72,55 +73,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogInformation("レポートテンプレートを読み込んでいます...");
                 report.Load(_templatePath);
                 
-                // .NET 8対応: スクリプト完全無効化
-                try
-                {
-                    // スクリプト制限を無効化
-                    var scriptRestrictionsProperty = report.GetType().GetProperty("ScriptRestrictions");
-                    if (scriptRestrictionsProperty != null)
-                    {
-                        var restrictionsType = scriptRestrictionsProperty.PropertyType;
-                        if (restrictionsType.IsEnum)
-                        {
-                            var noneValue = Enum.GetValues(restrictionsType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
-                            if (noneValue != null)
-                            {
-                                scriptRestrictionsProperty.SetValue(report, noneValue);
-                                _logger.LogInformation("ScriptRestrictionsをNoneに設定しました");
-                            }
-                        }
-                    }
-                    
-                    // スクリプトテキストをクリア
-                    var scriptTextProperty = report.GetType().GetProperty("ScriptText");
-                    if (scriptTextProperty != null)
-                    {
-                        scriptTextProperty.SetValue(report, "");
-                        _logger.LogInformation("ScriptTextをクリアしました");
-                    }
-                    
-                    // リフレクションを使用してScriptLanguageプロパティを取得
-                    var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
-                    if (scriptLanguageProperty != null)
-                    {
-                        var scriptLanguageType = scriptLanguageProperty.PropertyType;
-                        if (scriptLanguageType.IsEnum)
-                        {
-                            // FastReport.ScriptLanguage.None を設定
-                            var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
-                            if (noneValue != null)
-                            {
-                                scriptLanguageProperty.SetValue(report, noneValue);
-                                _logger.LogInformation("ScriptLanguageをNoneに設定しました");
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning($"スクリプト無効化設定時の警告: {ex.Message}");
-                    // エラーが発生しても処理を継続
-                }
+                // スクリプトを完全に無効化
+                SetScriptLanguageToNone(report);
                 
                 // データソースの準備
                 var unmatchList = unmatchItems.ToList();
@@ -432,6 +386,50 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         
+        /// <summary>
+        /// FastReportのスクリプト機能を完全に無効化する
+        /// </summary>
+        /// <param name="report">対象のレポートオブジェクト</param>
+        private void SetScriptLanguageToNone(FR.Report report)
+        {
+            try
+            {
+                // リフレクションを使用してScriptLanguageプロパティを取得
+                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                if (scriptLanguageProperty != null)
+                {
+                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                    if (scriptLanguageType.IsEnum)
+                    {
+                        // FastReport.ScriptLanguage.None を設定
+                        var noneValue = Enum.GetValues(scriptLanguageType)
+                            .Cast<object>()
+                            .FirstOrDefault(v => v.ToString() == "None");
+                        
+                        if (noneValue != null)
+                        {
+                            scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                        }
+                    }
+                }
+                
+                // Scriptプロパティをnullに設定（追加の安全策）
+                var scriptProperty = report.GetType().GetProperty("Script", 
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                if (scriptProperty != null)
+                {
+                    scriptProperty.SetValue(report, null);
+                    _logger.LogInformation("Scriptプロパティをnullに設定しました");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+                // エラーが発生しても処理を継続
+            }
+        }
+
         /// <summary>
         /// コードが0（オール0）かどうかを判定
         /// </summary>
