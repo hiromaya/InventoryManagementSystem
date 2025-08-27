@@ -33,6 +33,12 @@ public class ProductAccountReportModel
     public string ManualShippingMark { get; set; } = string.Empty;
 
     /// <summary>
+    /// 荷印名（荷印マスタから取得した名称）
+    /// </summary>
+    [MaxLength(100)]
+    public string ShippingMarkName { get; set; } = string.Empty;
+
+    /// <summary>
     /// 等級コード
     /// </summary>
     [MaxLength(3)]
