@@ -164,8 +164,11 @@ public class InventoryKey
         if (string.IsNullOrEmpty(value))
             return new string(' ', 8);
         
+        // 全角スペースを半角スペースに変換
+        var normalized = value.Replace('　', ' ');
+        
         // 右側の空白を削除し、8桁に調整（不足分は空白で埋める）
-        var trimmed = value.TrimEnd();
+        var trimmed = normalized.TrimEnd();
         return trimmed.Length >= 8 
             ? trimmed.Substring(0, 8) 
             : trimmed.PadRight(8, ' ');
