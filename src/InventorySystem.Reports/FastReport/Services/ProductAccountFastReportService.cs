@@ -383,8 +383,8 @@ namespace InventorySystem.Reports.FastReport.Services
         private IEnumerable<ProductAccountReportModel> GetReportDataDirectly(DateTime jobDate, string? departmentCode)
         {
             // === デバッグ開始ログ ===
-            _logger.LogDebug("=== 商品勘定 荷印名デバッグ開始 ===");
-            _logger.LogDebug("JobDate: {JobDate}, DepartmentCode: {DeptCode}", jobDate, departmentCode ?? "全部門");
+            _logger.LogCritical("=== 商品勘定 荷印名デバッグ開始 ===");
+            _logger.LogCritical("JobDate: {JobDate}, DepartmentCode: {DeptCode}", jobDate, departmentCode ?? "全部門");
             _logger.LogCritical("=== GetReportDataDirectly メソッド実行中（修正版） ===");
             _logger.LogInformation("直接データ取得モードで商品勘定データを準備します");
             
@@ -409,7 +409,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     
                     var cpCheckResult = connection.QueryFirstOrDefault(cpInventoryCheckSql, new { JobDate = jobDate });
                     
-                    _logger.LogDebug("CP在庫マスタ存在確認: 総件数={Total}, 荷印名有効={Valid}, 荷印名空={Empty}", 
+                    _logger.LogCritical("CP在庫マスタ存在確認: 総件数={Total}, 荷印名有効={Valid}, 荷印名空={Empty}", 
                         (int)(cpCheckResult?.TotalRecords ?? 0), 
                         (int)(cpCheckResult?.ValidShippingMarkRecords ?? 0), 
                         (int)(cpCheckResult?.EmptyShippingMarkRecords ?? 0));
@@ -460,10 +460,10 @@ namespace InventorySystem.Reports.FastReport.Services
                     
                     var joinCheckResults = connection.Query(joinCheckSql, new { JobDate = jobDate });
                     
-                    _logger.LogDebug("JOIN条件チェック結果（最初の10件）:");
+                    _logger.LogCritical("JOIN条件チェック結果（最初の10件）:");
                     foreach (var result in joinCheckResults)
                     {
-                        _logger.LogDebug("商品={ProductCode} JOIN結果={JoinResult} 荷印名={ShippingMarkName}", 
+                        _logger.LogCritical("商品={ProductCode} JOIN結果={JoinResult} 荷印名={ShippingMarkName}", 
                             (string)(result.Sales_ProductCode ?? result.CP_ProductCode), 
                             (string)result.JoinResult,
                             (string)(result.CP_ShippingMarkName ?? ""));
@@ -500,10 +500,10 @@ namespace InventorySystem.Reports.FastReport.Services
                     
                     var stringCheckResults = connection.Query(stringCheckSql, new { JobDate = jobDate });
                     
-                    _logger.LogDebug("文字列比較詳細チェック結果（最初の5件）:");
+                    _logger.LogCritical("文字列比較詳細チェック結果（最初の5件）:");
                     foreach (var result in stringCheckResults)
                     {
-                        _logger.LogDebug("商品={ProductCode} Sales手入力='{SalesManual}'({SalesLen}) CP手入力='{CpManual}'({CpLen}) 比較結果={CompareResult} 荷印名='{ShippingMarkName}'", 
+                        _logger.LogCritical("商品={ProductCode} Sales手入力='{SalesManual}'({SalesLen}) CP手入力='{CpManual}'({CpLen}) 比較結果={CompareResult} 荷印名='{ShippingMarkName}'", 
                             (string)result.ProductCode,
                             (string)(result.Sales_Manual ?? ""),
                             (int)(result.Sales_Length ?? 0),
@@ -685,15 +685,15 @@ namespace InventorySystem.Reports.FastReport.Services
                 });
                 
                 // === デバッグ: メインクエリ結果確認 ===
-                _logger.LogDebug("メインクエリ実行完了: 取得件数={Count}", results?.Count() ?? 0);
+                _logger.LogCritical("メインクエリ実行完了: 取得件数={Count}", results?.Count() ?? 0);
                 
                 if (results?.Any() == true)
                 {
                     var shippingMarkData = results.Where(r => !string.IsNullOrEmpty(r.ShippingMarkName)).Take(5);
-                    _logger.LogDebug("荷印名が設定されているデータ（最初の5件）:");
+                    _logger.LogCritical("荷印名が設定されているデータ（最初の5件）:");
                     foreach (var item in shippingMarkData)
                     {
-                        _logger.LogDebug("商品={ProductCode} 荷印コード={ShippingMarkCode} 荷印名='{ShippingMarkName}' 手入力='{ManualShippingMark}'", 
+                        _logger.LogCritical("商品={ProductCode} 荷印コード={ShippingMarkCode} 荷印名='{ShippingMarkName}' 手入力='{ManualShippingMark}'", 
                             item.ProductCode, 
                             item.ShippingMarkCode, 
                             item.ShippingMarkName ?? "",
@@ -701,7 +701,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     }
                     
                     var emptyShippingMarkCount = results.Count(r => string.IsNullOrEmpty(r.ShippingMarkName));
-                    _logger.LogDebug("荷印名が空または未設定のデータ件数: {EmptyCount}/{TotalCount}", emptyShippingMarkCount, results.Count());
+                    _logger.LogCritical("荷印名が空または未設定のデータ件数: {EmptyCount}/{TotalCount}", emptyShippingMarkCount, results.Count());
                 }
                 
                 // デバッグログ: SQLクエリ実行直後
