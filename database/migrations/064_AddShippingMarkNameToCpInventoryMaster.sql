@@ -23,16 +23,23 @@ BEGIN
     PRINT '  ✅ ShippingMarkNameカラムを追加しました';
     
     -- 既存データの初期値設定（安全対策）
-    -- ShippingMarkMasterから荷印名を取得し、見つからない場合は荷印コードを使用
-    UPDATE CpInventoryMaster 
-    SET ShippingMarkName = ISNULL(
-        (SELECT ShippingMarkName FROM ShippingMarkMaster sm 
-         WHERE sm.ShippingMarkCode = CpInventoryMaster.ShippingMarkCode), 
-        ShippingMarkCode
-    )
-    WHERE ShippingMarkName = '';
-    
-    PRINT '  ✅ 既存データの初期値を設定しました (' + CAST(@@ROWCOUNT AS VARCHAR) + '件)';
+    -- CP在庫マスタにデータが存在する場合のみ実行
+    IF EXISTS (SELECT 1 FROM CpInventoryMaster)
+    BEGIN
+        UPDATE CpInventoryMaster 
+        SET ShippingMarkName = ISNULL(
+            (SELECT ShippingMarkName FROM ShippingMarkMaster sm 
+             WHERE sm.ShippingMarkCode = CpInventoryMaster.ShippingMarkCode), 
+            ShippingMarkCode
+        )
+        WHERE ShippingMarkName = '';
+        
+        PRINT '  ✅ 既存データの初期値を設定しました (' + CAST(@@ROWCOUNT AS VARCHAR) + '件)';
+    END
+    ELSE
+    BEGIN
+        PRINT '  ℹ️  CP在庫マスタにデータがありません（通常は商品勘定実行時に作成されます）';
+    END
     
     -- インデックス作成（パフォーマンス向上）
     CREATE NONCLUSTERED INDEX IX_CpInventoryMaster_ShippingMarkName 
