@@ -1,8 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" TextQuality="Regular" ReportInfo.Description="商品勘定デバッグ用">
+<Report ScriptLanguage="None" TextQuality="Regular" ReportInfo.Description="商品勘定デバッグ用" ReportInfo.Created="08/28/2025 20:00:00" ReportInfo.Modified="08/28/2025 20:00:00" ReportInfo.CreatorVersion="2024.1.3.0">
   <Dictionary>
     <TableDataSource Name="ProductAccount" ReferenceName="ProductAccount" DataType="System.Int32" Enabled="true">
-      <!-- 全ての列を含める -->
       <Column Name="ProductCode" DataType="System.String"/>
       <Column Name="ProductName" DataType="System.String"/>
       <Column Name="ShippingMarkCode" DataType="System.String"/>
@@ -14,47 +13,43 @@
       <Column Name="DisplayCategory" DataType="System.String"/>
       <Column Name="CustomerSupplierName" DataType="System.String"/>
     </TableDataSource>
-    <Parameter Name="CreateDate" DataType="System.String"/>
-    <Parameter Name="JobDate" DataType="System.String"/>
-    <Parameter Name="TotalCount" DataType="System.String"/>
+    <Parameter Name="CreateDate" DataType="System.String" AsString=""/>
+    <Parameter Name="JobDate" DataType="System.String" AsString=""/>
+    <Parameter Name="TotalCount" DataType="System.String" AsString=""/>
   </Dictionary>
-  
-  <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297">
-    <!-- ヘッダー -->
-    <PageHeaderBand Name="PageHeader1" Width="1512" Height="80">
-      <TextObject Name="Title" Width="1512" Height="25" Text="★★★ 商品勘定デバッグテスト ★★★" HorzAlign="Center" Font="ＭＳ ゴシック, 14pt, style=Bold"/>
-      <TextObject Name="Info" Top="30" Width="1512" Height="20" Text="JobDate: [JobDate] | 総件数: [TotalCount] | 作成: [CreateDate]" Font="ＭＳ ゴシック, 10pt"/>
+  <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8">
+    <PageHeaderBand Name="PageHeader1" Width="1512" Height="60">
+      <TextObject Name="Title" Width="1512" Height="20" Text="★★★ 商品勘定デバッグテスト - 荷印名確認用 ★★★" HorzAlign="Center" Font="ＭＳ ゴシック, 12pt, style=Bold" Fill.Color="Yellow"/>
+      <TextObject Name="Info" Top="25" Width="1512" Height="15" Text="JobDate: [JobDate] | 総件数: [TotalCount]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       
-      <!-- カラムヘッダー -->
-      <TextObject Name="H1" Top="50" Width="80" Height="25" Text="商品コード" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
-      <TextObject Name="H2" Left="80" Top="50" Width="120" Height="25" Text="商品名" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
-      <TextObject Name="H3" Left="200" Top="50" Width="80" Height="25" Text="荷印コード" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
-      <TextObject Name="H4" Left="280" Top="50" Width="120" Height="25" Text="★荷印名★" Font="ＭＳ ゴシック, 9pt, style=Bold" Fill.Color="Yellow"/>
-      <TextObject Name="H5" Left="400" Top="50" Width="100" Height="25" Text="手入力荷印" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
-      <TextObject Name="H6" Left="500" Top="50" Width="80" Height="25" Text="等級名" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
-      <TextObject Name="H7" Left="580" Top="50" Width="80" Height="25" Text="階級名" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
-      <TextObject Name="H8" Left="660" Top="50" Width="80" Height="25" Text="伝票NO" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
-      <TextObject Name="H9" Left="740" Top="50" Width="60" Height="25" Text="区分" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
-      <TextObject Name="H10" Left="800" Top="50" Width="200" Height="25" Text="取引先名" Font="ＭＳ ゴシック, 9pt, style=Bold"/>
+      <TextObject Name="H1" Top="40" Width="60" Height="20" Text="商品コード" Font="ＭＳ ゴシック, 8pt, style=Bold" Border.Lines="All"/>
+      <TextObject Name="H2" Left="60" Top="40" Width="100" Height="20" Text="商品名" Font="ＭＳ ゴシック, 8pt, style=Bold" Border.Lines="All"/>
+      <TextObject Name="H3" Left="160" Top="40" Width="60" Height="20" Text="荷印コード" Font="ＭＳ ゴシック, 8pt, style=Bold" Border.Lines="All"/>
+      <TextObject Name="H4" Left="220" Top="40" Width="120" Height="20" Text="★荷印名★" Font="ＭＳ ゴシック, 8pt, style=Bold" Border.Lines="All" Fill.Color="LightBlue"/>
+      <TextObject Name="H5" Left="340" Top="40" Width="80" Height="20" Text="手入力荷印" Font="ＭＳ ゴシック, 8pt, style=Bold" Border.Lines="All"/>
+      <TextObject Name="H6" Left="420" Top="40" Width="60" Height="20" Text="等級名" Font="ＭＳ ゴシック, 8pt, style=Bold" Border.Lines="All"/>
+      <TextObject Name="H7" Left="480" Top="40" Width="60" Height="20" Text="階級名" Font="ＭＳ ゴシック, 8pt, style=Bold" Border.Lines="All"/>
+      <TextObject Name="H8" Left="540" Top="40" Width="80" Height="20" Text="伝票NO" Font="ＭＳ ゴシック, 8pt, style=Bold" Border.Lines="All"/>
+      <TextObject Name="H9" Left="620" Top="40" Width="50" Height="20" Text="区分" Font="ＭＳ ゴシック, 8pt, style=Bold" Border.Lines="All"/>
+      <TextObject Name="H10" Left="670" Top="40" Width="150" Height="20" Text="取引先名" Font="ＭＳ ゴシック, 8pt, style=Bold" Border.Lines="All"/>
     </PageHeaderBand>
     
-    <!-- データバンド -->
-    <DataBand Name="Data1" Top="82" Width="1512" Height="20" DataSource="ProductAccount">
-      <TextObject Name="D1" Width="80" Height="20" Text="[ProductAccount.ProductCode]" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="D2" Left="80" Width="120" Height="20" Text="[ProductAccount.ProductName]" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="D3" Left="200" Width="80" Height="20" Text="[ProductAccount.ShippingMarkCode]" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="D4" Left="280" Width="120" Height="20" Text="[ProductAccount.ShippingMarkName]" Font="ＭＳ ゴシック, 8pt, style=Bold" Fill.Color="LightYellow"/>
-      <TextObject Name="D5" Left="400" Width="100" Height="20" Text="[ProductAccount.ManualShippingMark]" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="D6" Left="500" Width="80" Height="20" Text="[ProductAccount.GradeName]" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="D7" Left="580" Width="80" Height="20" Text="[ProductAccount.ClassName]" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="D8" Left="660" Width="80" Height="20" Text="[ProductAccount.VoucherNumber]" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="D9" Left="740" Width="60" Height="20" Text="[ProductAccount.DisplayCategory]" Font="ＭＳ ゴシック, 8pt"/>
-      <TextObject Name="D10" Left="800" Width="200" Height="20" Text="[ProductAccount.CustomerSupplierName]" Font="ＭＳ ゴシック, 8pt"/>
+    <DataBand Name="Data1" Top="62" Width="1512" Height="18" DataSource="ProductAccount">
+      <TextObject Name="D1" Width="60" Height="18" Text="[ProductAccount.ProductCode]" Font="ＭＳ ゴシック, 7pt" Border.Lines="All"/>
+      <TextObject Name="D2" Left="60" Width="100" Height="18" Text="[ProductAccount.ProductName]" Font="ＭＳ ゴシック, 7pt" Border.Lines="All"/>
+      <TextObject Name="D3" Left="160" Width="60" Height="18" Text="[ProductAccount.ShippingMarkCode]" Font="ＭＳ ゴシック, 7pt" Border.Lines="All"/>
+      <TextObject Name="D4" Left="220" Width="120" Height="18" Text="[ProductAccount.ShippingMarkName]" Font="ＭＳ ゴシック, 7pt, style=Bold" Border.Lines="All" Fill.Color="LightYellow"/>
+      <TextObject Name="D5" Left="340" Width="80" Height="18" Text="[ProductAccount.ManualShippingMark]" Font="ＭＳ ゴシック, 7pt" Border.Lines="All"/>
+      <TextObject Name="D6" Left="420" Width="60" Height="18" Text="[ProductAccount.GradeName]" Font="ＭＳ ゴシック, 7pt" Border.Lines="All"/>
+      <TextObject Name="D7" Left="480" Width="60" Height="18" Text="[ProductAccount.ClassName]" Font="ＭＳ ゴシック, 7pt" Border.Lines="All"/>
+      <TextObject Name="D8" Left="540" Width="80" Height="18" Text="[ProductAccount.VoucherNumber]" Font="ＭＳ ゴシック, 7pt" Border.Lines="All"/>
+      <TextObject Name="D9" Left="620" Width="50" Height="18" Text="[ProductAccount.DisplayCategory]" Font="ＭＳ ゴシック, 7pt" Border.Lines="All"/>
+      <TextObject Name="D10" Left="670" Width="150" Height="18" Text="[ProductAccount.CustomerSupplierName]" Font="ＭＳ ゴシック, 7pt" Border.Lines="All"/>
     </DataBand>
     
-    <!-- フッター -->
-    <ReportSummaryBand Name="Summary1" Top="105" Width="1512" Height="40">
-      <TextObject Name="Summary" Width="1512" Height="20" Text="★★★ デバッグテスト完了 - 荷印名列に値が表示されているか確認 ★★★" HorzAlign="Center" Font="ＭＳ ゴシック, 12pt, style=Bold" Fill.Color="LightBlue"/>
+    <ReportSummaryBand Name="Summary1" Top="82" Width="1512" Height="30">
+      <TextObject Name="Summary" Width="1512" Height="15" Text="★★★ 荷印名列（青背景）に値が表示されているかチェック ★★★" HorzAlign="Center" Font="ＭＳ ゴシック, 10pt, style=Bold" Fill.Color="LightGreen"/>
+      <TextObject Name="Count" Top="15" Width="1512" Height="15" Text="総件数: [TotalCount]" HorzAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </ReportSummaryBand>
   </ReportPage>
 </Report>
