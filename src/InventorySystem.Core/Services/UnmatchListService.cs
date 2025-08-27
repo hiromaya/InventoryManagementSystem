@@ -345,7 +345,7 @@ public class UnmatchListService : IUnmatchListService
         _logger.LogCritical("===== GenerateUnmatchListInternalAsync 完了 =====");
         _logger.LogCritical("総アンマッチ件数: {TotalCount}", unmatchItems.Count);
         
-        // ソート：商品分類1、商品コード、荷印コード、荷印名、等級コード、階級コード
+        // ソート：商品分類1、商品コード、荷印コード、手入力、等級コード、階級コード
         return enrichedItems
             .OrderBy(x => x.ProductCategory1)
             .ThenBy(x => x.Key.ProductCode)
@@ -395,7 +395,7 @@ public class UnmatchListService : IUnmatchListService
         // 最初の5件の文字列状態を確認
         foreach (var (sales, index) in salesList.Select((s, i) => (s, i)))
         {
-            _logger.LogDebug("売上伝票 行{Index}: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ManualShippingMark}'", 
+            _logger.LogDebug("売上伝票 行{Index}: 得意先名='{CustomerName}', 商品名='{ProductName}', 手入力項目='{ManualShippingMark}'", 
                 index + 1, sales.CustomerName, sales.ProductName, sales.ManualShippingMark);
         }
 
@@ -453,7 +453,7 @@ public class UnmatchListService : IUnmatchListService
                 unmatchItems.Add(unmatchItem);
                 
                 // アンマッチ項目作成時の文字列状態を確認
-                _logger.LogDebug("アンマッチ項目作成: 得意先名='{CustomerName}', 商品名='{ProductName}', 荷印名='{ManualShippingMark}', カテゴリ={Category}", 
+                _logger.LogDebug("アンマッチ項目作成: 得意先名='{CustomerName}', 商品名='{ProductName}', 手入力項目='{ManualShippingMark}', カテゴリ={Category}", 
                     unmatchItem.CustomerName, unmatchItem.ProductName, unmatchItem.Key.ManualShippingMark, unmatchItem.Category);
             }
             // 在庫0エラー削除：マイナス在庫を許容（2025/07/26仕様変更）
@@ -545,7 +545,7 @@ public class UnmatchListService : IUnmatchListService
             GradeCode = gradeCode,
             ClassCode = classCode,
             ShippingMarkCode = shippingMarkCode,
-            ManualShippingMark = string.Empty // 荷印名は検索キーに含めない
+            ManualShippingMark = string.Empty // 手入力項目は検索キーに含めない
         };
 
         var inventory = await _inventoryRepository.GetLatestByKeyAsync(inventoryKey);
@@ -814,7 +814,7 @@ public class UnmatchListService : IUnmatchListService
             // 最初の5件をログ出力して確認
             foreach (var (product, index) in salesUniqueProducts.Take(5).Select((p, i) => (p, i)))
             {
-                _logger.LogDebug("売上商品 {Index}: 商品={ProductCode}, 等級={GradeCode}, 階級={ClassCode}, 荷印={ShippingMarkCode}, 荷印名='{ManualShippingMark}'",
+                _logger.LogDebug("売上商品 {Index}: 商品={ProductCode}, 等級={GradeCode}, 階級={ClassCode}, 荷印={ShippingMarkCode}, 手入力項目='{ManualShippingMark}'",
                     index + 1, product.ProductCode, product.GradeCode, product.ClassCode, product.ShippingMarkCode, product.ManualShippingMark);
             }
             

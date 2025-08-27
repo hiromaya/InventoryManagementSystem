@@ -146,7 +146,9 @@ public class InventoryKey
     }
     
     /// <summary>
-    /// 荷印名（8桁固定長で正規化される）
+    /// 手入力荷印（8桁固定長で正規化される）
+    /// 5項目複合キーの一部として使用
+    /// 荷印マスタの正式名称（ShippingMarkName）とは異なる
     /// </summary>
     public string ManualShippingMark 
     { 

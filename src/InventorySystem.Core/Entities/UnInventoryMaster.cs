@@ -51,7 +51,8 @@ namespace InventorySystem.Core.Entities
         }
 
         /// <summary>
-        /// 荷印名（5項目キーの一部）
+        /// 手入力荷印（5項目キーの一部・8文字固定）
+        /// 伝票の手入力項目をそのまま格納
         /// </summary>
         public string ManualShippingMark
         {
@@ -60,7 +61,8 @@ namespace InventorySystem.Core.Entities
         }
 
         /// <summary>
-        /// 荷印名（荷印マスタから取得した表示用名称）
+        /// 荷印名（荷印マスタから取得した表示用正式名称）
+        /// ManualShippingMarkとは用途が異なる
         /// </summary>
         public string ShippingMarkName { get; set; } = string.Empty;
 
