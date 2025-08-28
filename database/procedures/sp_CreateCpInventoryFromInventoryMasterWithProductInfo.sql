@@ -53,11 +53,14 @@ BEGIN
             im.ProductName, 
             im.Unit, 
             im.StandardPrice,
-            -- 特殊処理ルール: 荷印名による商品分類1の変更
+            -- 特殊処理ルール: 荷印名による商品分類1の変更、なければProductMasterから取得
             CASE 
                 WHEN LEFT(im.ManualShippingMark, 4) = '9aaa' THEN '8'
                 WHEN LEFT(im.ManualShippingMark, 4) = '1aaa' THEN '6'
                 WHEN LEFT(im.ManualShippingMark, 4) = '0999' THEN '6'
+                -- ProductMasterのProductCategory1（担当者CD）を使用
+                WHEN pm.ProductCategory1 IS NOT NULL AND pm.ProductCategory1 != '' 
+                    THEN pm.ProductCategory1
                 ELSE '00'
             END,
             '00',  -- ProductCategory2
@@ -104,6 +107,7 @@ BEGIN
                     ELSE 'Class-' + im.ClassCode
                 END)  -- ClassName
         FROM dbo.InventoryMaster im
+        LEFT JOIN dbo.ProductMaster pm ON im.ProductCode = pm.ProductCode
         LEFT JOIN dbo.GradeMaster gm ON im.GradeCode = gm.GradeCode
         LEFT JOIN dbo.ClassMaster cm ON im.ClassCode = cm.ClassCode
         WHERE im.JobDate = @JobDate

@@ -548,7 +548,7 @@ namespace InventorySystem.Reports.FastReport.Services
                         SELECT 
                             s.ProductCode,
                             ISNULL(s.ProductName, pm.ProductName) as ProductName,  -- 伝票の商品名、またはマスタから取得
-                            ISNULL(pm.ProductCategory1, '') as ProductCategory1,  -- 商品マスタから担当者取得
+                            ISNULL(cp.ProductCategory1, '00') as ProductCategory1,  -- CP在庫マスタから担当者取得
                             s.ShippingMarkCode,
                             cp.ShippingMarkName,
                             s.ManualShippingMark,  -- 売上伝票の手入力値
@@ -590,7 +590,7 @@ namespace InventorySystem.Reports.FastReport.Services
                         SELECT 
                             p.ProductCode,
                             ISNULL(p.ProductName, pm.ProductName) as ProductName,  -- 伝票の商品名、またはマスタから取得
-                            ISNULL(pm.ProductCategory1, '') as ProductCategory1,
+                            ISNULL(cp.ProductCategory1, '00') as ProductCategory1,
                             p.ShippingMarkCode,
                             cp.ShippingMarkName,
                             p.ManualShippingMark,  -- 仕入伝票の手入力値
@@ -632,7 +632,7 @@ namespace InventorySystem.Reports.FastReport.Services
                         SELECT 
                             ia.ProductCode,
                             ISNULL(ia.ProductName, pm.ProductName) as ProductName,  -- 伝票の商品名、またはマスタから取得
-                            ISNULL(pm.ProductCategory1, '') as ProductCategory1,
+                            ISNULL(cp.ProductCategory1, '00') as ProductCategory1,
                             ia.ShippingMarkCode,
                             cp.ShippingMarkName,
                             ia.ManualShippingMark,  -- 在庫調整の手入力値
