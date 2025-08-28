@@ -739,46 +739,48 @@ namespace InventorySystem.Reports.FastReport.Services
         }
 
         /// <summary>
-        /// 担当者名取得メソッド（StaffMasterテーブルから）
+        /// 担当者名取得メソッド（ProductCategory1Masterテーブルから）
         /// </summary>
-        private string GetStaffName(string staffCode)
+        private string GetStaffName(string categoryCode)
         {
             try
             {
-                // 空文字列チェックを追加
-                if (string.IsNullOrWhiteSpace(staffCode))
+                // 空文字列チェック
+                if (string.IsNullOrWhiteSpace(categoryCode))
                 {
-                    _logger.LogWarning("担当者コードが空です");
+                    _logger.LogWarning("商品分類１コードが空です");
                     return ""; // 空文字列を返す
                 }
 
                 // ProductCategory1が数値に変換できるかチェック
-                if (!int.TryParse(staffCode, out int staffCodeInt))
+                if (!int.TryParse(categoryCode, out int categoryCodeInt))
                 {
-                    _logger.LogWarning("担当者コードが数値に変換できません: {StaffCode}", staffCode);
-                    return $"担当者{staffCode}";
+                    _logger.LogWarning("商品分類１コードが数値に変換できません: {CategoryCode}", categoryCode);
+                    return "";
                 }
 
+                // ProductCategory1Master（商品分類１マスタ）から名称を取得
                 var sql = @"
-                    SELECT StaffName 
-                    FROM StaffMaster 
-                    WHERE StaffCode = @StaffCode";
+                    SELECT CategoryName 
+                    FROM ProductCategory1Master 
+                    WHERE CategoryCode = @CategoryCode";
                     
                 using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
-                var staffName = connection.QueryFirstOrDefault<string>(sql, new { StaffCode = staffCodeInt });
+                var categoryName = connection.QueryFirstOrDefault<string>(sql, new { CategoryCode = categoryCodeInt });
                 
-                if (string.IsNullOrEmpty(staffName))
+                if (string.IsNullOrEmpty(categoryName))
                 {
-                    _logger.LogWarning("担当者名が見つかりません。担当者コード: {StaffCode}", staffCodeInt);
-                    return $"担当者{staffCode}";
+                    _logger.LogWarning("商品分類１名称が見つかりません。コード: {CategoryCode}", categoryCodeInt);
+                    return "";
                 }
                 
-                return staffName;
+                _logger.LogDebug("商品分類１名称取得成功: {CategoryCode} → {CategoryName}", categoryCodeInt, categoryName);
+                return categoryName;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "担当者名の取得に失敗しました。担当者コード: {StaffCode}", staffCode);
-                return $"担当者{staffCode}";
+                _logger.LogError(ex, "商品分類１名称の取得に失敗しました。コード: {CategoryCode}", categoryCode);
+                return "";
             }
         }
         
