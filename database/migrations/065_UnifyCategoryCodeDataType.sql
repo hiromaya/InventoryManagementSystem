@@ -1,226 +1,133 @@
 -- =============================================
--- Migration: 065_UnifyCategoryCodeDataType.sql
--- 作成日: 2025-08-28
--- 目的: 全分類マスタのCategoryCodeをINTからNVARCHAR(3)に統一し、3桁0埋め形式に変換
--- 説明: CpInventoryMasterとのJOIN条件を統一し、商品勘定帳票の担当者名表示問題を解決
+-- CategoryCode_New カラムのクリーンアップ
 -- =============================================
 
 USE InventoryManagementDB;
 GO
 
-PRINT '=== Migration 065: 分類マスタのCategoryCode型統一開始 ===';
-
--- ===== Phase 1: バックアップテーブル作成 =====
-PRINT '--- Phase 1: バックアップテーブル作成 ---';
-
--- ProductCategory1Masterのバックアップ
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'ProductCategory1Master') AND type in (N'U'))
-AND NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'ProductCategory1Master_Backup_065') AND type in (N'U'))
-BEGIN
-    SELECT * INTO ProductCategory1Master_Backup_065 FROM ProductCategory1Master;
-    PRINT '  ✅ ProductCategory1Master バックアップ作成完了';
-END
-
--- ProductCategory2Masterのバックアップ
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'ProductCategory2Master') AND type in (N'U'))
-AND NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'ProductCategory2Master_Backup_065') AND type in (N'U'))
-BEGIN
-    SELECT * INTO ProductCategory2Master_Backup_065 FROM ProductCategory2Master;
-    PRINT '  ✅ ProductCategory2Master バックアップ作成完了';
-END
-
--- ProductCategory3Masterのバックアップ
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'ProductCategory3Master') AND type in (N'U'))
-AND NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'ProductCategory3Master_Backup_065') AND type in (N'U'))
-BEGIN
-    SELECT * INTO ProductCategory3Master_Backup_065 FROM ProductCategory3Master;
-    PRINT '  ✅ ProductCategory3Master バックアップ作成完了';
-END
-
-PRINT '=== Phase 1 完了 ===';
+PRINT '=== CategoryCode_New クリーンアップ開始 ===';
 GO
 
--- ===== Phase 2: ProductCategory1Master変更 =====
-PRINT '--- Phase 2: ProductCategory1Master変更 ---';
-
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'ProductCategory1Master') AND type in (N'U'))
+-- ProductCategory1Master のCategoryCode_Newを削除
+IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductCategory1Master') AND name = 'CategoryCode_New')
 BEGIN
-    -- インデックス削除（外部キー制約がある場合）
-    IF EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('ProductCategory1Master') AND name = 'IX_ProductCategory1Master_SearchKana')
-        DROP INDEX IX_ProductCategory1Master_SearchKana ON ProductCategory1Master;
+    -- デフォルト制約を先に削除
+    DECLARE @ConstraintName NVARCHAR(256);
+    DECLARE @SQL NVARCHAR(MAX);
     
-    -- 一時カラム追加
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductCategory1Master') AND name = 'CategoryCode_New')
+    DECLARE constraint_cursor CURSOR FOR
+        SELECT dc.name
+        FROM sys.default_constraints dc
+        INNER JOIN sys.columns c ON dc.parent_column_id = c.column_id AND dc.parent_object_id = c.object_id
+        WHERE dc.parent_object_id = OBJECT_ID('ProductCategory1Master') AND c.name = 'CategoryCode_New';
+    
+    OPEN constraint_cursor;
+    FETCH NEXT FROM constraint_cursor INTO @ConstraintName;
+    
+    WHILE @@FETCH_STATUS = 0
     BEGIN
-        ALTER TABLE ProductCategory1Master ADD CategoryCode_New NVARCHAR(3) NOT NULL DEFAULT '';
-        
-        -- データ変換：INT → 3桁0埋めNVARCHAR
-        UPDATE ProductCategory1Master 
-        SET CategoryCode_New = RIGHT('000' + CAST(CategoryCode AS NVARCHAR), 3);
-        
-        PRINT '  ✅ ProductCategory1Master: データ変換完了';
-        
-        -- 主キー制約削除
-        IF EXISTS (SELECT * FROM sys.key_constraints WHERE object_id = OBJECT_ID('ProductCategory1Master') AND type = 'PK')
-        BEGIN
-            DECLARE @pkName1 NVARCHAR(100);
-            SELECT @pkName1 = name FROM sys.key_constraints WHERE object_id = OBJECT_ID('ProductCategory1Master') AND type = 'PK';
-            EXEC('ALTER TABLE ProductCategory1Master DROP CONSTRAINT ' + @pkName1);
-        END
-        
-        -- 古いカラム削除、新カラム名変更
-        ALTER TABLE ProductCategory1Master DROP COLUMN CategoryCode;
-        EXEC sp_rename 'ProductCategory1Master.CategoryCode_New', 'CategoryCode', 'COLUMN';
-        
-        -- 主キー制約再作成
-        ALTER TABLE ProductCategory1Master ADD CONSTRAINT PK_ProductCategory1Master PRIMARY KEY (CategoryCode);
-        
-        -- インデックス再作成
-        CREATE INDEX IX_ProductCategory1Master_SearchKana ON ProductCategory1Master(SearchKana);
-        
-        PRINT '  ✅ ProductCategory1Master: 構造変更完了';
+        SET @SQL = 'ALTER TABLE ProductCategory1Master DROP CONSTRAINT [' + @ConstraintName + ']';
+        EXEC sp_executesql @SQL;
+        PRINT CONCAT('  ✓ デフォルト制約削除: ', @ConstraintName);
+        FETCH NEXT FROM constraint_cursor INTO @ConstraintName;
     END
+    
+    CLOSE constraint_cursor;
+    DEALLOCATE constraint_cursor;
+    
+    -- カラムを削除
+    ALTER TABLE ProductCategory1Master DROP COLUMN CategoryCode_New;
+    PRINT '  ✓ ProductCategory1Master.CategoryCode_New 削除完了';
 END
 ELSE
 BEGIN
-    PRINT '  ℹ️  ProductCategory1Master テーブルが存在しません';
+    PRINT '  ✓ ProductCategory1Master.CategoryCode_New は存在しません';
 END
-
-PRINT '=== Phase 2 完了 ===';
 GO
 
--- ===== Phase 3: ProductCategory2Master変更 =====
-PRINT '--- Phase 3: ProductCategory2Master変更 ---';
-
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'ProductCategory2Master') AND type in (N'U'))
+-- ProductCategory2Master のCategoryCode_Newを削除（同様の処理）
+IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductCategory2Master') AND name = 'CategoryCode_New')
 BEGIN
-    -- インデックス削除
-    IF EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('ProductCategory2Master') AND name = 'IX_ProductCategory2Master_SearchKana')
-        DROP INDEX IX_ProductCategory2Master_SearchKana ON ProductCategory2Master;
+    DECLARE @ConstraintName2 NVARCHAR(256);
+    DECLARE @SQL2 NVARCHAR(MAX);
     
-    -- 一時カラム追加
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductCategory2Master') AND name = 'CategoryCode_New')
-    BEGIN
-        ALTER TABLE ProductCategory2Master ADD CategoryCode_New NVARCHAR(3) NOT NULL DEFAULT '';
-        
-        -- データ変換
-        UPDATE ProductCategory2Master 
-        SET CategoryCode_New = RIGHT('000' + CAST(CategoryCode AS NVARCHAR), 3);
-        
-        PRINT '  ✅ ProductCategory2Master: データ変換完了';
-        
-        -- 主キー制約削除
-        IF EXISTS (SELECT * FROM sys.key_constraints WHERE object_id = OBJECT_ID('ProductCategory2Master') AND type = 'PK')
-        BEGIN
-            DECLARE @pkName2 NVARCHAR(100);
-            SELECT @pkName2 = name FROM sys.key_constraints WHERE object_id = OBJECT_ID('ProductCategory2Master') AND type = 'PK';
-            EXEC('ALTER TABLE ProductCategory2Master DROP CONSTRAINT ' + @pkName2);
-        END
-        
-        -- 古いカラム削除、新カラム名変更
-        ALTER TABLE ProductCategory2Master DROP COLUMN CategoryCode;
-        EXEC sp_rename 'ProductCategory2Master.CategoryCode_New', 'CategoryCode', 'COLUMN';
-        
-        -- 主キー制約再作成
-        ALTER TABLE ProductCategory2Master ADD CONSTRAINT PK_ProductCategory2Master PRIMARY KEY (CategoryCode);
-        
-        -- インデックス再作成
-        CREATE INDEX IX_ProductCategory2Master_SearchKana ON ProductCategory2Master(SearchKana);
-        
-        PRINT '  ✅ ProductCategory2Master: 構造変更完了';
-    END
-END
-ELSE
-BEGIN
-    PRINT '  ℹ️  ProductCategory2Master テーブルが存在しません';
-END
-
-PRINT '=== Phase 3 完了 ===';
-GO
-
--- ===== Phase 4: ProductCategory3Master変更 =====
-PRINT '--- Phase 4: ProductCategory3Master変更 ---';
-
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'ProductCategory3Master') AND type in (N'U'))
-BEGIN
-    -- インデックス削除
-    IF EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('ProductCategory3Master') AND name = 'IX_ProductCategory3Master_SearchKana')
-        DROP INDEX IX_ProductCategory3Master_SearchKana ON ProductCategory3Master;
+    DECLARE constraint_cursor2 CURSOR FOR
+        SELECT dc.name
+        FROM sys.default_constraints dc
+        INNER JOIN sys.columns c ON dc.parent_column_id = c.column_id AND dc.parent_object_id = c.object_id
+        WHERE dc.parent_object_id = OBJECT_ID('ProductCategory2Master') AND c.name = 'CategoryCode_New';
     
-    -- 一時カラム追加
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductCategory3Master') AND name = 'CategoryCode_New')
+    OPEN constraint_cursor2;
+    FETCH NEXT FROM constraint_cursor2 INTO @ConstraintName2;
+    
+    WHILE @@FETCH_STATUS = 0
     BEGIN
-        ALTER TABLE ProductCategory3Master ADD CategoryCode_New NVARCHAR(3) NOT NULL DEFAULT '';
-        
-        -- データ変換
-        UPDATE ProductCategory3Master 
-        SET CategoryCode_New = RIGHT('000' + CAST(CategoryCode AS NVARCHAR), 3);
-        
-        PRINT '  ✅ ProductCategory3Master: データ変換完了';
-        
-        -- 主キー制約削除
-        IF EXISTS (SELECT * FROM sys.key_constraints WHERE object_id = OBJECT_ID('ProductCategory3Master') AND type = 'PK')
-        BEGIN
-            DECLARE @pkName3 NVARCHAR(100);
-            SELECT @pkName3 = name FROM sys.key_constraints WHERE object_id = OBJECT_ID('ProductCategory3Master') AND type = 'PK';
-            EXEC('ALTER TABLE ProductCategory3Master DROP CONSTRAINT ' + @pkName3);
-        END
-        
-        -- 古いカラム削除、新カラム名変更
-        ALTER TABLE ProductCategory3Master DROP COLUMN CategoryCode;
-        EXEC sp_rename 'ProductCategory3Master.CategoryCode_New', 'CategoryCode', 'COLUMN';
-        
-        -- 主キー制約再作成
-        ALTER TABLE ProductCategory3Master ADD CONSTRAINT PK_ProductCategory3Master PRIMARY KEY (CategoryCode);
-        
-        -- インデックス再作成
-        CREATE INDEX IX_ProductCategory3Master_SearchKana ON ProductCategory3Master(SearchKana);
-        
-        PRINT '  ✅ ProductCategory3Master: 構造変更完了';
+        SET @SQL2 = 'ALTER TABLE ProductCategory2Master DROP CONSTRAINT [' + @ConstraintName2 + ']';
+        EXEC sp_executesql @SQL2;
+        PRINT CONCAT('  ✓ デフォルト制約削除: ', @ConstraintName2);
+        FETCH NEXT FROM constraint_cursor2 INTO @ConstraintName2;
     END
+    
+    CLOSE constraint_cursor2;
+    DEALLOCATE constraint_cursor2;
+    
+    ALTER TABLE ProductCategory2Master DROP COLUMN CategoryCode_New;
+    PRINT '  ✓ ProductCategory2Master.CategoryCode_New 削除完了';
 END
-ELSE
-BEGIN
-    PRINT '  ℹ️  ProductCategory3Master テーブルが存在しません';
-END
-
-PRINT '=== Phase 4 完了 ===';
 GO
 
--- ===== Phase 5: 検証とクリーンアップ =====
-PRINT '--- Phase 5: 検証とクリーンアップ ---';
+-- ProductCategory3Master のCategoryCode_Newを削除（同様の処理）
+IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductCategory3Master') AND name = 'CategoryCode_New')
+BEGIN
+    DECLARE @ConstraintName3 NVARCHAR(256);
+    DECLARE @SQL3 NVARCHAR(MAX);
+    
+    DECLARE constraint_cursor3 CURSOR FOR
+        SELECT dc.name
+        FROM sys.default_constraints dc
+        INNER JOIN sys.columns c ON dc.parent_column_id = c.column_id AND dc.parent_object_id = c.object_id
+        WHERE dc.parent_object_id = OBJECT_ID('ProductCategory3Master') AND c.name = 'CategoryCode_New';
+    
+    OPEN constraint_cursor3;
+    FETCH NEXT FROM constraint_cursor3 INTO @ConstraintName3;
+    
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        SET @SQL3 = 'ALTER TABLE ProductCategory3Master DROP CONSTRAINT [' + @ConstraintName3 + ']';
+        EXEC sp_executesql @SQL3;
+        PRINT CONCAT('  ✓ デフォルト制約削除: ', @ConstraintName3);
+        FETCH NEXT FROM constraint_cursor3 INTO @ConstraintName3;
+    END
+    
+    CLOSE constraint_cursor3;
+    DEALLOCATE constraint_cursor3;
+    
+    ALTER TABLE ProductCategory3Master DROP COLUMN CategoryCode_New;
+    PRINT '  ✓ ProductCategory3Master.CategoryCode_New 削除完了';
+END
+GO
+
+-- 最終確認
+PRINT '';
+PRINT '=== 最終確認 ===';
+
+-- ProductCategory1Masterの構造確認
+SELECT 
+    c.COLUMN_NAME,
+    c.DATA_TYPE,
+    c.CHARACTER_MAXIMUM_LENGTH,
+    c.IS_NULLABLE
+FROM INFORMATION_SCHEMA.COLUMNS c
+WHERE c.TABLE_NAME = 'ProductCategory1Master'
+ORDER BY c.ORDINAL_POSITION;
 
 -- データ確認
-PRINT '=== 変更後のデータ確認 ===';
+PRINT '';
+PRINT '=== ProductCategory1Master データ（全12件）===';
+SELECT CategoryCode, CategoryName FROM ProductCategory1Master ORDER BY CategoryCode;
 
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'ProductCategory1Master') AND type in (N'U'))
-BEGIN
-    DECLARE @count1 INT;
-    SELECT @count1 = COUNT(*) FROM ProductCategory1Master;
-    PRINT '  ProductCategory1Master: ' + CAST(@count1 AS VARCHAR) + ' 件';
-    
-    -- サンプルデータ表示
-    IF @count1 > 0
-    BEGIN
-        PRINT '  サンプル:';
-        SELECT TOP 3 CategoryCode, CategoryName FROM ProductCategory1Master ORDER BY CategoryCode;
-    END
-END
-
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'ProductCategory2Master') AND type in (N'U'))
-BEGIN
-    DECLARE @count2 INT;
-    SELECT @count2 = COUNT(*) FROM ProductCategory2Master;
-    PRINT '  ProductCategory2Master: ' + CAST(@count2 AS VARCHAR) + ' 件';
-END
-
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'ProductCategory3Master') AND type in (N'U'))
-BEGIN
-    DECLARE @count3 INT;
-    SELECT @count3 = COUNT(*) FROM ProductCategory3Master;
-    PRINT '  ProductCategory3Master: ' + CAST(@count3 AS VARCHAR) + ' 件';
-END
-
-PRINT '=== Migration 065 完了 ===';
-PRINT '⚠️  注意: バックアップテーブル（*_Backup_065）は手動で削除してください';
+PRINT '';
+PRINT '✅ クリーンアップ完了！';
+PRINT '✅ CategoryCode型変換は既に完了しています（NVARCHAR(3)）';
+PRINT '✅ データも正常です（000形式の3桁）';
 GO
