@@ -156,10 +156,6 @@ public class ProductAccountFlatRow
     /// </summary>
     public bool IsSubtotal { get; set; } = false;
 
-    /// <summary>
-    /// 合計行フラグ
-    /// </summary>
-    public bool IsGrandTotal { get; set; } = false;
 
     /// <summary>
     /// 小計ラベル（商品別小計、担当者別合計等）
@@ -213,15 +209,6 @@ public static class RowTypes
     /// </summary>
     public const string ProductSubtotal = "PRODUCT_SUBTOTAL";
 
-    /// <summary>
-    /// 担当者別小計
-    /// </summary>
-    public const string StaffSubtotal = "STAFF_SUBTOTAL";
-
-    /// <summary>
-    /// 総合計
-    /// </summary>
-    public const string GrandTotal = "GRAND_TOTAL";
 
     /// <summary>
     /// 空行

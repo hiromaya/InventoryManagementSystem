@@ -250,14 +250,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     flatRows.Add(CreateBlankRow(sequence++));
                 }
                 
-                // 担当者別合計
-                var staffTotals = CalculateStaffTotals(staffGroup);
-                flatRows.Add(CreateStaffSubtotal(staffGroup.Key, staffTotals, sequence++));
             }
-            
-            // 総合計
-            var grandTotals = CalculateGrandTotals(sourceData);
-            flatRows.Add(CreateGrandTotal(grandTotals, sequence++));
             
             _logger.LogInformation("フラットデータ生成完了: {Count}行", flatRows.Count);
             return flatRows;
@@ -1748,72 +1741,7 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// 担当者別合計行作成
         /// </summary>
-        /// <summary>
-        /// 担当者別合計行作成（修正版）
-        /// </summary>
-        private ProductAccountFlatRow CreateStaffSubtotal(dynamic staffKey, dynamic totals, int sequence)
-        {
-            // 担当者名を確実に取得
-            var staffCode = staffKey.StaffCode?.ToString() ?? "";
-            var staffName = staffKey.StaffName?.ToString();
-            
-            // staffNameが空の場合はGetStaffNameメソッドで取得
-            if (string.IsNullOrEmpty(staffName))
-            {
-                staffName = GetStaffName(staffCode);
-            }
-            
-            return new ProductAccountFlatRow
-            {
-                RowType = RowTypes.StaffSubtotal,
-                RowSequence = sequence,
-                IsSubtotal = true,
-                IsBold = true,
-                IsPageBreak = false,
-                
-                // "担当者01 山田太郎 計" のような形式で表示
-                DisplayCategory = $"担当者{staffCode} {staffName} 計",
-                SubtotalLabel = $"担当者合計：{staffCode} {staffName}",
-                
-                // 集計値を設定
-                PurchaseQuantity = FormatQuantity(totals.TotalPurchase),
-                SalesQuantity = FormatQuantity(totals.TotalSales),
-                Amount = FormatAmount(totals.TotalAmount),
-                GrossProfit = FormatGrossProfit(totals.TotalGrossProfit),
-                
-                // 担当者情報も保持
-                ProductCategory1 = staffCode,
-                ProductCategory1Name = staffName,
-                
-                // 他のフィールドは空
-                ProductName = "",
-                VoucherNumber = "",
-                MonthDay = "",
-                UnitPrice = "",
-                RemainingQuantity = "",
-                CustomerSupplierName = ""
-            };
-        }
         
-        /// <summary>
-        /// 総合計行作成
-        /// </summary>
-        private ProductAccountFlatRow CreateGrandTotal(dynamic totals, int sequence)
-        {
-            return new ProductAccountFlatRow
-            {
-                RowType = RowTypes.GrandTotal,
-                RowSequence = sequence,
-                IsGrandTotal = true,
-                IsBold = true,
-                SubtotalLabel = "総合計",
-                DisplayCategory = "総計",
-                PurchaseQuantity = FormatQuantity(totals.GrandTotalPurchase),
-                SalesQuantity = FormatQuantity(totals.GrandTotalSales),
-                Amount = FormatAmount(totals.GrandTotalAmount),
-                GrossProfit = FormatGrossProfit(totals.GrandTotalGrossProfit)
-            };
-        }
         
         /// <summary>
         /// 空行作成
@@ -1829,33 +1757,6 @@ namespace InventorySystem.Reports.FastReport.Services
         
         // === 集計計算メソッド ===
         
-        /// <summary>
-        /// 担当者別集計計算
-        /// </summary>
-        private dynamic CalculateStaffTotals(IGrouping<dynamic, ProductAccountReportModel> staffGroup)
-        {
-            return new
-            {
-                TotalPurchase = staffGroup.Sum(x => x.PurchaseQuantity),
-                TotalSales = staffGroup.Sum(x => x.SalesQuantity),
-                TotalAmount = staffGroup.Sum(x => x.Amount),
-                TotalGrossProfit = staffGroup.Sum(x => x.GrossProfit)
-            };
-        }
-        
-        /// <summary>
-        /// 総合計計算
-        /// </summary>
-        private dynamic CalculateGrandTotals(List<ProductAccountReportModel> sourceData)
-        {
-            return new
-            {
-                GrandTotalPurchase = sourceData.Sum(x => x.PurchaseQuantity),
-                GrandTotalSales = sourceData.Sum(x => x.SalesQuantity),
-                GrandTotalAmount = sourceData.Sum(x => x.Amount),
-                GrandTotalGrossProfit = sourceData.Sum(x => x.GrossProfit)
-            };
-        }
     }
 }
 #else
