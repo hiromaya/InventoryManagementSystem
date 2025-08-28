@@ -117,13 +117,15 @@ namespace InventorySystem.Reports.FastReport.Services
             int sequence = 0;
             
             // 担当者でグループ化（ProductCategory1）
+            // 重要：先にソートしてからグループ化（ORDER BY句がGroupBy後に効果を失う問題を解決）
             var staffGroups = sourceData
+                .OrderBy(x => x.ProductCategory1 ?? "")  // 先にソート
+                .ThenBy(x => x.ProductCode)
                 .GroupBy(x => new 
                 { 
                     StaffCode = x.ProductCategory1 ?? "", 
                     StaffName = x.GetAdditionalInfo("ProductCategory1Name") ?? ""
-                })
-                .OrderBy(g => g.Key.StaffCode);
+                });
             
             bool isFirstStaff = true;
             
@@ -146,7 +148,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 改ページ制御（最初の担当者以外）
                 if (!isFirstStaff)
                 {
-                    flatRows.Add(CreatePageBreakRow(sequence++));
+                    flatRows.Add(CreatePageBreakRow(staffCode, staffName, sequence++));
                 }
                 isFirstStaff = false;
                 
@@ -204,8 +206,8 @@ namespace InventorySystem.Reports.FastReport.Services
                     
                     foreach (var detail in details)
                     {
-                        // 各明細行に商品情報をすべて含める
-                        flatRows.Add(CreateDetailRowWithProductInfo(detail, productGroup.Key, sequence++));
+                        // 各明細行に商品情報をすべて含める（担当者情報も含む）
+                        flatRows.Add(CreateDetailRowWithProductInfo(detail, productGroup.Key, staffCode, staffName, sequence++));
                         
                         // 小計集計
                         subtotalPurchase += detail.PurchaseQuantity;
@@ -1548,9 +1550,9 @@ namespace InventorySystem.Reports.FastReport.Services
         // === 行作成ヘルパーメソッド（C#側完全制御用） ===
         
         /// <summary>
-        /// 改ページ制御行作成
+        /// 改ページ制御行作成（担当者情報付き）
         /// </summary>
-        private ProductAccountFlatRow CreatePageBreakRow(int sequence)
+        private ProductAccountFlatRow CreatePageBreakRow(string staffCode, string staffName, int sequence)
         {
             return new ProductAccountFlatRow
             {
@@ -1558,6 +1560,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 RowSequence = sequence,
                 IsPageBreak = true,
                 IsGrayBackground = false,
+                ProductCategory1 = staffCode,
+                ProductCategory1Name = staffName,
                 ProductName = "" // 改ページ専用なので表示内容なし
             };
         }
@@ -1576,9 +1580,9 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
-        /// 各明細行に商品情報をすべて含めて作成
+        /// 各明細行に商品情報をすべて含めて作成（担当者情報も含む）
         /// </summary>
-        private ProductAccountFlatRow CreateDetailRowWithProductInfo(ProductAccountReportModel data, dynamic productKey, int sequence)
+        private ProductAccountFlatRow CreateDetailRowWithProductInfo(ProductAccountReportModel data, dynamic productKey, string staffCode, string staffName, int sequence)
         {
             return new ProductAccountFlatRow
             {
@@ -1588,8 +1592,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 IsBold = false,
                 
                 // 基本情報（商品情報をすべて含める）
-                ProductCategory1 = data.ProductCategory1 ?? "",
-                ProductCategory1Name = data.GetAdditionalInfo("ProductCategory1Name") ?? "",
+                ProductCategory1 = staffCode,
+                ProductCategory1Name = staffName,
                 ProductCode = data.ProductCode,
                 ProductName = data.ProductName,
                 ShippingMarkCode = data.ShippingMarkCode,
