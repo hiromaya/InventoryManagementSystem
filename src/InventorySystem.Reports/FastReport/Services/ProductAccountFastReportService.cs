@@ -903,23 +903,6 @@ namespace InventorySystem.Reports.FastReport.Services
             report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
             report.SetParameterValue("TotalCount", flatData.Count(x => x.RowType == RowTypes.Detail).ToString());
             
-            // 担当者情報パラメータを追加
-            // 最初のデータ行から担当者情報を取得（Detail行のみ対象）
-            var firstDetailRow = flatData.FirstOrDefault(x => x.RowType == RowTypes.Detail);
-            if (firstDetailRow != null && !string.IsNullOrEmpty(firstDetailRow.ProductCategory1))
-            {
-                report.SetParameterValue("StaffCode", firstDetailRow.ProductCategory1);
-                report.SetParameterValue("StaffName", firstDetailRow.ProductCategory1Name ?? "");
-            }
-            else
-            {
-                // デフォルト値を設定
-                report.SetParameterValue("StaffCode", "");
-                report.SetParameterValue("StaffName", "");
-            }
-            
-            _logger.LogInformation("PDFパラメータ設定: StaffCode={StaffCode}, StaffName={StaffName}", 
-                (string)report.GetParameterValue("StaffCode"), (string)report.GetParameterValue("StaffName"));
             
             _logger.LogInformation("レポートを準備中...");
             report.Prepare();
@@ -1058,10 +1041,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogWarning($"GeneratePdfReport: ScriptLanguage設定時の警告: {ex.Message}");
             }
             
-            // GroupHeaderBandの条件式を無効化（PlatformNotSupportedException対策）
+            // GroupHeaderBandの処理（担当者別改ページ対応）
             try
             {
-                // GroupHeaderBandの検索と無効化
                 var pageBase = report.Pages[0] as FR.ReportPage;
                 if (pageBase != null)
                 {
@@ -1069,17 +1051,29 @@ namespace InventorySystem.Reports.FastReport.Services
                     {
                         if (obj is FR.GroupHeaderBand groupHeader)
                         {
-                            _logger.LogInformation($"GroupHeaderBand '{groupHeader.Name}' found. Condition: '{groupHeader.Condition}'");
+                            _logger.LogInformation($"GroupHeaderBand '{groupHeader.Name}' found.");
                             
-                            // 条件式をクリア
-                            groupHeader.Condition = "";
-                            if (groupHeader.GetType().GetProperty("Expression") != null)
+                            // StaffGroupHeaderは条件を保持（担当者別グループ化と改ページに必要）
+                            if (groupHeader.Name == "StaffGroupHeader")
                             {
-                                var expProp = groupHeader.GetType().GetProperty("Expression");
-                                expProp?.SetValue(groupHeader, "");
+                                // 条件式を明示的に設定（グループ化に必要）
+                                groupHeader.Condition = "[ProductAccount.ProductCategory1]";
+                                groupHeader.StartNewPage = true;
+                                groupHeader.KeepWithData = true;
+                                
+                                _logger.LogInformation("StaffGroupHeader: 担当者グループ化と改ページ設定を保持");
                             }
-                            
-                            _logger.LogInformation($"GroupHeaderBand '{groupHeader.Name}' の条件式をクリアしました");
+                            else
+                            {
+                                // その他のGroupHeaderBandは条件式をクリア（PlatformNotSupportedException対策）
+                                groupHeader.Condition = "";
+                                if (groupHeader.GetType().GetProperty("Expression") != null)
+                                {
+                                    var expProp = groupHeader.GetType().GetProperty("Expression");
+                                    expProp?.SetValue(groupHeader, "");
+                                }
+                                _logger.LogInformation($"GroupHeaderBand '{groupHeader.Name}' の条件式をクリアしました");
+                            }
                         }
                     }
                 }
