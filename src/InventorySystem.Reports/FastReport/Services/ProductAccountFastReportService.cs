@@ -740,6 +740,7 @@ namespace InventorySystem.Reports.FastReport.Services
 
         /// <summary>
         /// 担当者名取得メソッド（ProductCategory1Masterテーブルから）
+        /// Migration 065対応: CategoryCodeを文字列として直接比較
         /// </summary>
         private string GetStaffName(string categoryCode)
         {
@@ -752,29 +753,23 @@ namespace InventorySystem.Reports.FastReport.Services
                     return ""; // 空文字列を返す
                 }
 
-                // ProductCategory1が数値に変換できるかチェック
-                if (!int.TryParse(categoryCode, out int categoryCodeInt))
-                {
-                    _logger.LogWarning("商品分類１コードが数値に変換できません: {CategoryCode}", categoryCode);
-                    return "";
-                }
-
                 // ProductCategory1Master（商品分類１マスタ）から名称を取得
+                // Migration 065後：CategoryCodeはNVARCHAR(3)なので文字列として直接比較
                 var sql = @"
                     SELECT CategoryName 
                     FROM ProductCategory1Master 
                     WHERE CategoryCode = @CategoryCode";
                     
                 using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
-                var categoryName = connection.QueryFirstOrDefault<string>(sql, new { CategoryCode = categoryCodeInt });
+                var categoryName = connection.QueryFirstOrDefault<string>(sql, new { CategoryCode = categoryCode });
                 
                 if (string.IsNullOrEmpty(categoryName))
                 {
-                    _logger.LogWarning("商品分類１名称が見つかりません。コード: {CategoryCode}", categoryCodeInt);
+                    _logger.LogWarning("商品分類１名称が見つかりません。コード: {CategoryCode}", categoryCode);
                     return "";
                 }
                 
-                _logger.LogDebug("商品分類１名称取得成功: {CategoryCode} → {CategoryName}", categoryCodeInt, categoryName);
+                _logger.LogDebug("商品分類１名称取得成功: {CategoryCode} → {CategoryName}", categoryCode, categoryName);
                 return categoryName;
             }
             catch (Exception ex)
