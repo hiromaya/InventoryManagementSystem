@@ -93,9 +93,9 @@ public abstract class MasterImportServiceBase<TEntity, TModel> : IImportService
             {
                 try
                 {
-                    if (record.Code <= 0)
+                    if (string.IsNullOrWhiteSpace(record.Code))
                     {
-                        var error = $"行{index}: コードが無効です（{record.Code}）";
+                        var error = $"行{index}: コードが空です";
                         errorMessages.Add(error);
                         _logger.LogWarning(error);
                         continue;
@@ -224,12 +224,35 @@ public abstract class MasterImportServiceBase<TEntity, TModel> : IImportService
     {
         return new TEntity
         {
-            CategoryCode = csv.Code,
+            CategoryCode = FormatCategoryCode(csv.Code),
             CategoryName = csv.Name?.Trim() ?? string.Empty,
             SearchKana = csv.SearchKana?.Trim(),
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
+    }
+
+    /// <summary>
+    /// 分類コードを3桁0埋め文字列にフォーマット
+    /// </summary>
+    private string FormatCategoryCode(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return "000";
+        
+        // 数値として解析して3桁の0埋め
+        if (int.TryParse(code.Trim(), out int numCode))
+        {
+            if (numCode < 0 || numCode > 999)
+            {
+                _logger.LogWarning("分類コードが範囲外: {Code}", numCode);
+                return code.Trim().PadLeft(3, '0');
+            }
+            return numCode.ToString("000");
+        }
+        
+        // 数値でない場合はそのまま3桁に調整
+        return code.Trim().PadLeft(3, '0');
     }
 
     /// <summary>

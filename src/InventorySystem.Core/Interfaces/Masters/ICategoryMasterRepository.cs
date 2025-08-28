@@ -16,7 +16,7 @@ public interface ICategoryMasterRepository<T> where T : CategoryMasterBase
     /// <summary>
     /// コードで取得
     /// </summary>
-    Task<T?> GetByCodeAsync(int categoryCode);
+    Task<T?> GetByCodeAsync(string categoryCode);
     
     /// <summary>
     /// 検索カナで検索
@@ -31,7 +31,7 @@ public interface ICategoryMasterRepository<T> where T : CategoryMasterBase
     /// <summary>
     /// 存在確認
     /// </summary>
-    Task<bool> ExistsAsync(int categoryCode);
+    Task<bool> ExistsAsync(string categoryCode);
     
     /// <summary>
     /// 一括挿入
@@ -46,7 +46,7 @@ public interface ICategoryMasterRepository<T> where T : CategoryMasterBase
     /// <summary>
     /// 削除
     /// </summary>
-    Task<int> DeleteAsync(int categoryCode);
+    Task<int> DeleteAsync(string categoryCode);
     
     /// <summary>
     /// すべて削除（テーブルクリア）

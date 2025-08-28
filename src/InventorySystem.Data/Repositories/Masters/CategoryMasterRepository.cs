@@ -40,7 +40,7 @@ public class CategoryMasterRepository<T> : ICategoryMasterRepository<T> where T 
         return await connection.QueryAsync<T>(sql);
     }
 
-    public async Task<T?> GetByCodeAsync(int categoryCode)
+    public async Task<T?> GetByCodeAsync(string categoryCode)
     {
         using var connection = new SqlConnection(_connectionString);
         
@@ -75,7 +75,7 @@ public class CategoryMasterRepository<T> : ICategoryMasterRepository<T> where T 
         return await connection.QueryAsync<T>(sql, new { CategoryName = $"%{categoryName}%" });
     }
 
-    public async Task<bool> ExistsAsync(int categoryCode)
+    public async Task<bool> ExistsAsync(string categoryCode)
     {
         using var connection = new SqlConnection(_connectionString);
         
@@ -131,7 +131,7 @@ public class CategoryMasterRepository<T> : ICategoryMasterRepository<T> where T 
         return await connection.ExecuteAsync(sql, category);
     }
 
-    public async Task<int> DeleteAsync(int categoryCode)
+    public async Task<int> DeleteAsync(string categoryCode)
     {
         using var connection = new SqlConnection(_connectionString);
         

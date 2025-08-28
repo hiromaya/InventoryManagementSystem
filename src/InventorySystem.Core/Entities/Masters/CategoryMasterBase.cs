@@ -6,9 +6,9 @@ namespace InventorySystem.Core.Entities.Masters;
 public abstract class CategoryMasterBase
 {
     /// <summary>
-    /// 分類コード
+    /// 分類コード（3桁0埋め文字列）
     /// </summary>
-    public int CategoryCode { get; set; }
+    public string CategoryCode { get; set; } = string.Empty;
     
     /// <summary>
     /// 分類名称

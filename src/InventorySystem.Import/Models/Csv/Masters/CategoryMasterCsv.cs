@@ -8,11 +8,11 @@ namespace InventorySystem.Import.Models.Csv.Masters;
 public class CategoryMasterCsv
 {
     /// <summary>
-    /// コード
+    /// コード（3桁0埋め文字列）
     /// </summary>
     [Index(0)]
     [Name("コード")]
-    public int Code { get; set; }
+    public string Code { get; set; } = string.Empty;
     
     /// <summary>
     /// 名称
