@@ -1,17 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="None" TextQuality="Regular" ReportInfo.Description="商品勘定帳票" ReportInfo.Created="2025-01-01" ReportInfo.Modified="08/29/2025 11:39:23" ReportInfo.CreatorVersion="2024.1.3.0">
+<Report ScriptLanguage="None" TextQuality="Regular" ReportInfo.Description="商品勘定帳票（ダミー版）" ReportInfo.Created="2025-01-01" ReportInfo.Modified="2025-08-30" ReportInfo.CreatorVersion="2024.1.3.0">
   <Dictionary>
+    <!-- 最小限のデータソース定義 -->
     <TableDataSource Name="ProductAccount" ReferenceName="ProductAccount" DataType="System.Int32" Enabled="true">
-      <Column Name="ProductCategory1" DataType="System.String"/>
-      <Column Name="ProductCategory1Name" DataType="System.String"/>
       <Column Name="ProductCode" DataType="System.String"/>
       <Column Name="ProductName" DataType="System.String"/>
       <Column Name="ShippingMarkCode" DataType="System.String"/>
       <Column Name="ShippingMarkName" DataType="System.String"/>
-      <Column Name="ManualShippingMark" DataType="System.String"/>
-      <Column Name="GradeCode" DataType="System.String"/>
       <Column Name="GradeName" DataType="System.String"/>
-      <Column Name="ClassCode" DataType="System.String"/>
       <Column Name="ClassName" DataType="System.String"/>
       <Column Name="VoucherNumber" DataType="System.String"/>
       <Column Name="DisplayCategory" DataType="System.String"/>
@@ -23,75 +19,58 @@
       <Column Name="Amount" DataType="System.String"/>
       <Column Name="GrossProfit" DataType="System.String"/>
       <Column Name="CustomerSupplierName" DataType="System.String"/>
-      <Column Name="GroupKey" DataType="System.String"/>
-      <Column Name="RowType" DataType="System.String"/>
-      <Column Name="IsGrayBackground" DataType="System.String"/>
-      <Column Name="IsPageBreak" DataType="System.String"/>
-      <Column Name="RowSequence" DataType="System.String"/>
-      <Column Name="PageGroup" DataType="System.String"/>
+      <Column Name="ProductCategory1Name" DataType="System.String"/>
     </TableDataSource>
     <Parameter Name="CreateDate" DataType="System.String" AsString=""/>
     <Parameter Name="JobDate" DataType="System.String" AsString=""/>
-    <Parameter Name="TotalCount" DataType="System.String" AsString=""/>
   </Dictionary>
-  <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8" Watermark.Font="Arial, 60pt">
+  
+  <ReportPage Name="Page1" Landscape="true" PaperWidth="420" PaperHeight="297" RawPaperSize="8">
+    <!-- シンプルなページヘッダー -->
     <PageHeaderBand Name="PageHeader1" Width="1512" Height="80">
       <TextObject Name="CreateDate" Width="300" Height="20" Text="作成日：[CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="PageNumber" Left="1212" Width="300" Height="20" Text="[Page#] / [TotalPages#] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="StaffText" Top="20" Width="300" Height="20" Text="担当者：[ProductAccount.ProductCategory1Name]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Title" Top="20" Width="1512" Height="25" Text="※　[JobDate]　商品勘定　※" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 14pt"/>
-      <TextObject Name="Header1" Top="50" Width="150" Height="30" Text="商品名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header2" Left="150" Top="50" Width="53" Height="30" Text="荷印CD" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header3" Left="203" Top="50" Width="91" Height="30" Text="荷印名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header4" Left="294" Top="50" Width="86" Height="30" Text="手入力" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header5" Left="380" Top="50" Width="75" Height="30" Text="等級" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header6" Left="455" Top="50" Width="75" Height="30" Text="階級" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header7" Left="530" Top="50" Width="91" Height="30" Text="伝票NO" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header8" Left="621" Top="50" Width="59" Height="30" Text="区分" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header9" Left="680" Top="50" Width="64" Height="30" Text="月日" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header10" Left="744" Top="50" Width="96" Height="30" Text="仕入数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header11" Left="840" Top="50" Width="96" Height="30" Text="売上数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header12" Left="936" Top="50" Width="96" Height="30" Text="残数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header13" Left="1032" Top="50" Width="96" Height="30" Text="単価" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header14" Left="1128" Top="50" Width="118" Height="30" Text="金額" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header15" Left="1246" Top="50" Width="102" Height="30" Text="粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="Header16" Left="1348" Top="50" Width="164" Height="30" Text="取引先名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Title" Top="20" Width="1512" Height="25" Text="※　[JobDate]　商品勘定（テスト版）　※" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 14pt"/>
+      
+      <!-- 列ヘッダー -->
+      <TextObject Name="Header1" Top="50" Width="150" Height="30" Text="商品名" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header2" Left="150" Top="50" Width="100" Height="30" Text="荷印CD" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header3" Left="250" Top="50" Width="100" Height="30" Text="荷印名" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header4" Left="350" Top="50" Width="75" Height="30" Text="等級" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header5" Left="425" Top="50" Width="75" Height="30" Text="階級" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header6" Left="500" Top="50" Width="100" Height="30" Text="伝票NO" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header7" Left="600" Top="50" Width="60" Height="30" Text="区分" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header8" Left="660" Top="50" Width="80" Height="30" Text="月日" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header9" Left="740" Top="50" Width="100" Height="30" Text="仕入数量" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header10" Left="840" Top="50" Width="100" Height="30" Text="売上数量" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header11" Left="940" Top="50" Width="100" Height="30" Text="残数量" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header12" Left="1040" Top="50" Width="100" Height="30" Text="単価" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header13" Left="1140" Top="50" Width="120" Height="30" Text="金額" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header14" Left="1260" Top="50" Width="100" Height="30" Text="粗利益" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Header15" Left="1360" Top="50" Width="152" Height="30" Text="取引先名" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
     
-    <!-- 入れ子構造のGroupHeaderBand -->
-    <GroupHeaderBand Name="StaffGroupHeader" Top="84" Width="1512" Height="30" StartNewPage="true" KeepWithData="true" Condition="[ProductAccount.ProductCategory1]">
-      <TextObject Name="StaffHeader" Width="300" Height="30" Text="担当者：[ProductAccount.ProductCategory1Name]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      
-      <!-- 35行改ページ用GroupHeaderBandを内側に配置 -->
-      <GroupHeaderBand Name="PageGroupHeader" Top="0" Width="1512" Height="0" StartNewPage="true" KeepWithData="true" Condition="[ProductAccount.PageGroup]">
-        <!-- Height="0"で非表示（改ページ専用） -->
-      </GroupHeaderBand>
-    </GroupHeaderBand>
-    
-    <!-- DataBand -->
-    <DataBand Name="Data1" Top="118" Width="1512" Height="20" DataSource="ProductAccount" 
-              Filter="[ProductAccount.RowType] != 'PAGE_BREAK'" 
-              StartNewPage="[ProductAccount.RowType] == 'PAGE_BREAK'">
-      <TextObject Name="Data1" Width="150" Height="20" Text="[ProductAccount.ProductName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
-      <TextObject Name="Data2" Left="150" Width="53" Height="20" Text="[ProductAccount.ShippingMarkCode]" HorzAlign="Center" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data3" Left="203" Width="91" Height="20" Text="[ProductAccount.ShippingMarkName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
-      <TextObject Name="Data4" Left="294" Width="86" Height="20" Text="[ProductAccount.ManualShippingMark]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data5" Left="380" Width="75" Height="20" Text="[ProductAccount.GradeName]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data6" Left="455" Width="75" Height="20" Text="[ProductAccount.ClassName]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data7" Left="530" Width="91" Height="20" Text="[ProductAccount.VoucherNumber]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data8" Left="621" Width="59" Height="20" Text="[ProductAccount.DisplayCategory]" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data9" Left="680" Width="64" Height="20" Text="[ProductAccount.MonthDay]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data10" Left="744" Width="96" Height="20" Text="[ProductAccount.PurchaseQuantity]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data11" Left="840" Width="96" Height="20" Text="[ProductAccount.SalesQuantity]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data12" Left="936" Width="96" Height="20" Text="[ProductAccount.RemainingQuantity]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data13" Left="1032" Width="96" Height="20" Text="[ProductAccount.UnitPrice]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data14" Left="1128" Width="118" Height="20" Text="[ProductAccount.Amount]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data15" Left="1246" Width="102" Height="20" Text="[ProductAccount.GrossProfit]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
-      <TextObject Name="Data16" Left="1348" Width="164" Height="20" Text="[ProductAccount.CustomerSupplierName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
+    <!-- シンプルなDataBand（GroupHeaderBandなし、フィルターなし、条件なし） -->
+    <DataBand Name="Data1" Top="84" Width="1512" Height="20" DataSource="ProductAccount">
+      <TextObject Name="Data1" Width="150" Height="20" Text="[ProductAccount.ProductName]" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data2" Left="150" Width="100" Height="20" Text="[ProductAccount.ShippingMarkCode]" HorzAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data3" Left="250" Width="100" Height="20" Text="[ProductAccount.ShippingMarkName]" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data4" Left="350" Width="75" Height="20" Text="[ProductAccount.GradeName]" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data5" Left="425" Width="75" Height="20" Text="[ProductAccount.ClassName]" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data6" Left="500" Width="100" Height="20" Text="[ProductAccount.VoucherNumber]" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data7" Left="600" Width="60" Height="20" Text="[ProductAccount.DisplayCategory]" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data8" Left="660" Width="80" Height="20" Text="[ProductAccount.MonthDay]" HorzAlign="Center" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data9" Left="740" Width="100" Height="20" Text="[ProductAccount.PurchaseQuantity]" HorzAlign="Right" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data10" Left="840" Width="100" Height="20" Text="[ProductAccount.SalesQuantity]" HorzAlign="Right" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data11" Left="940" Width="100" Height="20" Text="[ProductAccount.RemainingQuantity]" HorzAlign="Right" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data12" Left="1040" Width="100" Height="20" Text="[ProductAccount.UnitPrice]" HorzAlign="Right" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data13" Left="1140" Width="120" Height="20" Text="[ProductAccount.Amount]" HorzAlign="Right" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data14" Left="1260" Width="100" Height="20" Text="[ProductAccount.GrossProfit]" HorzAlign="Right" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="Data15" Left="1360" Width="152" Height="20" Text="[ProductAccount.CustomerSupplierName]" Font="MS UI Gothic, 9pt"/>
     </DataBand>
     
-    <PageFooterBand Name="PageFooter1" Top="142" Width="1512" Height="20">
-      <TextObject Name="Footer" Width="1512" Height="20" Text="在庫管理システム - 商品勘定" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
+    <!-- シンプルなページフッター -->
+    <PageFooterBand Name="PageFooter1" Top="108" Width="1512" Height="20">
+      <TextObject Name="Footer" Width="1512" Height="20" Text="在庫管理システム - 商品勘定（テスト版）" HorzAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
     </PageFooterBand>
   </ReportPage>
 </Report>
