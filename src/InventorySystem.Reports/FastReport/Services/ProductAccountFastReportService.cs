@@ -901,9 +901,18 @@ namespace InventorySystem.Reports.FastReport.Services
             var dataBand = report.FindObject("Data1") as FR.DataBand;
             if (dataBand != null)
             {
-                // IsPageBreakフラグが"1"の場合に改ページ
-                dataBand.StartNewPage = "[ProductAccount.IsPageBreak] == \"1\"";
-                _logger.LogInformation("DataBandに改ページ条件を設定しました");
+                // StartNewPageExpressionプロパティに条件式を設定
+                var startNewPageProperty = dataBand.GetType().GetProperty("StartNewPageExpression");
+                if (startNewPageProperty != null)
+                {
+                    startNewPageProperty.SetValue(dataBand, "[ProductAccount.IsPageBreak] == \"1\"");
+                    _logger.LogInformation("DataBandに改ページ条件式を設定しました");
+                }
+                else
+                {
+                    // フォールバック: 条件付き改ページは.frxテンプレート側で制御
+                    _logger.LogInformation("StartNewPageExpressionプロパティが見つかりません。.frxテンプレート側で制御します");
+                }
             }
             
             // GroupHeaderBandを完全に無効化
