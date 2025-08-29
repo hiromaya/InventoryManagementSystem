@@ -1389,11 +1389,19 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
-        /// 数量フォーマット（小数2桁、0の場合は空文字）
+        /// 数量フォーマット（小数2桁、0の場合は空文字、マイナスは▲表示）
         /// </summary>
         private string FormatQuantity(decimal value)
         {
-            return value == 0 ? "" : value.ToString("#,##0.00");
+            if (value == 0) return "";
+            
+            if (value < 0)
+            {
+                // ▲記号を数値の後ろに配置
+                return Math.Abs(value).ToString("#,##0.00") + "▲";
+            }
+            
+            return value.ToString("#,##0.00");
         }
         
         /// <summary>
