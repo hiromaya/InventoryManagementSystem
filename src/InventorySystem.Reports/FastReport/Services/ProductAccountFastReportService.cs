@@ -897,11 +897,28 @@ namespace InventorySystem.Reports.FastReport.Services
             // FastReportにデータソースを登録
             report.RegisterData(dataTable, "ProductAccount");
             
+            // DataBandに改ページ条件を設定
+            var dataBand = report.FindObject("Data1") as FR.DataBand;
+            if (dataBand != null)
+            {
+                // IsPageBreakフラグが"1"の場合に改ページ
+                dataBand.StartNewPage = "[ProductAccount.IsPageBreak] == \"1\"";
+                _logger.LogInformation("DataBandに改ページ条件を設定しました");
+            }
+            
+            // GroupHeaderBandを完全に無効化
+            var groupHeaders = report.AllObjects.OfType<FR.GroupHeaderBand>().ToList();
+            foreach (var groupHeader in groupHeaders)
+            {
+                groupHeader.Condition = "";
+                groupHeader.StartNewPage = false;
+                _logger.LogInformation($"GroupHeaderBand '{groupHeader.Name}' を無効化しました");
+            }
+            
             // パラメータ設定
             report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
             report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
             report.SetParameterValue("TotalCount", flatData.Count(x => x.RowType == RowTypes.Detail).ToString());
-            
             
             _logger.LogInformation("レポートを準備中...");
             report.Prepare();
@@ -1189,11 +1206,14 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["ProductCategory1Name"] = item.ProductCategory1Name;
                 row["ProductCode"] = item.ProductCode;
                 row["ProductName"] = item.ProductName;
+                row["ShippingMarkCode"] = item.ShippingMarkCode;
                 row["ShippingMarkName"] = item.ShippingMarkName;
                 row["ManualShippingMark"] = item.ManualShippingMark;
                 row["GradeName"] = item.GradeName;
                 row["ClassName"] = item.ClassName;
-                row["VoucherNumber"] = item.VoucherNumber;
+                
+                // 伝票番号の下4桁処理を適用
+                row["VoucherNumber"] = GetLast4Digits(item.VoucherNumber);
                 row["DisplayCategory"] = item.DisplayCategory;
                 row["MonthDay"] = item.MonthDay;
                 row["PurchaseQuantity"] = item.PurchaseQuantity;
@@ -1384,8 +1404,8 @@ namespace InventorySystem.Reports.FastReport.Services
             
             if (value < 0)
             {
-                // マイナスの場合は▲記号を先頭に付ける
-                return "▲" + Math.Abs(Math.Round(value, 0)).ToString("#,##0");
+                // ▲記号を数値の後ろに配置
+                return Math.Abs(Math.Round(value, 0)).ToString("#,##0") + "▲";
             }
             
             return Math.Round(value, 0).ToString("#,##0");
@@ -1397,7 +1417,7 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private string FormatGrossProfit(decimal value, string voucherType = "")
         {
-            // 仕入データ（11,12）と振替データでは粗利益を表示しない
+            // 仕入データ（11,12）と振替データでは空白を返す
             if (voucherType == "11" || voucherType == "12" || voucherType == "振替")
             {
                 return "";
@@ -1407,8 +1427,8 @@ namespace InventorySystem.Reports.FastReport.Services
             
             if (value < 0)
             {
-                // マイナスの場合は▲記号を先頭に付ける
-                return "▲" + Math.Abs(Math.Round(value, 0)).ToString("#,##0");
+                // ▲記号を数値の後ろに配置
+                return Math.Abs(Math.Round(value, 0)).ToString("#,##0") + "▲";
             }
             
             return Math.Round(value, 0).ToString("#,##0");
@@ -1738,8 +1758,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 VoucherNumber = "",
                 DisplayCategory = "",                                      // 区分列は空
                 
-                // 月日列に前日残の数値を配置
-                MonthDay = FormatQuantity(previousBalance),               // ★前日残の数値
+                // 月日列に前日残の数値を配置（▲処理適用）
+                MonthDay = FormatQuantity(previousBalance),
                 
                 // 各集計値
                 PurchaseQuantity = FormatQuantity(purchase),

@@ -56,7 +56,8 @@
       <TextObject Name="Header15" Left="1246" Top="50" Width="102" Height="30" Text="粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header16" Left="1348" Top="50" Width="164" Height="30" Text="取引先名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    <GroupHeaderBand Name="StaffGroupHeader" Top="84" Width="1512" Height="1" StartNewPage="true" KeepWithData="true" Condition="[ProductAccount.ProductCategory1]"/>
+    <!-- GroupHeaderBandの条件式とStartNewPageを無効化 -->
+    <GroupHeaderBand Name="StaffGroupHeader" Top="84" Width="1512" Height="0" StartNewPage="false" KeepWithData="false" Condition=""/>
     <DataBand Name="Data1" Top="89" Width="1512" Height="20" DataSource="ProductAccount">
       <TextObject Name="Data1" Width="150" Height="20" Text="[ProductAccount.ProductName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="Data2" Left="150" Width="53" Height="20" Text="[ProductAccount.ShippingMarkCode]" HorzAlign="Center" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
