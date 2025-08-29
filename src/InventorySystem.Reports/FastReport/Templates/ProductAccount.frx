@@ -69,7 +69,9 @@
     </GroupHeaderBand>
     
     <!-- DataBand -->
-    <DataBand Name="Data1" Top="118" Width="1512" Height="20" DataSource="ProductAccount">
+    <DataBand Name="Data1" Top="118" Width="1512" Height="20" DataSource="ProductAccount" 
+              Filter="[ProductAccount.RowType] != 'PAGE_BREAK'" 
+              StartNewPage="[ProductAccount.RowType] == 'PAGE_BREAK'">
       <TextObject Name="Data1" Width="150" Height="20" Text="[ProductAccount.ProductName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="Data2" Left="150" Width="53" Height="20" Text="[ProductAccount.ShippingMarkCode]" HorzAlign="Center" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
       <TextObject Name="Data3" Left="203" Width="91" Height="20" Text="[ProductAccount.ShippingMarkName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>

@@ -220,4 +220,9 @@ public static class RowTypes
     /// 空行
     /// </summary>
     public const string BlankLine = "BLANK";
+    
+    /// <summary>
+    /// 35行改ページ用ダミー行
+    /// </summary>
+    public const string PageBreak = "PAGE_BREAK";
 }

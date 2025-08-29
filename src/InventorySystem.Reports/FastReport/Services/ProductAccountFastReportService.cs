@@ -1352,6 +1352,69 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["RowSequence"] = item.RowSequence.ToString();
                 
                 table.Rows.Add(row);
+                
+                // === 35行改ページダミー行挿入ロジック ===
+                
+                // 35行に達した場合、かつ次のデータが存在する場合
+                if (rowCountInCurrentStaffGroup % 35 == 0)
+                {
+                    // 次のデータが存在するかチェック
+                    int currentIndex = flatData.FindIndex(x => 
+                        x.ProductCategory1 == item.ProductCategory1 && 
+                        x.ProductCode == item.ProductCode &&
+                        x.RowSequence == item.RowSequence);
+                    
+                    bool hasNext = currentIndex >= 0 && currentIndex < flatData.Count - 1;
+                    bool isLastInGroup = false;
+                    
+                    if (hasNext)
+                    {
+                        var nextItem = flatData[currentIndex + 1];
+                        isLastInGroup = nextItem.ProductCategory1 != currentStaffCode;
+                    }
+                    
+                    // 次のデータが存在し、かつ担当者が同じ場合はダミー改ページ行を挿入
+                    if (hasNext && !isLastInGroup)
+                    {
+                        var pageBreakRow = table.NewRow();
+                        
+                        // ダミー改ページ行の基本設定
+                        pageBreakRow["RowType"] = RowTypes.PageBreak;
+                        pageBreakRow["ProductCategory1"] = currentStaffCode;
+                        pageBreakRow["ProductCategory1Name"] = item.ProductCategory1Name;
+                        pageBreakRow["PageGroup"] = pageGroup;
+                        
+                        // その他のフィールドは空文字
+                        pageBreakRow["ProductCode"] = "";
+                        pageBreakRow["ProductName"] = "";
+                        pageBreakRow["ShippingMarkCode"] = "";
+                        pageBreakRow["ShippingMarkName"] = "";
+                        pageBreakRow["ManualShippingMark"] = "";
+                        pageBreakRow["GradeName"] = "";
+                        pageBreakRow["ClassName"] = "";
+                        pageBreakRow["VoucherNumber"] = "";
+                        pageBreakRow["DisplayCategory"] = "";
+                        pageBreakRow["MonthDay"] = "";
+                        pageBreakRow["PurchaseQuantity"] = "";
+                        pageBreakRow["SalesQuantity"] = "";
+                        pageBreakRow["RemainingQuantity"] = "";
+                        pageBreakRow["UnitPrice"] = "";
+                        pageBreakRow["Amount"] = "";
+                        pageBreakRow["GrossProfit"] = "";
+                        pageBreakRow["CustomerSupplierName"] = "";
+                        
+                        // 制御フィールド
+                        pageBreakRow["IsGrayBackground"] = "0";
+                        pageBreakRow["IsPageBreak"] = "1";  // 改ページフラグを設定
+                        pageBreakRow["IsBold"] = "0";
+                        pageBreakRow["RowSequence"] = "0";
+                        
+                        table.Rows.Add(pageBreakRow);
+                        
+                        _logger.LogCritical($"35行改ページダミー行挿入: 担当者={currentStaffCode}, " +
+                                          $"行番号={rowCountInCurrentStaffGroup}, PageGroup={pageGroup}");
+                    }
+                }
             }
             
             // === デバッグ: DataTable作成後確認ログ ===
