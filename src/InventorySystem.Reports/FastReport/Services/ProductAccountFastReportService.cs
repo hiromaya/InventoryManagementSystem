@@ -944,7 +944,7 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             
             // 2. DataBandにBeforePrintイベントを設定（代替案）
-            var dataBand = report.FindObject("Data1") as FR.DataBand;
+            // dataBandは既に上で定義済みなので再利用
             if (dataBand != null)
             {
                 // 改ページ処理用フラグをリセット
@@ -964,12 +964,9 @@ namespace InventorySystem.Reports.FastReport.Services
                             if (!string.IsNullOrEmpty(_lastStaffCode) && 
                                 _lastStaffCode != currentStaff)
                             {
-                                // 担当者が変わったら改ページ（利用可能な場合）
-                                if (report.Engine != null)
-                                {
-                                    report.Engine.NewPage();
-                                    _logger.LogInformation($"改ページ実行: {_lastStaffCode} → {currentStaff}");
-                                }
+                                // 担当者が変わったら改ページ（ログのみ、実際の改ページはGroupHeaderBandに委ねる）
+                                _logger.LogInformation($"担当者変更検知: {_lastStaffCode} → {currentStaff}");
+                                // FastReportのEngine.NewPage()は利用できないため、GroupHeaderBandの自動改ページに依存
                             }
                             
                             _lastStaffCode = currentStaff ?? "";
