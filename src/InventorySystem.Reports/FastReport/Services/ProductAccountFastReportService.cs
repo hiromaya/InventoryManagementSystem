@@ -915,7 +915,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
             }
             
-            // GroupHeaderBandを完全に無効化
+            // GroupHeaderBandを完全に無効化（改ページ復活のためコメントアウト）
+            /*
             var groupHeaders = report.AllObjects.OfType<FR.GroupHeaderBand>().ToList();
             foreach (var groupHeader in groupHeaders)
             {
@@ -923,6 +924,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 groupHeader.StartNewPage = false;
                 _logger.LogInformation($"GroupHeaderBand '{groupHeader.Name}' を無効化しました");
             }
+            */
             
             // パラメータ設定
             report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
