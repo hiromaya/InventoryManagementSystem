@@ -1302,7 +1302,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 改ページフラグの設定
                 if (isStaffChanged || is35RowBreak)
                 {
-                    item.PageBreakFlag = "1";
+                    item.IsPageBreak = true;
                     _logger.LogCritical("改ページ設定: 担当者変更={StaffChanged} 35行改ページ={RowBreak} 担当者={Staff} 行数={RowCount}", 
                         isStaffChanged, is35RowBreak, item.ProductCategory1, rowCount);
                 }
