@@ -979,6 +979,39 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             */
             
+            // === PAGE_BREAK行による改ページ処理 ===
+            var dataBand = report.FindObject("Data1") as FR.DataBand;
+            if (dataBand != null)
+            {
+                dataBand.BeforePrint += (sender, e) =>
+                {
+                    var currentRowType = report.GetVariableValue("ProductAccount.RowType")?.ToString();
+                    if (currentRowType == RowTypes.PageBreak)
+                    {
+                        // PAGE_BREAK行は表示しない
+                        dataBand.Visible = false;
+                        // 改ページを実行
+                        var engine = report.Engine;
+                        if (engine != null && engine.CurPage != null)
+                        {
+                            engine.ShowBand(engine.CurPage);
+                            engine.NewPage();
+                        }
+                        _logger.LogInformation($"PAGE_BREAK行を検出し改ページを実行");
+                    }
+                    else
+                    {
+                        // 通常の行は表示
+                        dataBand.Visible = true;
+                    }
+                };
+                _logger.LogInformation("DataBandにPAGE_BREAK改ページ処理を設定しました");
+            }
+            else
+            {
+                _logger.LogWarning("DataBand 'Data1' が見つかりません");
+            }
+            
             // パラメータ設定
             report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
             report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
@@ -1228,11 +1261,11 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("RowSequence", typeof(string));
             table.Columns.Add("PageGroup", typeof(string));           // 35行改ページ用グループ
             
-            // === 35行改ページ制御の実装（修正版） ===
-            int rowCount = 0;                           // 全体の行数
-            int rowCountInCurrentStaffGroup = 0;        // 現在の担当者グループ内での行数
+            // === 35行改ページ制御の実装 ===
             string currentStaffCode = "";               // 現在処理中の担当者コード
             string currentStaffName = "";               // 担当者名保持用
+            int currentPageRows = 0;                    // 現在ページの行数
+            const int MAX_ROWS_PER_PAGE = 35;           // 1ページの最大行数
             int debugCount = 0;                         // デバッグ用
 
             // 既存のデバッグログ（削除しない）
@@ -1252,34 +1285,51 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 var row = table.NewRow();
                 
-                // === 担当者変更と35行グループ化の実装（修正版） ===
+                // === 担当者変更チェック ===
                 
                 // 担当者が変わったかチェック
                 if (currentStaffCode != item.ProductCategory1)
                 {
-                    currentStaffCode = item.ProductCategory1;
-                    currentStaffName = item.ProductCategory1Name;  // 担当者名を保持
-                    rowCountInCurrentStaffGroup = 0;  // 担当者が変わったらリセット
+                    // 改ページ行を挿入（最初の行以外）
+                    if (currentStaffCode != "")
+                    {
+                        var pageBreakRow = table.NewRow();
+                        pageBreakRow["RowType"] = RowTypes.PageBreak;
+                        pageBreakRow["ProductCategory1"] = currentStaffCode;
+                        pageBreakRow["ProductCategory1Name"] = currentStaffName;
+                        
+                        // その他のフィールドは空文字
+                        SetEmptyRowFields(pageBreakRow);
+                        
+                        table.Rows.Add(pageBreakRow);
+                        _logger.LogInformation($"担当者変更による改ページ: {currentStaffCode} → {item.ProductCategory1}");
+                    }
                     
-                    _logger.LogCritical($"担当者変更: 新担当者={currentStaffCode}, グループ内行数リセット");
+                    // 新しい担当者情報を保存
+                    currentStaffCode = item.ProductCategory1;
+                    currentStaffName = item.ProductCategory1Name;
+                    currentPageRows = 0;
+                    
+                    _logger.LogInformation($"新ページ開始: 担当者={currentStaffName}");
                 }
                 
-                // 35行ごとに新しいグループ番号を割り当てる
-                int currentPageGroupNumber = rowCountInCurrentStaffGroup / 35;  // 0-34行目は0、35-69行目は1...
-                
-                // PageGroupフィールドを設定（同じ35行は同じ値）
-                string pageGroup = $"{currentStaffCode}_{currentPageGroupNumber:D3}";
-                row["PageGroup"] = pageGroup;
-                
-                // デバッグログ（重要）
-                if (rowCountInCurrentStaffGroup % 35 == 0 || rowCountInCurrentStaffGroup % 35 == 34)
+                // === 35行制限チェック ===
+                if (currentPageRows >= MAX_ROWS_PER_PAGE)
                 {
-                    _logger.LogCritical($"PageGroup設定: 担当者={currentStaffCode}, グループ内行数={rowCountInCurrentStaffGroup + 1}, PageGroup={pageGroup}");
+                    // PAGE_BREAK行を追加（担当者情報を保持）
+                    var pageBreakRow = table.NewRow();
+                    pageBreakRow["RowType"] = RowTypes.PageBreak;
+                    pageBreakRow["ProductCategory1"] = currentStaffCode;
+                    pageBreakRow["ProductCategory1Name"] = currentStaffName;
+                    
+                    // その他のフィールドは空文字
+                    SetEmptyRowFields(pageBreakRow);
+                    
+                    table.Rows.Add(pageBreakRow);
+                    currentPageRows = 0;
+                    
+                    _logger.LogInformation($"ページブレーク挿入: 担当者={currentStaffCode}, 行数={MAX_ROWS_PER_PAGE}");
                 }
-                
-                // 行数をインクリメント
-                rowCountInCurrentStaffGroup++;
-                rowCount++;  // 全体の行数
                 
                 // 基本フィールド（既にフォーマット済み）
                 row["ProductCategory1"] = item.ProductCategory1;
@@ -1311,58 +1361,12 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["IsBold"] = item.BoldFlag;                        // "1"/"0"
                 row["RowSequence"] = item.RowSequence.ToString();
                 
+                // 通常のデータ行を追加
+                // ProductCategory1Nameが確実に設定されるようにする
+                row["ProductCategory1Name"] = currentStaffName;
                 table.Rows.Add(row);
                 
-                // === 35行改ページダミー行挿入ロジック ===
-                
-                // 35行に達した場合、かつ次のデータが存在する場合
-                if (rowCountInCurrentStaffGroup % 35 == 0)
-                {
-                    // 次のデータが存在し、かつ同じ担当者の場合のみダミー行挿入
-                    bool hasNext = (i + 1) < flatData.Count;
-                    bool isSameStaff = hasNext && flatData[i + 1].ProductCategory1 == currentStaffCode;
-                    
-                    if (hasNext && isSameStaff)
-                    {
-                        var pageBreakRow = table.NewRow();
-                        
-                        // ダミー改ページ行の基本設定
-                        pageBreakRow["RowType"] = RowTypes.PageBreak;
-                        pageBreakRow["ProductCategory1"] = currentStaffCode;
-                        pageBreakRow["ProductCategory1Name"] = currentStaffName;
-                        pageBreakRow["PageGroup"] = pageGroup;
-                        
-                        // その他のフィールドは空文字
-                        pageBreakRow["ProductCode"] = "";
-                        pageBreakRow["ProductName"] = "";
-                        pageBreakRow["ShippingMarkCode"] = "";
-                        pageBreakRow["ShippingMarkName"] = "";
-                        pageBreakRow["ManualShippingMark"] = "";
-                        pageBreakRow["GradeName"] = "";
-                        pageBreakRow["ClassName"] = "";
-                        pageBreakRow["VoucherNumber"] = "";
-                        pageBreakRow["DisplayCategory"] = "";
-                        pageBreakRow["MonthDay"] = "";
-                        pageBreakRow["PurchaseQuantity"] = "";
-                        pageBreakRow["SalesQuantity"] = "";
-                        pageBreakRow["RemainingQuantity"] = "";
-                        pageBreakRow["UnitPrice"] = "";
-                        pageBreakRow["Amount"] = "";
-                        pageBreakRow["GrossProfit"] = "";
-                        pageBreakRow["CustomerSupplierName"] = "";
-                        
-                        // 制御フィールド
-                        pageBreakRow["IsGrayBackground"] = "0";
-                        pageBreakRow["IsPageBreak"] = "1";  // 改ページフラグを設定
-                        pageBreakRow["IsBold"] = "0";
-                        pageBreakRow["RowSequence"] = "0";
-                        
-                        table.Rows.Add(pageBreakRow);
-                        
-                        _logger.LogCritical($"35行改ページダミー行挿入: 担当者={currentStaffCode}, " +
-                                          $"行番号={rowCountInCurrentStaffGroup}, PageGroup={pageGroup}");
-                    }
-                }
+                currentPageRows++;
             }
             
             // === デバッグ: DataTable作成後確認ログ ===
@@ -1963,6 +1967,35 @@ namespace InventorySystem.Reports.FastReport.Services
             
             // 4桁以上なら下4桁、それ以下ならそのまま返す
             return digits.Length >= 4 ? digits.Substring(digits.Length - 4) : digits;
+        }
+        
+        /// <summary>
+        /// ページブレーク行の空フィールドを設定する
+        /// </summary>
+        private void SetEmptyRowFields(DataRow row)
+        {
+            row["ProductCode"] = "";
+            row["ProductName"] = "";
+            row["ShippingMarkCode"] = "";
+            row["ShippingMarkName"] = "";
+            row["ManualShippingMark"] = "";
+            row["GradeName"] = "";
+            row["ClassName"] = "";
+            row["VoucherNumber"] = "";
+            row["DisplayCategory"] = "";
+            row["MonthDay"] = "";
+            row["PurchaseQuantity"] = "";
+            row["SalesQuantity"] = "";
+            row["RemainingQuantity"] = "";
+            row["UnitPrice"] = "";
+            row["Amount"] = "";
+            row["GrossProfit"] = "";
+            row["CustomerSupplierName"] = "";
+            row["IsGrayBackground"] = "0";
+            row["IsPageBreak"] = "1";
+            row["IsBold"] = "0";
+            row["RowSequence"] = "0";
+            row["PageGroup"] = "";
         }
         
         /// <summary>
