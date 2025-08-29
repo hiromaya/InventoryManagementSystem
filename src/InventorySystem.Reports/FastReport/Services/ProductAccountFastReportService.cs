@@ -1271,11 +1271,11 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("RowSequence", typeof(string));
             table.Columns.Add("PageGroup", typeof(string));           // 35行改ページ用グループ
             
-            // === 35行改ページ制御の実装 ===
-            int rowCount = 0;                    // 担当者内での行数
-            string currentStaffCode = "";        // 現在処理中の担当者コード
-            int groupNumber = 1;                  // グループ番号
-            int debugCount = 0;                   // デバッグ用
+            // === 35行改ページ制御の実装（修正版） ===
+            int rowCount = 0;                           // 全体の行数
+            int rowCountInCurrentStaffGroup = 0;        // 現在の担当者グループ内での行数
+            string currentStaffCode = "";               // 現在処理中の担当者コード
+            int debugCount = 0;                         // デバッグ用
 
             // 既存のデバッグログ（削除しない）
             _logger.LogCritical("=== フラットデータ処理開始 ===");
@@ -1293,40 +1293,33 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 var row = table.NewRow();
                 
-                // === 担当者変更と35行改ページの判定 ===
-                bool isStaffChanged = false;
-                bool is35RowBreak = false;
+                // === 担当者変更と35行グループ化の実装（修正版） ===
                 
                 // 担当者が変わったかチェック
                 if (currentStaffCode != item.ProductCategory1)
                 {
-                    if (!string.IsNullOrEmpty(currentStaffCode))  // 最初の担当者以外
-                    {
-                        isStaffChanged = true;
-                    }
-                    
-                    // 新しい担当者の処理開始
                     currentStaffCode = item.ProductCategory1;
-                    rowCount = 0;
-                    groupNumber = 1;  // グループ番号リセット
+                    rowCountInCurrentStaffGroup = 0;  // 担当者が変わったらリセット
                     
-                    _logger.LogCritical($"改ページ設定: 担当者変更={isStaffChanged} 35行改ページ={is35RowBreak} 担当者={currentStaffCode} 行数={rowCount}");
-                }
-                // 35行を超えたかチェック（同一担当者内）
-                else if (rowCount > 0 && rowCount % 35 == 0)
-                {
-                    is35RowBreak = true;
-                    groupNumber++;  // グループ番号を増やす
-                    
-                    _logger.LogCritical($"改ページ設定: 担当者変更={isStaffChanged} 35行改ページ={is35RowBreak} 担当者={currentStaffCode} 行数={rowCount}");
+                    _logger.LogCritical($"担当者変更: 新担当者={currentStaffCode}, グループ内行数リセット");
                 }
                 
-                // PageGroupフィールドを設定（担当者コード_グループ番号）
-                string pageGroup = $"{currentStaffCode}_{groupNumber:D3}";  // 例: "001_001"
+                // 35行ごとに新しいグループ番号を割り当てる
+                int currentPageGroupNumber = rowCountInCurrentStaffGroup / 35;  // 0-34行目は0、35-69行目は1...
+                
+                // PageGroupフィールドを設定（同じ35行は同じ値）
+                string pageGroup = $"{currentStaffCode}_{currentPageGroupNumber:D3}";
                 row["PageGroup"] = pageGroup;
                 
+                // デバッグログ（重要）
+                if (rowCountInCurrentStaffGroup % 35 == 0 || rowCountInCurrentStaffGroup % 35 == 34)
+                {
+                    _logger.LogCritical($"PageGroup設定: 担当者={currentStaffCode}, グループ内行数={rowCountInCurrentStaffGroup + 1}, PageGroup={pageGroup}");
+                }
+                
                 // 行数をインクリメント
-                rowCount++;
+                rowCountInCurrentStaffGroup++;
+                rowCount++;  // 全体の行数
                 
                 // 基本フィールド（既にフォーマット済み）
                 row["ProductCategory1"] = item.ProductCategory1;
