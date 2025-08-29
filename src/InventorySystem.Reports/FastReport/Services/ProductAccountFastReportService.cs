@@ -24,6 +24,9 @@ namespace InventorySystem.Reports.FastReport.Services
         private readonly IConfiguration _configuration;
         private readonly string _templatePath;
         
+        // C#側改ページ制御用
+        private string _lastStaffCode = "";
+        
         public ProductAccountFastReportService(
             ILogger<ProductAccountFastReportService> logger,
             IConfiguration configuration)
@@ -894,6 +897,15 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogCritical($"GradeName/ClassNameが空でない行数: {nonEmptyCount}/{dataTable.Rows.Count}");
             }
             
+            // デバッグ用：ProductCategory1の値を確認
+            var distinctCategories = dataTable.AsEnumerable()
+                .Select(r => r["ProductCategory1"]?.ToString())
+                .Distinct()
+                .Where(x => !string.IsNullOrEmpty(x))
+                .ToList();
+            _logger.LogCritical($"担当者一覧: {string.Join(", ", distinctCategories)}");
+            _logger.LogCritical($"担当者数: {distinctCategories.Count}");
+            
             // FastReportにデータソースを登録
             report.RegisterData(dataTable, "ProductAccount");
             
@@ -914,6 +926,69 @@ namespace InventorySystem.Reports.FastReport.Services
                     _logger.LogInformation("StartNewPageExpressionプロパティが見つかりません。.frxテンプレート側で制御します");
                 }
             }
+            
+            // ========== C#側改ページ制御 ==========
+            
+            // 1. GroupHeaderBandを取得して強制設定
+            var groupHeader = report.FindObject("StaffGroupHeader") as FR.GroupHeaderBand;
+            if (groupHeader != null)
+            {
+                groupHeader.StartNewPage = true;
+                groupHeader.Condition = "[ProductAccount.ProductCategory1]";
+                groupHeader.KeepWithData = true;
+                _logger.LogInformation("GroupHeaderBand改ページ設定を強制適用");
+            }
+            else
+            {
+                _logger.LogWarning("StaffGroupHeaderが見つかりません");
+            }
+            
+            // 2. DataBandにBeforePrintイベントを設定（代替案）
+            var dataBand = report.FindObject("Data1") as FR.DataBand;
+            if (dataBand != null)
+            {
+                // 改ページ処理用フラグをリセット
+                _lastStaffCode = "";
+                
+                try
+                {
+                    // BeforePrintイベントハンドラを動的に追加
+                    dataBand.BeforePrint += (sender, e) =>
+                    {
+                        try
+                        {
+                            // 現在の行のProductCategory1を取得
+                            var currentStaff = report.GetColumnValue("ProductAccount.ProductCategory1")?.ToString();
+                            
+                            // 前回の値と比較
+                            if (!string.IsNullOrEmpty(_lastStaffCode) && 
+                                _lastStaffCode != currentStaff)
+                            {
+                                // 担当者が変わったら改ページ（利用可能な場合）
+                                if (report.Engine != null)
+                                {
+                                    report.Engine.NewPage();
+                                    _logger.LogInformation($"改ページ実行: {_lastStaffCode} → {currentStaff}");
+                                }
+                            }
+                            
+                            _lastStaffCode = currentStaff ?? "";
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning($"改ページ処理エラー: {ex.Message}");
+                        }
+                    };
+                    
+                    _logger.LogInformation("DataBandにBeforePrintイベントを設定しました");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"BeforePrintイベント設定エラー: {ex.Message}");
+                }
+            }
+            
+            // ========== ここまで C#側改ページ制御 ==========
             
             // GroupHeaderBandを完全に無効化（改ページ復活のためコメントアウト）
             /*
