@@ -28,6 +28,7 @@
       <Column Name="IsGrayBackground" DataType="System.String"/>
       <Column Name="IsPageBreak" DataType="System.String"/>
       <Column Name="RowSequence" DataType="System.String"/>
+      <Column Name="PageGroup" DataType="System.String"/>
     </TableDataSource>
     <Parameter Name="CreateDate" DataType="System.String" AsString=""/>
     <Parameter Name="JobDate" DataType="System.String" AsString=""/>
@@ -60,6 +61,13 @@
     <GroupHeaderBand Name="StaffGroupHeader" Top="84" Width="1512" Height="30" StartNewPage="true" KeepWithData="true" Condition="[ProductAccount.ProductCategory1]">
       <TextObject Name="StaffHeader" Width="300" Height="30" Text="担当者：[ProductAccount.ProductCategory1Name]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
     </GroupHeaderBand>
+    
+    <!-- 新規追加：35行改ページ用GroupHeaderBand -->
+    <GroupHeaderBand Name="PageGroupHeader" Top="114" Width="1512" Height="0" StartNewPage="true" KeepWithData="true" Condition="[ProductAccount.PageGroup]">
+      <!-- Height="0"で非表示（改ページ専用） -->
+    </GroupHeaderBand>
+    
+    <!-- 既存のDataBand（Top値を調整） -->
     <DataBand Name="Data1" Top="114" Width="1512" Height="20" DataSource="ProductAccount">
       <TextObject Name="Data1" Width="150" Height="20" Text="[ProductAccount.ProductName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="Data2" Left="150" Width="53" Height="20" Text="[ProductAccount.ShippingMarkCode]" HorzAlign="Center" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
