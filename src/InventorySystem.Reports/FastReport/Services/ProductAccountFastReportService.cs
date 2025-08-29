@@ -1145,6 +1145,7 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("ProductCategory1Name", typeof(string));
             table.Columns.Add("ProductCode", typeof(string));
             table.Columns.Add("ProductName", typeof(string));
+            table.Columns.Add("ShippingMarkCode", typeof(string));  // 荷印コード（4桁）
             table.Columns.Add("ShippingMarkName", typeof(string));
             table.Columns.Add("ManualShippingMark", typeof(string));
             table.Columns.Add("GradeName", typeof(string));
@@ -1292,17 +1293,18 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["ProductCategory1"] = item.ProductCategory1 ?? "";
                 row["ProductCategory1Name"] = item.GetAdditionalInfo("ProductCategory1Name") ?? "";
                 
-                // 文字列フィールドはそのまま
+                // 文字列フィールド（切り詰め処理を適用）
                 row["ProductCode"] = item.ProductCode;
-                row["ProductName"] = item.ProductName;
-                row["ShippingMarkName"] = item.ShippingMarkName;
-                row["ManualShippingMark"] = item.ManualShippingMark;
-                row["GradeName"] = item.GradeName;
-                row["ClassName"] = item.ClassName;
-                row["VoucherNumber"] = item.VoucherNumber;
+                row["ProductName"] = TruncateString(item.ProductName, 10);  // 10文字切り詰め
+                row["ShippingMarkCode"] = item.ShippingMarkCode;  // 荷印コード追加
+                row["ShippingMarkName"] = TruncateString(item.ShippingMarkName, 6);  // 6文字切り詰め
+                row["ManualShippingMark"] = TruncateString(item.ManualShippingMark, 8);  // 8文字切り詰め
+                row["GradeName"] = TruncateString(item.GradeName, 6);  // 6文字切り詰め
+                row["ClassName"] = TruncateString(item.ClassName, 6);  // 6文字切り詰め
+                row["VoucherNumber"] = GetLast4Digits(item.VoucherNumber);  // 下4桁のみ
                 row["DisplayCategory"] = item.DisplayCategory;
                 row["MonthDay"] = item.TransactionDate.ToString("MM/dd");
-                row["CustomerSupplierName"] = item.CustomerSupplierName;
+                row["CustomerSupplierName"] = TruncateString(item.CustomerSupplierName, 10);  // 10文字切り詰め
                 row["GroupKey"] = item.GroupKey;
                 
                 // 数値フィールドのフォーマット
@@ -1311,7 +1313,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["RemainingQuantity"] = FormatQuantity(item.RemainingQuantity);
                 row["UnitPrice"] = FormatUnitPrice(item.UnitPrice);
                 row["Amount"] = FormatAmount(item.Amount);
-                row["GrossProfit"] = FormatGrossProfit(item.GrossProfit);  // ▲処理含む
+                row["GrossProfit"] = FormatGrossProfit(item.GrossProfit, item.VoucherType);  // ▲処理含む、仕入データ制御
                 
                 // 新規プロパティの設定
                 row["RowType"] = item.RowType;
@@ -1366,33 +1368,50 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         /// <summary>
-        /// 単価フォーマット（小数2桁）
+        /// 単価フォーマット（整数部7桁、小数部は四捨五入して整数表示）
         /// </summary>
         private string FormatUnitPrice(decimal value)
         {
-            return value == 0 ? "" : value.ToString("#,##0.00");
+            return value == 0 ? "" : Math.Round(value, 0).ToString("#,##0");
         }
         
         /// <summary>
-        /// 金額フォーマット（整数、カンマ区切り）
+        /// 金額フォーマット（整数部8桁、マイナスは▲表示）
         /// </summary>
         private string FormatAmount(decimal value)
         {
-            return value == 0 ? "" : value.ToString("#,##0");
+            if (value == 0) return "";
+            
+            if (value < 0)
+            {
+                // マイナスの場合は▲記号を先頭に付ける
+                return "▲" + Math.Abs(Math.Round(value, 0)).ToString("#,##0");
+            }
+            
+            return Math.Round(value, 0).ToString("#,##0");
         }
         
         /// <summary>
-        /// 粗利益フォーマット（負の値は▲記号）
+        /// 粗利益フォーマット（整数部7桁、マイナスは▲表示）
+        /// 仕入データ（11,12）と振替データでは空白を返す
         /// </summary>
-        private string FormatGrossProfit(decimal value)
+        private string FormatGrossProfit(decimal value, string voucherType = "")
         {
+            // 仕入データ（11,12）と振替データでは粗利益を表示しない
+            if (voucherType == "11" || voucherType == "12" || voucherType == "振替")
+            {
+                return "";
+            }
+            
             if (value == 0) return "";
+            
             if (value < 0)
             {
-                // 負の値は絶対値に▲を付ける
-                return Math.Abs(value).ToString("#,##0") + "▲";
+                // マイナスの場合は▲記号を先頭に付ける
+                return "▲" + Math.Abs(Math.Round(value, 0)).ToString("#,##0");
             }
-            return value.ToString("#,##0");
+            
+            return Math.Round(value, 0).ToString("#,##0");
         }
         
         /// <summary>
@@ -1612,7 +1631,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 RemainingQuantity = FormatQuantity(data.RemainingQuantity),
                 UnitPrice = FormatUnitPrice(data.UnitPrice),
                 Amount = FormatAmount(data.Amount),
-                GrossProfit = FormatGrossProfit(data.GrossProfit)
+                GrossProfit = FormatGrossProfit(data.GrossProfit, data.VoucherType)
             };
         }
         
@@ -1649,7 +1668,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 RemainingQuantity = FormatQuantity(data.RemainingQuantity),
                 UnitPrice = FormatUnitPrice(data.UnitPrice),
                 Amount = FormatAmount(data.Amount),
-                GrossProfit = FormatGrossProfit(data.GrossProfit)
+                GrossProfit = FormatGrossProfit(data.GrossProfit, data.VoucherType)
             };
         }
         
@@ -1728,7 +1747,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 RemainingQuantity = FormatQuantity(currentBalance),
                 UnitPrice = FormatUnitPrice(inventoryUnitPrice),
                 Amount = FormatAmount(inventoryAmount),
-                GrossProfit = FormatGrossProfit(grossProfit),
+                GrossProfit = FormatGrossProfit(grossProfit, ""),
                 CustomerSupplierName = FormatPercentage(grossProfitRate),  // 粗利率
                 
                 // その他の情報はクリア
@@ -1755,6 +1774,37 @@ namespace InventorySystem.Reports.FastReport.Services
         }
         
         // === 集計計算メソッド ===
+        
+        /// <summary>
+        /// 文字列を指定文字数で切り詰め（全角2バイト、半角1バイトとして計算）
+        /// </summary>
+        /// <param name="input">入力文字列</param>
+        /// <param name="maxCharCount">最大文字数（全角換算）</param>
+        /// <returns>切り詰められた文字列</returns>
+        private string TruncateString(string input, int maxCharCount)
+        {
+            if (string.IsNullOrEmpty(input)) return "";
+            
+            // 単純な文字数カウント方式（全角も半角も1文字として扱う）
+            if (input.Length <= maxCharCount)
+                return input;
+            
+            return input.Substring(0, maxCharCount);
+        }
+
+        /// <summary>
+        /// 伝票番号の下4桁を取得
+        /// </summary>
+        private string GetLast4Digits(string voucherNumber)
+        {
+            if (string.IsNullOrEmpty(voucherNumber)) return "";
+            
+            // 数字のみを抽出
+            var digits = new string(voucherNumber.Where(char.IsDigit).ToArray());
+            
+            // 4桁以上なら下4桁、それ以下ならそのまま返す
+            return digits.Length >= 4 ? digits.Substring(digits.Length - 4) : digits;
+        }
         
     }
 }
