@@ -980,29 +980,28 @@ namespace InventorySystem.Reports.FastReport.Services
             */
             
             // === PAGE_BREAK行による改ページ処理 ===
-            var dataBand = report.FindObject("Data1") as FR.DataBand;
-            if (dataBand != null)
+            var pageBreakDataBand = report.FindObject("Data1") as FR.DataBand;
+            if (pageBreakDataBand != null)
             {
-                dataBand.BeforePrint += (sender, e) =>
+                pageBreakDataBand.BeforePrint += (sender, e) =>
                 {
                     var currentRowType = report.GetVariableValue("ProductAccount.RowType")?.ToString();
                     if (currentRowType == RowTypes.PageBreak)
                     {
                         // PAGE_BREAK行は表示しない
-                        dataBand.Visible = false;
+                        pageBreakDataBand.Visible = false;
                         // 改ページを実行
                         var engine = report.Engine;
-                        if (engine != null && engine.CurPage != null)
+                        if (engine != null)
                         {
-                            engine.ShowBand(engine.CurPage);
-                            engine.NewPage();
+                            engine.StartNewPage();
                         }
                         _logger.LogInformation($"PAGE_BREAK行を検出し改ページを実行");
                     }
                     else
                     {
                         // 通常の行は表示
-                        dataBand.Visible = true;
+                        pageBreakDataBand.Visible = true;
                     }
                 };
                 _logger.LogInformation("DataBandにPAGE_BREAK改ページ処理を設定しました");
