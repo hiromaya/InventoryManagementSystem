@@ -57,18 +57,19 @@
       <TextObject Name="Header15" Left="1246" Top="50" Width="102" Height="30" Text="粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Header16" Left="1348" Top="50" Width="164" Height="30" Text="取引先名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    <!-- 担当者ごとの改ページ機能を復活 -->
+    
+    <!-- 入れ子構造のGroupHeaderBand -->
     <GroupHeaderBand Name="StaffGroupHeader" Top="84" Width="1512" Height="30" StartNewPage="true" KeepWithData="true" Condition="[ProductAccount.ProductCategory1]">
       <TextObject Name="StaffHeader" Width="300" Height="30" Text="担当者：[ProductAccount.ProductCategory1Name]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+      
+      <!-- 35行改ページ用GroupHeaderBandを内側に配置 -->
+      <GroupHeaderBand Name="PageGroupHeader" Top="0" Width="1512" Height="0" StartNewPage="true" KeepWithData="true" Condition="[ProductAccount.PageGroup]">
+        <!-- Height="0"で非表示（改ページ専用） -->
+      </GroupHeaderBand>
     </GroupHeaderBand>
     
-    <!-- 新規追加：35行改ページ用GroupHeaderBand -->
-    <GroupHeaderBand Name="PageGroupHeader" Top="118" Width="1512" Height="0" StartNewPage="true" KeepWithData="true" Condition="[ProductAccount.PageGroup]">
-      <!-- Height="0"で非表示（改ページ専用） -->
-    </GroupHeaderBand>
-    
-    <!-- 既存のDataBand（Top値を調整） -->
-    <DataBand Name="Data1" Top="122" Width="1512" Height="20" DataSource="ProductAccount">
+    <!-- DataBand -->
+    <DataBand Name="Data1" Top="118" Width="1512" Height="20" DataSource="ProductAccount">
       <TextObject Name="Data1" Width="150" Height="20" Text="[ProductAccount.ProductName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="Data2" Left="150" Width="53" Height="20" Text="[ProductAccount.ShippingMarkCode]" HorzAlign="Center" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
       <TextObject Name="Data3" Left="203" Width="91" Height="20" Text="[ProductAccount.ShippingMarkName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
@@ -86,7 +87,8 @@
       <TextObject Name="Data15" Left="1246" Width="102" Height="20" Text="[ProductAccount.GrossProfit]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
       <TextObject Name="Data16" Left="1348" Width="164" Height="20" Text="[ProductAccount.CustomerSupplierName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
     </DataBand>
-    <PageFooterBand Name="PageFooter1" Top="138" Width="1512" Height="20">
+    
+    <PageFooterBand Name="PageFooter1" Top="142" Width="1512" Height="20">
       <TextObject Name="Footer" Width="1512" Height="20" Text="在庫管理システム - 商品勘定" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
     </PageFooterBand>
   </ReportPage>
