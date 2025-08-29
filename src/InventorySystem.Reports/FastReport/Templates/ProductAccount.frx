@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" TextQuality="Regular" ReportInfo.Description="商品勘定帳票" ReportInfo.Created="2025-01-01" ReportInfo.Modified="08/29/2025 11:39:23" ReportInfo.CreatorVersion="2024.1.3.0">
+<Report ScriptLanguage="None" TextQuality="Regular" ReportInfo.Description="商品勘定帳票" ReportInfo.Created="2025-01-01" ReportInfo.Modified="08/29/2025 11:39:23" ReportInfo.CreatorVersion="2024.1.3.0">
   <Dictionary>
     <TableDataSource Name="ProductAccount" ReferenceName="ProductAccount" DataType="System.Int32" Enabled="true">
       <Column Name="ProductCategory1" DataType="System.String"/>
