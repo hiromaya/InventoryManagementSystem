@@ -57,8 +57,10 @@
       <TextObject Name="Header16" Left="1348" Top="50" Width="164" Height="30" Text="取引先名" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
     <!-- 担当者ごとの改ページ機能を復活 -->
-    <GroupHeaderBand Name="StaffGroupHeader" Top="84" Width="1512" Height="1" StartNewPage="true" KeepWithData="true" Condition="[ProductAccount.ProductCategory1]"/>
-    <DataBand Name="Data1" Top="89" Width="1512" Height="20" DataSource="ProductAccount">
+    <GroupHeaderBand Name="StaffGroupHeader" Top="84" Width="1512" Height="30" StartNewPage="true" KeepWithData="true" Condition="[ProductAccount.ProductCategory1]">
+      <TextObject Name="StaffHeader" Width="300" Height="30" Text="担当者：[ProductAccount.ProductCategory1Name]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+    </GroupHeaderBand>
+    <DataBand Name="Data1" Top="114" Width="1512" Height="20" DataSource="ProductAccount">
       <TextObject Name="Data1" Width="150" Height="20" Text="[ProductAccount.ProductName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="Data2" Left="150" Width="53" Height="20" Text="[ProductAccount.ShippingMarkCode]" HorzAlign="Center" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
       <TextObject Name="Data3" Left="203" Width="91" Height="20" Text="[ProductAccount.ShippingMarkName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
@@ -76,7 +78,7 @@
       <TextObject Name="Data15" Left="1246" Width="102" Height="20" Text="[ProductAccount.GrossProfit]" HorzAlign="Right" VertAlign="Center" Font="MS UI Gothic, 9pt"/>
       <TextObject Name="Data16" Left="1348" Width="164" Height="20" Text="[ProductAccount.CustomerSupplierName]" VertAlign="Center" WordWrap="false" Font="MS UI Gothic, 9pt" Trimming="EllipsisCharacter"/>
     </DataBand>
-    <PageFooterBand Name="PageFooter1" Top="113" Width="1512" Height="20">
+    <PageFooterBand Name="PageFooter1" Top="138" Width="1512" Height="20">
       <TextObject Name="Footer" Width="1512" Height="20" Text="在庫管理システム - 商品勘定" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt" TextFill.Color="Gray"/>
     </PageFooterBand>
   </ReportPage>
