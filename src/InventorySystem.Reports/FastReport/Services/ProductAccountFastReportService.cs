@@ -841,29 +841,8 @@ namespace InventorySystem.Reports.FastReport.Services
             _logger.LogInformation("商品勘定レポートテンプレートを読み込んでいます...");
             report.Load(_templatePath);
             
-            // .NET 8対応: ScriptLanguageを強制的にNoneに設定
-            try
-            {
-                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
-                if (scriptLanguageProperty != null)
-                {
-                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
-                    if (scriptLanguageType.IsEnum)
-                    {
-                        var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>()
-                            .FirstOrDefault(v => v.ToString() == "None");
-                        if (noneValue != null)
-                        {
-                            scriptLanguageProperty.SetValue(report, noneValue);
-                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
-            }
+            // スクリプトを完全に無効化
+            SetScriptLanguageToNone(report);
             
             // フラットデータをDataTableに変換
             var dataTable = CreateFlatDataTable(flatData);
@@ -1039,30 +1018,8 @@ namespace InventorySystem.Reports.FastReport.Services
             // テンプレート読込
             report.Load(_templatePath);
             
-            // スクリプト無効化（アンマッチリストと完全に同じ方法）
-            try
-            {
-                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
-                if (scriptLanguageProperty != null)
-                {
-                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
-                    if (scriptLanguageType.IsEnum)
-                    {
-                        var noneValue = Enum.GetValues(scriptLanguageType).Cast<object>()
-                            .FirstOrDefault(v => v.ToString() == "None");
-                        if (noneValue != null)
-                        {
-                            scriptLanguageProperty.SetValue(report, noneValue);
-                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
-                // エラーが発生しても処理を継続
-            }
+            // スクリプトを完全に無効化
+            SetScriptLanguageToNone(report);
             
             // データ加工：従来のGroupHeaderBand方式（新実装では使用しない）
             _logger.LogInformation("データ設定：従来形式（GroupHeaderBand対応）");
@@ -1275,14 +1232,16 @@ namespace InventorySystem.Reports.FastReport.Services
             int rowCount = 0;                           // 全体の行数
             int rowCountInCurrentStaffGroup = 0;        // 現在の担当者グループ内での行数
             string currentStaffCode = "";               // 現在処理中の担当者コード
+            string currentStaffName = "";               // 担当者名保持用
             int debugCount = 0;                         // デバッグ用
 
             // 既存のデバッグログ（削除しない）
             _logger.LogCritical("=== フラットデータ処理開始 ===");
             _logger.LogCritical($"フラットデータ件数: {flatData.Count}");
             
-            foreach (var item in flatData)
+            for (int i = 0; i < flatData.Count; i++)
             {
+                var item = flatData[i];
                 if (debugCount < 3)  // 最初の3件のみログ出力
                 {
                     _logger.LogCritical($"=== フラットデータ {debugCount + 1} ===");
@@ -1299,6 +1258,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 if (currentStaffCode != item.ProductCategory1)
                 {
                     currentStaffCode = item.ProductCategory1;
+                    currentStaffName = item.ProductCategory1Name;  // 担当者名を保持
                     rowCountInCurrentStaffGroup = 0;  // 担当者が変わったらリセット
                     
                     _logger.LogCritical($"担当者変更: 新担当者={currentStaffCode}, グループ内行数リセット");
@@ -1358,30 +1318,18 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 35行に達した場合、かつ次のデータが存在する場合
                 if (rowCountInCurrentStaffGroup % 35 == 0)
                 {
-                    // 次のデータが存在するかチェック
-                    int currentIndex = flatData.FindIndex(x => 
-                        x.ProductCategory1 == item.ProductCategory1 && 
-                        x.ProductCode == item.ProductCode &&
-                        x.RowSequence == item.RowSequence);
+                    // 次のデータが存在し、かつ同じ担当者の場合のみダミー行挿入
+                    bool hasNext = (i + 1) < flatData.Count;
+                    bool isSameStaff = hasNext && flatData[i + 1].ProductCategory1 == currentStaffCode;
                     
-                    bool hasNext = currentIndex >= 0 && currentIndex < flatData.Count - 1;
-                    bool isLastInGroup = false;
-                    
-                    if (hasNext)
-                    {
-                        var nextItem = flatData[currentIndex + 1];
-                        isLastInGroup = nextItem.ProductCategory1 != currentStaffCode;
-                    }
-                    
-                    // 次のデータが存在し、かつ担当者が同じ場合はダミー改ページ行を挿入
-                    if (hasNext && !isLastInGroup)
+                    if (hasNext && isSameStaff)
                     {
                         var pageBreakRow = table.NewRow();
                         
                         // ダミー改ページ行の基本設定
                         pageBreakRow["RowType"] = RowTypes.PageBreak;
                         pageBreakRow["ProductCategory1"] = currentStaffCode;
-                        pageBreakRow["ProductCategory1Name"] = item.ProductCategory1Name;
+                        pageBreakRow["ProductCategory1Name"] = currentStaffName;
                         pageBreakRow["PageGroup"] = pageGroup;
                         
                         // その他のフィールドは空文字
@@ -2015,6 +1963,47 @@ namespace InventorySystem.Reports.FastReport.Services
             
             // 4桁以上なら下4桁、それ以下ならそのまま返す
             return digits.Length >= 4 ? digits.Substring(digits.Length - 4) : digits;
+        }
+        
+        /// <summary>
+        /// FastReportのスクリプトを完全に無効化する
+        /// </summary>
+        private void SetScriptLanguageToNone(FR.Report report)
+        {
+            try
+            {
+                // ScriptLanguageをNoneに設定
+                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                if (scriptLanguageProperty != null)
+                {
+                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                    if (scriptLanguageType.IsEnum)
+                    {
+                        var noneValue = Enum.GetValues(scriptLanguageType)
+                            .Cast<object>()
+                            .FirstOrDefault(v => v.ToString() == "None");
+                        
+                        if (noneValue != null)
+                        {
+                            scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                        }
+                    }
+                }
+                
+                // Scriptプロパティをnullに設定（重要）
+                var scriptProperty = report.GetType().GetProperty("Script", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (scriptProperty != null)
+                {
+                    scriptProperty.SetValue(report, null);
+                    _logger.LogInformation("Scriptプロパティをnullに設定しました");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+            }
         }
         
     }
