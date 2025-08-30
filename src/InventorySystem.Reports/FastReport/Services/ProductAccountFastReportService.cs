@@ -120,6 +120,368 @@ namespace InventorySystem.Reports.FastReport.Services
                 throw new InvalidOperationException("商品勘定帳票PDFの生成に失敗しました", ex);
             }
         }
+
+        /// <summary>
+        /// 各担当者のページ情報を計算
+        /// </summary>
+        private List<StaffReportData> CalculateAllStaffPages(
+            IEnumerable<IGrouping<dynamic, ProductAccountReportModel>> staffGroups, 
+            DateTime jobDate)
+        {
+            const int ROWS_PER_PAGE = 35;
+            var result = new List<StaffReportData>();
+            int totalPages = 0;
+            
+            _logger.LogInformation("=== 担当者別ページ計算開始 ===");
+            
+            foreach (var group in staffGroups)
+            {
+                var staffCode = group.Key.Code ?? "";
+                var staffName = group.Key.Name ?? "";
+                
+                _logger.LogInformation("担当者処理開始: {Code} {Name}", staffCode, staffName);
+                
+                // フラットデータを生成（小計行含む）
+                var flatData = GenerateStaffFlatData(group.ToList(), staffCode, staffName);
+                
+                // 実データ行数を計算
+                int dataRowCount = flatData.Count(x => 
+                    x.RowType == RowTypes.Detail || 
+                    x.RowType == RowTypes.ProductSubtotalHeader ||
+                    x.RowType == RowTypes.ProductSubtotal ||
+                    x.RowType == RowTypes.BlankLine);
+                
+                // 必要ページ数を計算
+                int requiredPages = (int)Math.Ceiling(dataRowCount / (double)ROWS_PER_PAGE);
+                
+                var pageInfo = new StaffPageInfo
+                {
+                    StaffCode = staffCode,
+                    StaffName = staffName,
+                    DataRowCount = dataRowCount,
+                    RequiredPages = requiredPages,
+                    StartPageNumber = totalPages + 1,
+                    EndPageNumber = totalPages + requiredPages
+                };
+                
+                totalPages = pageInfo.EndPageNumber;
+                
+                result.Add(new StaffReportData
+                {
+                    PageInfo = pageInfo,
+                    FlatData = flatData
+                });
+                
+                _logger.LogInformation("担当者: {Code} データ行数: {Rows} ページ数: {Pages}", 
+                    staffCode, dataRowCount, requiredPages);
+            }
+            
+            // 全体ページ数を各担当者に設定
+            foreach (var data in result)
+            {
+                data.PageInfo.TotalPages = totalPages;
+            }
+            
+            _logger.LogInformation("=== 担当者別ページ計算完了 総ページ数: {Total} ===", totalPages);
+            return result;
+        }
+
+        /// <summary>
+        /// 担当者別フラットデータ生成（35行固定）
+        /// </summary>
+        private List<ProductAccountFlatRow> GenerateStaffFlatData(
+            List<ProductAccountReportModel> staffData, 
+            string staffCode, 
+            string staffName)
+        {
+            const int ROWS_PER_PAGE = 35;
+            var flatRows = new List<ProductAccountFlatRow>();
+            int sequence = 0;
+            
+            _logger.LogInformation("担当者 {Code} のフラットデータ生成開始 元データ: {Count}件", staffCode, staffData.Count);
+            
+            // 商品キーでグループ化（既存の処理を参考）
+            var productGroups = staffData.GroupBy(x => new {
+                x.ProductCode,
+                x.ProductName,
+                x.GradeCode,
+                x.GradeName,
+                x.ClassCode,
+                x.ClassName,
+                x.ShippingMarkCode,
+                x.ShippingMarkName,
+                x.ManualShippingMark
+            }).OrderBy(g => g.Key.ProductCode)
+              .ThenBy(g => g.Key.ShippingMarkCode)
+              .ThenBy(g => g.Key.ManualShippingMark)
+              .ThenBy(g => g.Key.GradeCode)
+              .ThenBy(g => g.Key.ClassCode);
+            
+            foreach (var productGroup in productGroups)
+            {
+                // 明細行を追加（日付順）
+                foreach (var detail in productGroup.OrderBy(x => x.VoucherDate))
+                {
+                    flatRows.Add(CreateDetailRowFromReportModel(detail, sequence++));
+                }
+                
+                // 小計ヘッダー行
+                flatRows.Add(CreateProductSubtotalHeaderRow(productGroup.Key, staffCode, staffName, sequence++));
+                
+                // 小計行
+                flatRows.Add(CreateProductSubtotalRowFromGroup(productGroup, staffCode, staffName, sequence++));
+                
+                // 空行
+                flatRows.Add(CreateBlankRowForStaff(staffCode, staffName, sequence++));
+            }
+            
+            // 必要ページ数を計算
+            int actualRows = flatRows.Count;
+            int requiredPages = (int)Math.Ceiling(actualRows / (double)ROWS_PER_PAGE);
+            int totalRowsNeeded = requiredPages * ROWS_PER_PAGE;
+            
+            // ダミー行で埋める（新設計の空行）
+            int dummyRowsNeeded = totalRowsNeeded - actualRows;
+            for (int i = 0; i < dummyRowsNeeded; i++)
+            {
+                flatRows.Add(CreateEmptyRowForStaff(staffCode, staffName, sequence++));
+            }
+            
+            _logger.LogInformation("担当者: {Code} 実データ: {Actual}行 ダミー: {Dummy}行 合計: {Total}行", 
+                staffCode, actualRows, dummyRowsNeeded, totalRowsNeeded);
+            
+            return flatRows;
+        }
+
+        /// <summary>
+        /// ReportModelから詳細行を作成（新設計用）
+        /// </summary>
+        private ProductAccountFlatRow CreateDetailRowFromReportModel(ProductAccountReportModel data, int sequence)
+        {
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.Detail,
+                RowSequence = sequence,
+                ProductCategory1 = data.ProductCategory1 ?? "",
+                ProductCategory1Name = data.GetAdditionalInfo("ProductCategory1Name") ?? "",
+                ProductCode = data.ProductCode ?? "",
+                ProductName = data.ProductName ?? "",
+                ShippingMarkCode = data.ShippingMarkCode ?? "",
+                ShippingMarkName = data.ShippingMarkName ?? "",
+                ManualShippingMark = data.ManualShippingMark ?? "",
+                GradeName = data.GradeName ?? "",
+                ClassName = data.ClassName ?? "",
+                VoucherNumber = data.VoucherNumber ?? "",
+                DisplayCategory = GetDisplayCategory(data.VoucherType ?? "", data.RecordType ?? ""),
+                MonthDay = data.VoucherDate?.ToString("MM/dd") ?? "",
+                PurchaseQuantity = data.VoucherType?.StartsWith("1") == true ? FormatQuantity(data.Quantity) : "",
+                SalesQuantity = data.VoucherType?.StartsWith("5") == true ? FormatQuantity(data.Quantity) : "",
+                RemainingQuantity = FormatQuantity(data.RemainingQuantity),
+                UnitPrice = FormatPrice(data.UnitPrice),
+                Amount = FormatPrice(data.Amount),
+                GrossProfit = data.VoucherType?.StartsWith("5") == true ? FormatPrice(data.GrossProfit) : "",
+                CustomerSupplierName = data.CustomerSupplierName ?? ""
+            };
+        }
+
+        /// <summary>
+        /// 商品別小計ヘッダー行を作成（新設計用）
+        /// </summary>
+        private ProductAccountFlatRow CreateProductSubtotalHeaderRow(dynamic productKey, string staffCode, string staffName, int sequence)
+        {
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.ProductSubtotalHeader,
+                RowSequence = sequence,
+                ProductCategory1 = staffCode,
+                ProductCategory1Name = staffName,
+                ProductName = $"【{productKey.ProductName} 小計】",
+                IsGrayBackground = true,
+                IsBold = true
+            };
+        }
+
+        /// <summary>
+        /// 商品別小計行を作成（新設計用）
+        /// </summary>
+        private ProductAccountFlatRow CreateProductSubtotalRowFromGroup(IGrouping<dynamic, ProductAccountReportModel> productGroup, string staffCode, string staffName, int sequence)
+        {
+            var purchases = productGroup.Where(x => x.VoucherType?.StartsWith("1") == true).Sum(x => x.Quantity);
+            var sales = productGroup.Where(x => x.VoucherType?.StartsWith("5") == true).Sum(x => x.Quantity);
+            var remaining = productGroup.Sum(x => x.RemainingQuantity);
+            var totalAmount = productGroup.Sum(x => x.Amount);
+            var totalGrossProfit = productGroup.Where(x => x.VoucherType?.StartsWith("5") == true).Sum(x => x.GrossProfit);
+
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.ProductSubtotal,
+                RowSequence = sequence,
+                ProductCategory1 = staffCode,
+                ProductCategory1Name = staffName,
+                ProductName = "小計",
+                PurchaseQuantity = FormatQuantity(purchases),
+                SalesQuantity = FormatQuantity(sales),
+                RemainingQuantity = FormatQuantity(remaining),
+                Amount = FormatPrice(totalAmount),
+                GrossProfit = FormatPrice(totalGrossProfit),
+                IsBold = true
+            };
+        }
+
+        /// <summary>
+        /// 空行を作成（新設計用）
+        /// </summary>
+        private ProductAccountFlatRow CreateBlankRowForStaff(string staffCode, string staffName, int sequence)
+        {
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.BlankLine,
+                RowSequence = sequence,
+                ProductCategory1 = staffCode,
+                ProductCategory1Name = staffName
+            };
+        }
+
+        /// <summary>
+        /// 空行を作成（ページ埋め用・新設計用）
+        /// </summary>
+        private ProductAccountFlatRow CreateEmptyRowForStaff(string staffCode, string staffName, int sequence)
+        {
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.Detail,
+                RowSequence = sequence,
+                ProductCategory1 = staffCode,
+                ProductCategory1Name = staffName,
+                // すべてのフィールドを半角スペースで埋める（高さ確保のため）
+                ProductCode = " ",
+                ProductName = " ",
+                ShippingMarkCode = " ",
+                ShippingMarkName = " ",
+                ManualShippingMark = " ",
+                GradeName = " ",
+                ClassName = " ",
+                VoucherNumber = " ",
+                DisplayCategory = " ",
+                MonthDay = " ",
+                PurchaseQuantity = " ",
+                SalesQuantity = " ",
+                RemainingQuantity = " ",
+                UnitPrice = " ",
+                Amount = " ",
+                GrossProfit = " ",
+                CustomerSupplierName = " "
+            };
+        }
+
+        /// <summary>
+        /// 担当者別ページ計算のテスト用メソッド（Phase 2検証用）
+        /// </summary>
+        public void TestPageCalculation(DateTime jobDate, string? departmentCode = null)
+        {
+            try
+            {
+                _logger.LogInformation("=== Phase 2テスト開始：担当者別ページ計算 ===");
+                
+                // Step 1: 全データを取得
+                var allData = GetReportDataDirectly(jobDate, departmentCode);
+                var dataList = allData.ToList();
+                _logger.LogInformation("取得したデータ件数: {Count}", dataList.Count);
+                
+                if (!dataList.Any())
+                {
+                    _logger.LogWarning("テストデータが0件です");
+                    return;
+                }
+                
+                // Step 2: 担当者別にグループ化
+                var staffGroups = dataList.GroupBy(x => new { 
+                    Code = x.ProductCategory1 ?? "", 
+                    Name = x.GetAdditionalInfo("ProductCategory1Name") ?? ""
+                }).OrderBy(g => g.Key.Code);
+                
+                _logger.LogInformation("担当者グループ数: {Count}", staffGroups.Count());
+                
+                // Step 3: 各担当者のページ情報を計算
+                var staffReportDataList = CalculateAllStaffPages(staffGroups, jobDate);
+                
+                // Step 4: 結果をログ出力
+                _logger.LogCritical("=== Phase 2テスト結果 ===");
+                _logger.LogCritical("総担当者数: {StaffCount}", staffReportDataList.Count);
+                _logger.LogCritical("総ページ数: {TotalPages}", staffReportDataList.Sum(x => x.PageInfo.RequiredPages));
+                
+                foreach (var staff in staffReportDataList)
+                {
+                    _logger.LogCritical("担当者: {Code}({Name}) データ行数: {DataRows} ページ数: {Pages} 範囲: {Start}-{End}", 
+                        staff.PageInfo.StaffCode, 
+                        staff.PageInfo.StaffName, 
+                        staff.PageInfo.DataRowCount, 
+                        staff.PageInfo.RequiredPages,
+                        staff.PageInfo.StartPageNumber,
+                        staff.PageInfo.EndPageNumber);
+                        
+                    // フラットデータの詳細確認
+                    var detailRows = staff.FlatData.Count(x => x.RowType == RowTypes.Detail && x.ProductName != " ");
+                    var emptyRows = staff.FlatData.Count(x => x.RowType == RowTypes.Detail && x.ProductName == " ");
+                    var subtotalRows = staff.FlatData.Count(x => x.RowType == RowTypes.ProductSubtotal);
+                    
+                    _logger.LogCritical("  詳細行: {Detail}, 空行: {Empty}, 小計行: {Subtotal}, 合計: {Total}", 
+                        detailRows, emptyRows, subtotalRows, staff.FlatData.Count);
+                }
+                
+                _logger.LogInformation("=== Phase 2テスト完了 ===");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Phase 2テストエラー");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 商品勘定帳票生成（新実装・担当者別処理）
+        /// </summary>
+        public byte[] GenerateProductAccountReport_New(DateTime jobDate, string? departmentCode = null)
+        {
+            try
+            {
+                _logger.LogInformation("=== 商品勘定帳票生成開始（新実装・担当者別処理） ===");
+                
+                // Step 1: 全データを取得
+                var allData = GetReportDataDirectly(jobDate, departmentCode);
+                
+                // Step 2: 担当者別にグループ化
+                var staffGroups = allData.GroupBy(x => new { 
+                    Code = x.ProductCategory1 ?? "", 
+                    Name = x.GetAdditionalInfo("ProductCategory1Name") ?? ""
+                }).OrderBy(g => g.Key.Code);
+                
+                // Step 3: 各担当者のページ情報を計算
+                var staffReportDataList = CalculateAllStaffPages(staffGroups, jobDate);
+                
+                // Step 4: 各担当者のPDFを生成（Phase 3で実装予定）
+                // TODO: Phase 3で実装
+                // foreach (var staffData in staffReportDataList)
+                // {
+                //     GenerateStaffPdf(staffData, jobDate);
+                // }
+                
+                // Step 5: PDFを結合（Phase 3で実装予定）
+                // TODO: Phase 3で実装
+                // var mergedPdf = MergePdfs(staffReportDataList);
+                
+                _logger.LogInformation("=== 商品勘定帳票生成完了（Phase 2テスト） 総ページ数: {Pages} ===", 
+                    staffReportDataList.Sum(x => x.PageInfo.RequiredPages));
+                
+                // Phase 2では旧実装を返す（動作確認のため）
+                return GenerateProductAccountReport_Old(jobDate, departmentCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "商品勘定帳票生成エラー（新実装）");
+                throw;
+            }
+        }
         
         /// <summary>
         /// 商品勘定フラットデータの生成（C#側完全制御）
