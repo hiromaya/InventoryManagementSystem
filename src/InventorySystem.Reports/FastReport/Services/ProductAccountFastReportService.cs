@@ -1381,7 +1381,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 .Count(r => r["RowType"]?.ToString() == RowTypes.Dummy);
 
             // 担当者ごとのデータ件数を集計
-            var staffGroups = table.Rows.Cast<DataRow>()
+            var debugStaffGroups = table.Rows.Cast<DataRow>()
                 .GroupBy(r => r["ProductCategory1"]?.ToString() ?? "")
                 .Select(g => new { 
                     StaffCode = g.Key, 
@@ -1395,7 +1395,7 @@ namespace InventorySystem.Reports.FastReport.Services
             _logger.LogCritical($"DataTable総行数: {table.Rows.Count}");
             _logger.LogCritical($"DUMMY行総数: {dummyCount}");
 
-            foreach (var staff in staffGroups)
+            foreach (var staff in debugStaffGroups)
             {
                 _logger.LogCritical($"担当者 {staff.StaffCode}: " +
                                     $"総行数={staff.TotalRows}, " +
