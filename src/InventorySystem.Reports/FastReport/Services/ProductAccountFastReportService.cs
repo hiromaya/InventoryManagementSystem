@@ -498,7 +498,7 @@ namespace InventorySystem.Reports.FastReport.Services
                                 var page = staffReport.PreparedPages.GetPage(i);
                                 if (page != null)
                                 {
-                                    mergedReport.PreparedPages.Add(page);
+                                    mergedReport.PreparedPages.AddPage(page);
                                 }
                             }
                         }
