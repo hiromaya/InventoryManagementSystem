@@ -384,6 +384,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 staffData.PageInfo.StartPageNumber,
                 staffData.PageInfo.EndPageNumber);
             
+            _logger.LogCritical("FlatData件数: {0}", staffData.FlatData?.Count ?? 0);
+
+            
             // 既存のCreateFlatDataTable_Oldメソッドを利用して空のDataTableを取得
             // これにより、すべての必要なカラムが確実に定義される
             var emptyFlatData = new List<ProductAccountFlatRow>();
@@ -422,6 +425,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
             }
             
+            _logger.LogCritical("実際のDataTable行数: {0}", table.Rows.Count);
+
             _logger.LogInformation("担当者 {0} DataTable作成完了 行数: {1}", 
                 staffData.PageInfo.StaffCode, table.Rows.Count);
             
