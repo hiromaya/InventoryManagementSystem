@@ -47,7 +47,7 @@ namespace InventorySystem.Reports.FastReport.Services
         public byte[] GenerateProductAccountReport(DateTime jobDate, string? departmentCode = null)
         {
             // フィーチャーフラグで新旧実装を切り替え
-            bool useNewImplementation = false; // Phase 4で切り替え
+            bool useNewImplementation = true; // Phase 4: 新実装有効化
             
             if (useNewImplementation)
             {
@@ -375,6 +375,165 @@ namespace InventorySystem.Reports.FastReport.Services
         }
 
         /// <summary>
+        /// 担当者別DataTable作成（ページ番号付き）
+        /// </summary>
+        private DataTable CreateStaffDataTable(StaffReportData staffData)
+        {
+            var table = new DataTable("ProductAccount");
+            
+            // 既存のカラム定義を流用（CreateFlatDataTable_Oldを参考）
+            table.Columns.Add("ProductCategory1", typeof(string));       // 担当者コード
+            table.Columns.Add("ProductCategory1Name", typeof(string));   // 担当者名
+            table.Columns.Add("ProductCode", typeof(string));
+            table.Columns.Add("ProductName", typeof(string));
+            table.Columns.Add("ShippingMarkCode", typeof(string));
+            table.Columns.Add("ShippingMarkName", typeof(string));
+            table.Columns.Add("ManualShippingMark", typeof(string));
+            table.Columns.Add("GradeCode", typeof(string));
+            table.Columns.Add("GradeName", typeof(string));
+            table.Columns.Add("ClassCode", typeof(string));
+            table.Columns.Add("ClassName", typeof(string));
+            table.Columns.Add("VoucherNumber", typeof(string));
+            table.Columns.Add("DisplayCategory", typeof(string));
+            table.Columns.Add("MonthDay", typeof(string));
+            table.Columns.Add("PurchaseQuantity", typeof(string));
+            table.Columns.Add("SalesQuantity", typeof(string));
+            table.Columns.Add("RemainingQuantity", typeof(string));
+            table.Columns.Add("UnitPrice", typeof(string));
+            table.Columns.Add("Amount", typeof(string));
+            table.Columns.Add("GrossProfit", typeof(string));
+            table.Columns.Add("CustomerSupplierName", typeof(string));
+            table.Columns.Add("GroupKey", typeof(string));
+            table.Columns.Add("RowType", typeof(string));
+            table.Columns.Add("IsGrayBackground", typeof(string));
+            table.Columns.Add("IsPageBreak", typeof(string));
+            table.Columns.Add("RowSequence", typeof(string));
+            table.Columns.Add("PageGroup", typeof(string));
+            
+            // Phase 3新規：ページ番号カラム追加
+            table.Columns.Add("PageDisplay", typeof(string));
+            
+            int currentPage = staffData.PageInfo.StartPageNumber;
+            int rowInPage = 0;
+            
+            _logger.LogInformation("担当者 {0} DataTable作成開始 ページ範囲: {1}-{2}", 
+                staffData.PageInfo.StaffCode, 
+                staffData.PageInfo.StartPageNumber, 
+                staffData.PageInfo.EndPageNumber);
+            
+            foreach (var flatRow in staffData.FlatData)
+            {
+                var row = table.NewRow();
+                
+                // ページ番号設定
+                row["PageDisplay"] = $"{currentPage} / {staffData.PageInfo.TotalPages} 頁";
+                
+                // 既存のMapFlatRowToDataRow処理を適用
+                MapFlatRowToDataRow(flatRow, row);
+                
+                table.Rows.Add(row);
+                
+                rowInPage++;
+                if (rowInPage >= 35)
+                {
+                    currentPage++;
+                    rowInPage = 0;
+                }
+            }
+            
+            _logger.LogInformation("担当者 {0} DataTable作成完了 行数: {1}", 
+                staffData.PageInfo.StaffCode, table.Rows.Count);
+            
+            return table;
+        }
+
+        /// <summary>
+        /// 担当者別PDF生成・結合（FastReport内蔵マージ機能使用）
+        /// </summary>
+        private byte[] GenerateAndMergeStaffPdfs(List<StaffReportData> staffDataList, DateTime jobDate)
+        {
+            _logger.LogInformation("=== 担当者別PDF生成・結合開始 ===");
+            
+            FR.Report? mergedReport = null;
+            bool isFirst = true;
+            
+            try
+            {
+                foreach (var staffData in staffDataList)
+                {
+                    _logger.LogInformation("担当者 {0} のPDF生成中...", staffData.PageInfo.StaffCode);
+                    
+                    using var staffReport = new FR.Report();
+                    staffReport.Load(_templatePath);
+                    
+                    // スクリプト無効化
+                    SetScriptLanguageToNone(staffReport);
+                    
+                    // DataTable作成とデータ登録
+                    var dataTable = CreateStaffDataTable(staffData);
+                    staffReport.RegisterData(dataTable, "ProductAccount");
+                    staffReport.GetDataSource("ProductAccount").Enabled = true;
+                    
+                    // パラメータ設定
+                    staffReport.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
+                    staffReport.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
+                    staffReport.SetParameterValue("TotalCount", staffDataList.Sum(x => x.FlatData.Count).ToString());
+                    
+                    // レポート準備
+                    staffReport.Prepare();
+                    
+                    // マージ処理
+                    if (isFirst)
+                    {
+                        mergedReport = new FR.Report();
+                        mergedReport.LoadPrepared(staffReport);
+                        isFirst = false;
+                    }
+                    else
+                    {
+                        if (mergedReport != null)
+                        {
+                            mergedReport.PreparedPages.AddSourcePages(staffReport.PreparedPages);
+                        }
+                    }
+                    
+                    _logger.LogInformation("担当者 {0} のPDF生成完了", staffData.PageInfo.StaffCode);
+                }
+                
+                if (mergedReport == null)
+                {
+                    throw new InvalidOperationException("結合するレポートがありません");
+                }
+                
+                // 結合されたレポートをPDF出力
+                using var pdfExport = new PDFExport
+                {
+                    EmbeddingFonts = true,
+                    Title = $"商品勘定_{jobDate:yyyyMMdd}",
+                    Subject = "商品勘定帳票",
+                    Creator = "在庫管理システム",
+                    Author = "SE3",
+                    TextInCurves = false,
+                    JpegQuality = 95,
+                    OpenAfterExport = false
+                };
+                
+                using var stream = new MemoryStream();
+                mergedReport.Export(pdfExport, stream);
+                
+                var result = stream.ToArray();
+                _logger.LogInformation("=== PDF結合完了 サイズ: {0} bytes 総ページ数: {1} ===", 
+                    result.Length, staffDataList.Sum(x => x.PageInfo.RequiredPages));
+                
+                return result;
+            }
+            finally
+            {
+                mergedReport?.Dispose();
+            }
+        }
+
+        /// <summary>
         /// 担当者別ページ計算のテスト用メソッド（Phase 2検証用）
         /// </summary>
         public void TestPageCalculation(DateTime jobDate, string? departmentCode = null)
@@ -445,40 +604,41 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             try
             {
-                _logger.LogInformation("=== 商品勘定帳票生成開始（新実装・担当者別処理） ===");
+                _logger.LogInformation("=== 商品勘定帳票生成開始（新設計：担当者別処理） ===");
                 
-                // Step 1: 全データを取得
+                // Phase 2で実装済みのテストメソッドを活用（詳細ログ確認用）
+                TestPageCalculation(jobDate, departmentCode);
+                
+                // Step 1: 全データ取得
                 var allData = GetReportDataDirectly(jobDate, departmentCode);
+                var dataList = allData.ToList();
                 
-                // Step 2: 担当者別にグループ化
-                var staffGroups = allData.GroupBy(x => new { 
-                    Code = x.ProductCategory1 ?? "", 
-                    Name = x.GetAdditionalInfo("ProductCategory1Name") ?? ""
-                }).OrderBy(g => g.Key.Code);
+                if (!dataList.Any())
+                {
+                    throw new InvalidOperationException("商品勘定データが存在しません");
+                }
                 
-                // Step 3: 各担当者のページ情報を計算
-                var staffReportDataList = CalculateAllStaffPages(staffGroups, jobDate);
+                // Step 2: 担当者別ページ情報計算（Phase 2実装済み）
+                var staffReportDataList = CalculateAllStaffPages(
+                    dataList.GroupBy(x => new { 
+                        Code = x.ProductCategory1 ?? "", 
+                        Name = x.GetAdditionalInfo("ProductCategory1Name") ?? ""
+                    }).OrderBy(g => g.Key.Code),
+                    jobDate
+                );
                 
-                // Step 4: 各担当者のPDFを生成（Phase 3で実装予定）
-                // TODO: Phase 3で実装
-                // foreach (var staffData in staffReportDataList)
-                // {
-                //     GenerateStaffPdf(staffData, jobDate);
-                // }
+                // Step 3: PDF生成・結合（Phase 3新規実装）
+                var mergedPdf = GenerateAndMergeStaffPdfs(staffReportDataList, jobDate);
                 
-                // Step 5: PDFを結合（Phase 3で実装予定）
-                // TODO: Phase 3で実装
-                // var mergedPdf = MergePdfs(staffReportDataList);
-                
-                _logger.LogInformation("=== 商品勘定帳票生成完了（Phase 2テスト） 総ページ数: {Pages} ===", 
+                _logger.LogInformation("=== 商品勘定帳票生成完了（新設計） 総担当者: {Staff}, 総ページ数: {Pages} ===", 
+                    staffReportDataList.Count,
                     staffReportDataList.Sum(x => x.PageInfo.RequiredPages));
                 
-                // Phase 2では旧実装を返す（動作確認のため）
-                return GenerateProductAccountReport_Old(jobDate, departmentCode);
+                return mergedPdf;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "商品勘定帳票生成エラー（新実装）");
+                _logger.LogError(ex, "商品勘定帳票生成エラー（新設計）");
                 throw;
             }
         }
