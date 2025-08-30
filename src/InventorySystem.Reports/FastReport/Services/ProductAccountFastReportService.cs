@@ -525,13 +525,16 @@ namespace InventorySystem.Reports.FastReport.Services
                     }
                 }
                 
+                // Save前に総ページ数を取得
+                int finalPageCount = outputDocument.PageCount;
+                
                 // 最終PDF出力
                 using var resultStream = new MemoryStream();
                 outputDocument.Save(resultStream);
                 
                 var result = resultStream.ToArray();
                 _logger.LogInformation("=== PDF結合完了 サイズ: {0} bytes 総ページ数: {1} ===", 
-                    result.Length, outputDocument.PageCount);
+                    result.Length, finalPageCount);
                 
                 return result;
             }
