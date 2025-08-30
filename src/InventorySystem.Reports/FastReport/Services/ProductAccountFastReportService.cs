@@ -379,47 +379,28 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private DataTable CreateStaffDataTable(StaffReportData staffData)
         {
-            var table = new DataTable("ProductAccount");
+            _logger.LogInformation("担当者 {0} DataTable作成開始 ページ範囲: {1}-{2}", 
+                staffData.PageInfo.StaffCode,
+                staffData.PageInfo.StartPageNumber,
+                staffData.PageInfo.EndPageNumber);
             
-            // 既存のカラム定義を流用（CreateFlatDataTable_Oldを参考）
-            table.Columns.Add("ProductCategory1", typeof(string));       // 担当者コード
-            table.Columns.Add("ProductCategory1Name", typeof(string));   // 担当者名
-            table.Columns.Add("ProductCode", typeof(string));
-            table.Columns.Add("ProductName", typeof(string));
-            table.Columns.Add("ShippingMarkCode", typeof(string));
-            table.Columns.Add("ShippingMarkName", typeof(string));
-            table.Columns.Add("ManualShippingMark", typeof(string));
-            table.Columns.Add("GradeCode", typeof(string));
-            table.Columns.Add("GradeName", typeof(string));
-            table.Columns.Add("ClassCode", typeof(string));
-            table.Columns.Add("ClassName", typeof(string));
-            table.Columns.Add("VoucherNumber", typeof(string));
-            table.Columns.Add("DisplayCategory", typeof(string));
-            table.Columns.Add("MonthDay", typeof(string));
-            table.Columns.Add("PurchaseQuantity", typeof(string));
-            table.Columns.Add("SalesQuantity", typeof(string));
-            table.Columns.Add("RemainingQuantity", typeof(string));
-            table.Columns.Add("UnitPrice", typeof(string));
-            table.Columns.Add("Amount", typeof(string));
-            table.Columns.Add("GrossProfit", typeof(string));
-            table.Columns.Add("CustomerSupplierName", typeof(string));
-            table.Columns.Add("GroupKey", typeof(string));
-            table.Columns.Add("RowType", typeof(string));
-            table.Columns.Add("IsGrayBackground", typeof(string));
-            table.Columns.Add("IsPageBreak", typeof(string));
-            table.Columns.Add("RowSequence", typeof(string));
-            table.Columns.Add("PageGroup", typeof(string));
+            // 既存のCreateFlatDataTable_Oldメソッドを利用して空のDataTableを取得
+            // これにより、すべての必要なカラムが確実に定義される
+            var emptyFlatData = new List<ProductAccountFlatRow>();
+            var table = CreateFlatDataTable_Old(emptyFlatData);
             
-            // Phase 3新規：ページ番号カラム追加
-            table.Columns.Add("PageDisplay", typeof(string));
+            // ページ番号用カラムを追加（存在しない場合のみ）
+            if (!table.Columns.Contains("PageDisplay"))
+            {
+                table.Columns.Add("PageDisplay", typeof(string));
+            }
             
+            // クリアして新しいデータを設定
+            table.Clear();
+            
+            // データを設定
             int currentPage = staffData.PageInfo.StartPageNumber;
             int rowInPage = 0;
-            
-            _logger.LogInformation("担当者 {0} DataTable作成開始 ページ範囲: {1}-{2}", 
-                staffData.PageInfo.StaffCode, 
-                staffData.PageInfo.StartPageNumber, 
-                staffData.PageInfo.EndPageNumber);
             
             foreach (var flatRow in staffData.FlatData)
             {
@@ -428,7 +409,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 // ページ番号設定
                 row["PageDisplay"] = $"{currentPage} / {staffData.PageInfo.TotalPages} 頁";
                 
-                // 既存のMapFlatRowToDataRow処理を適用
+                // 既存のマッピング処理を適用
                 MapFlatRowToDataRow(flatRow, row);
                 
                 table.Rows.Add(row);
