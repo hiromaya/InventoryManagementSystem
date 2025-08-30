@@ -149,7 +149,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     x.RowType == RowTypes.Detail || 
                     x.RowType == RowTypes.ProductSubtotalHeader ||
                     x.RowType == RowTypes.ProductSubtotal ||
-                    x.RowType == RowTypes.BlankLine);
+                    x.RowType == RowTypes.BlankLine));
                 
                 // 必要ページ数を計算
                 int requiredPages = (int)Math.Ceiling(dataRowCount / (double)ROWS_PER_PAGE);
