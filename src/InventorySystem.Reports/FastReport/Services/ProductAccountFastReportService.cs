@@ -1376,11 +1376,11 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             
             // === デバッグ: DUMMY行の確認 ===
-            // DataTable内のDUMMY行をカウント（ProductNameが空でRowTypeがDetailの行）
+            // DataTable内のDUMMY行をカウント（ProductNameが半角スペースでRowTypeがDetailの行）
             var dummyCount = table.Rows.Cast<DataRow>()
                 .Count(r => r["RowType"]?.ToString() == RowTypes.Detail && 
-                           string.IsNullOrEmpty(r["ProductName"]?.ToString()) && 
-                           string.IsNullOrEmpty(r["ProductCode"]?.ToString()));
+                           r["ProductName"]?.ToString() == " " && 
+                           r["ProductCode"]?.ToString() == " ");
 
             // 担当者ごとのデータ件数を集計
             var debugStaffGroups = table.Rows.Cast<DataRow>()
@@ -1389,11 +1389,11 @@ namespace InventorySystem.Reports.FastReport.Services
                     StaffCode = g.Key, 
                     TotalRows = g.Count(),
                     DummyRows = g.Count(r => r["RowType"]?.ToString() == RowTypes.Detail && 
-                                           string.IsNullOrEmpty(r["ProductName"]?.ToString()) && 
-                                           string.IsNullOrEmpty(r["ProductCode"]?.ToString())),
+                                           r["ProductName"]?.ToString() == " " && 
+                                           r["ProductCode"]?.ToString() == " "),
                     DataRows = g.Count(r => !(r["RowType"]?.ToString() == RowTypes.Detail && 
-                                             string.IsNullOrEmpty(r["ProductName"]?.ToString()) && 
-                                             string.IsNullOrEmpty(r["ProductCode"]?.ToString())))
+                                             r["ProductName"]?.ToString() == " " && 
+                                             r["ProductCode"]?.ToString() == " "))
                 });
 
             // 重要情報を目立つログで出力
@@ -1459,24 +1459,24 @@ namespace InventorySystem.Reports.FastReport.Services
             row["ProductCategory1Name"] = staffName;
             row["RowType"] = RowTypes.Detail;
             
-            // 表示フィールドは空白（見た目上の空行）
-            row["ProductCode"] = "";
-            row["ProductName"] = "";  // 空文字（統一性のため）
-            row["ShippingMarkCode"] = "";
-            row["ShippingMarkName"] = "";
-            row["ManualShippingMark"] = "";
-            row["GradeName"] = "";
-            row["ClassName"] = "";
-            row["VoucherNumber"] = "";
-            row["DisplayCategory"] = "";
-            row["MonthDay"] = "";
-            row["PurchaseQuantity"] = "";
-            row["SalesQuantity"] = "";
-            row["RemainingQuantity"] = "";
-            row["UnitPrice"] = "";
-            row["Amount"] = "";
-            row["GrossProfit"] = "";
-            row["CustomerSupplierName"] = "";
+            // 表示フィールドは半角スペース1つ（FastReportが空行を表示するため）
+            row["ProductCode"] = " ";          // ★ 空文字から半角スペースに変更
+            row["ProductName"] = " ";          // ★ 空文字から半角スペースに変更
+            row["ShippingMarkCode"] = " ";     // ★ 空文字から半角スペースに変更
+            row["ShippingMarkName"] = " ";     // ★ 空文字から半角スペースに変更
+            row["ManualShippingMark"] = " ";   // ★ 空文字から半角スペースに変更
+            row["GradeName"] = " ";            // ★ 空文字から半角スペースに変更
+            row["ClassName"] = " ";            // ★ 空文字から半角スペースに変更
+            row["VoucherNumber"] = " ";        // ★ 空文字から半角スペースに変更
+            row["DisplayCategory"] = " ";      // ★ 空文字から半角スペースに変更
+            row["MonthDay"] = " ";             // ★ 空文字から半角スペースに変更
+            row["PurchaseQuantity"] = " ";     // ★ 空文字から半角スペースに変更
+            row["SalesQuantity"] = " ";        // ★ 空文字から半角スペースに変更
+            row["RemainingQuantity"] = " ";    // ★ 空文字から半角スペースに変更
+            row["UnitPrice"] = " ";            // ★ 空文字から半角スペースに変更
+            row["Amount"] = " ";               // ★ 空文字から半角スペースに変更
+            row["GrossProfit"] = " ";          // ★ 空文字から半角スペースに変更
+            row["CustomerSupplierName"] = " "; // ★ 空文字から半角スペースに変更
             
             // 制御フィールド
             row["IsGrayBackground"] = "0";
