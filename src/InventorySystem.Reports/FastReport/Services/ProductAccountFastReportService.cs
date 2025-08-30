@@ -41,7 +41,28 @@ namespace InventorySystem.Reports.FastReport.Services
             _logger.LogInformation("商品勘定テンプレートパス: {Path}", _templatePath);
         }
         
+        /// <summary>
+        /// 商品勘定帳票生成（メイン公開API）
+        /// </summary>
         public byte[] GenerateProductAccountReport(DateTime jobDate, string? departmentCode = null)
+        {
+            // フィーチャーフラグで新旧実装を切り替え
+            bool useNewImplementation = false; // Phase 4で切り替え
+            
+            if (useNewImplementation)
+            {
+                return GenerateProductAccountReport_New(jobDate, departmentCode);
+            }
+            else
+            {
+                return GenerateProductAccountReport_Old(jobDate, departmentCode);
+            }
+        }
+
+        /// <summary>
+        /// 商品勘定帳票生成（旧実装・後方互換用）
+        /// </summary>
+        public byte[] GenerateProductAccountReport_Old(DateTime jobDate, string? departmentCode = null)
         {
             try
             {
@@ -82,7 +103,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 
                 // PDF生成処理
-                var pdfBytes = GeneratePdfReportFromFlatData(flatData, jobDate);
+                var pdfBytes = GeneratePdfReportFromFlatData_Old(flatData, jobDate);
                 
                 _logger.LogInformation("商品勘定帳票PDF生成完了。サイズ: {Size} bytes", pdfBytes.Length);
                 
@@ -829,7 +850,7 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// PDFレポート生成（フラットデータ用、C#側完全制御）
         /// </summary>
-        private byte[] GeneratePdfReportFromFlatData(List<ProductAccountFlatRow> flatData, DateTime jobDate)
+        private byte[] GeneratePdfReportFromFlatData_Old(List<ProductAccountFlatRow> flatData, DateTime jobDate)
         {
             using var report = new FR.Report();
             
@@ -845,7 +866,7 @@ namespace InventorySystem.Reports.FastReport.Services
             SetScriptLanguageToNone(report);
             
             // フラットデータをDataTableに変換
-            var dataTable = CreateFlatDataTable(flatData);
+            var dataTable = CreateFlatDataTable_Old(flatData);
             
             // デバッグログ: フラットデータ版DataTable確認
             _logger.LogCritical("=== フラットデータ版DataTable確認 ===");
@@ -1208,7 +1229,7 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// フラットデータからDataTable作成（C#側完全制御）
         /// </summary>
-        private DataTable CreateFlatDataTable(List<ProductAccountFlatRow> flatData)
+        private DataTable CreateFlatDataTable_Old(List<ProductAccountFlatRow> flatData)
         {
             var table = new DataTable("ProductAccount");
             
