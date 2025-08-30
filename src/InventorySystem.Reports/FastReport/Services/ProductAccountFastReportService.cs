@@ -1375,7 +1375,68 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogInformation($"最終ページの行埋め完了: 担当者={currentStaffCode}, ダミー行数={finalRemainingRows}");
             }
             
-            _logger.LogCritical("DataTable総行数: {TotalRows}", table.Rows.Count);
+            // === デバッグ: DUMMY行の確認 ===
+            // DataTable内のDUMMY行をカウント
+            var dummyCount = table.Rows.Cast<DataRow>()
+                .Count(r => r["RowType"]?.ToString() == RowTypes.Dummy);
+
+            // 担当者ごとのデータ件数を集計
+            var staffGroups = table.Rows.Cast<DataRow>()
+                .GroupBy(r => r["ProductCategory1"]?.ToString() ?? "")
+                .Select(g => new { 
+                    StaffCode = g.Key, 
+                    TotalRows = g.Count(),
+                    DummyRows = g.Count(r => r["RowType"]?.ToString() == RowTypes.Dummy),
+                    DataRows = g.Count(r => r["RowType"]?.ToString() != RowTypes.Dummy)
+                });
+
+            // 重要情報を目立つログで出力
+            _logger.LogCritical("=== 改ページDUMMY行確認 ===");
+            _logger.LogCritical($"DataTable総行数: {table.Rows.Count}");
+            _logger.LogCritical($"DUMMY行総数: {dummyCount}");
+
+            foreach (var staff in staffGroups)
+            {
+                _logger.LogCritical($"担当者 {staff.StaffCode}: " +
+                                    $"総行数={staff.TotalRows}, " +
+                                    $"データ行={staff.DataRows}, " +
+                                    $"DUMMY行={staff.DummyRows}");
+            }
+
+            // 最初の10個のRowTypeを確認
+            _logger.LogCritical("=== 最初の10行のRowType ===");
+            for (int i = 0; i < Math.Min(10, table.Rows.Count); i++)
+            {
+                var rowType = table.Rows[i]["RowType"]?.ToString() ?? "null";
+                var staffCode = table.Rows[i]["ProductCategory1"]?.ToString() ?? "null";
+                _logger.LogCritical($"行{i}: RowType={rowType}, 担当者={staffCode}");
+            }
+
+            // 担当者変更箇所の確認
+            _logger.LogCritical("=== 担当者変更箇所の確認 ===");
+            string previousStaff = "";
+            for (int i = 0; i < table.Rows.Count; i++)
+            {
+                var currentStaff = table.Rows[i]["ProductCategory1"]?.ToString() ?? "";
+                if (previousStaff != "" && previousStaff != currentStaff)
+                {
+                    // 担当者変更を検出
+                    _logger.LogCritical($"行{i}で担当者変更: {previousStaff} → {currentStaff}");
+                    
+                    // 変更前後5行のRowTypeを表示
+                    for (int j = Math.Max(0, i - 5); j < Math.Min(table.Rows.Count, i + 5); j++)
+                    {
+                        var rt = table.Rows[j]["RowType"]?.ToString() ?? "null";
+                        var sc = table.Rows[j]["ProductCategory1"]?.ToString() ?? "null";
+                        var marker = j == i ? " <<<< 変更点" : "";
+                        _logger.LogCritical($"  行{j}: RowType={rt}, 担当者={sc}{marker}");
+                    }
+                }
+                previousStaff = currentStaff;
+            }
+
+            _logger.LogCritical("=== デバッグ終了 ===");
+            
             _logger.LogInformation("フラットDataTable作成完了: {Count}行", table.Rows.Count);
             return table;
         }
@@ -1388,7 +1449,7 @@ namespace InventorySystem.Reports.FastReport.Services
             var row = table.NewRow();
             row["ProductCategory1"] = staffCode;
             row["ProductCategory1Name"] = staffName;
-            row["RowType"] = "DUMMY";
+            row["RowType"] = RowTypes.Dummy;
             
             // 表示フィールドは空白（見た目上の空行）
             row["ProductCode"] = "";

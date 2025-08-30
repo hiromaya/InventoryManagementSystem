@@ -225,4 +225,9 @@ public static class RowTypes
     /// 35行改ページ用ダミー行
     /// </summary>
     public const string PageBreak = "PAGE_BREAK";
+    
+    /// <summary>
+    /// ページ埋め用ダミー行（空行）
+    /// </summary>
+    public const string Dummy = "DUMMY";
 }
