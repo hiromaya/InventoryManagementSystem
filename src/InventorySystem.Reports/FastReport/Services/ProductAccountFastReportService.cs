@@ -1291,13 +1291,21 @@ namespace InventorySystem.Reports.FastReport.Services
                     !string.IsNullOrEmpty(currentStaffCode) && 
                     currentStaffCode != item.ProductCategory1)
                 {
-                    // 残りの行をダミー行で埋める
-                    while (currentPageRows < MAX_ROWS_PER_PAGE)
+                    // 現在のページの残り行数を計算してダミー行で埋める
+                    int remainingRows = MAX_ROWS_PER_PAGE - (currentPageRows % MAX_ROWS_PER_PAGE);
+                    
+                    // 35行ちょうどの場合はダミー行不要
+                    if (remainingRows < MAX_ROWS_PER_PAGE && remainingRows > 0)
                     {
-                        var dummyRow = CreateDummyRow(table, currentStaffCode, currentStaffName);
-                        table.Rows.Add(dummyRow);
-                        currentPageRows++;
-                        _logger.LogDebug($"ダミー行追加: 担当者={currentStaffCode}, 行番号={currentPageRows}");
+                        _logger.LogInformation($"担当者変更前の行埋め: 担当者={currentStaffCode}, 残り行数={remainingRows}, 現在行数={currentPageRows}");
+                        
+                        for (int j = 0; j < remainingRows; j++)
+                        {
+                            var dummyRow = CreateDummyRow(table, currentStaffCode, currentStaffName);
+                            table.Rows.Add(dummyRow);
+                            currentPageRows++;
+                            _logger.LogDebug($"ダミー行追加: 担当者={currentStaffCode}, ダミー行{j+1}/{remainingRows}");
+                        }
                     }
                     
                     // 改ページマーカー行を挿入
@@ -1352,17 +1360,19 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             
             // === 最後の担当者の行埋め処理 ===
-            if (currentPageRows > 0 && currentPageRows < MAX_ROWS_PER_PAGE)
+            int finalRemainingRows = MAX_ROWS_PER_PAGE - (currentPageRows % MAX_ROWS_PER_PAGE);
+            if (currentPageRows > 0 && finalRemainingRows < MAX_ROWS_PER_PAGE && finalRemainingRows > 0)
             {
-                int dummyRowsAdded = 0;
-                while (currentPageRows < MAX_ROWS_PER_PAGE)
+                _logger.LogInformation($"最終担当者の行埋め: 担当者={currentStaffCode}, 残り行数={finalRemainingRows}, 現在行数={currentPageRows}");
+                
+                for (int j = 0; j < finalRemainingRows; j++)
                 {
                     var dummyRow = CreateDummyRow(table, currentStaffCode, currentStaffName);
                     table.Rows.Add(dummyRow);
                     currentPageRows++;
-                    dummyRowsAdded++;
+                    _logger.LogDebug($"最終ダミー行追加: 担当者={currentStaffCode}, ダミー行{j+1}/{finalRemainingRows}");
                 }
-                _logger.LogInformation($"最終ページの行埋め完了: 担当者={currentStaffCode}, ダミー行数={dummyRowsAdded}");
+                _logger.LogInformation($"最終ページの行埋め完了: 担当者={currentStaffCode}, ダミー行数={finalRemainingRows}");
             }
             
             _logger.LogCritical("DataTable総行数: {TotalRows}", table.Rows.Count);
