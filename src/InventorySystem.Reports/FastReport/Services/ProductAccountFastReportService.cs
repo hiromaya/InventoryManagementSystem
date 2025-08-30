@@ -1376,11 +1376,11 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             
             // === デバッグ: DUMMY行の確認 ===
-            // DataTable内のDUMMY行をカウント（ProductNameが半角スペースでRowTypeがDetailの行）
+            // DataTable内のDUMMY行をカウント（ProductNameが"===DUMMY行==="でRowTypeがDetailの行）
             var dummyCount = table.Rows.Cast<DataRow>()
                 .Count(r => r["RowType"]?.ToString() == RowTypes.Detail && 
-                           r["ProductName"]?.ToString() == " " && 
-                           r["ProductCode"]?.ToString() == " ");
+                           r["ProductName"]?.ToString() == "===DUMMY行===" && 
+                           r["ProductCode"]?.ToString() == "DUMMY");
 
             // 担当者ごとのデータ件数を集計
             var debugStaffGroups = table.Rows.Cast<DataRow>()
@@ -1389,11 +1389,11 @@ namespace InventorySystem.Reports.FastReport.Services
                     StaffCode = g.Key, 
                     TotalRows = g.Count(),
                     DummyRows = g.Count(r => r["RowType"]?.ToString() == RowTypes.Detail && 
-                                           r["ProductName"]?.ToString() == " " && 
-                                           r["ProductCode"]?.ToString() == " "),
+                                           r["ProductName"]?.ToString() == "===DUMMY行===" && 
+                                           r["ProductCode"]?.ToString() == "DUMMY"),
                     DataRows = g.Count(r => !(r["RowType"]?.ToString() == RowTypes.Detail && 
-                                             r["ProductName"]?.ToString() == " " && 
-                                             r["ProductCode"]?.ToString() == " "))
+                                             r["ProductName"]?.ToString() == "===DUMMY行===" && 
+                                             r["ProductCode"]?.ToString() == "DUMMY"))
                 });
 
             // 重要情報を目立つログで出力
@@ -1459,24 +1459,24 @@ namespace InventorySystem.Reports.FastReport.Services
             row["ProductCategory1Name"] = staffName;
             row["RowType"] = RowTypes.Detail;
             
-            // 表示フィールドは半角スペース1つ（FastReportが空行を表示するため）
-            row["ProductCode"] = " ";          // ★ 空文字から半角スペースに変更
-            row["ProductName"] = " ";          // ★ 空文字から半角スペースに変更
-            row["ShippingMarkCode"] = " ";     // ★ 空文字から半角スペースに変更
-            row["ShippingMarkName"] = " ";     // ★ 空文字から半角スペースに変更
-            row["ManualShippingMark"] = " ";   // ★ 空文字から半角スペースに変更
-            row["GradeName"] = " ";            // ★ 空文字から半角スペースに変更
-            row["ClassName"] = " ";            // ★ 空文字から半角スペースに変更
-            row["VoucherNumber"] = " ";        // ★ 空文字から半角スペースに変更
-            row["DisplayCategory"] = " ";      // ★ 空文字から半角スペースに変更
-            row["MonthDay"] = " ";             // ★ 空文字から半角スペースに変更
-            row["PurchaseQuantity"] = " ";     // ★ 空文字から半角スペースに変更
-            row["SalesQuantity"] = " ";        // ★ 空文字から半角スペースに変更
-            row["RemainingQuantity"] = " ";    // ★ 空文字から半角スペースに変更
-            row["UnitPrice"] = " ";            // ★ 空文字から半角スペースに変更
-            row["Amount"] = " ";               // ★ 空文字から半角スペースに変更
-            row["GrossProfit"] = " ";          // ★ 空文字から半角スペースに変更
-            row["CustomerSupplierName"] = " "; // ★ 空文字から半角スペースに変更
+            // ★デバッグ用：DUMMYという文字を表示して可視化
+            row["ProductCode"] = "DUMMY";          // ★ 変更
+            row["ProductName"] = "===DUMMY行===";   // ★ 変更（目立つように）
+            row["ShippingMarkCode"] = "DUM";       // ★ 変更
+            row["ShippingMarkName"] = "ダミー";     // ★ 変更
+            row["ManualShippingMark"] = "-";       // ★ 変更
+            row["GradeName"] = "D";                // ★ 変更
+            row["ClassName"] = "D";                // ★ 変更
+            row["VoucherNumber"] = "0000";         // ★ 変更
+            row["DisplayCategory"] = "-";          // ★ 変更
+            row["MonthDay"] = "--/--";             // ★ 変更
+            row["PurchaseQuantity"] = "0.00";      // ★ 変更
+            row["SalesQuantity"] = "0.00";         // ★ 変更
+            row["RemainingQuantity"] = "0.00";     // ★ 変更
+            row["UnitPrice"] = "0";                // ★ 変更
+            row["Amount"] = "0";                   // ★ 変更
+            row["GrossProfit"] = "0";              // ★ 変更
+            row["CustomerSupplierName"] = "ダミー行"; // ★ 変更
             
             // 制御フィールド
             row["IsGrayBackground"] = "0";
