@@ -10,6 +10,8 @@ using System.Text;
 using FastReport;
 using FastReport.Export.Pdf;
 using InventorySystem.Reports.Interfaces;
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
 using InventorySystem.Reports.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
@@ -377,7 +379,7 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// 担当者別DataTable作成（ページ番号付き）
         /// </summary>
-        private DataTable CreateStaffDataTable(StaffReportData staffData)
+        private DataTable CreateStaffDataTable(StaffReportData staffData, int totalPages)
         {
             _logger.LogInformation("担当者 {0} DataTable作成開始 ページ範囲: {1}-{2}", 
                 staffData.PageInfo.StaffCode,
@@ -409,8 +411,8 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 var row = table.NewRow();
                 
-                // ページ番号設定
-                row["PageDisplay"] = $"{currentPage} / {staffData.PageInfo.TotalPages} 頁";
+                // ページ番号設定（全体の総ページ数を使用）
+                row["PageDisplay"] = $"{currentPage} / {totalPages} 頁";
                 
                 // 既存のマッピング処理を適用
                 MapFlatRowToDataRow(flatRow, row);
@@ -434,20 +436,28 @@ namespace InventorySystem.Reports.FastReport.Services
         }
 
         /// <summary>
-        /// 担当者別PDF生成・結合（FastReport内蔵マージ機能使用）
+        /// 担当者別PDF生成・結合（PdfSharp使用）
         /// </summary>
         private byte[] GenerateAndMergeStaffPdfs(List<StaffReportData> staffDataList, DateTime jobDate)
         {
-            _logger.LogInformation("=== 担当者別PDF生成・結合開始 ===");
+            _logger.LogInformation("=== 担当者別PDF生成・結合開始（PdfSharp方式） ===");
             
-            FR.Report? mergedReport = null;
-            bool isFirst = true;
+            // Step 1: 総ページ数の事前計算
+            int totalPages = staffDataList.Sum(x => x.PageInfo.RequiredPages);
+            _logger.LogInformation("総ページ数: {0}", totalPages);
+            
+            var staffPdfs = new List<byte[]>();
+            int globalPageNumber = 1;
             
             try
             {
+                // Step 2: 各担当者のPDF生成
                 foreach (var staffData in staffDataList)
                 {
-                    _logger.LogInformation("担当者 {0} のPDF生成中...", staffData.PageInfo.StaffCode);
+                    _logger.LogInformation("担当者 {0} のPDF生成中... ページ範囲: {1}-{2}", 
+                        staffData.PageInfo.StaffCode, 
+                        staffData.PageInfo.StartPageNumber, 
+                        staffData.PageInfo.EndPageNumber);
                     
                     using var staffReport = new FR.Report();
                     staffReport.Load(_templatePath);
@@ -455,13 +465,14 @@ namespace InventorySystem.Reports.FastReport.Services
                     // スクリプト無効化
                     SetScriptLanguageToNone(staffReport);
                     
-                    // DataTable作成とデータ登録
-                    var dataTable = CreateStaffDataTable(staffData);
-                    _logger.LogCritical("登録前: 行数={0}, カラム数={1}", 
-                    dataTable.Rows.Count, dataTable.Columns.Count);
+                    // DataTable作成とデータ登録（総ページ数を渡す）
+                    var dataTable = CreateStaffDataTable(staffData, totalPages);
                     dataTable.TableName = "ProductAccount";
                     staffReport.RegisterData(dataTable, "ProductAccount");
                     staffReport.GetDataSource("ProductAccount").Enabled = true;
+                    
+                    // 重要: InitSchemaを追加
+                    staffReport.Dictionary.DataSources[0].InitSchema();
                     
                     // パラメータ設定
                     staffReport.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
@@ -471,61 +482,63 @@ namespace InventorySystem.Reports.FastReport.Services
                     // レポート準備
                     staffReport.Prepare();
                     
-                    // マージ処理
-                    if (isFirst)
+                    // PDF出力
+                    using var pdfExport = new PDFExport
                     {
-                        mergedReport = staffReport;
-                        isFirst = false;
-                    }
-                    else
-                    {
-                        if (mergedReport != null)
-                        {
-                            // PreparedPagesを直接追加
-                            for (int i = 0; i < staffReport.PreparedPages.Count; i++)
-                            {
-                                var page = staffReport.PreparedPages.GetPage(i);
-                                if (page != null)
-                                {
-                                    mergedReport.PreparedPages.AddPage(page);
-                                }
-                            }
-                        }
-                    }
+                        EmbeddingFonts = true,
+                        Title = $"商品勘定_{jobDate:yyyyMMdd}_担当者{staffData.PageInfo.StaffCode}",
+                        Subject = "商品勘定帳票",
+                        Creator = "在庫管理システム",
+                        Author = "SE3",
+                        TextInCurves = false,
+                        JpegQuality = 95,
+                        OpenAfterExport = false
+                    };
                     
-                    _logger.LogInformation("担当者 {0} のPDF生成完了", staffData.PageInfo.StaffCode);
+                    using var stream = new MemoryStream();
+                    staffReport.Export(pdfExport, stream);
+                    
+                    var pdfBytes = stream.ToArray();
+                    staffPdfs.Add(pdfBytes);
+                    
+                    _logger.LogInformation("担当者 {0} PDF生成完了 サイズ: {1} bytes", 
+                        staffData.PageInfo.StaffCode, pdfBytes.Length);
+                    
+                    globalPageNumber += staffData.PageInfo.RequiredPages;
                 }
                 
-                if (mergedReport == null)
+                // Step 3: PdfSharpで結合
+                _logger.LogInformation("PdfSharpでPDF結合開始...");
+                
+                using var outputDocument = new PdfDocument();
+                
+                foreach (var pdfBytes in staffPdfs)
                 {
-                    throw new InvalidOperationException("結合するレポートがありません");
+                    using var inputStream = new MemoryStream(pdfBytes);
+                    using var inputDocument = PdfReader.Open(inputStream, PdfDocumentOpenMode.Import);
+                    
+                    _logger.LogInformation("結合中: {0}ページ", inputDocument.PageCount);
+                    
+                    for (int i = 0; i < inputDocument.PageCount; i++)
+                    {
+                        outputDocument.AddPage(inputDocument.Pages[i]);
+                    }
                 }
                 
-                // 結合されたレポートをPDF出力
-                using var pdfExport = new PDFExport
-                {
-                    EmbeddingFonts = true,
-                    Title = $"商品勘定_{jobDate:yyyyMMdd}",
-                    Subject = "商品勘定帳票",
-                    Creator = "在庫管理システム",
-                    Author = "SE3",
-                    TextInCurves = false,
-                    JpegQuality = 95,
-                    OpenAfterExport = false
-                };
+                // 最終PDF出力
+                using var resultStream = new MemoryStream();
+                outputDocument.Save(resultStream);
                 
-                using var stream = new MemoryStream();
-                mergedReport.Export(pdfExport, stream);
-                
-                var result = stream.ToArray();
+                var result = resultStream.ToArray();
                 _logger.LogInformation("=== PDF結合完了 サイズ: {0} bytes 総ページ数: {1} ===", 
-                    result.Length, staffDataList.Sum(x => x.PageInfo.RequiredPages));
+                    result.Length, outputDocument.PageCount);
                 
                 return result;
             }
-            finally
+            catch (Exception ex)
             {
-                mergedReport?.Dispose();
+                _logger.LogError(ex, "PDF結合処理でエラーが発生しました");
+                throw;
             }
         }
 
