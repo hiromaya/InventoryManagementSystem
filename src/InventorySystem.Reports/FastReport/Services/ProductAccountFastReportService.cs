@@ -1260,170 +1260,208 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("RowSequence", typeof(string));
             table.Columns.Add("PageGroup", typeof(string));           // 35行改ページ用グループ
             
-            // === 35行改ページ制御の実装 ===
-            string currentStaffCode = "";               // 現在処理中の担当者コード
-            string currentStaffName = "";               // 担当者名保持用
-            int currentPageRows = 0;                    // 現在ページの行数
-            const int MAX_ROWS_PER_PAGE = 35;           // 1ページの最大行数
-            int debugCount = 0;                         // デバッグ用
-
-            // 既存のデバッグログ（削除しない）
-            _logger.LogCritical("=== フラットデータ処理開始 ===");
-            _logger.LogCritical($"フラットデータ件数: {flatData.Count}");
+            // === 35行改ページ制御変数 ===
+            string currentStaffCode = "";
+            string currentStaffName = "";
+            int currentPageRows = 0;
+            const int MAX_ROWS_PER_PAGE = 35;
             
-            // 担当者別件数をログ出力
-            var staffGroups = flatData.GroupBy(x => x.ProductCategory1).Select(g => new { 
-                StaffCode = g.Key, 
-                Count = g.Count(),
-                StaffName = g.First().ProductCategory1Name
-            }).ToList();
+            // === 担当者別件数の事前確認（デバッグ用） ===
+            var staffGroups = flatData
+                .Where(x => x.RowType != RowTypes.ProductSubtotal && x.RowType != RowTypes.ProductSubtotalHeader && x.RowType != RowTypes.BlankLine)
+                .GroupBy(x => x.ProductCategory1)
+                .Select(g => new { Code = g.Key, Name = g.First().ProductCategory1Name, Count = g.Count() })
+                .ToList();
             
-            _logger.LogCritical("=== 担当者別件数確認 ===");
+            _logger.LogCritical("=== 担当者別件数確認（小計行除外） ===");
             foreach (var group in staffGroups)
             {
-                _logger.LogCritical($"担当者: {group.StaffCode} ({group.StaffName}) - {group.Count}件");
+                _logger.LogInformation($"担当者: {group.Code} ({group.Name}) - {group.Count}件");
             }
             
+            // === メイン処理ループ ===
             for (int i = 0; i < flatData.Count; i++)
             {
                 var item = flatData[i];
-                if (debugCount < 3)  // 最初の3件のみログ出力
-                {
-                    _logger.LogCritical($"=== フラットデータ {debugCount + 1} ===");
-                    _logger.LogCritical($"  GradeName: '{item.GradeName}'");
-                    _logger.LogCritical($"  ClassName: '{item.ClassName}'");
-                    debugCount++;
-                }
                 
-                var row = table.NewRow();
-                
-                // === 担当者変更チェック ===
-                
-                // 小計行は改ページ判定から除外し、担当者情報を補完
-                if (item.RowType == RowTypes.ProductSubtotal || item.RowType == RowTypes.ProductSubtotalHeader || item.RowType == RowTypes.BlankLine)
+                // === 担当者変更チェック（小計行は除外） ===
+                if (item.RowType != RowTypes.ProductSubtotal && 
+                    item.RowType != RowTypes.ProductSubtotalHeader && 
+                    item.RowType != RowTypes.BlankLine &&
+                    !string.IsNullOrEmpty(currentStaffCode) && 
+                    currentStaffCode != item.ProductCategory1)
                 {
-                    // 小計行・空行は担当者情報を現在の担当者で補完
-                    item.ProductCategory1 = currentStaffCode;
-                    item.ProductCategory1Name = currentStaffName;
-                    _logger.LogDebug($"小計行の担当者情報補完: RowType={item.RowType}, Staff={currentStaffCode}");
-                }
-                else
-                {
-                    // 通常行のみで担当者変更チェック
-                    if (item.RowType != RowTypes.ProductSubtotal && currentStaffCode != item.ProductCategory1)
+                    // 残りの行をダミー行で埋める
+                    while (currentPageRows < MAX_ROWS_PER_PAGE)
                     {
-                        // 改ページ行を挿入（最初の行以外）
-                        if (currentStaffCode != "")
-                        {
-                            var pageBreakRow = table.NewRow();
-                            pageBreakRow["RowType"] = RowTypes.PageBreak;
-                            pageBreakRow["ProductCategory1"] = currentStaffCode;
-                            pageBreakRow["ProductCategory1Name"] = currentStaffName;
-                            
-                            // その他のフィールドは空文字
-                            SetEmptyRowFields(pageBreakRow);
-                            
-                            table.Rows.Add(pageBreakRow);
-                            _logger.LogInformation($"担当者変更による改ページ: {currentStaffCode} → {item.ProductCategory1}");
-                        }
-                        
-                        // 新しい担当者情報を保存
-                        currentStaffCode = item.ProductCategory1;
-                        currentStaffName = item.ProductCategory1Name;
-                        currentPageRows = 0;
-                        
-                        _logger.LogInformation($"新ページ開始: 担当者={currentStaffName}");
+                        var dummyRow = CreateDummyRow(table, currentStaffCode, currentStaffName);
+                        table.Rows.Add(dummyRow);
+                        currentPageRows++;
+                        _logger.LogDebug($"ダミー行追加: 担当者={currentStaffCode}, 行番号={currentPageRows}");
                     }
+                    
+                    // 改ページマーカー行を挿入
+                    var pageBreakRow = CreatePageBreakRow(table, item.ProductCategory1, item.ProductCategory1Name);
+                    table.Rows.Add(pageBreakRow);
+                    
+                    // カウンタリセット
+                    currentPageRows = 0;
+                    currentStaffCode = item.ProductCategory1;
+                    currentStaffName = item.ProductCategory1Name;
+                    _logger.LogInformation($"担当者変更による改ページ: {currentStaffCode} → {item.ProductCategory1}");
                 }
                 
-                // === 35行制限チェック ===
+                // === 新しい担当者の初回設定 ===
+                if (string.IsNullOrEmpty(currentStaffCode) && 
+                    item.RowType != RowTypes.ProductSubtotal && 
+                    item.RowType != RowTypes.ProductSubtotalHeader && 
+                    item.RowType != RowTypes.BlankLine)
+                {
+                    currentStaffCode = item.ProductCategory1;
+                    currentStaffName = item.ProductCategory1Name;
+                    _logger.LogInformation($"新ページ開始: 担当者={currentStaffName}");
+                }
+                
+                // === 35行制限チェック（同一担当者内） ===
                 if (currentPageRows >= MAX_ROWS_PER_PAGE)
                 {
-                    // PAGE_BREAK行を追加（担当者情報を保持）
-                    var pageBreakRow = table.NewRow();
-                    pageBreakRow["RowType"] = RowTypes.PageBreak;
-                    pageBreakRow["ProductCategory1"] = currentStaffCode;
-                    pageBreakRow["ProductCategory1Name"] = currentStaffName;
-                    
-                    // その他のフィールドは空文字
-                    SetEmptyRowFields(pageBreakRow);
-                    
+                    var pageBreakRow = CreatePageBreakRow(table, currentStaffCode, currentStaffName);
                     table.Rows.Add(pageBreakRow);
                     currentPageRows = 0;
-                    
-                    _logger.LogInformation($"ページブレーク挿入: 担当者={currentStaffCode}, 行数={MAX_ROWS_PER_PAGE}");
+                    _logger.LogInformation($"ページブレーク挿入: 担当者={currentStaffCode}, 行数=35");
                 }
                 
-                // 基本フィールド（既にフォーマット済み）
-                // 担当者情報は確実に設定（小計行でも空にならないように）
-                row["ProductCategory1"] = item.ProductCategory1 ?? currentStaffCode;
-                row["ProductCategory1Name"] = item.ProductCategory1Name ?? currentStaffName;
-                row["ProductCode"] = item.ProductCode;
-                row["ProductName"] = item.ProductName;
-                row["ShippingMarkCode"] = item.ShippingMarkCode;
-                row["ShippingMarkName"] = item.ShippingMarkName;
-                row["ManualShippingMark"] = item.ManualShippingMark;
-                row["GradeName"] = item.GradeName;
-                row["ClassName"] = item.ClassName;
+                // === 通常行の追加 ===
+                var dataRow = table.NewRow();
                 
-                // 伝票番号の下4桁処理を適用
-                row["VoucherNumber"] = GetLast4Digits(item.VoucherNumber);
-                row["DisplayCategory"] = item.DisplayCategory;
-                row["MonthDay"] = item.MonthDay;
-                row["PurchaseQuantity"] = item.PurchaseQuantity;
-                row["SalesQuantity"] = item.SalesQuantity;
-                row["RemainingQuantity"] = item.RemainingQuantity;
-                row["UnitPrice"] = item.UnitPrice;
-                row["Amount"] = item.Amount;
-                row["GrossProfit"] = item.GrossProfit;
-                row["CustomerSupplierName"] = item.CustomerSupplierName;
+                // 重要：小計行でも必ずProductCategory1とProductCategory1Nameを設定
+                dataRow["ProductCategory1"] = currentStaffCode;
+                dataRow["ProductCategory1Name"] = currentStaffName;
                 
-                // 制御フィールド
-                row["RowType"] = item.RowType;
-                row["IsGrayBackground"] = item.GrayBackgroundFlag;    // "1"/"0"
-                row["IsPageBreak"] = item.PageBreakFlag;              // "1"/"0"
-                row["IsBold"] = item.BoldFlag;                        // "1"/"0"
-                row["RowSequence"] = item.RowSequence.ToString();
+                // その他のフィールドをマッピング
+                MapFlatRowToDataRow(item, dataRow);
                 
-                // 通常のデータ行を追加
-                table.Rows.Add(row);
-                
-                // 行数カウントアップ（PAGE_BREAK行は除外）
-                if (item.RowType != RowTypes.PageBreak)
-                {
-                    currentPageRows++;
-                }
+                table.Rows.Add(dataRow);
+                currentPageRows++;
                 
                 // デバッグログ：小計行のProductCategory1確認
                 if (item.RowType == RowTypes.ProductSubtotal || item.RowType == RowTypes.ProductSubtotalHeader)
                 {
-                    _logger.LogDebug($"小計行追加: RowType={item.RowType}, ProductCategory1='{row["ProductCategory1"]}', ProductCategory1Name='{row["ProductCategory1Name"]}'");
+                    _logger.LogDebug($"小計行追加: RowType={item.RowType}, ProductCategory1='{dataRow["ProductCategory1"]}', ProductCategory1Name='{dataRow["ProductCategory1Name"]}'");
                 }
             }
             
-            // === デバッグ: DataTable作成後確認ログ ===
-            _logger.LogCritical("=== DataTable荷印名確認（商品00104） ===");
-            var dataTableRows = table.Rows.Cast<DataRow>()
-                .Where(r => r["ProductCode"]?.ToString() == "00104")
-                .Take(5);
-                
-            if (!dataTableRows.Any())
+            // === 最後の担当者の行埋め処理 ===
+            if (currentPageRows > 0 && currentPageRows < MAX_ROWS_PER_PAGE)
             {
-                _logger.LogCritical("商品00104のDataTableが見つかりません。代替として最初の5件を確認します");
-                dataTableRows = table.Rows.Cast<DataRow>().Take(5);
-            }
-            
-            foreach (DataRow row in dataTableRows)
-            {
-                _logger.LogCritical("DataTable変換後: 商品={ProductCode} 荷印名='{ShippingMarkName}' 手入力='{ManualShippingMark}'", 
-                    row["ProductCode"]?.ToString() ?? "", 
-                    row["ShippingMarkName"]?.ToString() ?? "", 
-                    row["ManualShippingMark"]?.ToString() ?? "");
+                int dummyRowsAdded = 0;
+                while (currentPageRows < MAX_ROWS_PER_PAGE)
+                {
+                    var dummyRow = CreateDummyRow(table, currentStaffCode, currentStaffName);
+                    table.Rows.Add(dummyRow);
+                    currentPageRows++;
+                    dummyRowsAdded++;
+                }
+                _logger.LogInformation($"最終ページの行埋め完了: 担当者={currentStaffCode}, ダミー行数={dummyRowsAdded}");
             }
             
             _logger.LogCritical("DataTable総行数: {TotalRows}", table.Rows.Count);
             _logger.LogInformation("フラットDataTable作成完了: {Count}行", table.Rows.Count);
             return table;
+        }
+
+        /// <summary>
+        /// ダミー行作成（ページ埋め用の空行）
+        /// </summary>
+        private DataRow CreateDummyRow(DataTable table, string staffCode, string staffName)
+        {
+            var row = table.NewRow();
+            row["ProductCategory1"] = staffCode;
+            row["ProductCategory1Name"] = staffName;
+            row["RowType"] = "DUMMY";
+            
+            // 表示フィールドは空白（見た目上の空行）
+            row["ProductCode"] = "";
+            row["ProductName"] = "　";  // 全角スペース1つ（完全空白だと行が詰まる可能性）
+            row["ShippingMarkCode"] = "";
+            row["ShippingMarkName"] = "";
+            row["ManualShippingMark"] = "";
+            row["GradeName"] = "";
+            row["ClassName"] = "";
+            row["VoucherNumber"] = "";
+            row["DisplayCategory"] = "";
+            row["MonthDay"] = "";
+            row["PurchaseQuantity"] = "";
+            row["SalesQuantity"] = "";
+            row["RemainingQuantity"] = "";
+            row["UnitPrice"] = "";
+            row["Amount"] = "";
+            row["GrossProfit"] = "";
+            row["CustomerSupplierName"] = "";
+            
+            // 制御フィールド
+            row["IsGrayBackground"] = "0";
+            row["IsPageBreak"] = "0";
+            row["IsBold"] = "0";
+            row["RowSequence"] = "0";
+            row["PageGroup"] = "";
+            
+            return row;
+        }
+
+        /// <summary>
+        /// 改ページマーカー行作成
+        /// </summary>
+        private DataRow CreatePageBreakRow(DataTable table, string staffCode, string staffName)
+        {
+            var row = table.NewRow();
+            row["ProductCategory1"] = staffCode;
+            row["ProductCategory1Name"] = staffName;
+            row["RowType"] = RowTypes.PageBreak;
+            row["IsPageBreak"] = "1";
+            
+            // その他のフィールドは空
+            foreach (DataColumn col in table.Columns)
+            {
+                if (row[col] == DBNull.Value)
+                {
+                    row[col] = "";
+                }
+            }
+            
+            return row;
+        }
+
+        /// <summary>
+        /// 既存データのマッピング
+        /// </summary>
+        private void MapFlatRowToDataRow(ProductAccountFlatRow flatRow, DataRow dataRow)
+        {
+            dataRow["ProductCode"] = flatRow.ProductCode ?? "";
+            dataRow["ProductName"] = flatRow.ProductName ?? "";
+            dataRow["ShippingMarkCode"] = flatRow.ShippingMarkCode ?? "";
+            dataRow["ShippingMarkName"] = flatRow.ShippingMarkName ?? "";
+            dataRow["ManualShippingMark"] = flatRow.ManualShippingMark ?? "";
+            dataRow["GradeName"] = flatRow.GradeName ?? "";
+            dataRow["ClassName"] = flatRow.ClassName ?? "";
+            dataRow["VoucherNumber"] = GetLast4Digits(flatRow.VoucherNumber);
+            dataRow["DisplayCategory"] = flatRow.DisplayCategory ?? "";
+            dataRow["MonthDay"] = flatRow.MonthDay ?? "";
+            dataRow["PurchaseQuantity"] = flatRow.PurchaseQuantity ?? "";
+            dataRow["SalesQuantity"] = flatRow.SalesQuantity ?? "";
+            dataRow["RemainingQuantity"] = flatRow.RemainingQuantity ?? "";
+            dataRow["UnitPrice"] = flatRow.UnitPrice ?? "";
+            dataRow["Amount"] = flatRow.Amount ?? "";
+            dataRow["GrossProfit"] = flatRow.GrossProfit ?? "";
+            dataRow["CustomerSupplierName"] = flatRow.CustomerSupplierName ?? "";
+            
+            // 制御フィールド
+            dataRow["RowType"] = flatRow.RowType;
+            dataRow["IsGrayBackground"] = flatRow.GrayBackgroundFlag;
+            dataRow["IsPageBreak"] = flatRow.PageBreakFlag;
+            dataRow["IsBold"] = flatRow.BoldFlag;
+            dataRow["RowSequence"] = flatRow.RowSequence.ToString();
+            dataRow["PageGroup"] = "";
         }
 
         /// <summary>
