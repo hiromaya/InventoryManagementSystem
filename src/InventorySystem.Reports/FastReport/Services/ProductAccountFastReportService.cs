@@ -139,13 +139,13 @@ namespace InventorySystem.Reports.FastReport.Services
                 var staffCode = group.Key.Code ?? "";
                 var staffName = group.Key.Name ?? "";
                 
-                _logger.LogInformation("担当者処理開始: {Code} {Name}", staffCode, staffName);
+                ((ILogger)_logger).LogInformation("担当者処理開始: {Code} {Name}", staffCode, staffName);
                 
                 // フラットデータを生成（小計行含む）
                 var flatData = GenerateStaffFlatData(group.ToList(), staffCode, staffName);
                 
                 // 実データ行数を計算
-                int dataRowCount = flatData.Count(x => 
+                int dataRowCount = flatData.Count((Func<ProductAccountFlatRow, bool>)(x => 
                     x.RowType == RowTypes.Detail || 
                     x.RowType == RowTypes.ProductSubtotalHeader ||
                     x.RowType == RowTypes.ProductSubtotal ||
@@ -172,7 +172,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     FlatData = flatData
                 });
                 
-                _logger.LogInformation("担当者: {Code} データ行数: {Rows} ページ数: {Pages}", 
+                ((ILogger)_logger).LogInformation("担当者: {Code} データ行数: {Rows} ページ数: {Pages}", 
                     staffCode, dataRowCount, requiredPages);
             }
             
@@ -220,7 +220,7 @@ namespace InventorySystem.Reports.FastReport.Services
             foreach (var productGroup in productGroups)
             {
                 // 明細行を追加（日付順）
-                foreach (var detail in productGroup.OrderBy(x => x.VoucherDate))
+                foreach (var detail in productGroup.OrderBy(x => x.TransactionDate))
                 {
                     flatRows.Add(CreateDetailRowFromReportModel(detail, sequence++));
                 }
@@ -274,12 +274,12 @@ namespace InventorySystem.Reports.FastReport.Services
                 VoucherNumber = data.VoucherNumber ?? "",
                 DisplayCategory = GetDisplayCategory(data.VoucherType ?? "", data.RecordType ?? ""),
                 MonthDay = data.VoucherDate?.ToString("MM/dd") ?? "",
-                PurchaseQuantity = data.VoucherType?.StartsWith("1") == true ? FormatQuantity(data.Quantity) : "",
-                SalesQuantity = data.VoucherType?.StartsWith("5") == true ? FormatQuantity(data.Quantity) : "",
+                PurchaseQuantity = data.VoucherType?.StartsWith("1") == true ? FormatQuantity(data.PurchaseQuantity) : "",
+                SalesQuantity = data.VoucherType?.StartsWith("5") == true ? FormatQuantity(data.SalesQuantity) : "",
                 RemainingQuantity = FormatQuantity(data.RemainingQuantity),
-                UnitPrice = FormatPrice(data.UnitPrice),
-                Amount = FormatPrice(data.Amount),
-                GrossProfit = data.VoucherType?.StartsWith("5") == true ? FormatPrice(data.GrossProfit) : "",
+                UnitPrice = FormatUnitPrice(data.UnitPrice),
+                Amount = FormatAmount(data.Amount),
+                GrossProfit = data.VoucherType?.StartsWith("5") == true ? FormatAmount(data.GrossProfit) : "",
                 CustomerSupplierName = data.CustomerSupplierName ?? ""
             };
         }
@@ -306,8 +306,8 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private ProductAccountFlatRow CreateProductSubtotalRowFromGroup(IGrouping<dynamic, ProductAccountReportModel> productGroup, string staffCode, string staffName, int sequence)
         {
-            var purchases = productGroup.Where(x => x.VoucherType?.StartsWith("1") == true).Sum(x => x.Quantity);
-            var sales = productGroup.Where(x => x.VoucherType?.StartsWith("5") == true).Sum(x => x.Quantity);
+            var purchases = productGroup.Where(x => x.VoucherType?.StartsWith("1") == true).Sum(x => x.PurchaseQuantity);
+            var sales = productGroup.Where(x => x.VoucherType?.StartsWith("5") == true).Sum(x => x.SalesQuantity);
             var remaining = productGroup.Sum(x => x.RemainingQuantity);
             var totalAmount = productGroup.Sum(x => x.Amount);
             var totalGrossProfit = productGroup.Where(x => x.VoucherType?.StartsWith("5") == true).Sum(x => x.GrossProfit);
@@ -322,8 +322,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 PurchaseQuantity = FormatQuantity(purchases),
                 SalesQuantity = FormatQuantity(sales),
                 RemainingQuantity = FormatQuantity(remaining),
-                Amount = FormatPrice(totalAmount),
-                GrossProfit = FormatPrice(totalGrossProfit),
+                Amount = FormatAmount(totalAmount),
+                GrossProfit = FormatAmount(totalGrossProfit),
                 IsBold = true
             };
         }
@@ -485,15 +485,18 @@ namespace InventorySystem.Reports.FastReport.Services
                     // マージ処理
                     if (isFirst)
                     {
-                        mergedReport = new FR.Report();
-                        mergedReport.LoadPrepared(staffReport);
+                        mergedReport = staffReport;
                         isFirst = false;
                     }
                     else
                     {
                         if (mergedReport != null)
                         {
-                            mergedReport.PreparedPages.AddSourcePages(staffReport.PreparedPages);
+                            // PreparedPagesを直接追加
+                            for (int i = 0; i < staffReport.PreparedPages.Count; i++)
+                            {
+                                mergedReport.PreparedPages.Add(staffReport.PreparedPages.GetPage(i));
+                            }
                         }
                     }
                     
