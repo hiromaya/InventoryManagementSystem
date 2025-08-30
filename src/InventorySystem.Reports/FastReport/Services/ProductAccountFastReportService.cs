@@ -136,8 +136,8 @@ namespace InventorySystem.Reports.FastReport.Services
             
             foreach (var group in staffGroups)
             {
-                var staffCode = group.Key.Code ?? "";
-                var staffName = group.Key.Name ?? "";
+                var staffCode = (string)(group.Key.Code ?? "");
+                var staffName = (string)(group.Key.Name ?? "");
                 
                 _logger.LogInformation("担当者処理開始: {Code} {Name}", staffCode, staffName);
                 
@@ -173,7 +173,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 });
                 
                 _logger.LogInformation("担当者: {Code} データ行数: {Rows} ページ数: {Pages}", 
-                    staffCode, dataRowCount, requiredPages);
+                    (object)staffCode, (object)dataRowCount, (object)requiredPages);
             }
             
             // 全体ページ数を各担当者に設定
@@ -496,7 +496,10 @@ namespace InventorySystem.Reports.FastReport.Services
                             for (int i = 0; i < staffReport.PreparedPages.Count; i++)
                             {
                                 var page = staffReport.PreparedPages.GetPage(i);
-                                mergedReport.PreparedPages.Add(page);
+                                if (page != null)
+                                {
+                                    mergedReport.PreparedPages.Add(page);
+                                }
                             }
                         }
                     }
