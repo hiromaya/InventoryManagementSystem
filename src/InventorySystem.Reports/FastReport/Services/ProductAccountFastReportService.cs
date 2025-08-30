@@ -1449,11 +1449,11 @@ namespace InventorySystem.Reports.FastReport.Services
             var row = table.NewRow();
             row["ProductCategory1"] = staffCode;
             row["ProductCategory1Name"] = staffName;
-            row["RowType"] = RowTypes.Dummy;
+            row["RowType"] = RowTypes.Detail;
             
             // 表示フィールドは空白（見た目上の空行）
             row["ProductCode"] = "";
-            row["ProductName"] = "　";  // 全角スペース1つ（完全空白だと行が詰まる可能性）
+            row["ProductName"] = "";  // 空文字（統一性のため）
             row["ShippingMarkCode"] = "";
             row["ShippingMarkName"] = "";
             row["ManualShippingMark"] = "";
