@@ -1271,6 +1271,19 @@ namespace InventorySystem.Reports.FastReport.Services
             _logger.LogCritical("=== フラットデータ処理開始 ===");
             _logger.LogCritical($"フラットデータ件数: {flatData.Count}");
             
+            // 担当者別件数をログ出力
+            var staffGroups = flatData.GroupBy(x => x.ProductCategory1).Select(g => new { 
+                StaffCode = g.Key, 
+                Count = g.Count(),
+                StaffName = g.First().ProductCategory1Name
+            }).ToList();
+            
+            _logger.LogCritical("=== 担当者別件数確認 ===");
+            foreach (var group in staffGroups)
+            {
+                _logger.LogCritical($"担当者: {group.StaffCode} ({group.StaffName}) - {group.Count}件");
+            }
+            
             for (int i = 0; i < flatData.Count; i++)
             {
                 var item = flatData[i];
@@ -1286,30 +1299,41 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // === 担当者変更チェック ===
                 
-                // 担当者が変わったかチェック
-                if (currentStaffCode != item.ProductCategory1)
+                // 小計行は改ページ判定から除外し、担当者情報を補完
+                if (item.RowType == RowTypes.ProductSubtotal || item.RowType == RowTypes.ProductSubtotalHeader || item.RowType == RowTypes.BlankLine)
                 {
-                    // 改ページ行を挿入（最初の行以外）
-                    if (currentStaffCode != "")
+                    // 小計行・空行は担当者情報を現在の担当者で補完
+                    item.ProductCategory1 = currentStaffCode;
+                    item.ProductCategory1Name = currentStaffName;
+                    _logger.LogDebug($"小計行の担当者情報補完: RowType={item.RowType}, Staff={currentStaffCode}");
+                }
+                else
+                {
+                    // 通常行のみで担当者変更チェック
+                    if (item.RowType != RowTypes.ProductSubtotal && currentStaffCode != item.ProductCategory1)
                     {
-                        var pageBreakRow = table.NewRow();
-                        pageBreakRow["RowType"] = RowTypes.PageBreak;
-                        pageBreakRow["ProductCategory1"] = currentStaffCode;
-                        pageBreakRow["ProductCategory1Name"] = currentStaffName;
+                        // 改ページ行を挿入（最初の行以外）
+                        if (currentStaffCode != "")
+                        {
+                            var pageBreakRow = table.NewRow();
+                            pageBreakRow["RowType"] = RowTypes.PageBreak;
+                            pageBreakRow["ProductCategory1"] = currentStaffCode;
+                            pageBreakRow["ProductCategory1Name"] = currentStaffName;
+                            
+                            // その他のフィールドは空文字
+                            SetEmptyRowFields(pageBreakRow);
+                            
+                            table.Rows.Add(pageBreakRow);
+                            _logger.LogInformation($"担当者変更による改ページ: {currentStaffCode} → {item.ProductCategory1}");
+                        }
                         
-                        // その他のフィールドは空文字
-                        SetEmptyRowFields(pageBreakRow);
+                        // 新しい担当者情報を保存
+                        currentStaffCode = item.ProductCategory1;
+                        currentStaffName = item.ProductCategory1Name;
+                        currentPageRows = 0;
                         
-                        table.Rows.Add(pageBreakRow);
-                        _logger.LogInformation($"担当者変更による改ページ: {currentStaffCode} → {item.ProductCategory1}");
+                        _logger.LogInformation($"新ページ開始: 担当者={currentStaffName}");
                     }
-                    
-                    // 新しい担当者情報を保存
-                    currentStaffCode = item.ProductCategory1;
-                    currentStaffName = item.ProductCategory1Name;
-                    currentPageRows = 0;
-                    
-                    _logger.LogInformation($"新ページ開始: 担当者={currentStaffName}");
                 }
                 
                 // === 35行制限チェック ===
@@ -1331,8 +1355,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 
                 // 基本フィールド（既にフォーマット済み）
-                row["ProductCategory1"] = item.ProductCategory1;
-                row["ProductCategory1Name"] = item.ProductCategory1Name;
+                // 担当者情報は確実に設定（小計行でも空にならないように）
+                row["ProductCategory1"] = item.ProductCategory1 ?? currentStaffCode;
+                row["ProductCategory1Name"] = item.ProductCategory1Name ?? currentStaffName;
                 row["ProductCode"] = item.ProductCode;
                 row["ProductName"] = item.ProductName;
                 row["ShippingMarkCode"] = item.ShippingMarkCode;
@@ -1361,11 +1386,19 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["RowSequence"] = item.RowSequence.ToString();
                 
                 // 通常のデータ行を追加
-                // ProductCategory1Nameが確実に設定されるようにする
-                row["ProductCategory1Name"] = currentStaffName;
                 table.Rows.Add(row);
                 
-                currentPageRows++;
+                // 行数カウントアップ（PAGE_BREAK行は除外）
+                if (item.RowType != RowTypes.PageBreak)
+                {
+                    currentPageRows++;
+                }
+                
+                // デバッグログ：小計行のProductCategory1確認
+                if (item.RowType == RowTypes.ProductSubtotal || item.RowType == RowTypes.ProductSubtotalHeader)
+                {
+                    _logger.LogDebug($"小計行追加: RowType={item.RowType}, ProductCategory1='{row["ProductCategory1"]}', ProductCategory1Name='{row["ProductCategory1Name"]}'");
+                }
             }
             
             // === デバッグ: DataTable作成後確認ログ ===
