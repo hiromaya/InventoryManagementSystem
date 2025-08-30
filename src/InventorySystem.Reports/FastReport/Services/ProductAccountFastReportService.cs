@@ -1376,9 +1376,11 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             
             // === デバッグ: DUMMY行の確認 ===
-            // DataTable内のDUMMY行をカウント
+            // DataTable内のDUMMY行をカウント（ProductNameが空でRowTypeがDetailの行）
             var dummyCount = table.Rows.Cast<DataRow>()
-                .Count(r => r["RowType"]?.ToString() == RowTypes.Dummy);
+                .Count(r => r["RowType"]?.ToString() == RowTypes.Detail && 
+                           string.IsNullOrEmpty(r["ProductName"]?.ToString()) && 
+                           string.IsNullOrEmpty(r["ProductCode"]?.ToString()));
 
             // 担当者ごとのデータ件数を集計
             var debugStaffGroups = table.Rows.Cast<DataRow>()
@@ -1386,8 +1388,12 @@ namespace InventorySystem.Reports.FastReport.Services
                 .Select(g => new { 
                     StaffCode = g.Key, 
                     TotalRows = g.Count(),
-                    DummyRows = g.Count(r => r["RowType"]?.ToString() == RowTypes.Dummy),
-                    DataRows = g.Count(r => r["RowType"]?.ToString() != RowTypes.Dummy)
+                    DummyRows = g.Count(r => r["RowType"]?.ToString() == RowTypes.Detail && 
+                                           string.IsNullOrEmpty(r["ProductName"]?.ToString()) && 
+                                           string.IsNullOrEmpty(r["ProductCode"]?.ToString())),
+                    DataRows = g.Count(r => !(r["RowType"]?.ToString() == RowTypes.Detail && 
+                                             string.IsNullOrEmpty(r["ProductName"]?.ToString()) && 
+                                             string.IsNullOrEmpty(r["ProductCode"]?.ToString())))
                 });
 
             // 重要情報を目立つログで出力
@@ -1446,6 +1452,8 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private DataRow CreateDummyRow(DataTable table, string staffCode, string staffName)
         {
+            _logger.LogCritical($"CreateDummyRow呼び出し: staffCode={staffCode}, RowType=Detail設定");
+            
             var row = table.NewRow();
             row["ProductCategory1"] = staffCode;
             row["ProductCategory1Name"] = staffName;
