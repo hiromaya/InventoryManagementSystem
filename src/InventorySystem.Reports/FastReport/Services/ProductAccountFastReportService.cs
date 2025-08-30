@@ -457,6 +457,9 @@ namespace InventorySystem.Reports.FastReport.Services
                     
                     // DataTable作成とデータ登録
                     var dataTable = CreateStaffDataTable(staffData);
+                    _logger.LogCritical("登録前: 行数={0}, カラム数={1}", 
+                    dataTable.Rows.Count, dataTable.Columns.Count);
+                    dataTable.TableName = "ProductAccount";
                     staffReport.RegisterData(dataTable, "ProductAccount");
                     staffReport.GetDataSource("ProductAccount").Enabled = true;
                     
