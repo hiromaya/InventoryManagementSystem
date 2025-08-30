@@ -139,7 +139,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 var staffCode = group.Key.Code ?? "";
                 var staffName = group.Key.Name ?? "";
                 
-                ((ILogger)_logger).LogInformation("担当者処理開始: {Code} {Name}", staffCode, staffName);
+                _logger.LogInformation("担当者処理開始: {Code} {Name}", staffCode, staffName);
                 
                 // フラットデータを生成（小計行含む）
                 var flatData = GenerateStaffFlatData(group.ToList(), staffCode, staffName);
@@ -172,7 +172,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     FlatData = flatData
                 });
                 
-                ((ILogger)_logger).LogInformation("担当者: {Code} データ行数: {Rows} ページ数: {Pages}", 
+                _logger.LogInformation("担当者: {Code} データ行数: {Rows} ページ数: {Pages}", 
                     staffCode, dataRowCount, requiredPages);
             }
             
@@ -273,7 +273,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 ClassName = data.ClassName ?? "",
                 VoucherNumber = data.VoucherNumber ?? "",
                 DisplayCategory = GetDisplayCategory(data.VoucherType ?? "", data.RecordType ?? ""),
-                MonthDay = data.VoucherDate?.ToString("MM/dd") ?? "",
+                MonthDay = data.TransactionDate.ToString("MM/dd"),
                 PurchaseQuantity = data.VoucherType?.StartsWith("1") == true ? FormatQuantity(data.PurchaseQuantity) : "",
                 SalesQuantity = data.VoucherType?.StartsWith("5") == true ? FormatQuantity(data.SalesQuantity) : "",
                 RemainingQuantity = FormatQuantity(data.RemainingQuantity),
@@ -495,7 +495,8 @@ namespace InventorySystem.Reports.FastReport.Services
                             // PreparedPagesを直接追加
                             for (int i = 0; i < staffReport.PreparedPages.Count; i++)
                             {
-                                mergedReport.PreparedPages.Add(staffReport.PreparedPages.GetPage(i));
+                                var page = staffReport.PreparedPages.GetPage(i);
+                                mergedReport.PreparedPages.Add(page);
                             }
                         }
                     }
