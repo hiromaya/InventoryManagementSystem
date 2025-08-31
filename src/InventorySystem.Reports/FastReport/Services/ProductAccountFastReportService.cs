@@ -27,7 +27,7 @@ namespace InventorySystem.Reports.FastReport.Services
         public int PageCount { get; set; }
         public int EndPage => StartPage + PageCount - 1;
     }
-    
+
     public class ProductAccountFastReportService : IProductAccountReportService
     {
         private readonly ILogger<ProductAccountFastReportService> _logger;
@@ -71,7 +71,6 @@ namespace InventorySystem.Reports.FastReport.Services
                 {
                     _logger.LogError(ex, "Failed to get FastReport version");
                 }
-                // ===== FastReport診断情報 終了 =====
                 
                 // テンプレートファイルの存在確認
                 if (!File.Exists(_templatePath))
@@ -81,19 +80,18 @@ namespace InventorySystem.Reports.FastReport.Services
                     throw new FileNotFoundException(errorMessage, _templatePath);
                 }
                 
-                // 商品勘定フラットデータを生成（C#側完全制御）
+                // 商品勘定フラットデータを生成
                 var flatData = GenerateFlatData(jobDate, departmentCode);
                 
                 if (!flatData.Any())
                 {
                     _logger.LogWarning("商品勘定フラットデータが0件です");
-                    // 空のPDFを返す or 例外を投げる
                     throw new InvalidOperationException("商品勘定データが存在しません");
                 }
                 
                 // ===== Phase 2: 担当者別PDF生成 =====
-
-                // Step 1: flatDataの担当者コード空を"000"に変換
+                
+                // Step 1: 担当者コード空を"000"に変換
                 foreach (var item in flatData)
                 {
                     if (string.IsNullOrEmpty(item.ProductCategory1))
@@ -102,18 +100,18 @@ namespace InventorySystem.Reports.FastReport.Services
                         item.ProductCategory1Name = "担当者未設定";
                     }
                 }
-
+                
                 // Step 2: 担当者別にグループ化（データ行のみカウント）
                 var staffGroups = flatData
-                    .Where(x => x.RowType == RowTypes.Detail)  // 小計行等を除外
+                    .Where(x => x.RowType == RowTypes.Detail)
                     .GroupBy(x => x.ProductCategory1)
                     .OrderBy(g => g.Key)
                     .ToList();
-
+                
                 // Step 3: 総ページ数を事前計算
                 int totalPages = 0;
                 var staffPageInfo = new List<(string StaffCode, int StartPage, int PageCount)>();
-
+                
                 foreach (var group in staffGroups)
                 {
                     int dataRows = group.Count();
@@ -125,39 +123,54 @@ namespace InventorySystem.Reports.FastReport.Services
                         group.Key, dataRows, pageCount);
                 }
                 _logger.LogInformation("総ページ数: {TotalPages}", totalPages);
-
-                // Step 4: 担当者別PDF生成（個別ファイル）
+                
+                // Step 4: 担当者別PDF生成
+                var allPdfBytes = new List<byte[]>();
+                
                 foreach (var info in staffPageInfo)
                 {
-                    // この担当者のデータを抽出
+                    // この担当者のデータを抽出（全RowType含む）
                     var staffData = flatData
                         .Where(x => x.ProductCategory1 == info.StaffCode)
                         .ToList();
                     
-                    // ページ番号を設定（通し番号）
-                    for (int page = 0; page < info.PageCount; page++)
-                    {
-                        int currentPage = info.StartPage + page;
-                        // ここでDataTableの各行にページ番号情報を埋め込む処理
-                        // 例: row["PageNumber"] = $"{currentPage} / {totalPages}";
-                    }
-                    
-                    // この担当者用のPDF生成
-                    var staffPdfBytes = GeneratePdfReportFromFlatData(staffData, jobDate);
+                    // この担当者用のPDF生成（ページ番号付き）
+                    var staffPdfBytes = GeneratePdfReportFromFlatDataWithPageNumber(
+                        staffData, jobDate, info.StartPage, totalPages);
                     
                     // ファイル保存
-                    var outputDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output");
-                    Directory.CreateDirectory(outputDir);
-                    var fileName = $"ProductAccount_{jobDate:yyyyMMdd}_{info.StaffCode}.pdf";
-                    var filePath = Path.Combine(outputDir, fileName);
-                    
-                    File.WriteAllBytes(filePath, staffPdfBytes);
-                    _logger.LogInformation("PDF出力: {FileName}", fileName);
+                    try
+                    {
+                        var outputDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output");
+                        if (!Directory.Exists(outputDir))
+                        {
+                            Directory.CreateDirectory(outputDir);
+                        }
+                        
+                        var fileName = $"ProductAccount_{jobDate:yyyyMMdd}_{info.StaffCode}.pdf";
+                        var filePath = Path.Combine(outputDir, fileName);
+                        
+                        File.WriteAllBytes(filePath, staffPdfBytes);
+                        _logger.LogInformation("PDF出力: {FileName}", fileName);
+                        
+                        allPdfBytes.Add(staffPdfBytes);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "PDF保存エラー: 担当者{StaffCode}", info.StaffCode);
+                    }
                 }
-
-                // 一時的な返り値（後で結合処理を追加予定）
-                return new byte[0];
-
+                
+                // 成功時は最初のPDFを返す（後で結合処理を追加予定）
+                if (allPdfBytes.Any())
+                {
+                    _logger.LogInformation("商品勘定帳票PDF生成完了。サイズ: {Size} bytes", allPdfBytes.First().Length);
+                    return allPdfBytes.First();
+                }
+                else
+                {
+                    throw new InvalidOperationException("PDFの生成に失敗しました");
+                }
             }
             catch (FileNotFoundException ex)
             {
@@ -170,7 +183,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 throw new InvalidOperationException("商品勘定帳票PDFの生成に失敗しました", ex);
             }
         }
-        
+
+
         /// <summary>
         /// 商品勘定フラットデータの生成（C#側完全制御）
         /// </summary>
@@ -1109,6 +1123,150 @@ namespace InventorySystem.Reports.FastReport.Services
             
             return stream.ToArray();
         }
+
+        /// <summary>
+        /// ページ番号付きPDF生成（担当者別処理用）
+        /// </summary>
+        private byte[] GeneratePdfReportFromFlatDataWithPageNumber(
+            List<ProductAccountFlatRow> flatData, 
+            DateTime jobDate,
+            int startPage,
+            int totalPages)
+        {
+            using var report = new FR.Report();
+            
+            // FastReportの設定
+            report.ReportResourceString = "";
+            report.FileName = _templatePath;
+            
+            // テンプレートファイルを読み込む
+            _logger.LogInformation("商品勘定レポートテンプレートを読み込んでいます...");
+            report.Load(_templatePath);
+            
+            // スクリプトを完全に無効化
+            SetScriptLanguageToNone(report);
+            
+            // フラットデータをDataTableに変換
+            var dataTable = CreateFlatDataTableWithPageNumbers(flatData, startPage, totalPages);
+            
+            // FastReportにデータソースを登録
+            report.RegisterData(dataTable, "ProductAccount");
+            
+            // DataBandに改ページ条件を設定
+            var dataBand = report.FindObject("Data1") as FR.DataBand;
+            if (dataBand != null)
+            {
+                var startNewPageProperty = dataBand.GetType().GetProperty("StartNewPageExpression");
+                if (startNewPageProperty != null)
+                {
+                    startNewPageProperty.SetValue(dataBand, "[ProductAccount.IsPageBreak] == \"1\"");
+                    _logger.LogInformation("DataBandに改ページ条件式を設定しました");
+                }
+            }
+            
+            // PAGE_BREAK行による改ページ処理
+            var pageBreakDataBand = report.FindObject("Data1") as FR.DataBand;
+            if (pageBreakDataBand != null)
+            {
+                pageBreakDataBand.BeforePrint += (sender, e) =>
+                {
+                    var currentRowType = report.GetVariableValue("ProductAccount.RowType")?.ToString();
+                    if (currentRowType == RowTypes.PageBreak)
+                    {
+                        pageBreakDataBand.Visible = false;
+                        var engine = report.Engine;
+                        if (engine != null)
+                        {
+                            engine.StartNewPage();
+                        }
+                    }
+                    else
+                    {
+                        pageBreakDataBand.Visible = true;
+                    }
+                };
+            }
+            
+            // パラメータ設定（重要：ページ番号の設定）
+            report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
+            report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
+            report.SetParameterValue("CurrentPage", startPage.ToString());
+            report.SetParameterValue("TotalPages", totalPages.ToString());
+            report.SetParameterValue("TotalCount", flatData.Count(x => x.RowType == RowTypes.Detail).ToString());
+            
+            _logger.LogInformation("レポートを準備中...");
+            report.Prepare();
+            
+            // PDF出力設定
+            using var pdfExport = new PDFExport
+            {
+                EmbeddingFonts = true,
+                Title = $"商品勘定_{jobDate:yyyyMMdd}",
+                Subject = "商品勘定帳票",
+                Creator = "在庫管理システム",
+                Author = "在庫管理システム",
+                TextInCurves = false,
+                JpegQuality = 95,
+                OpenAfterExport = false
+            };
+            
+            // PDFをメモリストリームに出力
+            using var stream = new MemoryStream();
+            report.Export(pdfExport, stream);
+            
+            return stream.ToArray();
+        }
+
+        /// <summary>
+        /// ページ番号付きDataTable作成
+        /// </summary>
+        private DataTable CreateFlatDataTableWithPageNumbers(
+            List<ProductAccountFlatRow> flatData,
+            int startPage,
+            int totalPages)
+        {
+            var table = CreateFlatDataTable(flatData);  // 既存メソッドを利用
+            
+            // ページ番号列を追加
+            if (!table.Columns.Contains("CurrentPage"))
+            {
+                table.Columns.Add("CurrentPage", typeof(string));
+            }
+            if (!table.Columns.Contains("TotalPagesDisplay"))
+            {
+                table.Columns.Add("TotalPagesDisplay", typeof(string));
+            }
+            
+            // 各行にページ番号を設定
+            int currentPage = startPage;
+            int rowsInCurrentPage = 0;
+            
+            foreach (DataRow row in table.Rows)
+            {
+                row["CurrentPage"] = currentPage.ToString();
+                row["TotalPagesDisplay"] = totalPages.ToString();
+                
+                rowsInCurrentPage++;
+                
+                // 35行ごとにページ番号を増やす
+                if (rowsInCurrentPage >= 35)
+                {
+                    currentPage++;
+                    rowsInCurrentPage = 0;
+                }
+                
+                // PAGE_BREAK行でもページ番号を増やす
+                if (row["RowType"]?.ToString() == RowTypes.PageBreak)
+                {
+                    currentPage++;
+                    rowsInCurrentPage = 0;
+                }
+            }
+            
+            return table;
+        }
+
+
 
         private byte[] GeneratePdfReport(IEnumerable<ProductAccountReportModel> reportData, DateTime jobDate)
         {
