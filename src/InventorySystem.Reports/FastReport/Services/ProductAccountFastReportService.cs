@@ -47,7 +47,7 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 // ===== FastReport診断情報 開始 =====
                 _logger.LogInformation("=== 商品勘定帳票 FastReport Service Diagnostics ===");
-                _logger.LogInformation("商品勘定帳票 service is being executed (担当者別PDF生成)");
+                _logger.LogInformation("商品勘定帳票 service is being executed");
                 _logger.LogInformation($"Job date: {jobDate:yyyy-MM-dd}");
                 _logger.LogInformation($"Department code: {departmentCode ?? "全部門"}");
 
@@ -71,48 +71,22 @@ namespace InventorySystem.Reports.FastReport.Services
                     throw new FileNotFoundException(errorMessage, _templatePath);
                 }
                 
-                // 1. 担当者別データを準備
-                var staffReportDataList = PrepareStaffReportData(jobDate, departmentCode);
+                // 商品勘定フラットデータを生成（C#側完全制御）
+                var flatData = GenerateFlatData(jobDate, departmentCode);
                 
-                if (!staffReportDataList.Any())
+                if (!flatData.Any())
                 {
-                    _logger.LogWarning("商品勘定データが0件です");
+                    _logger.LogWarning("商品勘定フラットデータが0件です");
+                    // 空のPDFを返す or 例外を投げる
                     throw new InvalidOperationException("商品勘定データが存在しません");
                 }
                 
-                // 2. 出力ディレクトリを準備
-                var outputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Reports");
-                Directory.CreateDirectory(outputDirectory);
+                // PDF生成処理
+                var pdfBytes = GeneratePdfReportFromFlatData(flatData, jobDate);
                 
-                // 3. 各担当者のPDFを個別に生成
-                var totalBytes = 0;
-                byte[]? firstPdfBytes = null;
+                _logger.LogInformation("商品勘定帳票PDF生成完了。サイズ: {Size} bytes", pdfBytes.Length);
                 
-                foreach (var staffData in staffReportDataList)
-                {
-                    var pdfBytes = GenerateStaffPdf(staffData, jobDate);
-                    
-                    // 最初の担当者のPDFをキャッシュ（重複生成を回避）
-                    if (firstPdfBytes == null)
-                    {
-                        firstPdfBytes = pdfBytes;
-                    }
-                    
-                    // ファイル名: ProductAccount_{jobDate:yyyyMMdd}_{staffCode}.pdf
-                    var fileName = $"ProductAccount_{jobDate:yyyyMMdd}_{staffData.StaffCode}.pdf";
-                    var filePath = Path.Combine(outputDirectory, fileName);
-                    
-                    // ファイル保存
-                    File.WriteAllBytes(filePath, pdfBytes);
-                    totalBytes += pdfBytes.Length;
-                    
-                    _logger.LogInformation($"担当者別PDF保存完了: {fileName} ({pdfBytes.Length} bytes)");
-                }
-                
-                _logger.LogInformation($"商品勘定帳票PDF生成完了。担当者数: {staffReportDataList.Count}, 合計サイズ: {totalBytes} bytes");
-                
-                // 最初のPDFのバイト配列を返す（既存のインターフェース互換性のため、重複生成なし）
-                return firstPdfBytes!;
+                return pdfBytes;
             }
             catch (FileNotFoundException ex)
             {
@@ -153,7 +127,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 .GroupBy(x => new 
                 { 
                     StaffCode = x.ProductCategory1 ?? "", 
-                    StaffName = x.ProductCategory1Name ?? ""
+                    StaffName = x.GetAdditionalInfo("ProductCategory1Name") ?? ""
                 });
             
             bool isFirstStaff = true;
@@ -1478,29 +1452,31 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private DataRow CreateDummyRow(DataTable table, string staffCode, string staffName)
         {
+            _logger.LogCritical($"CreateDummyRow呼び出し: staffCode={staffCode}, RowType=Detail設定");
+            
             var row = table.NewRow();
             row["ProductCategory1"] = staffCode;
             row["ProductCategory1Name"] = staffName;
             row["RowType"] = RowTypes.Detail;
             
-            // 本番用の空行（半角スペース）
-            row["ProductCode"] = " ";
-            row["ProductName"] = " ";
-            row["ShippingMarkCode"] = " ";
-            row["ShippingMarkName"] = " ";
-            row["ManualShippingMark"] = " ";
-            row["GradeName"] = " ";
-            row["ClassName"] = " ";
-            row["VoucherNumber"] = " ";
-            row["DisplayCategory"] = " ";
-            row["MonthDay"] = " ";
-            row["PurchaseQuantity"] = " ";
-            row["SalesQuantity"] = " ";
-            row["RemainingQuantity"] = " ";
-            row["UnitPrice"] = " ";
-            row["Amount"] = " ";
-            row["GrossProfit"] = " ";
-            row["CustomerSupplierName"] = " ";
+            // ★デバッグ用：DUMMYという文字を表示して可視化
+            row["ProductCode"] = "DUMMY";          // ★ 変更
+            row["ProductName"] = "===DUMMY行===";   // ★ 変更（目立つように）
+            row["ShippingMarkCode"] = "DUM";       // ★ 変更
+            row["ShippingMarkName"] = "ダミー";     // ★ 変更
+            row["ManualShippingMark"] = "-";       // ★ 変更
+            row["GradeName"] = "D";                // ★ 変更
+            row["ClassName"] = "D";                // ★ 変更
+            row["VoucherNumber"] = "0000";         // ★ 変更
+            row["DisplayCategory"] = "-";          // ★ 変更
+            row["MonthDay"] = "--/--";             // ★ 変更
+            row["PurchaseQuantity"] = "0.00";      // ★ 変更
+            row["SalesQuantity"] = "0.00";         // ★ 変更
+            row["RemainingQuantity"] = "0.00";     // ★ 変更
+            row["UnitPrice"] = "0";                // ★ 変更
+            row["Amount"] = "0";                   // ★ 変更
+            row["GrossProfit"] = "0";              // ★ 変更
+            row["CustomerSupplierName"] = "ダミー行"; // ★ 変更
             
             // 制御フィールド
             row["IsGrayBackground"] = "0";
@@ -1619,7 +1595,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // 担当者情報
                 row["ProductCategory1"] = item.ProductCategory1 ?? "";
-                row["ProductCategory1Name"] = item.ProductCategory1Name ?? "";
+                row["ProductCategory1Name"] = item.GetAdditionalInfo("ProductCategory1Name") ?? "";
                 
                 // 文字列フィールド（切り詰め処理を適用）
                 row["ProductCode"] = item.ProductCode;
@@ -1985,7 +1961,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // 基本情報
                 ProductCategory1 = data.ProductCategory1 ?? "",
-                ProductCategory1Name = data.ProductCategory1Name ?? "",
+                ProductCategory1Name = data.GetAdditionalInfo("ProductCategory1Name") ?? "",
                 ProductCode = data.ProductCode,
                 ProductName = data.ProductName,
                 ShippingMarkCode = data.ShippingMarkCode,
@@ -2210,186 +2186,6 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
             }
-        }
-        
-        /// <summary>
-        /// 個別PDF生成
-        /// </summary>
-        private byte[] GenerateStaffPdf(StaffReportData staffData, DateTime jobDate)
-        {
-            _logger.LogInformation($"担当者別PDF生成開始: {staffData.StaffCode}({staffData.StaffName})");
-            
-            using var report = new FR.Report();
-            
-            // FastReportの設定
-            report.ReportResourceString = "";
-            report.FileName = _templatePath;
-            
-            // テンプレートファイルを読み込む
-            report.Load(_templatePath);
-            
-            // スクリプトを完全に無効化
-            SetScriptLanguageToNone(report);
-            
-            // 1. staffData.FlatDataからDataTableを作成
-            var dataTable = CreateFlatDataTable(staffData.FlatData);
-            
-            // 2. 各行にページ番号を設定
-            AddPageNumbers(dataTable, staffData);
-            
-            _logger.LogInformation($"PDF生成データ準備完了: {dataTable.Rows.Count}行");
-            
-            try
-            {
-                // DataTableをレポートに登録（テンプレートが期待する名前で登録）
-                report.RegisterData(dataTable, "ProductAccount");
-                
-                // データソースを有効化
-                var dataSource = report.GetDataSource("ProductAccount");
-                if (dataSource != null)
-                {
-                    dataSource.Enabled = true;
-                    _logger.LogInformation($"データソース登録確認: {dataSource.Name}, 行数: {dataSource.RowCount}");
-                }
-                else
-                {
-                    _logger.LogError("データソース登録失敗: 'ProductAccount' が見つかりません");
-                    throw new InvalidOperationException("データソースの登録に失敗しました");
-                }
-                
-                // レポート生成
-                report.Prepare();
-                
-                // PDF出力
-                using var stream = new MemoryStream();
-                var export = new FR.Export.Pdf.PDFExport();
-                report.Export(export, stream);
-                
-                var pdfBytes = stream.ToArray();
-                _logger.LogInformation($"担当者別PDF生成完了: {staffData.StaffCode}, サイズ: {pdfBytes.Length} bytes");
-                
-                return pdfBytes;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"担当者別PDF生成エラー: {staffData.StaffCode}");
-                throw;
-            }
-        }
-        
-        /// <summary>
-        /// DataTableにページ番号を設定
-        /// </summary>
-        private void AddPageNumbers(DataTable table, StaffReportData staffData)
-        {
-            // DataTableにページ番号用カラムを追加
-            if (!table.Columns.Contains("PageNumber"))
-            {
-                table.Columns.Add("PageNumber", typeof(string));
-            }
-            
-            // 各行にページ番号を設定
-            int currentPage = staffData.StartPage;
-            int rowInPage = 0;
-            const int rowsPerPage = 35;
-            
-            foreach (DataRow row in table.Rows)
-            {
-                row["PageNumber"] = $"{currentPage} / {staffData.TotalPages} 頁";
-                rowInPage++;
-                
-                if (rowInPage >= rowsPerPage)
-                {
-                    currentPage++;
-                    rowInPage = 0;
-                }
-            }
-        }
-        
-        /// <summary>
-        /// 担当者別データ分割とページ計算
-        /// </summary>
-        private List<StaffReportData> PrepareStaffReportData(DateTime jobDate, string? departmentCode)
-        {
-            _logger.LogInformation("担当者別データ分割とページ計算開始");
-            
-            // 1. 全フラットデータを取得
-            var allFlatData = GenerateFlatData(jobDate, departmentCode);
-            
-            if (!allFlatData.Any())
-            {
-                _logger.LogWarning("フラットデータが0件です");
-                return new List<StaffReportData>();
-            }
-            
-            // 2. 担当者コードが空の場合は"000"に変換
-            foreach (var row in allFlatData)
-            {
-                if (string.IsNullOrWhiteSpace(row.ProductCategory1))
-                {
-                    row.ProductCategory1 = "000";
-                }
-            }
-            
-            // 3. 担当者別にグループ化
-            var staffGroups = allFlatData
-                .GroupBy(x => new 
-                { 
-                    StaffCode = x.ProductCategory1 ?? "000",
-                    StaffName = x.ProductCategory1Name ?? "未登録"
-                })
-                .OrderBy(g => g.Key.StaffCode)
-                .ToList();
-            
-            // 4. 各担当者のデータ行数から必要ページ数を計算
-            var staffReportDataList = new List<StaffReportData>();
-            const int rowsPerPage = 35; // 1ページあたりの行数
-            int totalPageCounter = 1;
-            
-            foreach (var staffGroup in staffGroups)
-            {
-                var staffData = new StaffReportData
-                {
-                    StaffCode = staffGroup.Key.StaffCode,
-                    StaffName = staffGroup.Key.StaffName,
-                    FlatData = staffGroup.OrderBy(x => x.RowSequence).ToList()
-                };
-                
-                // このスタッフのページ数を計算
-                int staffPages = (int)Math.Ceiling((double)staffData.FlatData.Count / rowsPerPage);
-                staffData.StartPage = totalPageCounter;
-                staffData.EndPage = totalPageCounter + staffPages - 1;
-                
-                totalPageCounter += staffPages;
-                
-                staffReportDataList.Add(staffData);
-                
-                _logger.LogInformation($"担当者: {staffData.StaffCode}({staffData.StaffName}) - {staffData.FlatData.Count}行, {staffPages}ページ");
-            }
-            
-            // 5. 総ページ数を全担当者に設定
-            int totalPages = totalPageCounter - 1;
-            foreach (var staffData in staffReportDataList)
-            {
-                staffData.TotalPages = totalPages;
-            }
-            
-            _logger.LogInformation($"担当者別データ分割完了: {staffReportDataList.Count}名, 総ページ数: {totalPages}");
-            
-            return staffReportDataList;
-        }
-        
-        /// <summary>
-        /// 担当者別レポートデータ
-        /// </summary>
-        private class StaffReportData
-        {
-            public string StaffCode { get; set; } = "";
-            public string StaffName { get; set; } = "";
-            public List<ProductAccountFlatRow> FlatData { get; set; } = new List<ProductAccountFlatRow>();
-            public int StartPage { get; set; }
-            public int EndPage { get; set; }
-            public int TotalPages { get; set; }
         }
         
     }
