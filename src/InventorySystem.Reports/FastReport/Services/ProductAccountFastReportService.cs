@@ -86,9 +86,17 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // 3. 各担当者のPDFを個別に生成
                 var totalBytes = 0;
+                byte[]? firstPdfBytes = null;
+                
                 foreach (var staffData in staffReportDataList)
                 {
                     var pdfBytes = GenerateStaffPdf(staffData, jobDate);
+                    
+                    // 最初の担当者のPDFをキャッシュ（重複生成を回避）
+                    if (firstPdfBytes == null)
+                    {
+                        firstPdfBytes = pdfBytes;
+                    }
                     
                     // ファイル名: ProductAccount_{jobDate:yyyyMMdd}_{staffCode}.pdf
                     var fileName = $"ProductAccount_{jobDate:yyyyMMdd}_{staffData.StaffCode}.pdf";
@@ -103,9 +111,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 _logger.LogInformation($"商品勘定帳票PDF生成完了。担当者数: {staffReportDataList.Count}, 合計サイズ: {totalBytes} bytes");
                 
-                // 最初のPDFのバイト配列を返す（既存のインターフェース互換性のため）
-                var firstStaffPdf = GenerateStaffPdf(staffReportDataList.First(), jobDate);
-                return firstStaffPdf;
+                // 最初のPDFのバイト配列を返す（既存のインターフェース互換性のため、重複生成なし）
+                return firstPdfBytes!;
             }
             catch (FileNotFoundException ex)
             {
