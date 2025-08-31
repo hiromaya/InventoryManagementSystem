@@ -2241,11 +2241,21 @@ namespace InventorySystem.Reports.FastReport.Services
             
             try
             {
-                // DataTableをレポートに登録
-                report.RegisterData(dataTable, "ProductAccountData");
+                // DataTableをレポートに登録（テンプレートが期待する名前で登録）
+                report.RegisterData(dataTable, "ProductAccount");
                 
-                // データバインディング実行
-                report.GetDataSource("ProductAccountData").Enabled = true;
+                // データソースを有効化
+                var dataSource = report.GetDataSource("ProductAccount");
+                if (dataSource != null)
+                {
+                    dataSource.Enabled = true;
+                    _logger.LogInformation($"データソース登録確認: {dataSource.Name}, 行数: {dataSource.RowCount}");
+                }
+                else
+                {
+                    _logger.LogError("データソース登録失敗: 'ProductAccount' が見つかりません");
+                    throw new InvalidOperationException("データソースの登録に失敗しました");
+                }
                 
                 // レポート生成
                 report.Prepare();
