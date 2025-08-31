@@ -134,6 +134,12 @@ public class ProductAccountReportModel
     public string? ProductCategory1 { get; set; }
 
     /// <summary>
+    /// 商品分類1名（担当者名）
+    /// </summary>
+    [MaxLength(50)]
+    public string? ProductCategory1Name { get; set; }
+
+    /// <summary>
     /// 商品分類5
     /// </summary>
     [MaxLength(15)]
