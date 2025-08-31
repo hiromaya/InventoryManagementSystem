@@ -18,6 +18,16 @@ using FR = global::FastReport;
 
 namespace InventorySystem.Reports.FastReport.Services
 {
+    // RowTypesクラスの後に追加
+    public class StaffPageInfo
+    {
+        public string StaffCode { get; set; }
+        public string StaffName { get; set; }
+        public int StartPage { get; set; }
+        public int PageCount { get; set; }
+        public int EndPage => StartPage + PageCount - 1;
+    }
+    
     public class ProductAccountFastReportService : IProductAccountReportService
     {
         private readonly ILogger<ProductAccountFastReportService> _logger;
@@ -81,12 +91,73 @@ namespace InventorySystem.Reports.FastReport.Services
                     throw new InvalidOperationException("商品勘定データが存在しません");
                 }
                 
-                // PDF生成処理
-                var pdfBytes = GeneratePdfReportFromFlatData(flatData, jobDate);
-                
-                _logger.LogInformation("商品勘定帳票PDF生成完了。サイズ: {Size} bytes", pdfBytes.Length);
-                
-                return pdfBytes;
+                // ===== Phase 2: 担当者別PDF生成 =====
+
+                // Step 1: flatDataの担当者コード空を"000"に変換
+                foreach (var item in flatData)
+                {
+                    if (string.IsNullOrEmpty(item.ProductCategory1))
+                    {
+                        item.ProductCategory1 = "000";
+                        item.ProductCategory1Name = "担当者未設定";
+                    }
+                }
+
+                // Step 2: 担当者別にグループ化（データ行のみカウント）
+                var staffGroups = flatData
+                    .Where(x => x.RowType == RowTypes.Detail)  // 小計行等を除外
+                    .GroupBy(x => x.ProductCategory1)
+                    .OrderBy(g => g.Key)
+                    .ToList();
+
+                // Step 3: 総ページ数を事前計算
+                int totalPages = 0;
+                var staffPageInfo = new List<(string StaffCode, int StartPage, int PageCount)>();
+
+                foreach (var group in staffGroups)
+                {
+                    int dataRows = group.Count();
+                    int pageCount = (int)Math.Ceiling(dataRows / 35.0);
+                    staffPageInfo.Add((group.Key, totalPages + 1, pageCount));
+                    totalPages += pageCount;
+                    
+                    _logger.LogInformation("担当者{Staff}: {Rows}行 → {Pages}ページ", 
+                        group.Key, dataRows, pageCount);
+                }
+                _logger.LogInformation("総ページ数: {TotalPages}", totalPages);
+
+                // Step 4: 担当者別PDF生成（個別ファイル）
+                foreach (var info in staffPageInfo)
+                {
+                    // この担当者のデータを抽出
+                    var staffData = flatData
+                        .Where(x => x.ProductCategory1 == info.StaffCode)
+                        .ToList();
+                    
+                    // ページ番号を設定（通し番号）
+                    for (int page = 0; page < info.PageCount; page++)
+                    {
+                        int currentPage = info.StartPage + page;
+                        // ここでDataTableの各行にページ番号情報を埋め込む処理
+                        // 例: row["PageNumber"] = $"{currentPage} / {totalPages}";
+                    }
+                    
+                    // この担当者用のPDF生成
+                    var staffPdfBytes = GeneratePdfReportFromFlatData(staffData, jobDate);
+                    
+                    // ファイル保存
+                    var outputDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output");
+                    Directory.CreateDirectory(outputDir);
+                    var fileName = $"ProductAccount_{jobDate:yyyyMMdd}_{info.StaffCode}.pdf";
+                    var filePath = Path.Combine(outputDir, fileName);
+                    
+                    File.WriteAllBytes(filePath, staffPdfBytes);
+                    _logger.LogInformation("PDF出力: {FileName}", fileName);
+                }
+
+                // 一時的な返り値（後で結合処理を追加予定）
+                return new byte[0];
+
             }
             catch (FileNotFoundException ex)
             {
@@ -1460,23 +1531,23 @@ namespace InventorySystem.Reports.FastReport.Services
             row["RowType"] = RowTypes.Detail;
             
             // ★デバッグ用：DUMMYという文字を表示して可視化
-            row["ProductCode"] = "DUMMY";          // ★ 変更
-            row["ProductName"] = "===DUMMY行===";   // ★ 変更（目立つように）
-            row["ShippingMarkCode"] = "DUM";       // ★ 変更
-            row["ShippingMarkName"] = "ダミー";     // ★ 変更
-            row["ManualShippingMark"] = "-";       // ★ 変更
-            row["GradeName"] = "D";                // ★ 変更
-            row["ClassName"] = "D";                // ★ 変更
-            row["VoucherNumber"] = "0000";         // ★ 変更
-            row["DisplayCategory"] = "-";          // ★ 変更
-            row["MonthDay"] = "--/--";             // ★ 変更
-            row["PurchaseQuantity"] = "0.00";      // ★ 変更
-            row["SalesQuantity"] = "0.00";         // ★ 変更
-            row["RemainingQuantity"] = "0.00";     // ★ 変更
-            row["UnitPrice"] = "0";                // ★ 変更
-            row["Amount"] = "0";                   // ★ 変更
-            row["GrossProfit"] = "0";              // ★ 変更
-            row["CustomerSupplierName"] = "ダミー行"; // ★ 変更
+            row["ProductCode"] = "";          // ★ 変更
+            row["ProductName"] = "";   // ★ 変更（目立つように）
+            row["ShippingMarkCode"] = "";       // ★ 変更
+            row["ShippingMarkName"] = "";     // ★ 変更
+            row["ManualShippingMark"] = "";       // ★ 変更
+            row["GradeName"] = "";                // ★ 変更
+            row["ClassName"] = "";                // ★ 変更
+            row["VoucherNumber"] = "";         // ★ 変更
+            row["DisplayCategory"] = "";          // ★ 変更
+            row["MonthDay"] = "";             // ★ 変更
+            row["PurchaseQuantity"] = "";      // ★ 変更
+            row["SalesQuantity"] = "";         // ★ 変更
+            row["RemainingQuantity"] = "";     // ★ 変更
+            row["UnitPrice"] = "";                // ★ 変更
+            row["Amount"] = "";                   // ★ 変更
+            row["GrossProfit"] = "";              // ★ 変更
+            row["CustomerSupplierName"] = ""; // ★ 変更
             
             // 制御フィールド
             row["IsGrayBackground"] = "0";
