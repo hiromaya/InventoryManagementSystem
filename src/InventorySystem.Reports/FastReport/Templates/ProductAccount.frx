@@ -39,7 +39,7 @@
     <!-- ページヘッダー -->
     <PageHeaderBand Name="PageHeader1" Width="1512" Height="80">
       <TextObject Name="CreateDate" Width="300" Height="20" Text="作成日：[CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="PageNumber" Left="1212" Width="300" Height="20" Text="[Page#] / [TotalPages#] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="PageNumber" Left="1212" Width="300" Height="20" Text="[ProductAccount.CurrentPage] / [ProductAccount.TotalPagesDisplay] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="StaffText" Top="20" Width="300" Height="20" Text="担当者：[ProductAccount.ProductCategory1Name]" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Title" Top="20" Width="1512" Height="25" Text="※　[JobDate]　商品勘定　※" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 14pt"/>
       
