@@ -153,7 +153,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 .GroupBy(x => new 
                 { 
                     StaffCode = x.ProductCategory1 ?? "", 
-                    StaffName = x.GetAdditionalInfo("ProductCategory1Name") ?? ""
+                    StaffName = x.ProductCategory1Name ?? ""
                 });
             
             bool isFirstStaff = true;
@@ -1619,7 +1619,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // 担当者情報
                 row["ProductCategory1"] = item.ProductCategory1 ?? "";
-                row["ProductCategory1Name"] = item.GetAdditionalInfo("ProductCategory1Name") ?? "";
+                row["ProductCategory1Name"] = item.ProductCategory1Name ?? "";
                 
                 // 文字列フィールド（切り詰め処理を適用）
                 row["ProductCode"] = item.ProductCode;
@@ -1985,7 +1985,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // 基本情報
                 ProductCategory1 = data.ProductCategory1 ?? "",
-                ProductCategory1Name = data.GetAdditionalInfo("ProductCategory1Name") ?? "",
+                ProductCategory1Name = data.ProductCategory1Name ?? "",
                 ProductCode = data.ProductCode,
                 ProductName = data.ProductName,
                 ShippingMarkCode = data.ShippingMarkCode,
@@ -2326,7 +2326,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 .GroupBy(x => new 
                 { 
                     StaffCode = x.ProductCategory1 ?? "000",
-                    StaffName = x.GetAdditionalInfo("ProductCategory1Name") ?? "未登録"
+                    StaffName = x.ProductCategory1Name ?? "未登録"
                 })
                 .OrderBy(g => g.Key.StaffCode)
                 .ToList();
