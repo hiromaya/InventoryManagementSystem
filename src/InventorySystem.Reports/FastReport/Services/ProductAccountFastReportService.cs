@@ -321,10 +321,12 @@ namespace InventorySystem.Reports.FastReport.Services
                     if (subtotalPurchase != 0 || subtotalSales != 0 || subtotalInventoryAmount != 0)
                     {
                         // 見出し行
-                        flatRows.Add(CreateProductSubtotalHeader(sequence++));
+                        flatRows.Add(CreateProductSubtotalHeader(staffCode, staffName, sequence++));
                         
                         // 数値行
                         flatRows.Add(CreateProductSubtotal(
+                            staffCode,
+                            staffName,
                             subtotalPreviousBalance,
                             subtotalPurchase, 
                             subtotalSales,
@@ -337,7 +339,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     }
                     
                     // 空行
-                    flatRows.Add(CreateBlankRow(sequence++));
+                    flatRows.Add(CreateBlankRow(staffCode, staffName, sequence++));
                 }
                 
             }
@@ -2217,14 +2219,20 @@ namespace InventorySystem.Reports.FastReport.Services
         /// 商品別小計見出し行作成
         /// 【前日残】を月日列に右揃えで配置
         /// </summary>
-        private ProductAccountFlatRow CreateProductSubtotalHeader(int sequence)
+        private ProductAccountFlatRow CreateProductSubtotalHeader(string staffCode, string staffName, int sequence)
         {
+            _logger.LogDebug($"小計見出し行生成: StaffCode={staffCode}, StaffName={staffName}");
+            
             return new ProductAccountFlatRow
             {
                 RowType = RowTypes.ProductSubtotalHeader,
                 RowSequence = sequence,
                 IsBold = false,
                 IsGrayBackground = false,
+                
+                // 担当者情報を設定
+                ProductCategory1 = staffCode ?? "",
+                ProductCategory1Name = staffName ?? "",
                 
                 // 商品情報列はすべて空
                 ProductName = "",
@@ -2253,6 +2261,8 @@ namespace InventorySystem.Reports.FastReport.Services
         /// 前日残の数値を月日列に右揃えで配置
         /// </summary>
         private ProductAccountFlatRow CreateProductSubtotal(
+            string staffCode,
+            string staffName,
             decimal previousBalance,      // 前日残（追加）
             decimal purchase,             // 仕入計
             decimal sales,                // 売上計
@@ -2263,6 +2273,8 @@ namespace InventorySystem.Reports.FastReport.Services
             decimal grossProfitRate,      // 粗利率（追加）
             int sequence)
         {
+            _logger.LogDebug($"小計数値行生成: StaffCode={staffCode}, StaffName={staffName}");
+            
             return new ProductAccountFlatRow
             {
                 RowType = RowTypes.ProductSubtotal,
@@ -2270,6 +2282,10 @@ namespace InventorySystem.Reports.FastReport.Services
                 IsSubtotal = true,
                 IsBold = true,
                 IsGrayBackground = true,
+                
+                // 担当者情報を設定
+                ProductCategory1 = staffCode ?? "",
+                ProductCategory1Name = staffName ?? "",
                 
                 // 商品情報列はすべて空
                 ProductName = "",
@@ -2305,12 +2321,16 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// 空行作成
         /// </summary>
-        private ProductAccountFlatRow CreateBlankRow(int sequence)
+        private ProductAccountFlatRow CreateBlankRow(string staffCode, string staffName, int sequence)
         {
             return new ProductAccountFlatRow
             {
                 RowType = RowTypes.BlankLine,
-                RowSequence = sequence
+                RowSequence = sequence,
+                
+                // 担当者情報を設定
+                ProductCategory1 = staffCode ?? "",
+                ProductCategory1Name = staffName ?? ""
             };
         }
         
