@@ -116,44 +116,28 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 foreach (var group in staffGroups)
                 {
-                    var staffCode = group.Key;
-                    var staffData = flatData.Where(x => x.ProductCategory1 == staffCode).ToList();
+                    // Detail行数
+                    int detailRows = group.Count();
                     
-                    // 実際の行数をカウント（PAGE_BREAK行を除く）
-                    int actualRows = 0;
-                    int pageCount = 1;  // 最低1ページ
-                    int rowsInPage = 0;
+                    // 商品グループ数を計算（各商品グループに小計3行追加）
+                    var productGroups = group.GroupBy(x => new {
+                        x.ProductCode,
+                        x.ShippingMarkCode,
+                        x.ShippingMarkName,
+                        x.GradeCode,
+                        x.ClassCode
+                    }).Count();
                     
-                    foreach (var row in staffData)
-                    {
-                        if (row.RowType == RowTypes.PageBreak || row.RowType == RowTypes.StaffHeader)
-                        {
-                            if (rowsInPage > 0)
-                            {
-                                pageCount++;
-                                rowsInPage = 0;
-                            }
-                            continue;
-                        }
-                        
-                        if (rowsInPage >= 35)
-                        {
-                            pageCount++;
-                            rowsInPage = 0;
-                        }
-                        
-                        rowsInPage++;
-                        actualRows++;
-                    }
-                    
-                    staffPageInfo.Add((staffCode, totalPages + 1, pageCount));
+                    // 総行数 = Detail行 + (商品グループ数 × 3行の小計)
+                    int totalRows = detailRows + (productGroups * 3);
+                    int pageCount = (int)Math.Ceiling(totalRows / 35.0);
+                    staffPageInfo.Add((group.Key, totalPages + 1, pageCount));
                     totalPages += pageCount;
                     
-                    _logger.LogInformation("担当者{Staff}: 実データ{Rows}行 → {Pages}ページ", 
-                        staffCode, actualRows, pageCount);
+                    _logger.LogInformation("担当者{Staff}: Detail{DetailRows}行 + 小計{SubtotalRows}行 = 合計{TotalRows}行 → {Pages}ページ", 
+                        group.Key, detailRows, productGroups * 3, totalRows, pageCount);
                 }
-                
-                _logger.LogInformation("総ページ数（実計算）: {TotalPages}", totalPages);
+                _logger.LogInformation("総ページ数: {TotalPages}", totalPages);
                 
                 // Step 4: 担当者別PDF生成
                 var allPdfBytes = new List<byte[]>();
@@ -1359,7 +1343,7 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             var table = CreateFlatDataTable(flatData);  // 既存メソッドを利用
             
-            // ページ番号列が既に追加されているか確認（修正1で追加済みのはず）
+            // ページ番号列を追加
             if (!table.Columns.Contains("CurrentPage"))
             {
                 table.Columns.Add("CurrentPage", typeof(string));
@@ -1369,47 +1353,32 @@ namespace InventorySystem.Reports.FastReport.Services
                 table.Columns.Add("TotalPagesDisplay", typeof(string));
             }
             
+            // 各行にページ番号を設定
             int currentPage = startPage;
             int rowsInCurrentPage = 0;
-            const int MAX_ROWS_PER_PAGE = 35;
             
             foreach (DataRow row in table.Rows)
             {
-                string rowType = row["RowType"]?.ToString() ?? "";
+                row["CurrentPage"] = currentPage.ToString();
+                row["TotalPagesDisplay"] = totalPages.ToString();
                 
-                // PAGE_BREAK行の処理（最優先）
-                if (rowType == RowTypes.PageBreak || rowType == RowTypes.StaffHeader)
+                rowsInCurrentPage++;
+                
+                // PAGE_BREAK行を優先的に処理
+                if (row["RowType"]?.ToString() == RowTypes.PageBreak)
                 {
-                    // PAGE_BREAK行は次のページの開始を示す
-                    if (rowsInCurrentPage > 0)  // 既に行がある場合のみページを進める
-                    {
-                        currentPage++;
-                        rowsInCurrentPage = 0;
-                    }
-                    
-                    // PAGE_BREAK行自体は非表示なのでページ番号を設定しない
-                    row["CurrentPage"] = "";
-                    row["TotalPagesDisplay"] = "";
-                    continue;  // 次の行へ
+                    currentPage++;
+                    rowsInCurrentPage = 0;
+                    _logger.LogDebug($"PAGE_BREAK行でページ増加: {currentPage-1} → {currentPage}");
                 }
-                
-                // 通常行の35行チェック（PAGE_BREAK行以外）
-                if (rowsInCurrentPage >= MAX_ROWS_PER_PAGE)
+                // PAGE_BREAK行でない場合のみ35行条件をチェック
+                else if (rowsInCurrentPage >= 35)
                 {
                     currentPage++;
                     rowsInCurrentPage = 0;
                     _logger.LogDebug($"35行到達でページ増加: {currentPage-1} → {currentPage}");
                 }
-                
-                // ページ番号を設定
-                row["CurrentPage"] = currentPage.ToString();
-                row["TotalPagesDisplay"] = totalPages.ToString();
-                
-                // 行カウントを増やす（PAGE_BREAK以外の全ての行）
-                rowsInCurrentPage++;
             }
-            
-            _logger.LogInformation($"ページ番号設定完了: 開始={startPage}, 終了={currentPage}, 総ページ={totalPages}");
             
             return table;
         }
@@ -1636,8 +1605,6 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("IsBold", typeof(string));              // "1"/"0"
             table.Columns.Add("RowSequence", typeof(string));
             table.Columns.Add("PageGroup", typeof(string));           // 35行改ページ用グループ
-            table.Columns.Add("CurrentPage", typeof(string));        // 現在のページ番号
-            table.Columns.Add("TotalPagesDisplay", typeof(string));  // 総ページ数
             
             // === 35行改ページ制御変数 ===
             string currentStaffCode = "";
@@ -2266,7 +2233,7 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             return new ProductAccountFlatRow
             {
-                RowType = RowTypes.PageBreak,
+                RowType = RowTypes.StaffHeader,
                 RowSequence = sequence,
                 IsPageBreak = true,
                 IsGrayBackground = false,
