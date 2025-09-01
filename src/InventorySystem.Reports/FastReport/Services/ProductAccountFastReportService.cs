@@ -216,6 +216,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     {
                         _logger.LogWarning(ex, "一時フォルダの削除に失敗: {TempFolder}", tempFolder);
                     }
+                }
             }
             catch (FileNotFoundException ex)
             {
