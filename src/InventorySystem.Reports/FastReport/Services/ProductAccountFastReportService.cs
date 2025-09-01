@@ -116,13 +116,26 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 foreach (var group in staffGroups)
                 {
-                    int dataRows = group.Count();
-                    int pageCount = (int)Math.Ceiling(dataRows / 35.0);
+                    // Detail行数
+                    int detailRows = group.Count();
+                    
+                    // 商品グループ数を計算（各商品グループに小計3行追加）
+                    var productGroups = group.GroupBy(x => new {
+                        x.ProductCode,
+                        x.ShippingMarkCode,
+                        x.ShippingMarkName,
+                        x.GradeCode,
+                        x.ClassCode
+                    }).Count();
+                    
+                    // 総行数 = Detail行 + (商品グループ数 × 3行の小計)
+                    int totalRows = detailRows + (productGroups * 3);
+                    int pageCount = (int)Math.Ceiling(totalRows / 35.0);
                     staffPageInfo.Add((group.Key, totalPages + 1, pageCount));
                     totalPages += pageCount;
                     
-                    _logger.LogInformation("担当者{Staff}: {Rows}行 → {Pages}ページ", 
-                        group.Key, dataRows, pageCount);
+                    _logger.LogInformation("担当者{Staff}: Detail{DetailRows}行 + 小計{SubtotalRows}行 = 合計{TotalRows}行 → {Pages}ページ", 
+                        group.Key, detailRows, productGroups * 3, totalRows, pageCount);
                 }
                 _logger.LogInformation("総ページ数: {TotalPages}", totalPages);
                 
@@ -1351,18 +1364,19 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 rowsInCurrentPage++;
                 
-                // 35行ごとにページ番号を増やす
-                if (rowsInCurrentPage >= 35)
-                {
-                    currentPage++;
-                    rowsInCurrentPage = 0;
-                }
-                
-                // PAGE_BREAK行でもページ番号を増やす
+                // PAGE_BREAK行を優先的に処理
                 if (row["RowType"]?.ToString() == RowTypes.PageBreak)
                 {
                     currentPage++;
                     rowsInCurrentPage = 0;
+                    _logger.LogDebug($"PAGE_BREAK行でページ増加: {currentPage-1} → {currentPage}");
+                }
+                // PAGE_BREAK行でない場合のみ35行条件をチェック
+                else if (rowsInCurrentPage >= 35)
+                {
+                    currentPage++;
+                    rowsInCurrentPage = 0;
+                    _logger.LogDebug($"35行到達でページ増加: {currentPage-1} → {currentPage}");
                 }
             }
             
