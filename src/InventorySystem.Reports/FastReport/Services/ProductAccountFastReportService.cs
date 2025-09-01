@@ -2231,6 +2231,77 @@ namespace InventorySystem.Reports.FastReport.Services
             }
         }
         
+        // === 集計行専用フォーマットメソッド（0も表示） ===
+        
+        /// <summary>
+        /// 数量フォーマット（集計行専用）- 0も表示
+        /// </summary>
+        private string FormatQuantityForSubtotal(decimal value)
+        {
+            if (value == 0) return "0.00";  // 0も表示
+            
+            if (value < 0)
+            {
+                return Math.Abs(value).ToString("#,##0.00") + "▲";
+            }
+            
+            return value.ToString("#,##0.00");
+        }
+
+        /// <summary>
+        /// 単価フォーマット（集計行専用）- 0も表示
+        /// </summary>
+        private string FormatUnitPriceForSubtotal(decimal value)
+        {
+            if (value == 0) return "0";  // 0も表示
+            return Math.Round(value, 0).ToString("#,##0");
+        }
+
+        /// <summary>
+        /// 金額フォーマット（集計行専用）- 0も表示
+        /// </summary>
+        private string FormatAmountForSubtotal(decimal value)
+        {
+            if (value == 0) return "0";  // 0も表示
+            
+            if (value < 0)
+            {
+                return Math.Abs(Math.Round(value, 0)).ToString("#,##0") + "▲";
+            }
+            
+            return Math.Round(value, 0).ToString("#,##0");
+        }
+
+        /// <summary>
+        /// 粗利益フォーマット（集計行専用）- 0も表示
+        /// </summary>
+        private string FormatGrossProfitForSubtotal(decimal value)
+        {
+            if (value == 0) return "0";  // 0も表示
+            
+            if (value < 0)
+            {
+                return Math.Abs(Math.Round(value, 0)).ToString("#,##0") + "▲";
+            }
+            
+            return Math.Round(value, 0).ToString("#,##0");
+        }
+
+        /// <summary>
+        /// パーセンテージフォーマット（集計行専用）- 0も表示
+        /// </summary>
+        private string FormatPercentageForSubtotal(decimal value)
+        {
+            if (value == 0) return "0.00 %";  // 0も表示
+            
+            if (value < 0)
+            {
+                return $"{Math.Abs(value):0.00}▲ %";
+            }
+            
+            return $"{value:0.00} %";
+        }
+        
         /// <summary>
         /// 右揃え用のパディング処理（改良版）
         /// </summary>
@@ -2564,16 +2635,16 @@ namespace InventorySystem.Reports.FastReport.Services
                 DisplayCategory = "",                                      // 区分列は空
                 
                 // 月日列に前日残の数値を配置（▲処理適用）
-                MonthDay = FormatQuantity(previousBalance),
+                MonthDay = FormatQuantityForSubtotal(previousBalance),
                 
                 // 各集計値
-                PurchaseQuantity = FormatQuantity(purchase),
-                SalesQuantity = FormatQuantity(sales),
-                RemainingQuantity = FormatQuantity(currentBalance),
-                UnitPrice = FormatUnitPrice(inventoryUnitPrice),
-                Amount = FormatAmount(inventoryAmount),
-                GrossProfit = FormatGrossProfit(grossProfit, ""),
-                CustomerSupplierName = FormatPercentage(grossProfitRate)   // 粗利率
+                PurchaseQuantity = FormatQuantityForSubtotal(purchase),
+                SalesQuantity = FormatQuantityForSubtotal(sales),
+                RemainingQuantity = FormatQuantityForSubtotal(currentBalance),
+                UnitPrice = FormatUnitPriceForSubtotal(inventoryUnitPrice),
+                Amount = FormatAmountForSubtotal(inventoryAmount),
+                GrossProfit = FormatGrossProfitForSubtotal(grossProfit),
+                CustomerSupplierName = FormatPercentageForSubtotal(grossProfitRate)   // 粗利率
             };
         }
         
