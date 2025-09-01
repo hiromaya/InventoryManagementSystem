@@ -110,75 +110,45 @@ namespace InventorySystem.Reports.FastReport.Services
                     .OrderBy(g => g.Key)
                     .ToList();
                 
-                // Step 3: 総ページ数を動的に計算する（2パス処理）
-                
-                // 一時的な総ページ数（後で修正される）
-                int tempTotalPages = 0;
-                var staffPageInfoList = new List<StaffPageInfo>();
-                
-                // 最初のパスで概算ページ数を計算
+                // Step 3: 実際のDataTableを作成してページ数を正確に計算
+                var actualPageInfoList = new List<StaffPageInfo>();
+                int globalPageNumber = 1;
+
                 foreach (var group in staffGroups)
                 {
                     var staffCode = group.Key;
+                    var staffName = group.FirstOrDefault()?.ProductCategory1Name ?? $"商担{staffCode}";
                     var staffData = flatData.Where(x => x.ProductCategory1 == staffCode).ToList();
                     
-                    // 概算ページ数を計算
-                    int estimatedPages = (int)Math.Ceiling(staffData.Count / 35.0);
+                    // 実際のDataTableを作成
+                    var staffTable = CreateFlatDataTable(staffData);
+                    
+                    // 実際のページ数を計算（PAGE_BREAK行とダミー行を考慮）
+                    int actualPageCount = CalculateActualPageCount(staffTable);
                     
                     var info = new StaffPageInfo
                     {
                         StaffCode = staffCode,
-                        StaffName = staffData.FirstOrDefault()?.ProductCategory1Name ?? $"商担{staffCode}",
-                        StartPage = tempTotalPages + 1,
-                        PageCount = estimatedPages  // 一時的な値
+                        StaffName = staffName,
+                        StartPage = globalPageNumber,
+                        PageCount = actualPageCount
                     };
                     
-                    staffPageInfoList.Add(info);
-                    tempTotalPages += estimatedPages;
-                }
-                
-                // Step 4: 実際のページ数を計算するため、一度ダミー処理を実行
-                int actualTotalPages = 0;
-                var actualPageCounts = new Dictionary<string, int>();
-                
-                foreach (var info in staffPageInfoList)
-                {
-                    var staffData = flatData.Where(x => x.ProductCategory1 == info.StaffCode).ToList();
-                    
-                    // ダミーのDataTableを作成して実際のページ数を計算
-                    var dummyTable = CreateFlatDataTableWithPageNumbers(
-                        staffData, 
-                        actualTotalPages + 1, 
-                        999); // 仮の総ページ数
-                    
-                    // 実際の終了ページを取得
-                    int actualEndPage = (int)(dummyTable.ExtendedProperties["ActualEndPage"] ?? actualTotalPages + 1);
-                    int actualPageCount = actualEndPage - actualTotalPages;
-                    
-                    actualPageCounts[info.StaffCode] = actualPageCount;
-                    actualTotalPages = actualEndPage;
-                }
-                
-                // Step 5: 実際のページ数で再計算
-                int finalTotalPages = actualTotalPages;
-                int currentStartPage = 1;
-                var staffPageInfo = new List<(string StaffCode, int StartPage, int PageCount)>();
-                
-                foreach (var info in staffPageInfoList)
-                {
-                    info.StartPage = currentStartPage;
-                    info.PageCount = actualPageCounts[info.StaffCode];
-                    currentStartPage += info.PageCount;
-                    
-                    // 既存の形式に合わせて変換
-                    staffPageInfo.Add((info.StaffCode, info.StartPage, info.PageCount));
+                    actualPageInfoList.Add(info);
+                    globalPageNumber += actualPageCount;
                     
                     _logger.LogInformation("担当者{Staff}: 実ページ数{Pages}ページ（開始:{Start}）", 
-                        info.StaffCode, info.PageCount, info.StartPage);
+                        staffCode, actualPageCount, info.StartPage);
                 }
-                
-                int totalPages = finalTotalPages;
+
+                // 総ページ数（実際の計算結果）
+                int totalPages = globalPageNumber - 1;
                 _logger.LogInformation("総ページ数（実計算）: {TotalPages}", totalPages);
+
+                // 既存の形式に合わせて変換
+                var staffPageInfo = actualPageInfoList
+                    .Select(info => (info.StaffCode, info.StartPage, info.PageCount))
+                    .ToList();
                 
                 // Step 4: 担当者別PDF生成
                 var allPdfBytes = new List<byte[]>();
@@ -1375,6 +1345,47 @@ namespace InventorySystem.Reports.FastReport.Services
         }
 
         /// <summary>
+        /// DataTableから実際のページ数を計算
+        /// </summary>
+        private int CalculateActualPageCount(DataTable table)
+        {
+            int pageCount = 1;
+            int rowsInCurrentPage = 0;
+            const int MAX_ROWS_PER_PAGE = 35;
+            
+            foreach (DataRow row in table.Rows)
+            {
+                string rowType = row["RowType"]?.ToString() ?? "";
+                
+                // PAGE_BREAK行は改ページマーカー
+                if (rowType == RowTypes.PageBreak)
+                {
+                    if (rowsInCurrentPage > 0)
+                    {
+                        pageCount++;
+                        rowsInCurrentPage = 0;
+                    }
+                    continue; // PAGE_BREAK行自体はカウントしない
+                }
+                
+                // ダミー行と通常行をカウント
+                rowsInCurrentPage++;
+                
+                if (rowsInCurrentPage >= MAX_ROWS_PER_PAGE)
+                {
+                    // 次の行があればページを増やす
+                    if (table.Rows.IndexOf(row) < table.Rows.Count - 1)
+                    {
+                        pageCount++;
+                        rowsInCurrentPage = 0;
+                    }
+                }
+            }
+            
+            return pageCount;
+        }
+
+        /// <summary>
         /// ページ番号付きDataTable作成
         /// </summary>
         private DataTable CreateFlatDataTableWithPageNumbers(
@@ -1384,7 +1395,7 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             var table = CreateFlatDataTable(flatData);
             
-            // ページ番号列が既に追加されているか確認
+            // ページ番号列が存在しない場合は追加
             if (!table.Columns.Contains("CurrentPage"))
             {
                 table.Columns.Add("CurrentPage", typeof(string));
@@ -1398,27 +1409,27 @@ namespace InventorySystem.Reports.FastReport.Services
             int rowsInCurrentPage = 0;
             const int MAX_ROWS_PER_PAGE = 35;
             
-            foreach (DataRow row in table.Rows)
+            for (int i = 0; i < table.Rows.Count; i++)
             {
+                DataRow row = table.Rows[i];
                 string rowType = row["RowType"]?.ToString() ?? "";
                 
-                // PAGE_BREAK行の特別処理
-                if (rowType == RowTypes.PageBreak || rowType == "STAFF_HEADER") // 互換性のため両方チェック
+                // PAGE_BREAK行の処理
+                if (rowType == RowTypes.PageBreak)
                 {
-                    // PAGE_BREAK行が最初の行でない場合のみページを進める
+                    // PAGE_BREAK行は改ページを示すが、それ自体は非表示
+                    // 次のページ番号を設定（表示はされない）
+                    row["CurrentPage"] = (currentPage + 1).ToString();
+                    row["TotalPagesDisplay"] = totalPages.ToString();
+                    
+                    // 既に行がある場合のみページを進める
                     if (rowsInCurrentPage > 0)
                     {
                         currentPage++;
                         rowsInCurrentPage = 0;
                         _logger.LogDebug($"PAGE_BREAK行でページ増加: {currentPage-1} → {currentPage}");
                     }
-                    
-                    // PAGE_BREAK行にも次のページ番号を設定（重要！）
-                    row["CurrentPage"] = currentPage.ToString();
-                    row["TotalPagesDisplay"] = totalPages.ToString();
-                    
-                    // ただし、この行自体は非表示になる（IsPageBreak="1"のため）
-                    continue;  // 行カウントは増やさない
+                    continue; // PAGE_BREAK行はカウントしない
                 }
                 
                 // 35行チェック（PAGE_BREAK行以外）
@@ -1429,7 +1440,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     _logger.LogDebug($"35行到達でページ増加: {currentPage-1} → {currentPage}");
                 }
                 
-                // 通常行のページ番号設定
+                // 通常行とダミー行のページ番号設定
                 row["CurrentPage"] = currentPage.ToString();
                 row["TotalPagesDisplay"] = totalPages.ToString();
                 
@@ -1437,11 +1448,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 rowsInCurrentPage++;
             }
             
-            // 最終ページ番号を返す（次のメソッドで使用するため）
             _logger.LogInformation($"ページ番号設定完了: 開始={startPage}, 終了={currentPage}, 総ページ={totalPages}");
-            
-            // 実際の終了ページを記録（後で使用）
-            table.ExtendedProperties["ActualEndPage"] = currentPage;
             
             return table;
         }
@@ -1741,13 +1748,50 @@ namespace InventorySystem.Reports.FastReport.Services
                     _logger.LogInformation($"新ページ開始: 担当者={currentStaffName}");
                 }
                 
-                // === 35行制限チェック（同一担当者内） ===
+                // === 35行制限チェック（改善版） ===
+                // 小計行セットがページ境界で分割されないようにする
                 if (currentPageRows >= MAX_ROWS_PER_PAGE)
                 {
-                    var pageBreakRow = CreatePageBreakRow(table, currentStaffCode, currentStaffName);
-                    table.Rows.Add(pageBreakRow);
-                    currentPageRows = 0;
-                    _logger.LogInformation($"ページブレーク挿入: 担当者={currentStaffCode}, 行数=35");
+                    // 次の3行が小計セットかチェック
+                    bool isSubtotalSet = false;
+                    if (i + 2 < flatData.Count)
+                    {
+                        var next1 = flatData[i];
+                        var next2 = flatData[i + 1];
+                        var next3 = flatData[i + 2];
+                        
+                        isSubtotalSet = 
+                            next1.RowType == RowTypes.ProductSubtotalHeader &&
+                            next2.RowType == RowTypes.ProductSubtotal &&
+                            next3.RowType == RowTypes.BlankLine;
+                    }
+                    
+                    // 小計セットの場合は、セット全体を次のページへ
+                    if (isSubtotalSet)
+                    {
+                        // 現在のページを埋める
+                        int remainingRows = MAX_ROWS_PER_PAGE - currentPageRows;
+                        for (int j = 0; j < remainingRows; j++)
+                        {
+                            var dummyRow = CreateDummyRow(table, currentStaffCode, currentStaffName);
+                            table.Rows.Add(dummyRow);
+                        }
+                        
+                        // 改ページマーカー挿入
+                        var pageBreakRow = CreatePageBreakRow(table, currentStaffCode, currentStaffName);
+                        table.Rows.Add(pageBreakRow);
+                        currentPageRows = 0;
+                        
+                        _logger.LogInformation($"小計セット保護のための改ページ: 担当者={currentStaffCode}");
+                    }
+                    else
+                    {
+                        // 通常の改ページ処理
+                        var pageBreakRow = CreatePageBreakRow(table, currentStaffCode, currentStaffName);
+                        table.Rows.Add(pageBreakRow);
+                        currentPageRows = 0;
+                        _logger.LogInformation($"ページブレーク挿入: 担当者={currentStaffCode}, 行数=35");
+                    }
                 }
                 
                 // === 通常行の追加 ===
