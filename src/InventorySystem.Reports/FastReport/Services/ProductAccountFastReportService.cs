@@ -182,7 +182,7 @@ namespace InventorySystem.Reports.FastReport.Services
                         
                         // 正確な総ページ数とスタートページで生成
                         byte[] pdfBytes = GeneratePdfReportFromFlatDataWithPageNumber(
-                            staffData, jobDate, currentStartPage, totalPages);
+                            staffData, jobDate, currentStartPage, pageCount, totalPages);
                         
                         finalPdfList.Add(pdfBytes);
                         currentStartPage += pageCount;
@@ -1265,6 +1265,7 @@ namespace InventorySystem.Reports.FastReport.Services
             List<ProductAccountFlatRow> flatData, 
             DateTime jobDate,
             int startPage,
+            int pageCount,  // この担当者の実測ページ数
             int totalPages)
         {
             using var report = new FR.Report();
@@ -1281,7 +1282,7 @@ namespace InventorySystem.Reports.FastReport.Services
             SetScriptLanguageToNone(report);
             
             // フラットデータをDataTableに変換
-            var dataTable = CreateFlatDataTableWithPageNumbers(flatData, startPage, totalPages);
+            var dataTable = CreateFlatDataTableWithPageNumbers(flatData, startPage, pageCount, totalPages);
             
             // FastReportにデータソースを登録
             report.RegisterData(dataTable, "ProductAccount");
@@ -1398,6 +1399,7 @@ namespace InventorySystem.Reports.FastReport.Services
         private DataTable CreateFlatDataTableWithPageNumbers(
             List<ProductAccountFlatRow> flatData,
             int startPage,
+            int pageCount,  // この担当者の実測ページ数
             int totalPages)
         {
             var table = CreateFlatDataTable(flatData);
@@ -1413,49 +1415,39 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             
             int currentPage = startPage;
-            int rowsInCurrentPage = 0;
-            const int MAX_ROWS_PER_PAGE = 35;
+            int pagesProcessed = 0;  // 処理済みページ数
             
-            for (int i = 0; i < table.Rows.Count; i++)
+            foreach (DataRow row in table.Rows)
             {
-                DataRow row = table.Rows[i];
                 string rowType = row["RowType"]?.ToString() ?? "";
                 
-                // PAGE_BREAK行の処理
+                // PAGE_BREAK行でページを進める（担当者内のページ境界）
                 if (rowType == RowTypes.PageBreak)
                 {
-                    // PAGE_BREAK行は改ページを示すが、それ自体は非表示
-                    // 次のページ番号を設定（表示はされない）
-                    row["CurrentPage"] = (currentPage + 1).ToString();
-                    row["TotalPagesDisplay"] = totalPages.ToString();
+                    row["IsPageBreak"] = "1";  // FastReport用マーカー
                     
-                    // 既に行がある場合のみページを進める
-                    if (rowsInCurrentPage > 0)
+                    // まだページ数に余裕があれば次のページへ
+                    if (pagesProcessed < pageCount - 1)
                     {
                         currentPage++;
-                        rowsInCurrentPage = 0;
+                        pagesProcessed++;
                         _logger.LogDebug($"PAGE_BREAK行でページ増加: {currentPage-1} → {currentPage}");
                     }
-                    continue; // PAGE_BREAK行はカウントしない
+                    
+                    // PAGE_BREAK行にも次のページ番号を設定
+                    row["CurrentPage"] = currentPage.ToString();
+                    row["TotalPagesDisplay"] = totalPages.ToString();
+                    continue;
                 }
                 
-                // 35行チェック（PAGE_BREAK行以外）
-                if (rowsInCurrentPage >= MAX_ROWS_PER_PAGE)
-                {
-                    currentPage++;
-                    rowsInCurrentPage = 0;
-                    _logger.LogDebug($"35行到達でページ増加: {currentPage-1} → {currentPage}");
-                }
-                
-                // 通常行とダミー行のページ番号設定
+                // 通常行のページ番号設定
                 row["CurrentPage"] = currentPage.ToString();
                 row["TotalPagesDisplay"] = totalPages.ToString();
-                
-                // 行カウントを増やす
-                rowsInCurrentPage++;
             }
             
-            _logger.LogInformation($"ページ番号設定完了: 開始={startPage}, 終了={currentPage}, 総ページ={totalPages}");
+            // ログ出力を修正
+            int endPage = startPage + pageCount - 1;
+            _logger.LogInformation($"ページ番号設定完了: 開始={startPage}, 終了={endPage}, 総ページ={totalPages}");
             
             return table;
         }
