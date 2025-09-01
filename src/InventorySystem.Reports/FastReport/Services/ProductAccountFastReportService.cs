@@ -132,8 +132,9 @@ namespace InventorySystem.Reports.FastReport.Services
                         _logger.LogInformation("1次PDF生成開始: 担当者{Staff}", staffCode);
                         
                         // 仮の総ページ数999で生成（-1は使用しない）
+                        // 1次生成では仮のページ数を使用（実測後に2次生成で正確な値を設定）
                         byte[] pdfBytes = GeneratePdfReportFromFlatDataWithPageNumber(
-                            staffData, jobDate, 1, 999);
+                            staffData, jobDate, 1, 999, 999);
                         
                         // 一時ファイルとして保存
                         string fileName = $"{staffCode}_{Guid.NewGuid()}.pdf";

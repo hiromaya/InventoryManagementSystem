@@ -153,8 +153,8 @@ BEGIN
                 0.00 as RemainingQuantity,
                 s.UnitPrice,
                 s.Amount,
-                -- Process 2-5で計算された粗利益を参照（2025-09-01修正）
-                ISNULL(s.GrossProfit, 0) as GrossProfit,
+                -- 粗利計算（売上金額 - 在庫単価×数量）
+                s.Amount - (s.Quantity * ISNULL(s.InventoryUnitPrice, cp.CurrentUnitPrice)) as GrossProfit,
                 0.00 as WalkingDiscount,
                 ISNULL(s.CustomerName, '') as CustomerSupplierName,
                 cp.ProductCategory1,
