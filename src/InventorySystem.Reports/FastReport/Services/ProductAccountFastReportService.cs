@@ -91,7 +91,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     throw new InvalidOperationException("商品勘定データが存在しません");
                 }
                 
-                // ===== Phase 2: 担当者別PDF生成 =====
+                // ===== Phase 2: 2回PDF生成アプローチ =====
                 
                 // Step 1: 担当者コード空を"000"に変換
                 foreach (var item in flatData)
@@ -110,94 +110,90 @@ namespace InventorySystem.Reports.FastReport.Services
                     .OrderBy(g => g.Key)
                     .ToList();
                 
-                // Step 3: 実際のDataTableを作成してページ数を正確に計算
-                var actualPageInfoList = new List<StaffPageInfo>();
-                int globalPageNumber = 1;
-
-                foreach (var group in staffGroups)
-                {
-                    var staffCode = group.Key;
-                    var staffName = group.FirstOrDefault()?.ProductCategory1Name ?? $"商担{staffCode}";
-                    var staffData = flatData.Where(x => x.ProductCategory1 == staffCode).ToList();
-                    
-                    // 実際のDataTableを作成
-                    var staffTable = CreateFlatDataTable(staffData);
-                    
-                    // 実際のページ数を計算（PAGE_BREAK行とダミー行を考慮）
-                    int actualPageCount = CalculateActualPageCount(staffTable);
-                    
-                    var info = new StaffPageInfo
-                    {
-                        StaffCode = staffCode,
-                        StaffName = staffName,
-                        StartPage = globalPageNumber,
-                        PageCount = actualPageCount
-                    };
-                    
-                    actualPageInfoList.Add(info);
-                    globalPageNumber += actualPageCount;
-                    
-                    _logger.LogInformation("担当者{Staff}: 実ページ数{Pages}ページ（開始:{Start}）", 
-                        staffCode, actualPageCount, info.StartPage);
-                }
-
-                // 総ページ数（実際の計算結果）
-                int totalPages = globalPageNumber - 1;
-                _logger.LogInformation("総ページ数（実計算）: {TotalPages}", totalPages);
-
-                // 既存の形式に合わせて変換
-                var staffPageInfo = actualPageInfoList
-                    .Select(info => (info.StaffCode, info.StartPage, info.PageCount))
-                    .ToList();
+                // Step 3: 一時フォルダ作成
+                string tempFolder = Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory, 
+                    "Output", 
+                    $"Temp_{DateTime.Now:yyyyMMddHHmmss}");
+                Directory.CreateDirectory(tempFolder);
                 
-                // Step 4: 担当者別PDF生成
-                var allPdfBytes = new List<byte[]>();
-                var generatedFiles = new List<string>();  // ファイルパス記録用
-                
+                _logger.LogInformation("一時フォルダ作成: {TempFolder}", tempFolder);
+
                 try
                 {
-                    foreach (var info in staffPageInfo)
+                    // Phase 3: 1次PDF生成（仮のページ数999で生成）
+                    Dictionary<string, string> firstPassFiles = new Dictionary<string, string>();
+                    
+                    foreach (var group in staffGroups)
                     {
-                        // この担当者のデータを抽出（全RowType含む）
-                        var staffData = flatData
-                            .Where(x => x.ProductCategory1 == info.StaffCode)
-                            .ToList();
+                        var staffCode = group.Key;
+                        var staffData = flatData.Where(x => x.ProductCategory1 == staffCode).ToList();
                         
-                        // この担当者用のPDF生成（ページ番号付き）
-                        var staffPdfBytes = GeneratePdfReportFromFlatDataWithPageNumber(
-                            staffData, jobDate, info.StartPage, totalPages);
+                        _logger.LogInformation("1次PDF生成開始: 担当者{Staff}", staffCode);
                         
-                        // ファイル保存
-                        try
+                        // 仮の総ページ数999で生成（-1は使用しない）
+                        byte[] pdfBytes = GeneratePdfReportFromFlatDataWithPageNumber(
+                            staffData, jobDate, 1, 999);
+                        
+                        // 一時ファイルとして保存
+                        string fileName = $"{staffCode}_{Guid.NewGuid()}.pdf";
+                        string filePath = Path.Combine(tempFolder, fileName);
+                        File.WriteAllBytes(filePath, pdfBytes);
+                        firstPassFiles.Add(staffCode, filePath);
+                        
+                        _logger.LogInformation("1次PDF生成完了: {FileName}", fileName);
+                    }
+                    
+                    // Phase 4: 実ページ数取得
+                    Dictionary<string, int> actualPageCounts = new Dictionary<string, int>();
+                    int totalPages = 0;
+                    
+                    _logger.LogInformation("実ページ数取得開始");
+                    
+                    foreach (var kvp in firstPassFiles)
+                    {
+                        using (var pdfDocument = PdfReader.Open(kvp.Value, PdfDocumentOpenMode.Import))
                         {
-                            var outputDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output");
-                            if (!Directory.Exists(outputDir))
-                            {
-                                Directory.CreateDirectory(outputDir);
-                            }
+                            int pageCount = pdfDocument.PageCount;
+                            actualPageCounts.Add(kvp.Key, pageCount);
+                            totalPages += pageCount;
                             
-                            var fileName = $"ProductAccount_{jobDate:yyyyMMdd}_{info.StaffCode}.pdf";
-                            var filePath = Path.Combine(outputDir, fileName);
-                            
-                            File.WriteAllBytes(filePath, staffPdfBytes);
-                            generatedFiles.Add(filePath);  // ファイルパスを記録
-                            _logger.LogInformation("PDF出力: {FileName}", fileName);
-                            
-                            allPdfBytes.Add(staffPdfBytes);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "PDF保存エラー: 担当者{StaffCode}", info.StaffCode);
-                            throw; // PDF生成が失敗した場合は処理を中断
+                            _logger.LogInformation("担当者{Staff}: 実ページ数{Pages}ページ", 
+                                kvp.Key, pageCount);
                         }
                     }
                     
-                    // PDF結合処理
-                    if (allPdfBytes.Any())
+                    _logger.LogInformation("総ページ数（実測値）: {TotalPages}", totalPages);
+                    
+                    // Phase 5: 2次PDF生成（正確なページ数で再生成）
+                    List<byte[]> finalPdfList = new List<byte[]>();
+                    int currentStartPage = 1;
+                    
+                    _logger.LogInformation("2次PDF生成開始");
+                    
+                    foreach (var group in staffGroups)
                     {
-                        var mergedPdf = MergePdfFiles(allPdfBytes);
+                        var staffCode = group.Key;
+                        var staffData = flatData.Where(x => x.ProductCategory1 == staffCode).ToList();
+                        int pageCount = actualPageCounts[staffCode];
+                        
+                        _logger.LogInformation("2次PDF生成: 担当者{Staff} 開始ページ{Start} ページ数{Count}", 
+                            staffCode, currentStartPage, pageCount);
+                        
+                        // 正確な総ページ数とスタートページで生成
+                        byte[] pdfBytes = GeneratePdfReportFromFlatDataWithPageNumber(
+                            staffData, jobDate, currentStartPage, totalPages);
+                        
+                        finalPdfList.Add(pdfBytes);
+                        currentStartPage += pageCount;
+                    }
+                    
+                    // Phase 6: 結合と出力
+                    if (finalPdfList.Any())
+                    {
+                        var mergedPdf = MergePdfFiles(finalPdfList);
                         _logger.LogInformation("商品勘定帳票PDF結合完了。担当者数: {Count}, 総サイズ: {Size} bytes", 
-                            allPdfBytes.Count, mergedPdf.Length);
+                            finalPdfList.Count, mergedPdf.Length);
                         return mergedPdf;
                     }
                     else
@@ -207,9 +203,19 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
                 finally
                 {
-                    // 必ず一時ファイルを削除
-                    CleanupTemporaryFiles(generatedFiles);
-                }
+                    // Phase 7: クリーンアップ（一時フォルダを完全削除）
+                    try
+                    {
+                        if (Directory.Exists(tempFolder))
+                        {
+                            Directory.Delete(tempFolder, true);
+                            _logger.LogInformation("一時フォルダ削除完了: {TempFolder}", tempFolder);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "一時フォルダの削除に失敗: {TempFolder}", tempFolder);
+                    }
             }
             catch (FileNotFoundException ex)
             {
