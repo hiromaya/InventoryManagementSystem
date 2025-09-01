@@ -1415,40 +1415,74 @@ namespace InventorySystem.Reports.FastReport.Services
                 table.Columns.Add("TotalPagesDisplay", typeof(string));
             }
             
-            int currentPage = startPage;
-            int pagesProcessed = 0;  // 処理済みページ数
-            
-            foreach (DataRow row in table.Rows)
+            // === PAGE_BREAK行の位置を収集 ===
+            var pageBreakIndices = new List<int>();
+            for (int i = 0; i < table.Rows.Count; i++)
             {
+                if (table.Rows[i]["RowType"]?.ToString() == RowTypes.PageBreak)
+                {
+                    pageBreakIndices.Add(i);
+                }
+            }
+            
+            int totalRows = table.Rows.Count;
+            int breakCount = pageBreakIndices.Count;
+            
+            // 詳細ログ出力
+            _logger.LogInformation($"CreateFlatDataTableWithPageNumbers: " +
+                $"総行数={totalRows}, PAGE_BREAK行数={breakCount}, " +
+                $"実測ページ数={pageCount}, 開始ページ={startPage}");
+            
+            // === 実測ページ数に基づく行数ベース配分 ===
+            // 総行数（PAGE_BREAK行除く）を実測ページ数で割って1ページあたりの行数を算出
+            int nonBreakRows = totalRows - breakCount;
+            double rowsPerPageDouble = nonBreakRows > 0 ? (double)nonBreakRows / pageCount : 1.0;
+            int rowsPerPage = Math.Max(1, (int)Math.Ceiling(rowsPerPageDouble));
+            
+            _logger.LogInformation($"計算結果: 非BREAK行数={nonBreakRows}, " +
+                $"1ページ当たり行数={rowsPerPage} (小数値={rowsPerPageDouble:F2})");
+            
+            int currentPage = startPage;
+            int nonBreakRowCount = 0; // PAGE_BREAK行以外のカウンタ
+            
+            for (int i = 0; i < table.Rows.Count; i++)
+            {
+                DataRow row = table.Rows[i];
                 string rowType = row["RowType"]?.ToString() ?? "";
                 
-                // PAGE_BREAK行でページを進める（担当者内のページ境界）
+                // PAGE_BREAK行の処理
                 if (rowType == RowTypes.PageBreak)
                 {
                     row["IsPageBreak"] = "1";  // FastReport用マーカー
-                    
-                    // まだページ数に余裕があれば次のページへ
-                    if (pagesProcessed < pageCount - 1)
-                    {
-                        currentPage++;
-                        pagesProcessed++;
-                        _logger.LogDebug($"PAGE_BREAK行でページ増加: {currentPage-1} → {currentPage}");
-                    }
-                    
-                    // PAGE_BREAK行にも次のページ番号を設定
                     row["CurrentPage"] = currentPage.ToString();
                     row["TotalPagesDisplay"] = totalPages.ToString();
+                    
+                    _logger.LogDebug($"PAGE_BREAK行処理: 行{i}, ページ{currentPage}");
                     continue;
                 }
                 
-                // 通常行のページ番号設定
+                // 通常行：行数ベースでページ番号を計算
+                int pageIndex = Math.Min(nonBreakRowCount / rowsPerPage, pageCount - 1);
+                currentPage = startPage + pageIndex;
+                
                 row["CurrentPage"] = currentPage.ToString();
                 row["TotalPagesDisplay"] = totalPages.ToString();
+                
+                nonBreakRowCount++;
+                
+                // デバッグログ（最初と最後の数行のみ）
+                if (i < 5 || i >= totalRows - 5)
+                {
+                    _logger.LogDebug($"行{i}: RowType={rowType}, " +
+                        $"nonBreakRowCount={nonBreakRowCount}, pageIndex={pageIndex}, " +
+                        $"currentPage={currentPage}");
+                }
             }
             
-            // ログ出力を修正
+            // 最終ログ
             int endPage = startPage + pageCount - 1;
-            _logger.LogInformation($"ページ番号設定完了: 開始={startPage}, 終了={endPage}, 総ページ={totalPages}");
+            _logger.LogInformation($"ページ番号設定完了: 開始={startPage}, 終了={endPage}, " +
+                $"実測ページ数={pageCount}, 総ページ={totalPages}, 非BREAK行処理数={nonBreakRowCount}");
             
             return table;
         }
@@ -2170,7 +2204,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 return "";
             }
             
-            if (value == 0) return "";
+            if (value == 0) return "0";
             
             if (value < 0)
             {
@@ -2186,7 +2220,7 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private string FormatPercentage(decimal value)
         {
-            if (value == 0) return "";
+            if (value == 0) return "0.00 %";
             if (value < 0)
             {
                 return $"{Math.Abs(value):0.00}▲ %";
