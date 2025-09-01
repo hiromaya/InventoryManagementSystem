@@ -46,6 +46,8 @@
     <!-- Roslynコンパイラ（.NET 8.0対応） -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.8.0" />
+    <!-- PDF結合処理用 -->
+    <PackageReference Include="PdfSharp" Version="6.1.1" />
   </ItemGroup>
 
   <ItemGroup>

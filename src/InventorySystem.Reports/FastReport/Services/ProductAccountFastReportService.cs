@@ -14,6 +14,8 @@ using InventorySystem.Reports.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Dapper;
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
 using FR = global::FastReport;
 
 namespace InventorySystem.Reports.FastReport.Services
@@ -126,50 +128,63 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // Step 4: 担当者別PDF生成
                 var allPdfBytes = new List<byte[]>();
+                var generatedFiles = new List<string>();  // ファイルパス記録用
                 
-                foreach (var info in staffPageInfo)
+                try
                 {
-                    // この担当者のデータを抽出（全RowType含む）
-                    var staffData = flatData
-                        .Where(x => x.ProductCategory1 == info.StaffCode)
-                        .ToList();
-                    
-                    // この担当者用のPDF生成（ページ番号付き）
-                    var staffPdfBytes = GeneratePdfReportFromFlatDataWithPageNumber(
-                        staffData, jobDate, info.StartPage, totalPages);
-                    
-                    // ファイル保存
-                    try
+                    foreach (var info in staffPageInfo)
                     {
-                        var outputDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output");
-                        if (!Directory.Exists(outputDir))
+                        // この担当者のデータを抽出（全RowType含む）
+                        var staffData = flatData
+                            .Where(x => x.ProductCategory1 == info.StaffCode)
+                            .ToList();
+                        
+                        // この担当者用のPDF生成（ページ番号付き）
+                        var staffPdfBytes = GeneratePdfReportFromFlatDataWithPageNumber(
+                            staffData, jobDate, info.StartPage, totalPages);
+                        
+                        // ファイル保存
+                        try
                         {
-                            Directory.CreateDirectory(outputDir);
+                            var outputDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output");
+                            if (!Directory.Exists(outputDir))
+                            {
+                                Directory.CreateDirectory(outputDir);
+                            }
+                            
+                            var fileName = $"ProductAccount_{jobDate:yyyyMMdd}_{info.StaffCode}.pdf";
+                            var filePath = Path.Combine(outputDir, fileName);
+                            
+                            File.WriteAllBytes(filePath, staffPdfBytes);
+                            generatedFiles.Add(filePath);  // ファイルパスを記録
+                            _logger.LogInformation("PDF出力: {FileName}", fileName);
+                            
+                            allPdfBytes.Add(staffPdfBytes);
                         }
-                        
-                        var fileName = $"ProductAccount_{jobDate:yyyyMMdd}_{info.StaffCode}.pdf";
-                        var filePath = Path.Combine(outputDir, fileName);
-                        
-                        File.WriteAllBytes(filePath, staffPdfBytes);
-                        _logger.LogInformation("PDF出力: {FileName}", fileName);
-                        
-                        allPdfBytes.Add(staffPdfBytes);
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "PDF保存エラー: 担当者{StaffCode}", info.StaffCode);
+                            throw; // PDF生成が失敗した場合は処理を中断
+                        }
                     }
-                    catch (Exception ex)
+                    
+                    // PDF結合処理
+                    if (allPdfBytes.Any())
                     {
-                        _logger.LogError(ex, "PDF保存エラー: 担当者{StaffCode}", info.StaffCode);
+                        var mergedPdf = MergePdfFiles(allPdfBytes);
+                        _logger.LogInformation("商品勘定帳票PDF結合完了。担当者数: {Count}, 総サイズ: {Size} bytes", 
+                            allPdfBytes.Count, mergedPdf.Length);
+                        return mergedPdf;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("PDFの生成に失敗しました");
                     }
                 }
-                
-                // 成功時は最初のPDFを返す（後で結合処理を追加予定）
-                if (allPdfBytes.Any())
+                finally
                 {
-                    _logger.LogInformation("商品勘定帳票PDF生成完了。サイズ: {Size} bytes", allPdfBytes.First().Length);
-                    return allPdfBytes.First();
-                }
-                else
-                {
-                    throw new InvalidOperationException("PDFの生成に失敗しました");
+                    // 必ず一時ファイルを削除
+                    CleanupTemporaryFiles(generatedFiles);
                 }
             }
             catch (FileNotFoundException ex)
@@ -184,6 +199,92 @@ namespace InventorySystem.Reports.FastReport.Services
             }
         }
 
+        /// <summary>
+        /// 複数のPDFファイルを1つに結合
+        /// </summary>
+        private byte[] MergePdfFiles(List<byte[]> pdfBytesList)
+        {
+            if (pdfBytesList == null || !pdfBytesList.Any())
+            {
+                throw new ArgumentException("結合するPDFがありません", nameof(pdfBytesList));
+            }
+            
+            if (pdfBytesList.Count == 1)
+            {
+                return pdfBytesList[0];
+            }
+            
+            try
+            {
+                using (var outputDocument = new PdfDocument())
+                {
+                    foreach (var pdfBytes in pdfBytesList)
+                    {
+                        using (var stream = new MemoryStream(pdfBytes))
+                        {
+                            using (var inputDocument = PdfReader.Open(stream, PdfDocumentOpenMode.Import))
+                            {
+                                // 全ページをコピー
+                                foreach (var page in inputDocument.Pages)
+                                {
+                                    outputDocument.AddPage(page);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 結合したPDFをバイト配列として返す
+                    using (var outputStream = new MemoryStream())
+                    {
+                        outputDocument.Save(outputStream);
+                        return outputStream.ToArray();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "PDF結合処理でエラーが発生しました");
+                throw new InvalidOperationException("PDFの結合に失敗しました", ex);
+            }
+        }
+
+        /// <summary>
+        /// 一時ファイルをクリーンアップ
+        /// </summary>
+        private void CleanupTemporaryFiles(List<string> filePaths)
+        {
+            foreach (var filePath in filePaths)
+            {
+                try
+                {
+                    if (File.Exists(filePath))
+                    {
+                        File.Delete(filePath);
+                        _logger.LogDebug("一時PDFファイルを削除しました: {FilePath}", filePath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 削除失敗はログに記録するが処理は継続
+                    _logger.LogWarning(ex, "一時ファイルの削除に失敗しました: {FilePath}", filePath);
+                }
+            }
+            
+            // Outputフォルダが空の場合は削除
+            try
+            {
+                var outputDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output");
+                if (Directory.Exists(outputDir) && !Directory.GetFiles(outputDir).Any())
+                {
+                    Directory.Delete(outputDir);
+                    _logger.LogDebug("空のOutputフォルダを削除しました");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Outputフォルダの削除に失敗しました");
+            }
+        }
 
         /// <summary>
         /// 商品勘定フラットデータの生成（C#側完全制御）
