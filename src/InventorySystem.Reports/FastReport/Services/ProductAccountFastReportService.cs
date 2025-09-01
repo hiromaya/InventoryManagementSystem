@@ -2239,7 +2239,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 IsGrayBackground = false,
                 ProductCategory1 = staffCode,
                 ProductCategory1Name = staffName,
-                ProductName = "" // 改ページ専用なので表示内容なし
+                ProductName = "", // 改ページ専用なので表示内容なし
+                GradeCode = "",
+                ClassCode = ""
             };
         }
         
@@ -2276,7 +2278,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 ShippingMarkCode = data.ShippingMarkCode,
                 ShippingMarkName = data.ShippingMarkName,
                 ManualShippingMark = data.ManualShippingMark,
+                GradeCode = data.GradeCode,
                 GradeName = data.GradeName,
+                ClassCode = data.ClassCode,
                 ClassName = data.ClassName,
                 VoucherNumber = data.VoucherNumber,
                 DisplayCategory = data.DisplayCategory,
@@ -2307,13 +2311,15 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // 基本情報
                 ProductCategory1 = data.ProductCategory1 ?? "",
-                ProductCategory1Name = data.GetAdditionalInfo("ProductCategory1Name") ?? "",
+                ProductCategory1Name = data.ProductCategory1Name ?? "",
                 ProductCode = data.ProductCode,
                 ProductName = data.ProductName,
                 ShippingMarkCode = data.ShippingMarkCode,
                 ShippingMarkName = data.ShippingMarkName,
                 ManualShippingMark = data.ManualShippingMark,
+                GradeCode = data.GradeCode,
                 GradeName = data.GradeName,
+                ClassCode = data.ClassCode,
                 ClassName = data.ClassName,
                 VoucherNumber = data.VoucherNumber,
                 DisplayCategory = data.DisplayCategory,
@@ -2352,7 +2358,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 商品情報列はすべて空
                 ProductName = "",
                 ManualShippingMark = "",
+                GradeCode = "",
                 GradeName = "",
+                ClassCode = "",
                 ClassName = "",
                 VoucherNumber = "",
                 DisplayCategory = "",                              // 区分列は空
@@ -2405,7 +2413,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 商品情報列はすべて空
                 ProductName = "",
                 ManualShippingMark = "",
+                GradeCode = "",
                 GradeName = "",
+                ClassCode = "",
                 ClassName = "",
                 VoucherNumber = "",
                 DisplayCategory = "",                                      // 区分列は空
@@ -2441,7 +2451,11 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // 担当者情報を設定
                 ProductCategory1 = staffCode ?? "",
-                ProductCategory1Name = staffName ?? ""
+                ProductCategory1Name = staffName ?? "",
+                
+                // 商品情報列は空
+                GradeCode = "",
+                ClassCode = ""
             };
         }
         

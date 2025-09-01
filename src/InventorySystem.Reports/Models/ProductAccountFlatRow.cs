@@ -51,10 +51,22 @@ public class ProductAccountFlatRow
     public string ShippingMarkName { get; set; } = string.Empty;
 
     /// <summary>
+    /// 等級コード
+    /// </summary>
+    [MaxLength(3)]
+    public string GradeCode { get; set; } = string.Empty;
+
+    /// <summary>
     /// 等級名
     /// </summary>
     [MaxLength(50)]
     public string GradeName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 階級コード
+    /// </summary>
+    [MaxLength(3)]
+    public string ClassCode { get; set; } = string.Empty;
 
     /// <summary>
     /// 階級名
