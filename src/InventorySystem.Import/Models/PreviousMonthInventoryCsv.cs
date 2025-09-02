@@ -82,9 +82,6 @@ public class PreviousMonthInventoryCsv
     /// </summary>
     public decimal Amount => CsvParsingHelper.ParseDecimal(AmountString);
     
-    [Name("手入力項目(半角8文字)")]
-    [Index(152)]  // 153列目
-    public string HandInputItem { get; set; } = string.Empty;
 
     /// <summary>
     /// 前月末在庫として有効かどうかを判定
@@ -152,9 +149,8 @@ public class PreviousMonthInventoryCsv
             ClassCode: (ClassCode ?? "").Trim().PadLeft(3, '0'),
             ShippingMarkCode: ShippingMarkCode ?? "    ",  // 空白4文字をデフォルトとし、Trimしない
             // 荷印名は手入力項目（153列目、Index=152）から取得する
-            // ※CSV内の142列目の「荷印名」フィールドは使用しない（マスタ参照値のため）
-            // 伝票に直接入力された値を8桁固定で使用
-            ManualShippingMark: NormalizeManualShippingMark(HandInputItem)
+            // 手入力項目を正規化して設定
+            ManualShippingMark: NormalizeManualShippingMark(ManualShippingMark)
         );
     }
 

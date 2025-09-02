@@ -102,7 +102,12 @@ public class SalesVoucher
     public string ShippingMarkCode { get; set; } = string.Empty;
 
     /// <summary>
-    /// 荷印名
+    /// 荷印名（マスタ参照値）
+    /// </summary>
+    public string ShippingMarkName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 手入力荷印（8文字固定）
     /// </summary>
     public string ManualShippingMark { get; set; } = string.Empty;
 
