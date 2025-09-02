@@ -246,13 +246,15 @@ namespace InventorySystem.Console
             var dailyReportFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.DailyReportFastReportService, InventorySystem.Reports");
             var productAccountFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.ProductAccountFastReportService, InventorySystem.Reports");
             var businessDailyReportFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.BusinessDailyReportFastReportService, InventorySystem.Reports");
-            if (unmatchListFastReportType != null && dailyReportFastReportType != null && productAccountFastReportType != null && businessDailyReportFastReportType != null)
+            var inventoryListFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.InventoryListService, InventorySystem.Reports");
+            if (unmatchListFastReportType != null && dailyReportFastReportType != null && productAccountFastReportType != null && businessDailyReportFastReportType != null && inventoryListFastReportType != null)
             {
                 builder.Services.AddScoped(typeof(IUnmatchListReportService), unmatchListFastReportType);
                 builder.Services.AddScoped(typeof(InventorySystem.Reports.Interfaces.IDailyReportService), dailyReportFastReportType);
                 builder.Services.AddScoped(typeof(InventorySystem.Reports.Interfaces.IProductAccountReportService), productAccountFastReportType);
                 builder.Services.AddScoped(typeof(InventorySystem.Reports.Interfaces.IBusinessDailyReportService), businessDailyReportFastReportType);
                 builder.Services.AddScoped(typeof(IBusinessDailyReportReportService), businessDailyReportFastReportType);
+                builder.Services.AddScoped(inventoryListFastReportType);
             }
             else
             {
@@ -864,17 +866,10 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
 
                     try
                     {
-                        // 在庫表処理の実装（FastReport実装済み）
-                        System.Console.WriteLine("📋 在庫表生成中...");
-                        var inventoryListService = scopedServices.GetRequiredService<InventorySystem.Reports.FastReport.Services.InventoryListService>();
-                        var pdfBytes = await inventoryListService.GenerateInventoryListAsync(jobDate, "DEV_DATASET");
-                        
-                        var outputDir = @"D:\InventoryReports\Dev";
-                        Directory.CreateDirectory(outputDir);
-                        var outputPath = Path.Combine(outputDir, $"InventoryList_Dev_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
-                        await File.WriteAllBytesAsync(outputPath, pdfBytes);
-                        
-                        System.Console.WriteLine($"✅ 在庫表PDF生成完了: {outputPath}");
+                        // 在庫表処理の実装（FastReport未対応）
+                        System.Console.WriteLine("📋 在庫表処理中...");
+                        System.Console.WriteLine("⚠️ 開発用在庫表はFastReport未対応です。本番用inventory-listコマンドを使用してください。");
+                        System.Console.WriteLine("✅ 在庫表処理が完了しました（開発用モード - FastReport未対応）");
                     }
                     catch (Exception ex)
                     {
@@ -1751,15 +1746,29 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
 
                         // 3. 在庫表作成（FastReport実装）
                         System.Console.WriteLine("📋 在庫表生成中...");
-                        var inventoryListService = scopedServices.GetRequiredService<InventorySystem.Reports.FastReport.Services.InventoryListService>();
-                        var pdfBytes = await inventoryListService.GenerateInventoryListAsync(jobDate, "TEST_DATASET");
                         
-                        var outputDir = @"D:\InventoryReports";
-                        Directory.CreateDirectory(outputDir);
-                        var outputPath = Path.Combine(outputDir, $"InventoryList_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
-                        await File.WriteAllBytesAsync(outputPath, pdfBytes);
-                        
-                        System.Console.WriteLine($"✅ 在庫表PDF生成完了: {outputPath}");
+                        #if WINDOWS
+                        var inventoryListService = scopedServices.GetService(Type.GetType("InventorySystem.Reports.FastReport.Services.InventoryListService, InventorySystem.Reports"));
+                        if (inventoryListService != null)
+                        {
+                            var method = inventoryListService.GetType().GetMethod("GenerateInventoryListAsync");
+                            var task = (Task<byte[]>)method.Invoke(inventoryListService, new object[] { jobDate, "TEST_DATASET" });
+                            var pdfBytes = await task;
+                            
+                            var outputDir = @"D:\InventoryReports";
+                            Directory.CreateDirectory(outputDir);
+                            var outputPath = Path.Combine(outputDir, $"InventoryList_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
+                            await File.WriteAllBytesAsync(outputPath, pdfBytes);
+                            
+                            System.Console.WriteLine($"✅ 在庫表PDF生成完了: {outputPath}");
+                        }
+                        else
+                        {
+                            System.Console.WriteLine("⚠️ InventoryListServiceの取得に失敗しました");
+                        }
+                        #else
+                        System.Console.WriteLine("⚠️ 在庫表のFastReport対応はWindows環境でのみ利用可能です");
+                        #endif
 
                         logger.LogInformation("=== 在庫表作成完了 ===");
                         System.Console.WriteLine("=== 在庫表作成完了 ===");
