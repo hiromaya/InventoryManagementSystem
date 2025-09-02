@@ -1,0 +1,12 @@
+[
+  {
+    "COLUMN_NAME": "ManualShippingMark",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 8
+  },
+  {
+    "COLUMN_NAME": "ManualShippingMark",
+    "DATA_TYPE": "nvarchar",
+    "CHARACTER_MAXIMUM_LENGTH": 8
+  }
+]

@@ -1,0 +1,194 @@
+[
+  {
+    "COLUMN_NAME": "ProductCode"
+  },
+  {
+    "COLUMN_NAME": "GradeCode"
+  },
+  {
+    "COLUMN_NAME": "ClassCode"
+  },
+  {
+    "COLUMN_NAME": "ShippingMarkCode"
+  },
+  {
+    "COLUMN_NAME": "ManualShippingMark"
+  },
+  {
+    "COLUMN_NAME": "ProductName"
+  },
+  {
+    "COLUMN_NAME": "Unit"
+  },
+  {
+    "COLUMN_NAME": "StandardPrice"
+  },
+  {
+    "COLUMN_NAME": "ProductCategory1"
+  },
+  {
+    "COLUMN_NAME": "ProductCategory2"
+  },
+  {
+    "COLUMN_NAME": "JobDate"
+  },
+  {
+    "COLUMN_NAME": "CreatedDate"
+  },
+  {
+    "COLUMN_NAME": "UpdatedDate"
+  },
+  {
+    "COLUMN_NAME": "PreviousDayStock"
+  },
+  {
+    "COLUMN_NAME": "PreviousDayStockAmount"
+  },
+  {
+    "COLUMN_NAME": "PreviousDayUnitPrice"
+  },
+  {
+    "COLUMN_NAME": "DailyStock"
+  },
+  {
+    "COLUMN_NAME": "DailyStockAmount"
+  },
+  {
+    "COLUMN_NAME": "DailyUnitPrice"
+  },
+  {
+    "COLUMN_NAME": "DailyFlag"
+  },
+  {
+    "COLUMN_NAME": "DailySalesQuantity"
+  },
+  {
+    "COLUMN_NAME": "DailySalesAmount"
+  },
+  {
+    "COLUMN_NAME": "DailySalesReturnQuantity"
+  },
+  {
+    "COLUMN_NAME": "DailySalesReturnAmount"
+  },
+  {
+    "COLUMN_NAME": "DailyPurchaseQuantity"
+  },
+  {
+    "COLUMN_NAME": "DailyPurchaseAmount"
+  },
+  {
+    "COLUMN_NAME": "DailyPurchaseReturnQuantity"
+  },
+  {
+    "COLUMN_NAME": "DailyPurchaseReturnAmount"
+  },
+  {
+    "COLUMN_NAME": "DailyInventoryAdjustmentQuantity"
+  },
+  {
+    "COLUMN_NAME": "DailyInventoryAdjustmentAmount"
+  },
+  {
+    "COLUMN_NAME": "DailyProcessingQuantity"
+  },
+  {
+    "COLUMN_NAME": "DailyProcessingAmount"
+  },
+  {
+    "COLUMN_NAME": "DailyTransferQuantity"
+  },
+  {
+    "COLUMN_NAME": "DailyTransferAmount"
+  },
+  {
+    "COLUMN_NAME": "DailyReceiptQuantity"
+  },
+  {
+    "COLUMN_NAME": "DailyReceiptAmount"
+  },
+  {
+    "COLUMN_NAME": "DailyShipmentQuantity"
+  },
+  {
+    "COLUMN_NAME": "DailyShipmentAmount"
+  },
+  {
+    "COLUMN_NAME": "DailyGrossProfit"
+  },
+  {
+    "COLUMN_NAME": "DailyWalkingAmount"
+  },
+  {
+    "COLUMN_NAME": "DailyIncentiveAmount"
+  },
+  {
+    "COLUMN_NAME": "DailyDiscountAmount"
+  },
+  {
+    "COLUMN_NAME": "DailyPurchaseDiscountAmount"
+  },
+  {
+    "COLUMN_NAME": "MonthlySalesQuantity"
+  },
+  {
+    "COLUMN_NAME": "MonthlySalesAmount"
+  },
+  {
+    "COLUMN_NAME": "MonthlySalesReturnQuantity"
+  },
+  {
+    "COLUMN_NAME": "MonthlySalesReturnAmount"
+  },
+  {
+    "COLUMN_NAME": "MonthlyPurchaseQuantity"
+  },
+  {
+    "COLUMN_NAME": "MonthlyPurchaseAmount"
+  },
+  {
+    "COLUMN_NAME": "MonthlyPurchaseReturnQuantity"
+  },
+  {
+    "COLUMN_NAME": "MonthlyPurchaseReturnAmount"
+  },
+  {
+    "COLUMN_NAME": "MonthlyInventoryAdjustmentQuantity"
+  },
+  {
+    "COLUMN_NAME": "MonthlyInventoryAdjustmentAmount"
+  },
+  {
+    "COLUMN_NAME": "MonthlyProcessingQuantity"
+  },
+  {
+    "COLUMN_NAME": "MonthlyProcessingAmount"
+  },
+  {
+    "COLUMN_NAME": "MonthlyTransferQuantity"
+  },
+  {
+    "COLUMN_NAME": "MonthlyTransferAmount"
+  },
+  {
+    "COLUMN_NAME": "MonthlyGrossProfit"
+  },
+  {
+    "COLUMN_NAME": "MonthlyWalkingAmount"
+  },
+  {
+    "COLUMN_NAME": "MonthlyIncentiveAmount"
+  },
+  {
+    "COLUMN_NAME": "DepartmentCode"
+  },
+  {
+    "COLUMN_NAME": "GradeName"
+  },
+  {
+    "COLUMN_NAME": "ClassName"
+  },
+  {
+    "COLUMN_NAME": "ShippingMarkName"
+  }
+]

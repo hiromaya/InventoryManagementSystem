@@ -1,0 +1,12 @@
+[
+  {
+    "TableName": "Sales",
+    "ManualShippingMark": "        ",
+    "HexString": "20002000200020002000200020002000"
+  },
+  {
+    "TableName": "Purchase",
+    "ManualShippingMark": "        ",
+    "HexString": "20002000200020002000200020002000"
+  }
+]

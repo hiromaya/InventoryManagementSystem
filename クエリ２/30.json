@@ -1,0 +1,189 @@
+[
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "005",
+    "ShippingMarkCode": "5904",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "006",
+    "ShippingMarkCode": "5904",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "011",
+    "ShippingMarkCode": "5904",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "011",
+    "ShippingMarkCode": "5904",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "011",
+    "ShippingMarkCode": "5904",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "011",
+    "ShippingMarkCode": "5904",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "022",
+    "ShippingMarkCode": "5902",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "022",
+    "ShippingMarkCode": "5902",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "022",
+    "ShippingMarkCode": "5902",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "030",
+    "ShippingMarkCode": "0000",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "030",
+    "ShippingMarkCode": "0000",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "030",
+    "ShippingMarkCode": "0000",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "030",
+    "ShippingMarkCode": "0000",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Sales",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "030",
+    "ShippingMarkCode": "0000",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Purchase",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "011",
+    "ShippingMarkCode": "5904",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Purchase",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "022",
+    "ShippingMarkCode": "5902",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  },
+  {
+    "Type": "Purchase",
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "030",
+    "ShippingMarkCode": "0000",
+    "ManualShippingMark": "        ",
+    "CharLen": 0,
+    "ByteLen": 16,
+    "HexValue": "0x20002000200020002000200020002000"
+  }
+]
