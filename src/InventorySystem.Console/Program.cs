@@ -864,9 +864,17 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
 
                     try
                     {
-                        // 在庫表処理の実装（現時点では既存のinventory-listコマンドを流用）
-                        System.Console.WriteLine("🚧 在庫表処理は未実装です。既存のinventory-listコマンドを使用してください。");
-                        System.Console.WriteLine("✅ 在庫表処理が完了しました（開発用モード）");
+                        // 在庫表処理の実装（FastReport実装済み）
+                        System.Console.WriteLine("📋 在庫表生成中...");
+                        var inventoryListService = scopedServices.GetRequiredService<InventorySystem.Reports.FastReport.Services.InventoryListService>();
+                        var pdfBytes = await inventoryListService.GenerateInventoryListAsync(jobDate, "DEV_DATASET");
+                        
+                        var outputDir = @"D:\InventoryReports\Dev";
+                        Directory.CreateDirectory(outputDir);
+                        var outputPath = Path.Combine(outputDir, $"InventoryList_Dev_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
+                        await File.WriteAllBytesAsync(outputPath, pdfBytes);
+                        
+                        System.Console.WriteLine($"✅ 在庫表PDF生成完了: {outputPath}");
                     }
                     catch (Exception ex)
                     {
@@ -1741,10 +1749,17 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         await cpInventoryRepository.SetDailyFlagToProcessedAsync();
                         System.Console.WriteLine("✅ CP在庫マスタ作成完了（仮テーブル）");
 
-                        // 3. 在庫表作成（未実装）
+                        // 3. 在庫表作成（FastReport実装）
                         System.Console.WriteLine("📋 在庫表生成中...");
-                        System.Console.WriteLine("⚠️ 在庫表のFastReport対応は未実装です。QuestPDFからの移行が必要です。");
-                        // TODO: Implement FastReport version for inventory list
+                        var inventoryListService = scopedServices.GetRequiredService<InventorySystem.Reports.FastReport.Services.InventoryListService>();
+                        var pdfBytes = await inventoryListService.GenerateInventoryListAsync(jobDate, "TEST_DATASET");
+                        
+                        var outputDir = @"D:\InventoryReports";
+                        Directory.CreateDirectory(outputDir);
+                        var outputPath = Path.Combine(outputDir, $"InventoryList_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
+                        await File.WriteAllBytesAsync(outputPath, pdfBytes);
+                        
+                        System.Console.WriteLine($"✅ 在庫表PDF生成完了: {outputPath}");
 
                         logger.LogInformation("=== 在庫表作成完了 ===");
                         System.Console.WriteLine("=== 在庫表作成完了 ===");
