@@ -1882,6 +1882,50 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                             System.Console.WriteLine($"⚠️ マスタ同期で警告が発生しましたが、処理を継続します: {syncResult.ErrorMessage}");
                         }
 
+                        // Process 2-5: 売上伝票への在庫単価書き込みと粗利計算
+                        System.Console.WriteLine("💰 Process 2-5（粗利益計算）実行確認中...");
+                        var grossProfitService = scopedServices.GetRequiredService<GrossProfitCalculationService>();
+                        var dataSetIdManager = scopedServices.GetRequiredService<IDataSetIdManager>();
+
+                        // 売上伝票の在庫単価未設定件数を確認
+                        var salesVouchers = await salesVoucherRepository.GetByJobDateAsync(jobDate);
+                        var zeroUnitPriceCount = salesVouchers.Count(sv => sv.InventoryUnitPrice == 0);
+
+                        if (zeroUnitPriceCount > 0)
+                        {
+                            System.Console.WriteLine($"📊 在庫単価未設定の売上伝票: {zeroUnitPriceCount}件");
+                            System.Console.WriteLine("💰 粗利益計算処理（Process 2-5）を実行中...");
+                            
+                            try
+                            {
+                                // DataSetIdを取得
+                                var salesDataSetId = await dataSetIdManager.GetSalesVoucherDataSetIdAsync(jobDate);
+                                if (!string.IsNullOrEmpty(salesDataSetId))
+                                {
+                                    // Process 2-5実行
+                                    await grossProfitService.ExecuteProcess25Async(jobDate, salesDataSetId);
+                                    
+                                    System.Console.WriteLine("✅ 粗利益計算完了（Process 2-5）");
+                                    logger.LogInformation("Process 2-5実行完了 - 対象件数: {Count}", zeroUnitPriceCount);
+                                }
+                                else
+                                {
+                                    logger.LogWarning("売上伝票のDataSetIdが見つかりません - Process 2-5をスキップします");
+                                    System.Console.WriteLine("⚠️ 売上伝票のDataSetIdが見つかりません - Process 2-5をスキップします");
+                                }
+                            }
+                            catch (Exception processEx)
+                            {
+                                logger.LogError(processEx, "Process 2-5実行中にエラーが発生しました");
+                                System.Console.WriteLine($"⚠️ Process 2-5実行中にエラーが発生しましたが、商品勘定作成を継続します: {processEx.Message}");
+                            }
+                        }
+                        else
+                        {
+                            System.Console.WriteLine("✅ 全ての売上伝票に在庫単価設定済み - Process 2-5をスキップします");
+                            logger.LogInformation("Process 2-5スキップ - 全売上伝票で在庫単価設定済み");
+                        }
+
                         // 3. 商品勘定帳票を作成
                         System.Console.WriteLine("📋 商品勘定帳票生成中...");
                         var pdfBytes = productAccountService.GenerateProductAccountReport(jobDate);
