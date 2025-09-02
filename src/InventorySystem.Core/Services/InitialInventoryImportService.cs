@@ -340,7 +340,10 @@ public class InitialInventoryImportService
             ProductName = product?.ProductName ?? $"商品{record.ProductCode}",
             PersonInChargeCode = record.PersonInChargeCode,  // 追加
             Unit = product?.UnitCode ?? "PCS",
-            StandardPrice = record.PreviousStockUnitPrice,  // 修正: 前日在庫単価を使用
+            // 前月末在庫単価を計算（0除算対策付き）
+            StandardPrice = record.PreviousStockQuantity != 0 
+                ? Math.Round(record.PreviousStockAmount / record.PreviousStockQuantity, 4, MidpointRounding.AwayFromZero)
+                : 0,
             AveragePrice = record.AveragePrice,  // 追加
             ProductCategory1 = product?.ProductCategory1 ?? "",
             ProductCategory2 = product?.ProductCategory2 ?? "",
@@ -348,8 +351,9 @@ public class InitialInventoryImportService
             // 在庫数量・金額
             PreviousMonthQuantity = record.PreviousStockQuantity,
             PreviousMonthAmount = record.PreviousStockAmount,
-            CurrentStock = record.PreviousStockQuantity,  // 修正: 前日在庫数量を使用
-            CurrentStockAmount = record.PreviousStockAmount,  // 修正: 前日在庫金額を使用
+            // 前月末在庫は CurrentStock を 0 に設定（前日残高として扱われないようにする）
+            CurrentStock = 0,  
+            CurrentStockAmount = 0,
             DailyStock = 0, // 初期データなので0
             DailyStockAmount = 0,
             

@@ -81,7 +81,14 @@ BEGIN
             im.GradeCode, 
             im.ClassCode, 
             im.ShippingMarkCode,
-            ISNULL(sm.ShippingMarkName, im.ShippingMarkCode) AS ShippingMarkName,
+            -- 荷印名の取得（優先順位を明確化）
+            CASE
+                WHEN im.ShippingMarkName IS NOT NULL AND im.ShippingMarkName != '' 
+                    THEN im.ShippingMarkName
+                WHEN sm.ShippingMarkName IS NOT NULL 
+                    THEN sm.ShippingMarkName
+                ELSE ''
+            END AS ShippingMarkName,
             im.ManualShippingMark,
             -- 管理項目
             ISNULL(pm.ProductName, im.ProductName) AS ProductName,
@@ -95,14 +102,40 @@ BEGIN
             im.JobDate, 
             GETDATE() AS CreatedDate, 
             GETDATE() AS UpdatedDate,
-            -- 前日在庫（InventoryMasterのCurrentStockとAveragePriceを使用）
-            im.CurrentStock AS PreviousDayStock,
-            im.CurrentStockAmount AS PreviousDayStockAmount,
-            ISNULL(im.AveragePrice, 0) AS PreviousDayUnitPrice,
+            -- 前日在庫の設定を条件分岐（DailyFlag='9'は前月末在庫）
+            CASE 
+                WHEN im.DailyFlag = '9' THEN im.PreviousMonthQuantity
+                ELSE im.CurrentStock
+            END AS PreviousDayStock,
+            CASE 
+                WHEN im.DailyFlag = '9' THEN im.PreviousMonthAmount
+                ELSE im.CurrentStockAmount
+            END AS PreviousDayStockAmount,
+            -- 前日在庫単価の計算（前月末在庫は単価を直接計算）
+            CASE 
+                WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity != 0 
+                    THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
+                WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
+                    THEN 0
+                ELSE ISNULL(im.AveragePrice, 0)
+            END AS PreviousDayUnitPrice,
             -- 当日在庫（初期値は前日と同じ）
-            im.CurrentStock AS DailyStock,
-            im.CurrentStockAmount AS DailyStockAmount,
-            ISNULL(im.AveragePrice, 0) AS DailyUnitPrice,
+            CASE 
+                WHEN im.DailyFlag = '9' THEN im.PreviousMonthQuantity
+                ELSE im.CurrentStock
+            END AS DailyStock,
+            CASE 
+                WHEN im.DailyFlag = '9' THEN im.PreviousMonthAmount
+                ELSE im.CurrentStockAmount
+            END AS DailyStockAmount,
+            -- 当日在庫単価（前月末在庫は単価を直接計算）
+            CASE 
+                WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity != 0 
+                    THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
+                WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
+                    THEN 0
+                ELSE ISNULL(im.AveragePrice, 0)
+            END AS DailyUnitPrice,
             ISNULL(im.DailyFlag, '9') AS DailyFlag,  -- 未処理フラグ
             -- 日計項目（22個すべて0で初期化）
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

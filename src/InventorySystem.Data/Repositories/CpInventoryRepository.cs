@@ -403,28 +403,39 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                              DailyProcessingQuantity -
                              DailyTransferQuantity,
                 
-                -- 当日在庫単価の計算（移動平均法）
-                -- 入荷がある場合の移動平均単価計算
-                DailyUnitPrice = CASE 
-                    WHEN (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity) = 0 THEN 0
-                    ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) / 
+                -- 当日在庫単価の計算（前月末在庫はDailyFlag='9'で判定）
+                DailyUnitPrice = CASE
+                    -- 前月末在庫（DailyFlag='9'）の場合
+                    WHEN DailyFlag = '9' AND PreviousDayStock != 0 
+                        THEN ROUND(PreviousDayStockAmount / PreviousDayStock, 4)
+                    WHEN DailyFlag = '9' AND PreviousDayStock = 0 
+                        THEN 0
+                    -- 通常の移動平均法計算
+                    WHEN (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity) = 0 
+                        THEN 0
+                    ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) /
                                NULLIF(PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity, 0), 4)
                 END,
                 
-                -- 当日在庫金額の計算
-                -- 当日在庫数量 × 当日在庫単価
-                DailyStockAmount = ROUND(
-                    (PreviousDayStock + 
-                     (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) - 
-                     (DailySalesQuantity - DailySalesReturnQuantity) -
-                     DailyInventoryAdjustmentQuantity - 
-                     DailyProcessingQuantity -
-                     DailyTransferQuantity) * 
-                    CASE 
-                        WHEN (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity) = 0 THEN 0
-                        ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) / 
-                                   NULLIF(PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity, 0), 4)
-                    END, 4),
+                -- 当日在庫金額の計算（前月末在庫はDailyFlag='9'で判定）
+                DailyStockAmount = CASE
+                    -- 前月末在庫（DailyFlag='9'）の場合
+                    WHEN DailyFlag = '9' 
+                        THEN PreviousDayStockAmount  -- 前月末在庫金額をそのまま使用
+                    -- 通常の計算（当日在庫数量 × 当日在庫単価）
+                    ELSE ROUND(
+                        (PreviousDayStock + 
+                         (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) - 
+                         (DailySalesQuantity - DailySalesReturnQuantity) -
+                         DailyInventoryAdjustmentQuantity - 
+                         DailyProcessingQuantity -
+                         DailyTransferQuantity) * 
+                        CASE 
+                            WHEN (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity) = 0 THEN 0
+                            ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) / 
+                                       NULLIF(PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity, 0), 4)
+                        END, 4)
+                END,
                 UpdatedDate = GETDATE()
             -- 仮テーブル設計：全レコード対象";
 
