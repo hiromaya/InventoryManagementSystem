@@ -1,0 +1,52 @@
+[
+  {
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "005",
+    "ShippingMarkCode": "5904",
+    "ManualShippingMark": "        ",
+    "在庫単価": 1250.0000,
+    "仕入数量": 0.0000,
+    "売上数量": 1.0000
+  },
+  {
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "006",
+    "ShippingMarkCode": "5904",
+    "ManualShippingMark": "        ",
+    "在庫単価": 1500.0000,
+    "仕入数量": 0.0000,
+    "売上数量": 1.0000
+  },
+  {
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "011",
+    "ShippingMarkCode": "5904",
+    "ManualShippingMark": "        ",
+    "在庫単価": 2032.5000,
+    "仕入数量": 4.0000,
+    "売上数量": 4.0000
+  },
+  {
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "022",
+    "ShippingMarkCode": "5902",
+    "ManualShippingMark": "        ",
+    "在庫単価": 3500.0000,
+    "仕入数量": 4.0000,
+    "売上数量": 4.0000
+  },
+  {
+    "ProductCode": "01703",
+    "GradeCode": "000",
+    "ClassCode": "030",
+    "ShippingMarkCode": "0000",
+    "ManualShippingMark": "        ",
+    "在庫単価": 3909.2308,
+    "仕入数量": 14.0000,
+    "売上数量": 15.0000
+  }
+]

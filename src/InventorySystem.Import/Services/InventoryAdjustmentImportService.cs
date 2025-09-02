@@ -334,7 +334,7 @@ public class InventoryAdjustmentImportService
                 _logger.LogWarning($"不正なデータ: 行 {context.Context?.Parser?.Row ?? 0}, フィールド {context.Field ?? "不明"}");
             },
             IgnoreBlankLines = true,
-            TrimOptions = TrimOptions.Trim
+            TrimOptions = TrimOptions.None  // 手入力荷印の全角スペース保持のためTrimを無効化
         });
 
         // ヘッダーを読み込む
