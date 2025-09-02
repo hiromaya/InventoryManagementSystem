@@ -195,6 +195,11 @@ public class ProductAccountFlatRow
     /// FastReport用の太字制御（"1"または"0"）
     /// </summary>
     public string BoldFlag => IsBold ? "1" : "0";
+
+    /// <summary>
+    /// 粗利率表示フラグ（粗利率のみ右揃え制御用）
+    /// </summary>
+    public bool IsGrossProfitRate { get; set; } = false;
 }
 
 /// <summary>

@@ -1701,6 +1701,7 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("Amount", typeof(string));
             table.Columns.Add("GrossProfit", typeof(string));
             table.Columns.Add("CustomerSupplierName", typeof(string));
+            table.Columns.Add("IsGrossProfitRate", typeof(bool));    // 粗利率フラグ
             
             // 制御用フィールド
             table.Columns.Add("RowType", typeof(string));
@@ -2022,6 +2023,7 @@ namespace InventorySystem.Reports.FastReport.Services
             dataRow["Amount"] = flatRow.Amount ?? "";
             dataRow["GrossProfit"] = flatRow.GrossProfit ?? "";
             dataRow["CustomerSupplierName"] = flatRow.CustomerSupplierName ?? "";
+            dataRow["IsGrossProfitRate"] = flatRow.IsGrossProfitRate;
             
             // 制御フィールド
             dataRow["RowType"] = flatRow.RowType;
@@ -2058,6 +2060,7 @@ namespace InventorySystem.Reports.FastReport.Services
             table.Columns.Add("Amount", typeof(string));
             table.Columns.Add("GrossProfit", typeof(string));
             table.Columns.Add("CustomerSupplierName", typeof(string));
+            table.Columns.Add("IsGrossProfitRate", typeof(bool));    // 粗利率フラグ
             table.Columns.Add("GroupKey", typeof(string));  // グループ化用
             
             // C#側データ加工用の新規列
@@ -2500,6 +2503,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 DisplayCategory = data.DisplayCategory,
                 MonthDay = data.TransactionDate.ToString("MM/dd"),
                 CustomerSupplierName = data.CustomerSupplierName,
+                IsGrossProfitRate = false,                               // 通常明細は粗利率ではない
                 
                 // フォーマット済み数値
                 PurchaseQuantity = FormatQuantity(data.PurchaseQuantity),
@@ -2539,6 +2543,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 DisplayCategory = data.DisplayCategory,
                 MonthDay = data.TransactionDate.ToString("MM/dd"),
                 CustomerSupplierName = data.CustomerSupplierName,
+                IsGrossProfitRate = false,                               // 通常明細は粗利率ではない
                 
                 // フォーマット済み数値
                 PurchaseQuantity = FormatQuantity(data.PurchaseQuantity),
@@ -2589,7 +2594,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = "【在庫単価】",
                 Amount = "【在庫金額】",
                 GrossProfit = "【粗利益】",
-                CustomerSupplierName = "【粗利率】"                // 取引先名列に配置
+                CustomerSupplierName = "【粗利率】",               // 取引先名列に配置
+                IsGrossProfitRate = true                        // 粗利率表示フラグ
             };
         }
         
@@ -2644,7 +2650,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = FormatUnitPriceForSubtotal(inventoryUnitPrice),
                 Amount = FormatAmountForSubtotal(inventoryAmount),
                 GrossProfit = FormatGrossProfitForSubtotal(grossProfit),
-                CustomerSupplierName = FormatPercentageForSubtotal(grossProfitRate)   // 粗利率
+                CustomerSupplierName = FormatPercentageForSubtotal(grossProfitRate),  // 粗利率
+                IsGrossProfitRate = true                                           // 粗利率表示フラグ
             };
         }
         
@@ -2669,7 +2676,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // 商品情報列は空
                 GradeCode = "",
-                ClassCode = ""
+                ClassCode = "",
+                CustomerSupplierName = "",
+                IsGrossProfitRate = false                                // 空行は粗利率ではない
             };
         }
         
