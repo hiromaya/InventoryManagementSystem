@@ -210,13 +210,30 @@ namespace InventorySystem.Core.Services
 
         /// <summary>
         /// キー構成要素の正規化（null・空白統一処理）
+        /// 8桁空白は販売大臣の仕様で使用される特殊値のため、そのまま保持
         /// </summary>
         private string NormalizeKeyPart(string value)
         {
+            // nullの場合は空文字列
+            if (value == null)
+            {
+                return string.Empty;
+            }
+            
+            // 8桁空白は販売大臣の仕様上の特殊値として保持
+            // ManualShippingMarkで使用される固定長フォーマット
+            if (value == "        ")  // 8桁空白（スペース8個）
+            {
+                return value;  // そのまま返す（変換しない）
+            }
+            
+            // その他の空白文字列は空文字列に変換
             if (string.IsNullOrWhiteSpace(value))
             {
                 return string.Empty;
             }
+            
+            // 前後の空白のみトリム
             return value.Trim();
         }
 
