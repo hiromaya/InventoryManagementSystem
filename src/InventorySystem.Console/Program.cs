@@ -1887,43 +1887,32 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         var grossProfitService = scopedServices.GetRequiredService<GrossProfitCalculationService>();
                         var dataSetIdManager = scopedServices.GetRequiredService<IDataSetIdManager>();
 
-                        // 売上伝票の在庫単価未設定件数を確認
-                        var salesVouchers = await salesVoucherRepository.GetByJobDateAsync(jobDate);
-                        var zeroUnitPriceCount = salesVouchers.Count(sv => sv.InventoryUnitPrice == 0);
-
-                        if (zeroUnitPriceCount > 0)
+                        // Process 2-5を常に実行（データ修正対応）
+                        System.Console.WriteLine("💰 粗利益計算処理（Process 2-5）を実行中...");
+                        logger.LogInformation("Process 2-5実行開始 - データ修正対応のため常に実行");
+                        
+                        try
                         {
-                            System.Console.WriteLine($"📊 在庫単価未設定の売上伝票: {zeroUnitPriceCount}件");
-                            System.Console.WriteLine("💰 粗利益計算処理（Process 2-5）を実行中...");
-                            
-                            try
+                            // DataSetIdを取得
+                            var salesDataSetId = await dataSetIdManager.GetSalesVoucherDataSetIdAsync(jobDate);
+                            if (!string.IsNullOrEmpty(salesDataSetId))
                             {
-                                // DataSetIdを取得
-                                var salesDataSetId = await dataSetIdManager.GetSalesVoucherDataSetIdAsync(jobDate);
-                                if (!string.IsNullOrEmpty(salesDataSetId))
-                                {
-                                    // Process 2-5実行
-                                    await grossProfitService.ExecuteProcess25Async(jobDate, salesDataSetId);
-                                    
-                                    System.Console.WriteLine("✅ 粗利益計算完了（Process 2-5）");
-                                    logger.LogInformation("Process 2-5実行完了 - 対象件数: {Count}", zeroUnitPriceCount);
-                                }
-                                else
-                                {
-                                    logger.LogWarning("売上伝票のDataSetIdが見つかりません - Process 2-5をスキップします");
-                                    System.Console.WriteLine("⚠️ 売上伝票のDataSetIdが見つかりません - Process 2-5をスキップします");
-                                }
+                                // Process 2-5実行（既存の在庫単価の有無に関わらず実行）
+                                await grossProfitService.ExecuteProcess25Async(jobDate, salesDataSetId);
+                                
+                                System.Console.WriteLine("✅ 粗利益計算完了（Process 2-5）- 在庫単価と粗利益を再計算しました");
+                                logger.LogInformation("Process 2-5実行完了 - 在庫単価と粗利益の再計算完了");
                             }
-                            catch (Exception processEx)
+                            else
                             {
-                                logger.LogError(processEx, "Process 2-5実行中にエラーが発生しました");
-                                System.Console.WriteLine($"⚠️ Process 2-5実行中にエラーが発生しましたが、商品勘定作成を継続します: {processEx.Message}");
+                                logger.LogWarning("売上伝票のDataSetIdが見つかりません - Process 2-5をスキップします");
+                                System.Console.WriteLine("⚠️ 売上伝票のDataSetIdが見つかりません - Process 2-5をスキップします");
                             }
                         }
-                        else
+                        catch (Exception processEx)
                         {
-                            System.Console.WriteLine("✅ 全ての売上伝票に在庫単価設定済み - Process 2-5をスキップします");
-                            logger.LogInformation("Process 2-5スキップ - 全売上伝票で在庫単価設定済み");
+                            logger.LogError(processEx, "Process 2-5実行中にエラーが発生しました");
+                            System.Console.WriteLine($"⚠️ Process 2-5実行中にエラーが発生しましたが、商品勘定作成を継続します: {processEx.Message}");
                         }
 
                         // 3. 商品勘定帳票を作成

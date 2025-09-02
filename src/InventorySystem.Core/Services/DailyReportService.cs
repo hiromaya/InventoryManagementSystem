@@ -121,28 +121,17 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
                 await _cpInventoryRepository.CalculateInventoryUnitPriceAsync();
                 _logger.LogInformation("在庫単価計算完了");
 
-                // 処理2-5: Process 2-5（売上伝票への在庫単価書込・粗利計算）の実行確認
-                _logger.LogInformation("Process 2-5の実行確認開始");
+                // 処理2-5: Process 2-5（売上伝票への在庫単価書込・粗利計算）を常に実行
+                _logger.LogInformation("Process 2-5の実行開始");
                 
-                // Process 2-5が実行済みかチェック
-                var salesVouchers = await _salesVoucherRepository.GetByJobDateAsync(reportDate);
-                var zeroUnitPriceCount = salesVouchers.Count(sv => sv.InventoryUnitPrice == 0);
+                // データ修正に対応するため、既存の在庫単価の有無に関わらず常に実行
+                // これにより、伝票データの修正・再インポート後も正しく再計算される
+                _logger.LogInformation("Process 2-5を実行します（データ修正対応のため常に実行）");
                 
-                if (zeroUnitPriceCount > 0)
-                {
-                    _logger.LogWarning("在庫単価が未設定の売上伝票が{Count}件あります。Process 2-5を実行します。", zeroUnitPriceCount);
-                    
-                    // Process 2-5を実行
-                    await _grossProfitCalculationService.ExecuteProcess25Async(reportDate, context.DataSetId);
-                    
-                    _logger.LogInformation("Process 2-5実行完了");
-                }
-                else
-                {
-                    _logger.LogInformation("Process 2-5スキップ: 全売上伝票で在庫単価が設定済み");
-                }
+                // Process 2-5を実行
+                await _grossProfitCalculationService.ExecuteProcess25Async(reportDate, context.DataSetId);
                 
-                _logger.LogInformation("Process 2-5の実行確認完了");
+                _logger.LogInformation("Process 2-5実行完了 - 在庫単価と粗利益を再計算しました");
 
                 // 月計計算
                 _logger.LogInformation("月計計算開始");
