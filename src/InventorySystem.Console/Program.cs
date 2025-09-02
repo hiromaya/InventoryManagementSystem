@@ -1749,21 +1749,61 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         
                         #if WINDOWS
                         var inventoryListService = scopedServices.GetService(Type.GetType("InventorySystem.Reports.FastReport.Services.InventoryListService, InventorySystem.Reports"));
+                        var fileManagementService = scopedServices.GetRequiredService<IFileManagementService>();
+                        
                         if (inventoryListService != null)
                         {
-                            var method = inventoryListService.GetType().GetMethod("GenerateInventoryListAsync");
-                            var task = (Task<byte[]>)method.Invoke(inventoryListService, new object[] { jobDate, "TEST_DATASET" });
-                            var pdfBytes = await task;
-                            
-                            System.Console.WriteLine($"✅ 在庫表PDF生成完了: ファイルサイズ={pdfBytes.Length:N0} bytes");
-                            System.Console.WriteLine("📁 出力先: appsettings.json設定のReportOutputPathに保存されました");
+                            try
+                            {
+                                var method = inventoryListService.GetType().GetMethod("GenerateInventoryListAsync");
+                                var task = (Task<byte[]>)method.Invoke(inventoryListService, new object[] { jobDate, "TEST_DATASET" });
+                                var pdfBytes = await task;
+                                
+                                if (pdfBytes != null && pdfBytes.Length > 0)
+                                {
+                                    // FileManagementServiceで保存先パスを取得（統一ロジック）
+                                    var pdfPath = await fileManagementService.GetReportOutputPathAsync("InventoryList", jobDate, "pdf");
+                                    
+                                    // ファイル保存
+                                    await File.WriteAllBytesAsync(pdfPath, pdfBytes);
+                                    
+                                    // 統一形式でメッセージ表示
+                                    System.Console.WriteLine($"✅ 在庫表を作成しました");
+                                    System.Console.WriteLine($"出力ファイル: {pdfPath}");
+                                    System.Console.WriteLine($"ファイルサイズ: {pdfBytes.Length:N0} bytes");
+                                    
+                                    // Windows環境では自動でPDFを開く
+                                    try
+                                    {
+                                        var startInfo = new ProcessStartInfo
+                                        {
+                                            FileName = pdfPath,
+                                            UseShellExecute = true
+                                        };
+                                        Process.Start(startInfo);
+                                    }
+                                    catch (Exception openEx)
+                                    {
+                                        logger.LogWarning(openEx, "PDFファイルの自動表示に失敗しました");
+                                    }
+                                }
+                                else
+                                {
+                                    System.Console.WriteLine("⚠️ PDF生成がスキップされました（データなし）");
+                                }
+                            }
+                            catch (Exception pdfEx)
+                            {
+                                logger.LogError(pdfEx, "在庫表PDF生成中にエラーが発生しました");
+                                System.Console.WriteLine($"❌ PDF生成エラー: {pdfEx.Message}");
+                            }
                         }
                         else
                         {
                             System.Console.WriteLine("⚠️ InventoryListServiceの取得に失敗しました");
                         }
                         #else
-                        System.Console.WriteLine("⚠️ 在庫表のFastReport対応はWindows環境でのみ利用可能です");
+                        System.Console.WriteLine("⚠️ Linux環境ではPDF生成がスキップされます");
                         #endif
 
                         logger.LogInformation("=== 在庫表作成完了 ===");
