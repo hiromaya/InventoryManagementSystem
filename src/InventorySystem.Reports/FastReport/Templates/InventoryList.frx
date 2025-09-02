@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="None" ReportInfo.Created="01/01/2025 00:00:00" ReportInfo.Modified="01/01/2025 00:00:00" ReportInfo.CreatorVersion="2024.1.0.0">
+  <Dictionary>
+    <!-- データソース定義 -->
+    <TableDataSource Name="InventoryData" ReferenceName="InventoryData" Enabled="true">
+      <Column Name="ProductCode" DataType="System.String"/>
+      <Column Name="ProductName" DataType="System.String"/>
+      <Column Name="Quantity" DataType="System.Decimal"/>
+    </TableDataSource>
+    
+    <!-- パラメータ定義 -->
+    <Parameter Name="ReportDate" DataType="System.String"/>
+  </Dictionary>
+  
+  <!-- レポートページ（A4横向き） -->
+  <ReportPage Name="Page1" PaperWidth="297" PaperHeight="210" RawPaperSize="9" Landscape="true" LeftMargin="10" TopMargin="10" RightMargin="10" BottomMargin="10">
+    
+    <!-- レポートタイトル -->
+    <ReportTitleBand Name="ReportTitle1" Width="1047.06" Height="37.8">
+      <TextObject Name="TitleText" Left="0" Top="0" Width="1047.06" Height="37.8" Text="在庫表" HorzAlign="Center" VertAlign="Center" Font="Yu Gothic, 14pt, style=Bold"/>
+    </ReportTitleBand>
+    
+    <!-- ページヘッダー -->
+    <PageHeaderBand Name="PageHeader1" Top="41.8" Width="1047.06" Height="28.35">
+      <TextObject Name="DateText" Left="0" Top="0" Width="200" Height="18.9" Text="作成日時: [ReportDate]" Font="Yu Gothic, 10pt"/>
+    </PageHeaderBand>
+    
+    <!-- カラムヘッダー -->
+    <ColumnHeaderBand Name="ColumnHeader1" Top="74.15" Width="1047.06" Height="28.35">
+      <TextObject Name="Header1" Left="0" Top="0" Width="100" Height="28.35" Border.Lines="All" Text="商品コード" HorzAlign="Center" VertAlign="Center" Font="Yu Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header2" Left="100" Top="0" Width="200" Height="28.35" Border.Lines="All" Text="商品名" HorzAlign="Center" VertAlign="Center" Font="Yu Gothic, 9pt, style=Bold"/>
+      <TextObject Name="Header3" Left="300" Top="0" Width="100" Height="28.35" Border.Lines="All" Text="在庫数量" HorzAlign="Center" VertAlign="Center" Font="Yu Gothic, 9pt, style=Bold"/>
+    </ColumnHeaderBand>
+    
+    <!-- データバンド -->
+    <DataBand Name="Data1" Top="106.5" Width="1047.06" Height="18.9" DataSource="InventoryData">
+      <TextObject Name="Text1" Left="0" Top="0" Width="100" Height="18.9" Border.Lines="All" Text="[InventoryData.ProductCode]" Font="Yu Gothic, 9pt"/>
+      <TextObject Name="Text2" Left="100" Top="0" Width="200" Height="18.9" Border.Lines="All" Text="[InventoryData.ProductName]" Font="Yu Gothic, 9pt"/>
+      <TextObject Name="Text3" Left="300" Top="0" Width="100" Height="18.9" Border.Lines="All" Text="[InventoryData.Quantity]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" Font="Yu Gothic, 9pt"/>
+    </DataBand>
+    
+    <!-- ページフッター -->
+    <PageFooterBand Name="PageFooter1" Top="129.4" Width="1047.06" Height="18.9">
+      <TextObject Name="PageN" Left="900" Top="0" Width="147.06" Height="18.9" Text="ページ [Page] / [TotalPages]" HorzAlign="Right" Font="Yu Gothic, 10pt"/>
+    </PageFooterBand>
+  </ReportPage>
+</Report>
