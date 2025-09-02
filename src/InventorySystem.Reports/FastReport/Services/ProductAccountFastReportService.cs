@@ -1989,12 +1989,32 @@ namespace InventorySystem.Reports.FastReport.Services
             row["RowType"] = RowTypes.PageBreak;
             row["IsPageBreak"] = "1";
             
-            // その他のフィールドは空
+            // その他のフィールドは型に応じた既定値を設定
             foreach (DataColumn col in table.Columns)
             {
                 if (row[col] == DBNull.Value)
                 {
-                    row[col] = "";
+                    // データ型に応じて適切な既定値を設定
+                    if (col.DataType == typeof(bool))
+                    {
+                        row[col] = false;  // Boolean型はfalse
+                    }
+                    else if (col.DataType == typeof(decimal))
+                    {
+                        row[col] = 0m;  // decimal型は0
+                    }
+                    else if (col.DataType == typeof(int))
+                    {
+                        row[col] = 0;  // int型は0
+                    }
+                    else if (col.DataType == typeof(DateTime))
+                    {
+                        row[col] = DateTime.MinValue;  // DateTime型は最小値
+                    }
+                    else
+                    {
+                        row[col] = "";  // 文字列型は空文字列
+                    }
                 }
             }
             
