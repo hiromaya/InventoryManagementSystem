@@ -1755,12 +1755,8 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                             var task = (Task<byte[]>)method.Invoke(inventoryListService, new object[] { jobDate, "TEST_DATASET" });
                             var pdfBytes = await task;
                             
-                            var outputDir = @"D:\InventoryReports";
-                            Directory.CreateDirectory(outputDir);
-                            var outputPath = Path.Combine(outputDir, $"InventoryList_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}.pdf");
-                            await File.WriteAllBytesAsync(outputPath, pdfBytes);
-                            
-                            System.Console.WriteLine($"✅ 在庫表PDF生成完了: {outputPath}");
+                            System.Console.WriteLine($"✅ 在庫表PDF生成完了: ファイルサイズ={pdfBytes.Length:N0} bytes");
+                            System.Console.WriteLine("📁 出力先: appsettings.json設定のReportOutputPathに保存されました");
                         }
                         else
                         {

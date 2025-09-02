@@ -445,40 +445,22 @@ public class SalesVoucherDaijinCsv
     /// </summary>
     private static string NormalizeManualShippingMark(string? input)
     {
-        // デバッグログ追加
-        System.Diagnostics.Debug.WriteLine($"[NormalizeManualShippingMark] Input: '{input}' (Length: {input?.Length ?? -1}, IsNull: {input == null})");
-        
-        if (input == null) 
-        {
-            var result = "        "; // 8桁空白
-            System.Diagnostics.Debug.WriteLine($"[NormalizeManualShippingMark] NULL入力 -> 8桁空白: '{result}' (Length: {result.Length}, Bytes: {System.Text.Encoding.UTF8.GetByteCount(result)})");
-            return result;
-        }
+        if (input == null) return "        "; // 8桁空白
         
         // 1. 全角スペースを半角スペースに変換
         var normalized = input.Replace('　', ' ');
-        System.Diagnostics.Debug.WriteLine($"[NormalizeManualShippingMark] 全角→半角変換後: '{normalized}' (Length: {normalized.Length})");
         
         // 2. 後方の空白をトリム
         normalized = normalized.TrimEnd();
-        System.Diagnostics.Debug.WriteLine($"[NormalizeManualShippingMark] TrimEnd後: '{normalized}' (Length: {normalized.Length})");
         
         // 3. 空文字の場合は8桁空白
         if (string.IsNullOrEmpty(normalized))
-        {
-            var result = "        ";
-            System.Diagnostics.Debug.WriteLine($"[NormalizeManualShippingMark] 空文字入力 -> 8桁空白: '{result}' (Length: {result.Length}, Bytes: {System.Text.Encoding.UTF8.GetByteCount(result)})");
-            return result;
-        }
+            return "        ";
         
         // 4. 8桁に調整（超過分は切り詰め、不足分は空白で埋める）
-        string finalResult;
         if (normalized.Length >= 8)
-            finalResult = normalized.Substring(0, 8);
+            return normalized.Substring(0, 8);
         else
-            finalResult = normalized.PadRight(8, ' ');
-            
-        System.Diagnostics.Debug.WriteLine($"[NormalizeManualShippingMark] 最終結果: '{finalResult}' (Length: {finalResult.Length}, Bytes: {System.Text.Encoding.UTF8.GetByteCount(finalResult)})");
-        return finalResult;
+            return normalized.PadRight(8, ' ');
     }
 }
