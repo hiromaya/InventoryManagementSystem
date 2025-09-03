@@ -1178,32 +1178,9 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         return deletedCount;
     }
     
-    /// <summary>
-    /// Process 2-5: CP在庫マスタの当日粗利益・歩引き金額を更新
-    /// </summary>
-    public async Task<int> UpdateDailyTotalsAsync(DateTime jobDate, decimal totalGrossProfit, decimal totalDiscountAmount)
-    {
-        using var connection = CreateConnection();
-        
-        const string updateSql = @"
-            UPDATE CpInventoryMaster 
-            SET 
-                DailyGrossProfit = DailyGrossProfit + @TotalGrossProfit,
-                DailyWalkingAmount = DailyWalkingAmount + @TotalDiscountAmount,
-                UpdatedDate = GETDATE()
-            -- 仮テーブル設計：全レコード対象";
-        
-        var updatedCount = await connection.ExecuteAsync(updateSql, new 
-        { 
-            TotalGrossProfit = totalGrossProfit,
-            TotalDiscountAmount = totalDiscountAmount
-        });
-        
-        _logger.LogInformation("CP在庫マスタの当日粗利益・歩引き金額を更新しました - 更新件数: {Count}, 粗利益: {GrossProfit}, 歩引き金額: {DiscountAmount}", 
-            updatedCount, totalGrossProfit, totalDiscountAmount);
-        
-        return updatedCount;
-    }
+    // 削除: UpdateDailyTotalsAsyncメソッド
+    // 修正理由: 全CP在庫レコードに同じ総計値を加算してしまう問題があるため削除
+    // 個別商品の粗利益集計はCalculateGrossProfitAsyncで正しく実行される
     
     /// <summary>
     /// Process 2-5: JobDateでCP在庫マスタを取得（仮テーブル設計）

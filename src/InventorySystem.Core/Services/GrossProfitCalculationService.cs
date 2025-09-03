@@ -142,7 +142,9 @@ namespace InventorySystem.Core.Services
                 }
 
                 // 5. CP在庫マスタの粗利益・歩引き金額を更新
-                await UpdateCpInventoryTotalsAsync(jobDate, cpInventoryDataSetId, totalGrossProfit, totalDiscountAmount);
+                // 修正: UpdateDailyTotalsAsyncは全レコードに同じ値を設定してしまう問題があるため削除
+                // 個別の粗利益は売上伝票に設定済みで、CP在庫マスタへの集計はCalculateGrossProfitAsyncで実行される
+                // await UpdateCpInventoryTotalsAsync(jobDate, cpInventoryDataSetId, totalGrossProfit, totalDiscountAmount);
 
                 _logger.LogInformation("Process 2-5 完了: 総粗利益={GrossProfit}, 総歩引き金={Discount}", 
                     totalGrossProfit, totalDiscountAmount);
@@ -289,15 +291,8 @@ namespace InventorySystem.Core.Services
             _logger.LogDebug("売上伝票を更新しました: {Count}件", vouchers.Count);
         }
 
-        /// <summary>
-        /// CP在庫マスタの粗利益・歩引き金額を更新
-        /// </summary>
-        private async Task UpdateCpInventoryTotalsAsync(
-            DateTime jobDate, string dataSetId, decimal totalGrossProfit, decimal totalDiscountAmount)
-        {
-            // CP在庫マスタの当日粗利益、当日歩引き金額に集計値を加算
-            await _cpInventoryRepository.UpdateDailyTotalsAsync(
-                jobDate, totalGrossProfit, totalDiscountAmount); // 仮テーブル設計
-        }
+        // 削除: UpdateCpInventoryTotalsAsyncメソッド
+        // 修正理由: 全CP在庫レコードに同じ総計値を加算してしまう問題があるため削除
+        // 個別商品の粗利益集計はCalculateGrossProfitAsyncで正しく実行される
     }
 }

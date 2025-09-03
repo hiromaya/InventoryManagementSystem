@@ -173,15 +173,9 @@ public interface ICpInventoryRepository
     /// <returns>削除件数</returns>
     Task<int> CleanupOldDataAsync(DateTime cutoffDate);
     
-    /// <summary>
-    /// Process 2-5: CP在庫マスタの当日粗利益・歩引き金額を更新
-    /// 仮テーブル設計：全レコード対象
-    /// </summary>
-    /// <param name="jobDate">対象日付</param>
-    /// <param name="totalGrossProfit">総粗利益</param>
-    /// <param name="totalDiscountAmount">総歩引き金額</param>
-    /// <returns>更新件数</returns>
-    Task<int> UpdateDailyTotalsAsync(DateTime jobDate, decimal totalGrossProfit, decimal totalDiscountAmount);
+    // 削除: UpdateDailyTotalsAsync
+    // 修正理由: 全CP在庫レコードに同じ総計値を加算してしまう問題があるため削除
+    // 個別商品の粗利益集計はCalculateGrossProfitAsyncで正しく実行される
     
     /// <summary>
     /// Process 2-5: JobDateでCP在庫マスタを取得
