@@ -2324,6 +2324,31 @@ namespace InventorySystem.Reports.FastReport.Services
             
             return $"{value:0.00} %";
         }
+
+        /// <summary>
+        /// 粗利率を疑似右揃えでフォーマット（全角スペースパディング）
+        /// </summary>
+        private string FormatPercentageForSubtotalWithPadding(decimal value)
+        {
+            string percentage = FormatPercentageForSubtotal(value);
+            
+            // 粗利率の値に応じてスペース数を調整
+            string padding;
+            if (percentage.Contains("▲"))
+            {
+                padding = "　　　　　　　　　　　　";  // 12個（▲がある場合）
+            }
+            else if (value >= 100)
+            {
+                padding = "　　　　　　　　　　　";    // 11個（3桁の場合）
+            }
+            else
+            {
+                padding = "　　　　　　　　　　　　";  // 12個（2桁以下）
+            }
+            
+            return padding + percentage;
+        }
         
         /// <summary>
         /// 右揃え用のパディング処理（改良版）
@@ -2614,7 +2639,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = "【在庫単価】",
                 Amount = "【在庫金額】",
                 GrossProfit = "【粗利益】",
-                CustomerSupplierName = "【粗利率】",               // 取引先名列に配置
+                CustomerSupplierName = "　　　　　　　　　　　【粗利率】",               // 取引先名列に配置（全角スペース11個で疑似右揃え）
                 IsGrossProfitRate = true                        // 粗利率表示フラグ
             };
         }
@@ -2670,7 +2695,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = FormatUnitPriceForSubtotal(inventoryUnitPrice),
                 Amount = FormatAmountForSubtotal(inventoryAmount),
                 GrossProfit = FormatGrossProfitForSubtotal(grossProfit),
-                CustomerSupplierName = FormatPercentageForSubtotal(grossProfitRate),  // 粗利率
+                CustomerSupplierName = FormatPercentageForSubtotalWithPadding(grossProfitRate),  // 粗利率（疑似右揃え）
                 IsGrossProfitRate = true                                           // 粗利率表示フラグ
             };
         }
