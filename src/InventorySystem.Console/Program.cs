@@ -1860,6 +1860,13 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         await cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(jobDate);
                         await cpInventoryRepository.CalculateDailyStockAsync();
                         await cpInventoryRepository.SetDailyFlagToProcessedAsync();
+
+                        // Process 2-4: 移動平均法による在庫単価計算を追加
+                        System.Console.WriteLine("📊 Process 2-4: 在庫単価計算中（移動平均法）...");
+                        var unitPriceResult = await cpInventoryRepository.CalculateInventoryUnitPriceAsync();
+                        System.Console.WriteLine($"✅ Process 2-4完了: {unitPriceResult}件の在庫単価を計算");
+                        logger.LogInformation("Process 2-4（在庫単価計算）完了: {Count}件", unitPriceResult);
+
                         System.Console.WriteLine("✅ CP在庫マスタ作成完了（仮テーブル）");
 
                         // 【追加】マスタ同期処理

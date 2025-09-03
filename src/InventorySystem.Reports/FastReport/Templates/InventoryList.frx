@@ -2,46 +2,235 @@
 <Report ScriptLanguage="None" ReportInfo.Created="01/01/2025 00:00:00" ReportInfo.Modified="01/01/2025 00:00:00" ReportInfo.CreatorVersion="2024.1.0.0">
   <Dictionary>
     <!-- データソース定義 -->
-    <TableDataSource Name="InventoryData" ReferenceName="InventoryData" Enabled="true">
+    <TableDataSource Name="InventoryData" ReferenceName="InventoryData" DataType="System.Int32" Enabled="true">
+      <!-- 担当者情報 -->
+      <Column Name="StaffCode" DataType="System.String"/>
+      <Column Name="StaffName" DataType="System.String"/>
+      <!-- 商品情報 -->
       <Column Name="ProductCode" DataType="System.String"/>
       <Column Name="ProductName" DataType="System.String"/>
-      <Column Name="Quantity" DataType="System.Decimal"/>
+      <!-- 5項目複合キー -->
+      <Column Name="ShippingMarkCode" DataType="System.String"/>
+      <Column Name="ShippingMarkName" DataType="System.String"/>
+      <Column Name="ManualShippingMark" DataType="System.String"/>
+      <Column Name="GradeCode" DataType="System.String"/>
+      <Column Name="GradeName" DataType="System.String"/>
+      <Column Name="ClassCode" DataType="System.String"/>
+      <Column Name="ClassName" DataType="System.String"/>
+      <!-- 在庫情報 -->
+      <Column Name="StockQuantity" DataType="System.Decimal"/>
+      <Column Name="StockUnitPrice" DataType="System.Decimal"/>
+      <Column Name="StockAmount" DataType="System.Decimal"/>
+      <Column Name="LastReceiptDate" DataType="System.DateTime"/>
+      <Column Name="StagnationMark" DataType="System.String"/>
+      <!-- 集計フラグ -->
+      <Column Name="IsSubtotal" DataType="System.Boolean"/>
+      <Column Name="IsTotal" DataType="System.Boolean"/>
+      <Column Name="SubtotalQuantity" DataType="System.Decimal"/>
+      <Column Name="SubtotalAmount" DataType="System.Decimal"/>
+      <Column Name="TotalQuantity" DataType="System.Decimal"/>
+      <Column Name="TotalAmount" DataType="System.Decimal"/>
     </TableDataSource>
     
     <!-- パラメータ定義 -->
-    <Parameter Name="ReportDate" DataType="System.String"/>
+    <Parameter Name="CreateDate" DataType="System.String"/>
+    <Parameter Name="JobDate" DataType="System.String"/>
+    <Parameter Name="PageNumber" DataType="System.Int32"/>
   </Dictionary>
   
-  <!-- レポートページ（A4横向き） -->
-  <ReportPage Name="Page1" PaperWidth="297" PaperHeight="210" RawPaperSize="9" Landscape="true" LeftMargin="10" TopMargin="10" RightMargin="10" BottomMargin="10">
+  <!-- レポートページ（A4縦向き） -->
+  <ReportPage Name="Page1" PaperWidth="210" PaperHeight="297" RawPaperSize="9" 
+             LeftMargin="10" TopMargin="10" RightMargin="10" BottomMargin="10" 
+             Watermark.Font="Arial, 60pt">
     
-    <!-- レポートタイトル -->
-    <ReportTitleBand Name="ReportTitle1" Width="1047.06" Height="37.8">
-      <TextObject Name="TitleText" Left="0" Top="0" Width="1047.06" Height="37.8" Text="在庫表" HorzAlign="Center" VertAlign="Center" Font="Yu Gothic, 14pt, style=Bold"/>
-    </ReportTitleBand>
-    
-    <!-- ページヘッダー -->
-    <PageHeaderBand Name="PageHeader1" Top="41.8" Width="1047.06" Height="28.35">
-      <TextObject Name="DateText" Left="0" Top="0" Width="200" Height="18.9" Text="作成日時: [ReportDate]" Font="Yu Gothic, 10pt"/>
+    <!-- ページヘッダーバンド（各ページに表示） -->
+    <PageHeaderBand Name="PageHeader1" Width="718.2" Height="75.6" RepeatOnEveryPage="true">
+      <!-- 作成日時 -->
+      <TextObject Name="CreateDateTime" Left="0" Top="0" Width="359.1" Height="18.9" 
+                   Text="作成日：[CreateDate]" 
+                   Font="MS Gothic, 9pt"/>
+      <!-- ページ番号（最終入荷日の右端に合わせる） -->
+      <TextObject Name="PageInfo" Left="680" Top="0" Width="38.2" Height="18.9" 
+                   Text="[PageNumber] 頁" HorzAlign="Right" 
+                   Font="MS Gothic, 9pt"/>
+      
+      <!-- タイトル（太字ではなく標準の太さ） -->
+      <TextObject Name="Title" Left="0" Top="18.9" Width="718.2" Height="18.9" 
+                   Text="※　[JobDate]　在　庫　表　※" 
+                   HorzAlign="Center" 
+                   Font="MS Gothic, 12pt"/>
+      
+      <!-- 担当者コード表示 -->
+      <TextObject Name="StaffLabel" Left="0" Top="37.8" Width="359.1" Height="18.9" 
+                   Text="担当者コード：[InventoryData.StaffCode]" 
+                   Font="MS Gothic, 9pt"/>
+      
+      <!-- 列ヘッダー（罫線なし） -->
+      <TextObject Name="HeaderProduct" Left="0" Top="56.7" Width="150" Height="18.9" 
+                   Text="商　品　名" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="HeaderShipping" Left="150" Top="56.7" Width="100" Height="18.9" 
+                   Text="荷　印" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="HeaderGrade" Left="250" Top="56.7" Width="60" Height="18.9" 
+                   Text="等　級" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="HeaderClass" Left="310" Top="56.7" Width="60" Height="18.9" 
+                   Text="階　級" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="HeaderQuantity" Left="370" Top="56.7" Width="80" Height="18.9" 
+                   Text="在庫数量" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="HeaderUnitPrice" Left="450" Top="56.7" Width="70" Height="18.9" 
+                   Text="在庫単価" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="HeaderAmount" Left="520" Top="56.7" Width="90" Height="18.9" 
+                   Text="在庫金額" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 9pt, style=Bold"/>
+      <TextObject Name="HeaderLastDate" Left="610" Top="56.7" Width="70" Height="18.9" 
+                   Text="最終入荷日" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 8pt, style=Bold"/>
+      <TextObject Name="HeaderMark" Left="680" Top="56.7" Width="38.2" Height="18.9" 
+                   Text="ﾏｰｸ" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 8pt, style=Bold"/>
     </PageHeaderBand>
     
-    <!-- カラムヘッダー -->
-    <ColumnHeaderBand Name="ColumnHeader1" Top="74.15" Width="1047.06" Height="28.35">
-      <TextObject Name="Header1" Left="0" Top="0" Width="100" Height="28.35" Border.Lines="All" Text="商品コード" HorzAlign="Center" VertAlign="Center" Font="Yu Gothic, 9pt, style=Bold"/>
-      <TextObject Name="Header2" Left="100" Top="0" Width="200" Height="28.35" Border.Lines="All" Text="商品名" HorzAlign="Center" VertAlign="Center" Font="Yu Gothic, 9pt, style=Bold"/>
-      <TextObject Name="Header3" Left="300" Top="0" Width="100" Height="28.35" Border.Lines="All" Text="在庫数量" HorzAlign="Center" VertAlign="Center" Font="Yu Gothic, 9pt, style=Bold"/>
-    </ColumnHeaderBand>
+    <!-- 担当者グループヘッダー（改ページ制御） -->
+    <GroupHeaderBand Name="GroupHeader1" Top="79.6" Width="718.2" Height="0" 
+                     Condition="[InventoryData.StaffCode]" 
+                     StartNewPage="true"/>
     
-    <!-- データバンド -->
-    <DataBand Name="Data1" Top="106.5" Width="1047.06" Height="18.9" DataSource="InventoryData">
-      <TextObject Name="Text1" Left="0" Top="0" Width="100" Height="18.9" Border.Lines="All" Text="[InventoryData.ProductCode]" Font="Yu Gothic, 9pt"/>
-      <TextObject Name="Text2" Left="100" Top="0" Width="200" Height="18.9" Border.Lines="All" Text="[InventoryData.ProductName]" Font="Yu Gothic, 9pt"/>
-      <TextObject Name="Text3" Left="300" Top="0" Width="100" Height="18.9" Border.Lines="All" Text="[InventoryData.Quantity]" Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" Format.DecimalSeparator="." Format.GroupSeparator="," Format.NegativePattern="1" HorzAlign="Right" Font="Yu Gothic, 9pt"/>
+    <!-- 商品グループヘッダー（小計制御用） -->
+    <GroupHeaderBand Name="GroupHeader2" Top="83.6" Width="718.2" Height="0" 
+                     Condition="[InventoryData.ProductCode]"/>
+    
+    <!-- データバンド（明細行） -->
+    <DataBand Name="Data1" Top="87.6" Width="718.2" Height="18.9" 
+              DataSource="InventoryData">
+      
+      <!-- 通常明細行の表示（罫線なし） -->
+      <TextObject Name="DataProduct" Left="0" Top="0" Width="150" Height="18.9" 
+                   Text="[InventoryData.ProductName]" VertAlign="Center" 
+                   Font="MS Gothic, 9pt" Trimming="EllipsisCharacter"
+                   Visible="[!InventoryData.IsSubtotal &amp;&amp; !InventoryData.IsTotal]"/>
+      <TextObject Name="DataShipping" Left="150" Top="0" Width="100" Height="18.9" 
+                   Text="[InventoryData.ShippingMarkName]" VertAlign="Center" 
+                   Font="MS Gothic, 9pt" Trimming="EllipsisCharacter"
+                   Visible="[!InventoryData.IsSubtotal &amp;&amp; !InventoryData.IsTotal]"/>
+      <TextObject Name="DataGrade" Left="250" Top="0" Width="60" Height="18.9" 
+                   Text="[InventoryData.GradeName]" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 9pt"
+                   Visible="[!InventoryData.IsSubtotal &amp;&amp; !InventoryData.IsTotal]"/>
+      <TextObject Name="DataClass" Left="310" Top="0" Width="60" Height="18.9" 
+                   Text="[InventoryData.ClassName]" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 9pt"
+                   Visible="[!InventoryData.IsSubtotal &amp;&amp; !InventoryData.IsTotal]"/>
+      <TextObject Name="DataQuantity" Left="370" Top="0" Width="80" Height="18.9" 
+                   Text="[InventoryData.StockQuantity]" HorzAlign="Right" VertAlign="Center" 
+                   Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" 
+                   Format.DecimalSeparator="." Format.GroupSeparator="," 
+                   Format.NegativePattern="1" 
+                   Font="MS Gothic, 9pt"
+                   TextFill.Color="[IIF([InventoryData.StockQuantity] &lt; 0, Red, Black)]"
+                   Visible="[!InventoryData.IsSubtotal &amp;&amp; !InventoryData.IsTotal]"/>
+      <TextObject Name="DataUnitPrice" Left="450" Top="0" Width="70" Height="18.9" 
+                   Text="[InventoryData.StockUnitPrice]" HorzAlign="Right" VertAlign="Center" 
+                   Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" 
+                   Format.DecimalSeparator="." Format.GroupSeparator="," 
+                   Font="MS Gothic, 9pt"
+                   Visible="[!InventoryData.IsSubtotal &amp;&amp; !InventoryData.IsTotal]"/>
+      <TextObject Name="DataAmount" Left="520" Top="0" Width="90" Height="18.9" 
+                   Text="[InventoryData.StockAmount]" HorzAlign="Right" VertAlign="Center" 
+                   Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" 
+                   Format.DecimalSeparator="." Format.GroupSeparator="," 
+                   Format.NegativePattern="1" 
+                   Font="MS Gothic, 9pt"
+                   TextFill.Color="[IIF([InventoryData.StockAmount] &lt; 0, Red, Black)]"
+                   Visible="[!InventoryData.IsSubtotal &amp;&amp; !InventoryData.IsTotal]"/>
+      <TextObject Name="DataLastDate" Left="610" Top="0" Width="70" Height="18.9" 
+                   Text="([InventoryData.LastReceiptDate])" HorzAlign="Center" VertAlign="Center" 
+                   Format="Date" Format.Format="yy-MM-dd" 
+                   Font="MS Gothic, 8pt"
+                   Visible="[!InventoryData.IsSubtotal &amp;&amp; !InventoryData.IsTotal]"/>
+      <TextObject Name="DataMark" Left="680" Top="0" Width="38.2" Height="18.9" 
+                   Text="[InventoryData.StagnationMark]" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 8pt, style=Bold" TextFill.Color="Red"
+                   Visible="[!InventoryData.IsSubtotal &amp;&amp; !InventoryData.IsTotal]"/>
+      
+      <!-- 小計行の表示（罫線なし） -->
+      <TextObject Name="SubtotalLabel" Left="0" Top="0" Width="370" Height="18.9" 
+                   Text="＊　小　　計　＊" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 9pt, style=Bold"
+                   Visible="[InventoryData.IsSubtotal]"/>
+      <TextObject Name="SubtotalQty" Left="370" Top="0" Width="80" Height="18.9" 
+                   Text="[InventoryData.SubtotalQuantity]" HorzAlign="Right" VertAlign="Center" 
+                   Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" 
+                   Format.DecimalSeparator="." Format.GroupSeparator="," 
+                   Format.NegativePattern="1" 
+                   Font="MS Gothic, 9pt, style=Bold"
+                   Visible="[InventoryData.IsSubtotal]"/>
+      <TextObject Name="SubtotalBlank" Left="450" Top="0" Width="70" Height="18.9" 
+                   Text="" 
+                   Visible="[InventoryData.IsSubtotal]"/>
+      <TextObject Name="SubtotalAmt" Left="520" Top="0" Width="90" Height="18.9" 
+                   Text="[InventoryData.SubtotalAmount]" HorzAlign="Right" VertAlign="Center" 
+                   Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" 
+                   Format.DecimalSeparator="." Format.GroupSeparator="," 
+                   Format.NegativePattern="1" 
+                   Font="MS Gothic, 9pt, style=Bold"
+                   Visible="[InventoryData.IsSubtotal]"/>
+      <TextObject Name="SubtotalBlank2" Left="610" Top="0" Width="108.2" Height="18.9" 
+                   Text="" 
+                   Visible="[InventoryData.IsSubtotal]"/>
+      
+      <!-- 合計行の表示（罫線なし） -->
+      <TextObject Name="TotalLabel" Left="0" Top="0" Width="370" Height="18.9" 
+                   Text="※　合　　計　※" HorzAlign="Center" VertAlign="Center" 
+                   Font="MS Gothic, 10pt, style=Bold"
+                   Visible="[InventoryData.IsTotal]"/>
+      <TextObject Name="TotalQty" Left="370" Top="0" Width="80" Height="18.9" 
+                   Text="[InventoryData.TotalQuantity]" HorzAlign="Right" VertAlign="Center" 
+                   Format="Number" Format.UseLocale="false" Format.DecimalDigits="2" 
+                   Format.DecimalSeparator="." Format.GroupSeparator="," 
+                   Format.NegativePattern="1" 
+                   Font="MS Gothic, 10pt, style=Bold"
+                   Visible="[InventoryData.IsTotal]"/>
+      <TextObject Name="TotalBlank" Left="450" Top="0" Width="70" Height="18.9" 
+                   Text="" 
+                   Visible="[InventoryData.IsTotal]"/>
+      <TextObject Name="TotalAmt" Left="520" Top="0" Width="90" Height="18.9" 
+                   Text="[InventoryData.TotalAmount]" HorzAlign="Right" VertAlign="Center" 
+                   Format="Number" Format.UseLocale="false" Format.DecimalDigits="0" 
+                   Format.DecimalSeparator="." Format.GroupSeparator="," 
+                   Format.NegativePattern="1" 
+                   Font="MS Gothic, 10pt, style=Bold"
+                   Visible="[InventoryData.IsTotal]"/>
+      <TextObject Name="TotalBlank2" Left="610" Top="0" Width="108.2" Height="18.9" 
+                   Text="" 
+                   Visible="[InventoryData.IsTotal]"/>
     </DataBand>
     
+    <!-- 商品グループフッター（小計行専用） -->
+    <GroupFooterBand Name="GroupFooter2" Top="110.5" Width="718.2" Height="18.9" 
+                     KeepWithData="true">
+      <!-- 小計はDataBandで処理するため、ここは空白行として使用 -->
+      <TextObject Name="SpacerLine" Left="0" Top="0" Width="718.2" Height="18.9" 
+                   Text="" Font="MS Gothic, 9pt"/>
+    </GroupFooterBand>
+    
+    <!-- 担当者グループフッター（合計行専用） -->
+    <GroupFooterBand Name="GroupFooter1" Top="133.4" Width="718.2" Height="18.9">
+      <!-- 合計もDataBandで処理するため、ここは空白行として使用 -->
+      <TextObject Name="SpacerLine2" Left="0" Top="0" Width="718.2" Height="18.9" 
+                   Text="" Font="MS Gothic, 9pt"/>
+    </GroupFooterBand>
+    
     <!-- ページフッター -->
-    <PageFooterBand Name="PageFooter1" Top="129.4" Width="1047.06" Height="18.9">
-      <TextObject Name="PageN" Left="900" Top="0" Width="147.06" Height="18.9" Text="ページ [Page] / [TotalPages]" HorzAlign="Right" Font="Yu Gothic, 10pt"/>
+    <PageFooterBand Name="PageFooter1" Top="156.3" Width="718.2" Height="18.9">
+      <TextObject Name="FooterNote" Left="0" Top="0" Width="718.2" Height="18.9" 
+                   Text="注意：この帳票はA4タテに印刷" HorzAlign="Center" 
+                   Font="MS Gothic, 8pt" TextFill.Color="Gray"/>
     </PageFooterBand>
+    
   </ReportPage>
 </Report>
