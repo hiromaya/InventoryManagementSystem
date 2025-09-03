@@ -1,0 +1,122 @@
+[
+  {
+    "ProductCode": "00104",
+    "GradeCode": "000",
+    "ClassCode": "000",
+    "ShippingMarkCode": "5106",
+    "ManualShippingMark": "        ",
+    "前月末在庫数": 0.0000,
+    "前月末在庫金額": 0.0000,
+    "平均単価": 0.0000,
+    "CreatedDate": "2025-09-02T15:25:01.96",
+    "UpdatedDate": "2025-09-02T21:28:06.81"
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "004",
+    "ClassCode": "046",
+    "ShippingMarkCode": "5134",
+    "ManualShippingMark": "        ",
+    "前月末在庫数": 0.0000,
+    "前月末在庫金額": 0.0000,
+    "平均単価": 0.0000,
+    "CreatedDate": "2025-09-02T15:25:01.96",
+    "UpdatedDate": "2025-09-02T21:28:06.81"
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "020",
+    "ShippingMarkCode": "7011",
+    "ManualShippingMark": "        ",
+    "前月末在庫数": 0.0000,
+    "前月末在庫金額": 0.0000,
+    "平均単価": 0.0000,
+    "CreatedDate": "2025-09-02T15:25:01.96",
+    "UpdatedDate": "2025-09-02T21:28:06.81"
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "022",
+    "ShippingMarkCode": "7011",
+    "ManualShippingMark": "        ",
+    "前月末在庫数": 3.0000,
+    "前月末在庫金額": 11100.0000,
+    "平均単価": 0.0000,
+    "CreatedDate": "2025-09-02T15:25:01.96",
+    "UpdatedDate": "2025-09-02T21:28:06.8133333"
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "024",
+    "ShippingMarkCode": "7011",
+    "ManualShippingMark": "        ",
+    "前月末在庫数": 51.0000,
+    "前月末在庫金額": 217299.9993,
+    "平均単価": 0.0000,
+    "CreatedDate": "2025-08-29T12:53:32.51",
+    "UpdatedDate": "2025-09-02T21:28:17.0633333"
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "028",
+    "ShippingMarkCode": "7011",
+    "ManualShippingMark": "ｺｳ      ",
+    "前月末在庫数": 37.0000,
+    "前月末在庫金額": 222000.0000,
+    "平均単価": 0.0000,
+    "CreatedDate": "2025-08-29T12:53:32.51",
+    "UpdatedDate": "2025-09-02T21:28:17.0633333"
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "040",
+    "ShippingMarkCode": "5123",
+    "ManualShippingMark": "        ",
+    "前月末在庫数": 0.0000,
+    "前月末在庫金額": 0.0000,
+    "平均単価": 0.0000,
+    "CreatedDate": "2025-09-02T15:25:01.96",
+    "UpdatedDate": "2025-09-02T21:28:06.82"
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "046",
+    "ShippingMarkCode": "5123",
+    "ManualShippingMark": "        ",
+    "前月末在庫数": 0.0000,
+    "前月末在庫金額": 0.0000,
+    "平均単価": 0.0000,
+    "CreatedDate": "2025-09-02T15:25:01.96",
+    "UpdatedDate": "2025-09-02T21:28:06.82"
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "046",
+    "ShippingMarkCode": "7011",
+    "ManualShippingMark": "ｺｳ      ",
+    "前月末在庫数": 6.0000,
+    "前月末在庫金額": 36000.0000,
+    "平均単価": 0.0000,
+    "CreatedDate": "2025-08-29T12:53:32.51",
+    "UpdatedDate": "2025-09-02T21:28:17.0633333"
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "027",
+    "ClassCode": "020",
+    "ShippingMarkCode": "7011",
+    "ManualShippingMark": "        ",
+    "前月末在庫数": 0.0000,
+    "前月末在庫金額": 0.0000,
+    "平均単価": 0.0000,
+    "CreatedDate": "2025-09-02T15:25:01.96",
+    "UpdatedDate": "2025-09-02T21:28:06.82"
+  }
+]
