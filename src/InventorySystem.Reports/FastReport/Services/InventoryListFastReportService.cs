@@ -1,7 +1,7 @@
 using System.Data;
 using System.Globalization;
 using FastReport;
-using FastReport.Export.PdfSimple;
+using FastReport.Export.Pdf;
 using Microsoft.Extensions.Logging;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
@@ -467,7 +467,7 @@ public class InventoryListFastReportService
         // PDF生成
         report.Prepare();
         
-        using var pdfExport = new PDFSimpleExport();
+        using var pdfExport = new PDFExport();
         using var stream = new MemoryStream();
         report.Export(pdfExport, stream);
         

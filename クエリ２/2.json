@@ -1,0 +1,122 @@
+[
+  {
+    "VoucherNumber": "0000000535",
+    "ProductCode": "00401",
+    "GradeCode": "048",
+    "ClassCode": "086",
+    "ShippingMarkCode": "8124",
+    "ManualShippingMark": "ﾏﾙﾎﾝ    ",
+    "売上単価": 3800.0000,
+    "在庫単価": 3800.0000,
+    "粗利益": 0.0000,
+    "Quantity": 16.0000
+  },
+  {
+    "VoucherNumber": "0000000535",
+    "ProductCode": "00160",
+    "GradeCode": "605",
+    "ClassCode": "015",
+    "ShippingMarkCode": "8001",
+    "ManualShippingMark": "        ",
+    "売上単価": 4950.0000,
+    "在庫単価": 4950.0000,
+    "粗利益": 0.0000,
+    "Quantity": 2.0000
+  },
+  {
+    "VoucherNumber": "0000000535",
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "028",
+    "ShippingMarkCode": "7011",
+    "ManualShippingMark": "ｺｳ      ",
+    "売上単価": 6800.0000,
+    "在庫単価": 6800.0000,
+    "粗利益": 0.0000,
+    "Quantity": 1.0000
+  },
+  {
+    "VoucherNumber": "0000000535",
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "046",
+    "ShippingMarkCode": "7011",
+    "ManualShippingMark": "ｺｳ      ",
+    "売上単価": 6700.0000,
+    "在庫単価": 6600.0000,
+    "粗利益": 300.0000,
+    "Quantity": 3.0000
+  },
+  {
+    "VoucherNumber": "0000000535",
+    "ProductCode": "00627",
+    "GradeCode": "008",
+    "ClassCode": "080",
+    "ShippingMarkCode": "5808",
+    "ManualShippingMark": "        ",
+    "売上単価": 2400.0000,
+    "在庫単価": 2404.5455,
+    "粗利益": -9.0910,
+    "Quantity": 2.0000
+  },
+  {
+    "VoucherNumber": "0000000535",
+    "ProductCode": "00604",
+    "GradeCode": "008",
+    "ClassCode": "080",
+    "ShippingMarkCode": "5284",
+    "ManualShippingMark": "        ",
+    "売上単価": 2400.0000,
+    "在庫単価": 2400.0000,
+    "粗利益": 0.0000,
+    "Quantity": 2.0000
+  },
+  {
+    "VoucherNumber": "0000000535",
+    "ProductCode": "00944",
+    "GradeCode": "047",
+    "ClassCode": "208",
+    "ShippingMarkCode": "5354",
+    "ManualShippingMark": "        ",
+    "売上単価": 1700.0000,
+    "在庫単価": 1628.5714,
+    "粗利益": 357.1430,
+    "Quantity": 5.0000
+  },
+  {
+    "VoucherNumber": "0000000535",
+    "ProductCode": "01599",
+    "GradeCode": "616",
+    "ClassCode": "014",
+    "ShippingMarkCode": "8911",
+    "ManualShippingMark": "        ",
+    "売上単価": 5320.0000,
+    "在庫単価": 5320.0000,
+    "粗利益": 0.0000,
+    "Quantity": 5.0000
+  },
+  {
+    "VoucherNumber": "0000000535",
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "024",
+    "ShippingMarkCode": "7011",
+    "ManualShippingMark": "        ",
+    "売上単価": 4800.0000,
+    "在庫単価": 4800.0000,
+    "粗利益": 0.0000,
+    "Quantity": 15.0000
+  },
+  {
+    "VoucherNumber": "0000000535",
+    "ProductCode": "01516",
+    "GradeCode": "000",
+    "ClassCode": "000",
+    "ShippingMarkCode": "0000",
+    "ManualShippingMark": "        ",
+    "売上単価": 3800.0000,
+    "在庫単価": 3730.7692,
+    "粗利益": 207.6924,
+    "Quantity": 3.0000
+  }
+]
