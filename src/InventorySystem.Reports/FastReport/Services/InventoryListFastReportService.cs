@@ -140,7 +140,7 @@ public class InventoryListFastReportService
             ProductCode = cp.Key.ProductCode,
             ProductName = cp.ProductName ?? cp.Key.ProductCode,
             ShippingMarkCode = cp.Key.ShippingMarkCode,
-            ShippingMarkName = cp.ShippingMarkName ?? cp.Key.ShippingMarkCode,
+            ShippingMarkName = cp.Key.ShippingMarkCode,
             ManualShippingMark = cp.Key.ManualShippingMark,
             GradeCode = cp.Key.GradeCode,
             GradeName = cp.Key.GradeCode, // 仮実装：等級名はマスタから取得予定
