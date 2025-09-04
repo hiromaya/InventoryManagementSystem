@@ -794,7 +794,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             0 as RemainingQuantity,
                             s.UnitPrice,
                             s.Amount,
-                            0 as GrossProfit,
+                            ISNULL(s.GrossProfit, 0) as GrossProfit,
                             s.CustomerName as CustomerSupplierName,
                             'Sales' as RecordType
                         FROM SalesVouchers s
@@ -879,7 +879,11 @@ namespace InventorySystem.Reports.FastReport.Services
                             0 as RemainingQuantity,
                             ia.UnitPrice,
                             ia.Amount,
-                            0 as GrossProfit,
+                            CASE 
+                                WHEN ia.CategoryCode IN (1, 3, 2, 5, 6) THEN -ia.Amount  -- ロス・腐り・加工費・調整は金額をマイナス粗利益
+                                WHEN ia.CategoryCode = 4 THEN 0  -- 振替は粗利益なし
+                                ELSE 0
+                            END as GrossProfit,
                             '' as CustomerSupplierName,
                             'Adjustment' as RecordType
                         FROM InventoryAdjustments ia

@@ -34,9 +34,9 @@ public class InventoryListService
 
             using var report = new FR.Report();
             
-            SetScriptLanguageToNone(report);
-            
             report.Load(_templatePath);
+            
+            SetScriptLanguageToNone(report);
 
             var dataTable = CreateInventoryDataTable();
             report.RegisterData(dataTable, "InventoryData");

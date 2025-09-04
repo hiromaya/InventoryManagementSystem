@@ -1,665 +1,572 @@
+#pragma warning disable CA1416
+#if WINDOWS
+using System;
+using System.Collections.Generic;
 using System.Data;
-using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 using FastReport;
 using FastReport.Export.Pdf;
-using Microsoft.Extensions.Logging;
+using FR = global::FastReport;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
+using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
-using InventorySystem.Reports.Models;
+using Microsoft.Extensions.Logging;
 
-namespace InventorySystem.Reports.FastReport.Services;
-
-/// <summary>
-/// 在庫表FastReport帳票サービス
-/// ProductAccountFastReportServiceと同じ7段階PDF生成プロセスを使用
-/// </summary>
-public class InventoryListFastReportService
+namespace InventorySystem.Reports.FastReport.Services
 {
-    private readonly ICpInventoryRepository _cpInventoryRepository;
-    private readonly ILogger<InventoryListFastReportService> _logger;
-    private readonly string _templatePath;
-    private readonly string _tempDirectory;
-
-    public InventoryListFastReportService(
-        ICpInventoryRepository cpInventoryRepository,
-        ILogger<InventoryListFastReportService> logger)
-    {
-        _cpInventoryRepository = cpInventoryRepository;
-        _logger = logger;
-        
-        var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-        _templatePath = Path.Combine(baseDirectory, "FastReport", "Templates", "InventoryList.frx");
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "InventoryList", Guid.NewGuid().ToString());
-        
-        Directory.CreateDirectory(_tempDirectory);
-    }
-
     /// <summary>
-    /// 在庫表PDF生成（7段階プロセス）
+    /// 在庫表FastReport実装（ProductAccountFastReportServiceと同じ7段階プロセス）
     /// </summary>
-    public async Task<byte[]> GenerateInventoryListPdfAsync(DateTime jobDate)
+    public class InventoryListFastReportService
     {
-        _logger.LogInformation("在庫表PDF生成開始 - 作業日: {JobDate}", jobDate);
+        private readonly ILogger<InventoryListFastReportService> _logger;
+        private readonly ICpInventoryRepository _cpInventoryRepository;
+        private readonly string _templatePath;
 
-        try
+        public InventoryListFastReportService(
+            ILogger<InventoryListFastReportService> logger, 
+            ICpInventoryRepository cpInventoryRepository)
         {
-            // Phase 1: データ準備
-            var cpInventoryData = await GetCpInventoryDataAsync();
-            if (!cpInventoryData.Any())
-            {
-                throw new InvalidOperationException("CP在庫マスタが作成されていません。先に商品勘定を実行してください。");
-            }
-
-            // Phase 2: フラットデータ生成
-            var flatData = CreateInventoryFlatData(cpInventoryData, jobDate);
-
-            // Phase 3: 担当者別グループ化
-            var staffGroups = GroupDataByStaff(flatData);
-
-            // Phase 4: 一時PDF生成（ページ数カウント用）
-            var tempPdfPaths = new List<string>();
-            var staffPageCounts = new Dictionary<string, int>();
-
-            foreach (var staffGroup in staffGroups)
-            {
-                var tempPdfPath = await CreateTempPdfForStaffAsync(staffGroup.Key, staffGroup.Value, jobDate, 1, 1);
-                tempPdfPaths.Add(tempPdfPath);
-                
-                // ページ数をカウント
-                var pageCount = CountPdfPages(tempPdfPath);
-                staffPageCounts[staffGroup.Key] = pageCount;
-                
-                _logger.LogDebug("担当者 {StaffCode} の一時PDF作成完了 - ページ数: {PageCount}", staffGroup.Key, pageCount);
-            }
-
-            // Phase 5: 総ページ数計算とページ番号割り当て
-            var totalPages = staffPageCounts.Values.Sum();
-            var currentPageStart = 1;
-            var staffPageRanges = new Dictionary<string, (int Start, int End, int Total)>();
-
-            foreach (var staffGroup in staffGroups)
-            {
-                var pageCount = staffPageCounts[staffGroup.Key];
-                staffPageRanges[staffGroup.Key] = (currentPageStart, currentPageStart + pageCount - 1, totalPages);
-                currentPageStart += pageCount;
-            }
-
-            // Phase 6: 正式PDF生成（正確なページ番号付き）
-            var finalPdfPaths = new List<string>();
+            _logger = logger;
+            _cpInventoryRepository = cpInventoryRepository;
             
-            foreach (var staffGroup in staffGroups)
-            {
-                var pageRange = staffPageRanges[staffGroup.Key];
-                var finalPdfPath = await CreateFinalPdfForStaffAsync(
-                    staffGroup.Key, 
-                    staffGroup.Value, 
-                    jobDate,
-                    pageRange.Start, 
-                    pageRange.Total);
-                    
-                finalPdfPaths.Add(finalPdfPath);
+            _templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, 
+                "FastReport", "Templates", "InventoryList.frx");
                 
-                _logger.LogDebug("担当者 {StaffCode} の最終PDF作成完了 - ページ範囲: {Start}-{End}/{Total}", 
-                    staffGroup.Key, pageRange.Start, pageRange.End, pageRange.Total);
-            }
-
-            // Phase 7: PDF結合
-            var mergedPdfBytes = MergePdfs(finalPdfPaths);
-
-            _logger.LogInformation("在庫表PDF生成完了 - 総ページ数: {TotalPages}, 担当者数: {StaffCount}", 
-                totalPages, staffGroups.Count);
-
-            return mergedPdfBytes;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "在庫表PDF生成でエラーが発生しました - 作業日: {JobDate}", jobDate);
-            throw;
-        }
-        finally
-        {
-            // 一時ファイルクリーンアップ
-            CleanupTempFiles();
-        }
-    }
-
-    /// <summary>
-    /// Phase 1: CP在庫マスタからデータ取得
-    /// </summary>
-    private async Task<List<dynamic>> GetCpInventoryDataAsync()
-    {
-        _logger.LogDebug("CP在庫マスタからデータ取得開始");
-        
-        var cpInventories = await _cpInventoryRepository.GetAllAsync();
-        
-        // 動的オブジェクトに変換（在庫表用フィールドのみ）
-        var result = cpInventories.Select(cp => new
-        {
-            ProductCategory1 = cp.ProductCategory1 ?? string.Empty,
-            ProductCode = cp.Key.ProductCode,
-            ProductName = cp.ProductName ?? cp.Key.ProductCode,
-            ShippingMarkCode = cp.Key.ShippingMarkCode,
-            ShippingMarkName = cp.Key.ShippingMarkCode,
-            ManualShippingMark = cp.Key.ManualShippingMark,
-            GradeCode = cp.Key.GradeCode,
-            GradeName = cp.Key.GradeCode, // 仮実装：等級名はマスタから取得予定
-            ClassCode = cp.Key.ClassCode,
-            ClassName = cp.Key.ClassCode, // 仮実装：階級名はマスタから取得予定
-            DailyStock = cp.DailyStock,
-            DailyUnitPrice = cp.DailyUnitPrice,
-            DailyStockAmount = cp.DailyStockAmount,
-            PreviousDayStock = cp.PreviousDayStock,
-            PreviousDayStockAmount = cp.PreviousDayStockAmount,
-            LastReceiptDate = cp.DailyReceiptQuantity > 0 ? cp.JobDate : (DateTime?)null
-        }).Cast<dynamic>().ToList();
-
-        _logger.LogDebug("CP在庫マスタからデータ取得完了 - 件数: {Count}", result.Count);
-        return result;
-    }
-
-    /// <summary>
-    /// Phase 2: フラットデータ生成（印字対象フィルタリング含む）
-    /// </summary>
-    private List<InventoryFlatRow> CreateInventoryFlatData(List<dynamic> cpInventoryData, DateTime jobDate)
-    {
-        _logger.LogDebug("在庫表フラットデータ生成開始");
-        
-        var flatRows = new List<InventoryFlatRow>();
-        var sequence = 1;
-
-        // データフィルタリング
-        var filteredData = cpInventoryData.Where(cp => 
-        {
-            // 条件1: 前日在庫数が0の行は除外
-            if (cp.PreviousDayStock <= 0) return false;
-            
-            // 条件2: 当日在庫数量・金額が両方0の行は除外
-            if (cp.DailyStock <= 0 && cp.DailyStockAmount <= 0) return false;
-            
-            return true;
-        }).ToList();
-
-        // 担当者コード → 商品コード → 荷印 → 等級 → 階級でソート
-        var sortedData = filteredData
-            .OrderBy(cp => cp.ProductCategory1 ?? string.Empty)
-            .ThenBy(cp => cp.ProductCode)
-            .ThenBy(cp => cp.ShippingMarkCode)
-            .ThenBy(cp => cp.ManualShippingMark)
-            .ThenBy(cp => cp.GradeCode)
-            .ThenBy(cp => cp.ClassCode)
-            .ToList();
-
-        // フラットデータ変換
-        foreach (var cp in sortedData)
-        {
-            var flatRow = new InventoryFlatRow
-            {
-                StaffCode = cp.ProductCategory1 ?? string.Empty,
-                StaffName = $"担当者{cp.ProductCategory1}", // 仮実装
-                ProductCode = cp.ProductCode,
-                Col1 = cp.ProductName, // 商品名
-                Col2 = cp.ShippingMarkName, // 荷印名
-                Col3 = cp.GradeName, // 等級名
-                Col4 = cp.ClassName, // 階級名
-                Col5 = FormatQuantity(cp.DailyStock), // 在庫数量
-                Col6 = FormatCurrency(cp.DailyUnitPrice), // 在庫単価
-                Col7 = FormatCurrency(cp.DailyStockAmount), // 在庫金額
-                Col8 = FormatDate(cp.LastReceiptDate), // 最終入荷日
-                Col9 = CalculateStagnationMark(jobDate, cp.LastReceiptDate), // 滞留マーク
-                
-                // 計算用データ
-                StockQuantity = cp.DailyStock,
-                StockAmount = cp.DailyStockAmount,
-                
-                RowSequence = sequence++,
-                RowType = InventoryRowTypes.Detail
-            };
-
-            flatRows.Add(flatRow);
+            _logger.LogInformation("在庫表FastReportテンプレートパス: {TemplatePath}", _templatePath);
         }
 
-        _logger.LogDebug("在庫表フラットデータ生成完了 - 印字対象件数: {Count}", flatRows.Count);
-        return flatRows;
-    }
-
-    /// <summary>
-    /// Phase 3: 担当者別グループ化（小計・合計行追加）
-    /// </summary>
-    private Dictionary<string, List<InventoryFlatRow>> GroupDataByStaff(List<InventoryFlatRow> flatData)
-    {
-        _logger.LogDebug("担当者別グループ化開始");
-        
-        var staffGroups = new Dictionary<string, List<InventoryFlatRow>>();
-        var globalSequence = 1;
-
-        var dataByStaff = flatData.GroupBy(row => row.StaffCode).OrderBy(g => g.Key);
-
-        foreach (var staffGroup in dataByStaff)
+        /// <summary>
+        /// 在庫表の7段階プロセス実装（ProductAccountと同じ構造）
+        /// </summary>
+        public async Task<byte[]> GenerateInventoryListAsync(DateTime jobDate, string? dataSetId = null)
         {
-            var staffCode = staffGroup.Key;
-            var staffRows = new List<InventoryFlatRow>();
-
-            // 担当者ヘッダー行追加
-            var staffHeader = CreateStaffHeader(staffCode, staffGroup.First().StaffName, globalSequence++);
-            staffRows.Add(staffHeader);
-
-            // 商品別グループ化
-            var productGroups = staffGroup.GroupBy(row => row.ProductCode).OrderBy(g => g.Key);
-
-            foreach (var productGroup in productGroups)
-            {
-                var productCode = productGroup.Key;
-                
-                // 商品グループヘッダー行追加
-                var productHeader = CreateProductGroupHeader(productCode, productGroup.First().Col1, globalSequence++);
-                staffRows.Add(productHeader);
-
-                // 明細行追加
-                foreach (var detailRow in productGroup)
-                {
-                    detailRow.RowSequence = globalSequence++;
-                    detailRow.PageGroup = staffCode; // 担当者別ページ管理
-                    staffRows.Add(detailRow);
-                }
-
-                // 商品別小計追加
-                var productSubtotal = CreateProductSubtotal(productCode, productGroup, globalSequence);
-                staffRows.AddRange(productSubtotal);
-                globalSequence += productSubtotal.Count;
-
-                // 商品間の空行
-                var blankLine = CreateBlankLine(globalSequence++);
-                staffRows.Add(blankLine);
-            }
-
-            // 担当者別合計追加
-            var staffTotal = CreateStaffTotal(staffCode, staffGroup, globalSequence);
-            staffRows.AddRange(staffTotal);
-            globalSequence += staffTotal.Count;
-
-            staffGroups[staffCode] = staffRows;
-        }
-
-        _logger.LogDebug("担当者別グループ化完了 - 担当者数: {StaffCount}", staffGroups.Count);
-        return staffGroups;
-    }
-
-    /// <summary>
-    /// 担当者ヘッダー行作成
-    /// </summary>
-    private InventoryFlatRow CreateStaffHeader(string staffCode, string staffName, int sequence)
-    {
-        return new InventoryFlatRow
-        {
-            StaffCode = staffCode,
-            StaffName = staffName,
-            Col1 = $"【担当者: {staffCode} {staffName}】",
-            RowType = InventoryRowTypes.StaffHeader,
-            RowSequence = sequence,
-            IsPageBreak = true,
-            IsBold = true,
-            IsGrayBackground = true,
-            PageGroup = staffCode
-        };
-    }
-
-    /// <summary>
-    /// 商品グループヘッダー行作成
-    /// </summary>
-    private InventoryFlatRow CreateProductGroupHeader(string productCode, string productName, int sequence)
-    {
-        return new InventoryFlatRow
-        {
-            ProductCode = productCode,
-            Col1 = $"■ {productCode} {productName}",
-            RowType = InventoryRowTypes.ProductGroupHeader,
-            RowSequence = sequence,
-            IsBold = true,
-            IsGrayBackground = true
-        };
-    }
-
-    /// <summary>
-    /// 商品別小計行作成
-    /// </summary>
-    private List<InventoryFlatRow> CreateProductSubtotal(string productCode, IGrouping<string, InventoryFlatRow> productGroup, int startSequence)
-    {
-        var subtotalRows = new List<InventoryFlatRow>();
-        var sequence = startSequence;
-
-        // 小計見出し行
-        var subtotalHeader = new InventoryFlatRow
-        {
-            ProductCode = productCode,
-            Col1 = $"【{productCode} 小計】",
-            RowType = InventoryRowTypes.ProductSubtotalHeader,
-            RowSequence = sequence++,
-            IsBold = true,
-            IsSubtotal = true
-        };
-        subtotalRows.Add(subtotalHeader);
-
-        // 小計数値行
-        var totalQuantity = productGroup.Sum(row => row.StockQuantity);
-        var totalAmount = productGroup.Sum(row => row.StockAmount);
-        
-        var subtotalData = new InventoryFlatRow
-        {
-            ProductCode = productCode,
-            Col5 = FormatQuantity(totalQuantity), // 合計数量
-            Col7 = FormatCurrency(totalAmount), // 合計金額
-            RowType = InventoryRowTypes.ProductSubtotal,
-            RowSequence = sequence++,
-            IsBold = true,
-            IsSubtotal = true,
-            StockQuantity = totalQuantity,
-            StockAmount = totalAmount
-        };
-        subtotalRows.Add(subtotalData);
-
-        return subtotalRows;
-    }
-
-    /// <summary>
-    /// 担当者別合計行作成
-    /// </summary>
-    private List<InventoryFlatRow> CreateStaffTotal(string staffCode, IGrouping<string, InventoryFlatRow> staffGroup, int startSequence)
-    {
-        var totalRows = new List<InventoryFlatRow>();
-        var sequence = startSequence;
-
-        // 合計見出し行
-        var totalHeader = new InventoryFlatRow
-        {
-            StaffCode = staffCode,
-            Col1 = $"【担当者 {staffCode} 合計】",
-            RowType = InventoryRowTypes.StaffTotalHeader,
-            RowSequence = sequence++,
-            IsBold = true,
-            IsSubtotal = true
-        };
-        totalRows.Add(totalHeader);
-
-        // 合計数値行
-        var totalQuantity = staffGroup.Sum(row => row.StockQuantity);
-        var totalAmount = staffGroup.Sum(row => row.StockAmount);
-        
-        var totalData = new InventoryFlatRow
-        {
-            StaffCode = staffCode,
-            Col5 = FormatQuantity(totalQuantity), // 合計数量
-            Col7 = FormatCurrency(totalAmount), // 合計金額
-            RowType = InventoryRowTypes.StaffTotal,
-            RowSequence = sequence++,
-            IsBold = true,
-            IsSubtotal = true,
-            StockQuantity = totalQuantity,
-            StockAmount = totalAmount
-        };
-        totalRows.Add(totalData);
-
-        return totalRows;
-    }
-
-    /// <summary>
-    /// 空行作成
-    /// </summary>
-    private InventoryFlatRow CreateBlankLine(int sequence)
-    {
-        return new InventoryFlatRow
-        {
-            RowType = InventoryRowTypes.BlankLine,
-            RowSequence = sequence
-        };
-    }
-
-    /// <summary>
-    /// Phase 4: 一時PDF生成（ページ数カウント用）
-    /// </summary>
-    private async Task<string> CreateTempPdfForStaffAsync(string staffCode, List<InventoryFlatRow> staffData, DateTime jobDate, int pageStart, int totalPages)
-    {
-        var tempFileName = $"temp_staff_{staffCode}_{Guid.NewGuid()}.pdf";
-        var tempFilePath = Path.Combine(_tempDirectory, tempFileName);
-
-        await CreatePdfForStaffDataAsync(staffData, jobDate, pageStart, totalPages, tempFilePath);
-        
-        return tempFilePath;
-    }
-
-    /// <summary>
-    /// Phase 6: 最終PDF生成（正確なページ番号付き）
-    /// </summary>
-    private async Task<string> CreateFinalPdfForStaffAsync(string staffCode, List<InventoryFlatRow> staffData, DateTime jobDate, int pageStart, int totalPages)
-    {
-        var finalFileName = $"final_staff_{staffCode}_{Guid.NewGuid()}.pdf";
-        var finalFilePath = Path.Combine(_tempDirectory, finalFileName);
-
-        // ページ番号をデータに反映
-        var currentPage = pageStart;
-        foreach (var row in staffData)
-        {
-            row.PageNumber = currentPage;
-            row.TotalPages = totalPages;
-        }
-
-        await CreatePdfForStaffDataAsync(staffData, jobDate, pageStart, totalPages, finalFilePath);
-        
-        return finalFilePath;
-    }
-
-    /// <summary>
-    /// 担当者データ用PDF生成（共通処理）
-    /// </summary>
-    private async Task<byte[]> CreatePdfForStaffDataAsync(List<InventoryFlatRow> staffData, DateTime jobDate, int pageStart, int totalPages, string outputPath)
-    {
-        using var report = new Report();
-        report.Load(_templatePath);
-
-        // パラメータ設定
-        report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
-        report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
-
-        // データソース設定
-        var dataTable = ConvertToDataTable(staffData);
-        report.RegisterData(dataTable, "InventoryData");
-
-        // PDF生成
-        report.Prepare();
-        
-        using var pdfExport = new PDFExport();
-        using var stream = new MemoryStream();
-        report.Export(pdfExport, stream);
-        
-        var pdfBytes = stream.ToArray();
-        await File.WriteAllBytesAsync(outputPath, pdfBytes);
-        
-        return pdfBytes;
-    }
-
-    /// <summary>
-    /// InventoryFlatRow → DataTable変換
-    /// </summary>
-    private DataTable ConvertToDataTable(List<InventoryFlatRow> flatData)
-    {
-        var dataTable = new DataTable("InventoryData");
-        
-        // カラム定義
-        dataTable.Columns.Add("StaffCode", typeof(string));
-        dataTable.Columns.Add("StaffName", typeof(string));
-        dataTable.Columns.Add("Col1", typeof(string)); // 商品名
-        dataTable.Columns.Add("Col2", typeof(string)); // 荷印名
-        dataTable.Columns.Add("Col3", typeof(string)); // 等級名
-        dataTable.Columns.Add("Col4", typeof(string)); // 階級名
-        dataTable.Columns.Add("Col5", typeof(string)); // 在庫数量
-        dataTable.Columns.Add("Col6", typeof(string)); // 在庫単価
-        dataTable.Columns.Add("Col7", typeof(string)); // 在庫金額
-        dataTable.Columns.Add("Col8", typeof(string)); // 最終入荷日
-        dataTable.Columns.Add("Col9", typeof(string)); // 滞留マーク
-        
-        // 制御フィールド
-        dataTable.Columns.Add("RowType", typeof(string));
-        dataTable.Columns.Add("RowSequence", typeof(int));
-        dataTable.Columns.Add("PageBreakFlag", typeof(string));
-        dataTable.Columns.Add("GrayBackgroundFlag", typeof(string));
-        dataTable.Columns.Add("BoldFlag", typeof(string));
-        dataTable.Columns.Add("PageNumber", typeof(int));
-        dataTable.Columns.Add("TotalPages", typeof(int));
-        dataTable.Columns.Add("PageGroup", typeof(string));
-        dataTable.Columns.Add("CurrentPage", typeof(string));
-        dataTable.Columns.Add("TotalPagesDisplay", typeof(string));
-
-        // データ行追加
-        foreach (var row in flatData)
-        {
-            var dataRow = dataTable.NewRow();
-            dataRow["StaffCode"] = row.StaffCode;
-            dataRow["StaffName"] = row.StaffName;
-            dataRow["Col1"] = row.Col1;
-            dataRow["Col2"] = row.Col2;
-            dataRow["Col3"] = row.Col3;
-            dataRow["Col4"] = row.Col4;
-            dataRow["Col5"] = row.Col5;
-            dataRow["Col6"] = row.Col6;
-            dataRow["Col7"] = row.Col7;
-            dataRow["Col8"] = row.Col8;
-            dataRow["Col9"] = row.Col9;
-            
-            dataRow["RowType"] = row.RowType;
-            dataRow["RowSequence"] = row.RowSequence;
-            dataRow["PageBreakFlag"] = row.PageBreakFlag;
-            dataRow["GrayBackgroundFlag"] = row.GrayBackgroundFlag;
-            dataRow["BoldFlag"] = row.BoldFlag;
-            dataRow["PageNumber"] = row.PageNumber;
-            dataRow["TotalPages"] = row.TotalPages;
-            dataRow["PageGroup"] = row.PageGroup;
-            dataRow["CurrentPage"] = row.PageNumber.ToString();
-            dataRow["TotalPagesDisplay"] = row.TotalPages.ToString();
-            
-            dataTable.Rows.Add(dataRow);
-        }
-
-        return dataTable;
-    }
-
-    /// <summary>
-    /// Phase 5: PDFページ数カウント
-    /// </summary>
-    private int CountPdfPages(string pdfFilePath)
-    {
-        try
-        {
-            using var document = PdfReader.Open(pdfFilePath, PdfDocumentOpenMode.ReadOnly);
-            return document.PageCount;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "PDFページ数カウント失敗 - ファイル: {FilePath}", pdfFilePath);
-            return 1; // デフォルト値
-        }
-    }
-
-    /// <summary>
-    /// Phase 7: PDF結合
-    /// </summary>
-    private byte[] MergePdfs(List<string> pdfFilePaths)
-    {
-        _logger.LogDebug("PDF結合開始 - ファイル数: {FileCount}", pdfFilePaths.Count);
-        
-        using var mergedDocument = new PdfDocument();
-        
-        foreach (var pdfPath in pdfFilePaths)
-        {
+            string tempFolder = null;
             try
             {
-                using var inputDocument = PdfReader.Open(pdfPath, PdfDocumentOpenMode.Import);
+                _logger.LogInformation("=== 在庫表FastReport 7段階プロセス開始 ===");
+                _logger.LogInformation("Job date: {JobDate:yyyy-MM-dd}", jobDate);
                 
-                for (int pageIndex = 0; pageIndex < inputDocument.PageCount; pageIndex++)
+                // Phase 1: データ準備
+                _logger.LogInformation("Phase 1: データ準備開始");
+                var cpInventoryData = await PrepareInventoryData(jobDate);
+                
+                // Phase 2: フラットデータ生成
+                _logger.LogInformation("Phase 2: 担当者別フラットデータ生成");
+                var flatData = GenerateFlatData(cpInventoryData);
+                
+                // 担当者コード空を"000"に変換（ProductAccountと同じ）
+                foreach (var item in flatData)
                 {
-                    var page = inputDocument.Pages[pageIndex];
-                    mergedDocument.AddPage(page);
+                    if (string.IsNullOrEmpty(item.StaffCode))
+                    {
+                        item.StaffCode = "000";
+                        item.StaffName = "担当者未設定";
+                    }
                 }
                 
-                _logger.LogDebug("PDF結合 - ファイル追加完了: {FilePath} ({PageCount}ページ)", 
-                    pdfPath, inputDocument.PageCount);
+                if (!flatData.Any())
+                {
+                    throw new InvalidOperationException("在庫表のデータが存在しません");
+                }
+                
+                // Phase 3: 1次PDF生成（仮ページ番号）
+                _logger.LogInformation("Phase 3: 1次PDF生成（仮ページ番号）");
+                tempFolder = Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory,
+                    "Output",
+                    $"Temp_{DateTime.Now:yyyyMMddHHmmss}");
+                Directory.CreateDirectory(tempFolder);
+                
+                var tempPdfFiles = new List<string>();
+                var tempPdfFile = Path.Combine(tempFolder, "temp_inventory.pdf");
+                await GenerateSinglePdfAsync(flatData, 1, flatData.Count, 999, tempPdfFile, jobDate);
+                tempPdfFiles.Add(tempPdfFile);
+                
+                // Phase 4: ページ数解析
+                _logger.LogInformation("Phase 4: ページ数解析");
+                var totalPages = GetPdfPageCount(tempPdfFile);
+                _logger.LogInformation("総ページ数: {TotalPages}", totalPages);
+                
+                // Phase 5: 2次PDF生成（正確なページ番号）
+                _logger.LogInformation("Phase 5: 2次PDF生成（正確なページ番号）");
+                var finalPdfFile = Path.Combine(tempFolder, "final_inventory.pdf");
+                await GenerateSinglePdfAsync(flatData, 1, flatData.Count, totalPages, finalPdfFile, jobDate);
+                
+                // Phase 6: 最終PDF読み込み
+                _logger.LogInformation("Phase 6: 最終PDF読み込み");
+                var finalPdfBytes = await File.ReadAllBytesAsync(finalPdfFile);
+                
+                _logger.LogInformation("在庫表FastReport PDF生成完了: ファイルサイズ={FileSize}bytes", finalPdfBytes.Length);
+                return finalPdfBytes;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "PDF結合エラー - ファイル: {FilePath}", pdfPath);
+                _logger.LogError(ex, "在庫表FastReport PDF生成エラー");
                 throw;
             }
-        }
-
-        using var stream = new MemoryStream();
-        mergedDocument.Save(stream);
-        
-        var mergedBytes = stream.ToArray();
-        _logger.LogDebug("PDF結合完了 - 総ページ数: {TotalPages}, サイズ: {Size}KB", 
-            mergedDocument.PageCount, mergedBytes.Length / 1024);
-            
-        return mergedBytes;
-    }
-
-    /// <summary>
-    /// 一時ファイルクリーンアップ
-    /// </summary>
-    private void CleanupTempFiles()
-    {
-        try
-        {
-            if (Directory.Exists(_tempDirectory))
+            finally
             {
-                Directory.Delete(_tempDirectory, true);
-                _logger.LogDebug("一時ファイルクリーンアップ完了 - ディレクトリ: {TempDirectory}", _tempDirectory);
+                // Phase 7: クリーンアップ
+                if (!string.IsNullOrEmpty(tempFolder) && Directory.Exists(tempFolder))
+                {
+                    try
+                    {
+                        Directory.Delete(tempFolder, true);
+                        _logger.LogInformation("一時フォルダ削除完了");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "一時フォルダの削除に失敗");
+                    }
+                }
             }
         }
-        catch (Exception ex)
+
+        /// <summary>
+        /// CP在庫マスタからデータ取得・フィルタリング
+        /// </summary>
+        private async Task<List<CpInventoryMaster>> PrepareInventoryData(DateTime jobDate)
         {
-            _logger.LogWarning(ex, "一時ファイルクリーンアップ失敗 - ディレクトリ: {TempDirectory}", _tempDirectory);
+            _logger.LogInformation("CP在庫マスタからデータ取得中...");
+            var cpInventories = await _cpInventoryRepository.GetAllAsync();
+            
+            _logger.LogInformation("取得件数: {Count}件", cpInventories.Count);
+            
+            // フィルタリング条件
+            var filtered = cpInventories
+                .Where(cp => !(cp.DailyStock == 0 && cp.DailyStockAmount == 0))  // 当日在庫数量・金額が共に0を除外
+                .Where(cp => cp.PreviousDayStock != 0)  // 前日在庫数が0を除外
+                .ToList();
+            
+            _logger.LogInformation("フィルタ後件数: {FilteredCount}件", filtered.Count);
+            
+            // ソート：担当者→商品→荷印→等級→階級
+            var sorted = filtered
+                .OrderBy(cp => cp.ProductCategory1 ?? "000")
+                .ThenBy(cp => cp.Key.ProductCode)
+                .ThenBy(cp => cp.Key.ShippingMarkCode)
+                .ThenBy(cp => cp.Key.ManualShippingMark)
+                .ThenBy(cp => cp.Key.GradeCode)
+                .ThenBy(cp => cp.Key.ClassCode)
+                .ToList();
+            
+            return sorted;
+        }
+
+        /// <summary>
+        /// フラットデータ生成（ProductAccountと同じ構造）
+        /// </summary>
+        private List<InventoryFlatRow> GenerateFlatData(List<CpInventoryMaster> sourceData)
+        {
+            var flatRows = new List<InventoryFlatRow>();
+            
+            // 担当者でグループ化
+            var staffGroups = sourceData
+                .GroupBy(x => x.ProductCategory1 ?? "000")
+                .OrderBy(g => g.Key);
+            
+            foreach (var staffGroup in staffGroups)
+            {
+                // STAFF_HEADER行
+                flatRows.Add(new InventoryFlatRow
+                {
+                    RowType = RowTypes.StaffHeader,
+                    IsPageBreak = "1",
+                    StaffCode = staffGroup.Key,
+                    StaffName = $"担当者{staffGroup.Key}"
+                });
+                
+                // 商品でグループ化
+                var productGroups = staffGroup
+                    .GroupBy(x => x.Key.ProductCode)
+                    .OrderBy(g => g.Key);
+                
+                decimal staffTotalQuantity = 0;
+                decimal staffTotalAmount = 0;
+                
+                foreach (var productGroup in productGroups)
+                {
+                    decimal productSubtotalQuantity = 0;
+                    decimal productSubtotalAmount = 0;
+                    
+                    // 明細行
+                    foreach (var item in productGroup)
+                    {
+                        flatRows.Add(CreateDetailRow(item));
+                        productSubtotalQuantity += item.DailyStock;
+                        productSubtotalAmount += item.DailyStockAmount;
+                    }
+                    
+                    // 商品小計
+                    flatRows.Add(CreateProductSubtotalRow(productSubtotalQuantity, productSubtotalAmount));
+                    
+                    staffTotalQuantity += productSubtotalQuantity;
+                    staffTotalAmount += productSubtotalAmount;
+                }
+                
+                // 担当者合計
+                flatRows.Add(CreateStaffTotalRow(staffTotalQuantity, staffTotalAmount));
+                
+                // 空行（担当者間）
+                flatRows.Add(new InventoryFlatRow
+                {
+                    RowType = RowTypes.Blank
+                });
+            }
+            
+            // 35行改ページ制御（ProductAccountと同じ実装）
+            return ApplyPageBreakControl(flatRows);
+        }
+
+        /// <summary>
+        /// 明細行作成
+        /// </summary>
+        private InventoryFlatRow CreateDetailRow(CpInventoryMaster item)
+        {
+            return new InventoryFlatRow
+            {
+                RowType = RowTypes.Detail,
+                Col1 = item.ProductName ?? "",
+                Col2 = item.Key.ManualShippingMark ?? item.Key.ShippingMarkCode,
+                Col3 = item.GradeName ?? item.Key.GradeCode,
+                Col4 = item.ClassName ?? item.Key.ClassCode,
+                Col5 = FormatQuantity(item.DailyStock),
+                Col6 = FormatUnitPrice(item.DailyUnitPrice),
+                Col7 = FormatAmount(item.DailyStockAmount),
+                Col8 = "", // 最終入荷日（初期実装では空）
+                Col9 = ""  // 滞留マーク（初期実装では空）
+            };
+        }
+
+        /// <summary>
+        /// 商品小計行作成
+        /// </summary>
+        private InventoryFlatRow CreateProductSubtotalRow(decimal quantity, decimal amount)
+        {
+            return new InventoryFlatRow
+            {
+                RowType = RowTypes.ProductSubtotal,
+                IsBold = "1",
+                Col1 = "＊　小　　計　＊",
+                Col5 = FormatQuantity(quantity),
+                Col7 = FormatAmount(amount)
+            };
+        }
+
+        /// <summary>
+        /// 担当者合計行作成
+        /// </summary>
+        private InventoryFlatRow CreateStaffTotalRow(decimal quantity, decimal amount)
+        {
+            return new InventoryFlatRow
+            {
+                RowType = RowTypes.StaffTotal,
+                IsBold = "1",
+                Col1 = "※　合　　計　※",
+                Col5 = FormatQuantity(quantity),
+                Col7 = FormatAmount(amount)
+            };
+        }
+
+        /// <summary>
+        /// 35行改ページ制御
+        /// </summary>
+        private List<InventoryFlatRow> ApplyPageBreakControl(List<InventoryFlatRow> flatRows)
+        {
+            var result = new List<InventoryFlatRow>();
+            int rowCount = 0;
+            
+            foreach (var row in flatRows)
+            {
+                if (row.RowType == RowTypes.StaffHeader)
+                {
+                    // 担当者ヘッダーは必ず改ページ
+                    row.IsPageBreak = "1";
+                    rowCount = 1;
+                }
+                else if (rowCount >= 35)
+                {
+                    // 35行に達した場合、改ページ制御行を挿入
+                    result.Add(new InventoryFlatRow
+                    {
+                        RowType = RowTypes.PageBreak,
+                        IsPageBreak = "1"
+                    });
+                    rowCount = 1;
+                }
+                else
+                {
+                    rowCount++;
+                }
+                
+                result.Add(row);
+            }
+            
+            return result;
+        }
+
+        /// <summary>
+        /// フォーマット：数量
+        /// </summary>
+        private string FormatQuantity(decimal quantity)
+        {
+            if (quantity == 0) return "";
+            var formatted = quantity.ToString("#,##0.00").TrimEnd('0').TrimEnd('.');
+            return quantity < 0 ? formatted + "-" : formatted;
+        }
+
+        /// <summary>
+        /// フォーマット：単価
+        /// </summary>
+        private string FormatUnitPrice(decimal price)
+        {
+            if (price == 0) return "";
+            return price.ToString("#,##0");
+        }
+
+        /// <summary>
+        /// フォーマット：金額
+        /// </summary>
+        private string FormatAmount(decimal amount)
+        {
+            if (amount == 0) return "";
+            var formatted = amount.ToString("#,##0");
+            return amount < 0 ? formatted + "-" : formatted;
+        }
+
+        /// <summary>
+        /// 単一PDF生成
+        /// </summary>
+        private async Task GenerateSinglePdfAsync(
+            List<InventoryFlatRow> flatData,
+            int startPage,
+            int pageCount,
+            int totalPages,
+            string outputPath,
+            DateTime jobDate)
+        {
+            if (!File.Exists(_templatePath))
+            {
+                throw new FileNotFoundException($"FastReportテンプレートファイルが見つかりません: {_templatePath}");
+            }
+
+            using var report = new FR.Report();
+            
+            // テンプレート読み込み → スクリプト無効化（ProductAccountと同じ順序）
+            report.Load(_templatePath);
+            SetScriptLanguageToNone(report);
+            
+            // フラットデータをDataTableに変換
+            var dataTable = CreateFlatDataTableWithPageNumbers(flatData, startPage, pageCount, totalPages);
+            
+            // デバッグログ
+            _logger.LogInformation("DataTable行数: {Count}", dataTable.Rows.Count);
+            
+            // FastReportにデータソースを登録
+            report.RegisterData(dataTable, "InventoryData");
+            
+            // パラメータ設定
+            report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
+            report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
+            
+            // レポート準備・エクスポート
+            report.Prepare();
+            
+            using var pdfExport = new FR.Export.Pdf.PDFExport();
+            using var stream = new FileStream(outputPath, FileMode.Create);
+            
+            pdfExport.Export(report, stream);
+            
+            _logger.LogInformation("PDF生成完了: {FilePath}", outputPath);
+        }
+
+        /// <summary>
+        /// フラットデータをDataTableに変換（ページ番号付き）
+        /// </summary>
+        private DataTable CreateFlatDataTableWithPageNumbers(
+            List<InventoryFlatRow> flatData,
+            int startPage,
+            int pageCount,
+            int totalPages)
+        {
+            var dt = new DataTable("InventoryData");
+            
+            // カラム定義（全てstring型）
+            dt.Columns.Add("RowType", typeof(string));
+            dt.Columns.Add("IsPageBreak", typeof(string));
+            dt.Columns.Add("IsBold", typeof(string));
+            dt.Columns.Add("IsGrayBackground", typeof(string));
+            dt.Columns.Add("StaffCode", typeof(string));
+            dt.Columns.Add("StaffName", typeof(string));
+            dt.Columns.Add("Col1", typeof(string));
+            dt.Columns.Add("Col2", typeof(string));
+            dt.Columns.Add("Col3", typeof(string));
+            dt.Columns.Add("Col4", typeof(string));
+            dt.Columns.Add("Col5", typeof(string));
+            dt.Columns.Add("Col6", typeof(string));
+            dt.Columns.Add("Col7", typeof(string));
+            dt.Columns.Add("Col8", typeof(string));
+            dt.Columns.Add("Col9", typeof(string));
+            dt.Columns.Add("CurrentPage", typeof(string));
+            dt.Columns.Add("TotalPages", typeof(string));
+            
+            // ページ番号計算と行追加
+            int currentPage = startPage;
+            int rowCount = 0;
+            
+            foreach (var row in flatData)
+            {
+                // ページ番号設定
+                row.CurrentPage = currentPage.ToString();
+                row.TotalPages = totalPages.ToString();
+                
+                // DataTable行追加
+                dt.Rows.Add(
+                    row.RowType,
+                    row.IsPageBreak,
+                    row.IsBold,
+                    row.IsGrayBackground,
+                    row.StaffCode,
+                    row.StaffName,
+                    row.Col1,
+                    row.Col2,
+                    row.Col3,
+                    row.Col4,
+                    row.Col5,
+                    row.Col6,
+                    row.Col7,
+                    row.Col8,
+                    row.Col9,
+                    row.CurrentPage,
+                    row.TotalPages
+                );
+                
+                // 35行改ページ制御
+                if (row.IsPageBreak == "1")
+                {
+                    currentPage++;
+                    rowCount = 0;
+                }
+                else if (++rowCount >= 35)
+                {
+                    currentPage++;
+                    rowCount = 0;
+                }
+            }
+            
+            return dt;
+        }
+
+        /// <summary>
+        /// FastReportのスクリプトを完全に無効化（ProductAccountから流用）
+        /// </summary>
+        private void SetScriptLanguageToNone(FR.Report report)
+        {
+            try
+            {
+                // ScriptLanguageをNoneに設定
+                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                if (scriptLanguageProperty != null)
+                {
+                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                    if (scriptLanguageType.IsEnum)
+                    {
+                        var noneValue = Enum.GetValues(scriptLanguageType)
+                            .Cast<object>()
+                            .FirstOrDefault(v => v.ToString() == "None");
+                        
+                        if (noneValue != null)
+                        {
+                            scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                        }
+                    }
+                }
+                
+                // ReportResourceStringをクリア
+                report.ReportResourceString = "";
+                
+                // Scriptプロパティをクリア（リフレクションで非公開メンバーアクセス）
+                var scriptProperty = report.GetType().GetProperty("Script", 
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                if (scriptProperty != null)
+                {
+                    scriptProperty.SetValue(report, null);
+                    _logger.LogInformation("Scriptプロパティをnullに設定しました");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"ScriptLanguage設定時の警告: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// PDFページ数取得（ProductAccountから流用）
+        /// </summary>
+        private int GetPdfPageCount(string pdfFilePath)
+        {
+            try
+            {
+                using var document = PdfReader.Open(pdfFilePath, PdfDocumentOpenMode.ReadOnly);
+                return document.PageCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "PDFページ数取得エラー: {FilePath}", pdfFilePath);
+                return 1;
+            }
         }
     }
 
-    // === フォーマット用ヘルパーメソッド ===
-
     /// <summary>
-    /// 数量フォーマット（整数部カンマ区切り、小数部2桁）
+    /// 在庫表フラットデータ行（ProductAccountFlatRowと同じ構造）
     /// </summary>
-    private string FormatQuantity(decimal quantity)
+    public class InventoryFlatRow
     {
-        if (quantity == 0) return "";
-        return quantity.ToString("#,##0.00", CultureInfo.InvariantCulture);
+        // 行制御
+        public string RowType { get; set; } = "";
+        public string IsPageBreak { get; set; } = "0";
+        public string IsBold { get; set; } = "0";
+        public string IsGrayBackground { get; set; } = "0";
+        
+        // 担当者情報
+        public string StaffCode { get; set; } = "";
+        public string StaffName { get; set; } = "";
+        
+        // 表示データ（全て文字列）
+        public string Col1 { get; set; } = "";  // 商品名
+        public string Col2 { get; set; } = "";  // 荷印
+        public string Col3 { get; set; } = "";  // 等級
+        public string Col4 { get; set; } = "";  // 階級
+        public string Col5 { get; set; } = "";  // 在庫数量
+        public string Col6 { get; set; } = "";  // 在庫単価
+        public string Col7 { get; set; } = "";  // 在庫金額
+        public string Col8 { get; set; } = "";  // 最終入荷日
+        public string Col9 { get; set; } = "";  // マーク
+        
+        // ページ番号
+        public string CurrentPage { get; set; } = "";
+        public string TotalPages { get; set; } = "";
     }
 
     /// <summary>
-    /// 通貨フォーマット（整数部カンマ区切り、小数部なし）
+    /// 行種別定数（ProductAccountと同じ）
     /// </summary>
-    private string FormatCurrency(decimal amount)
+    public static class RowTypes
     {
-        if (amount == 0) return "";
-        return amount.ToString("#,##0", CultureInfo.InvariantCulture);
-    }
-
-    /// <summary>
-    /// 日付フォーマット（MM/dd形式）
-    /// </summary>
-    private string FormatDate(DateTime? date)
-    {
-        return date?.ToString("MM/dd") ?? "";
-    }
-
-    /// <summary>
-    /// 滞留マーク計算（簡易版）
-    /// </summary>
-    private string CalculateStagnationMark(DateTime reportDate, DateTime? lastReceiptDate)
-    {
-        if (lastReceiptDate == null) return "";
-        
-        var daysSinceReceipt = (reportDate - lastReceiptDate.Value).Days;
-        
-        if (daysSinceReceipt >= 31) return "!!!";
-        if (daysSinceReceipt >= 21) return "!!";
-        if (daysSinceReceipt >= 11) return "!";
-        
-        return "";
+        public const string StaffHeader = "STAFF_HEADER";
+        public const string Detail = "DETAIL";
+        public const string ProductSubtotal = "PRODUCT_SUBTOTAL";
+        public const string StaffTotal = "STAFF_TOTAL";
+        public const string Blank = "BLANK";
+        public const string PageBreak = "PAGE_BREAK";
+        public const string Dummy = "DUMMY";
     }
 }
+#endif

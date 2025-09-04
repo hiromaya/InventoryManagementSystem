@@ -246,7 +246,7 @@ namespace InventorySystem.Console
             var dailyReportFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.DailyReportFastReportService, InventorySystem.Reports");
             var productAccountFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.ProductAccountFastReportService, InventorySystem.Reports");
             var businessDailyReportFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.BusinessDailyReportFastReportService, InventorySystem.Reports");
-            var inventoryListFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.InventoryListService, InventorySystem.Reports");
+            var inventoryListFastReportType = Type.GetType("InventorySystem.Reports.FastReport.Services.InventoryListFastReportService, InventorySystem.Reports");
             if (unmatchListFastReportType != null && dailyReportFastReportType != null && productAccountFastReportType != null && businessDailyReportFastReportType != null && inventoryListFastReportType != null)
             {
                 builder.Services.AddScoped(typeof(IUnmatchListReportService), unmatchListFastReportType);
@@ -1748,7 +1748,7 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         System.Console.WriteLine("📋 在庫表生成中...");
                         
                         #if WINDOWS
-                        var inventoryListService = scopedServices.GetService(Type.GetType("InventorySystem.Reports.FastReport.Services.InventoryListService, InventorySystem.Reports"));
+                        var inventoryListService = scopedServices.GetService(Type.GetType("InventorySystem.Reports.FastReport.Services.InventoryListFastReportService, InventorySystem.Reports"));
                         var fileManagementService = scopedServices.GetRequiredService<IFileManagementService>();
                         
                         if (inventoryListService != null)

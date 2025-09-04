@@ -82,14 +82,8 @@ BEGIN
             im.GradeCode, 
             im.ClassCode, 
             im.ShippingMarkCode,
-            -- 荷印名の取得（優先順位を明確化）
-            CASE
-                WHEN im.ShippingMarkName IS NOT NULL AND im.ShippingMarkName != '' 
-                    THEN im.ShippingMarkName
-                WHEN sm.ShippingMarkName IS NOT NULL 
-                    THEN sm.ShippingMarkName
-                ELSE ''
-            END AS ShippingMarkName,
+            -- 荷印マスタから表示名を取得（存在しない場合は空文字）
+            ISNULL(sm.ShippingMarkName, '') AS ShippingMarkName,
             im.ManualShippingMark,
             -- 管理項目
             ISNULL(pm.ProductName, im.ProductName) AS ProductName,
