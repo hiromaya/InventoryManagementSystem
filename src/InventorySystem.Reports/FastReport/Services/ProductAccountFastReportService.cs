@@ -1725,7 +1725,7 @@ namespace InventorySystem.Reports.FastReport.Services
             
             // === 担当者別件数の事前確認（デバッグ用） ===
             var staffGroups = flatData
-                .Where(x => x.RowType != RowTypes.ProductSubtotal && x.RowType != RowTypes.ProductSubtotalHeader && x.RowType != RowTypes.BlankLine)
+                .Where(x => x.RowType != RowTypes.ProductSubtotal && x.RowType != InventorySystem.Reports.Models.RowTypes.ProductSubtotalHeader && x.RowType != InventorySystem.Reports.Models.RowTypes.BlankLine)
                 .GroupBy(x => x.ProductCategory1)
                 .Select(g => new { Code = g.Key, Name = g.First().ProductCategory1Name, Count = g.Count() })
                 .ToList();
@@ -1743,8 +1743,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // === 担当者変更チェック（小計行は除外） ===
                 if (item.RowType != RowTypes.ProductSubtotal && 
-                    item.RowType != RowTypes.ProductSubtotalHeader && 
-                    item.RowType != RowTypes.BlankLine &&
+                    item.RowType != InventorySystem.Reports.Models.RowTypes.ProductSubtotalHeader && 
+                    item.RowType != InventorySystem.Reports.Models.RowTypes.BlankLine &&
                     !string.IsNullOrEmpty(currentStaffCode) && 
                     currentStaffCode != item.ProductCategory1)
                 {
@@ -1779,8 +1779,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 // === 新しい担当者の初回設定 ===
                 if (string.IsNullOrEmpty(currentStaffCode) && 
                     item.RowType != RowTypes.ProductSubtotal && 
-                    item.RowType != RowTypes.ProductSubtotalHeader && 
-                    item.RowType != RowTypes.BlankLine)
+                    item.RowType != InventorySystem.Reports.Models.RowTypes.ProductSubtotalHeader && 
+                    item.RowType != InventorySystem.Reports.Models.RowTypes.BlankLine)
                 {
                     currentStaffCode = item.ProductCategory1;
                     currentStaffName = item.ProductCategory1Name;
@@ -1800,9 +1800,9 @@ namespace InventorySystem.Reports.FastReport.Services
                         var next3 = flatData[i + 2];
                         
                         isSubtotalSet = 
-                            next1.RowType == RowTypes.ProductSubtotalHeader &&
+                            next1.RowType == InventorySystem.Reports.Models.RowTypes.ProductSubtotalHeader &&
                             next2.RowType == RowTypes.ProductSubtotal &&
-                            next3.RowType == RowTypes.BlankLine;
+                            next3.RowType == InventorySystem.Reports.Models.RowTypes.BlankLine;
                     }
                     
                     // 小計セットの場合は、セット全体を次のページへ
@@ -1847,7 +1847,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 currentPageRows++;
                 
                 // デバッグログ：小計行のProductCategory1確認
-                if (item.RowType == RowTypes.ProductSubtotal || item.RowType == RowTypes.ProductSubtotalHeader)
+                if (item.RowType == RowTypes.ProductSubtotal || item.RowType == InventorySystem.Reports.Models.RowTypes.ProductSubtotalHeader)
                 {
                     _logger.LogDebug($"小計行追加: RowType={item.RowType}, ProductCategory1='{dataRow["ProductCategory1"]}', ProductCategory1Name='{dataRow["ProductCategory1Name"]}'");
                 }
@@ -2614,7 +2614,7 @@ namespace InventorySystem.Reports.FastReport.Services
             
             return new ProductAccountFlatRow
             {
-                RowType = RowTypes.ProductSubtotalHeader,
+                RowType = InventorySystem.Reports.Models.RowTypes.ProductSubtotalHeader,
                 RowSequence = sequence,
                 IsBold = false,
                 IsGrayBackground = false,
@@ -2716,7 +2716,7 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             return new ProductAccountFlatRow
             {
-                RowType = RowTypes.BlankLine,
+                RowType = InventorySystem.Reports.Models.RowTypes.BlankLine,
                 RowSequence = sequence,
                 
                 // 担当者情報を設定
