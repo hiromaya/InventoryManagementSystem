@@ -138,7 +138,7 @@ BEGIN
                 WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity != 0 
                     THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
                 WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
-                    THEN 0
+                    THEN ISNULL(im.StandardPrice, 0)
                 ELSE COALESCE(NULLIF(im.AveragePrice, 0), im.StandardPrice, 0)
             END AS AveragePrice,
 
