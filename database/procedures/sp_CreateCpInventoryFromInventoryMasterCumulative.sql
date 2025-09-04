@@ -129,22 +129,25 @@ BEGIN
                 WHEN im.DailyFlag = '9' THEN im.PreviousMonthAmount
                 ELSE im.CurrentStockAmount
             END AS DailyStockAmount,
-            -- 当日在庫単価（前月末在庫は単価を直接計算）
+
+            -- 当日在庫単価
             CASE 
                 WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity != 0 
                     THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
                 WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
                     THEN 0
-                ELSE ISNULL(im.AveragePrice, 0)
+                ELSE COALESCE(NULLIF(im.AveragePrice, 0), im.StandardPrice, 0)
             END AS DailyUnitPrice,
-            -- AveragePrice：DailyUnitPriceと同じロジックで統一
+
+            -- AveragePrice（同じロジック）
             CASE 
                 WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity != 0 
                     THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
                 WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
                     THEN 0
-                ELSE ISNULL(im.AveragePrice, 0)
+                ELSE COALESCE(NULLIF(im.AveragePrice, 0), im.StandardPrice, 0)
             END AS AveragePrice,
+
             ISNULL(im.DailyFlag, '9') AS DailyFlag,  -- 未処理フラグ
             -- 日計項目（22個すべて0で初期化）
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
