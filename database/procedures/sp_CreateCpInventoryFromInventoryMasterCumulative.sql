@@ -112,7 +112,7 @@ BEGIN
                     THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
                 WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
                     THEN ISNULL(im.StandardPrice, 0)  -- StandardPriceをフォールバック使用
-                ELSE ISNULL(im.StandardPrice, 0)
+                ELSE COALESCE(NULLIF(im.AveragePrice, 0), im.StandardPrice, 0)
             END AS PreviousDayUnitPrice,
             -- 当日在庫（初期値は前日と同じ）
             CASE 
