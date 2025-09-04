@@ -1733,7 +1733,7 @@ namespace InventorySystem.Reports.FastReport.Services
             _logger.LogCritical("=== 担当者別件数確認（小計行除外） ===");
             foreach (var group in staffGroups)
             {
-                _logger.LogInformation($"担当者: {group.Code} ({group.Name}) - {group.Count}件");
+                _logger.LogInformation("担当者: {Code} ({Name}) - {Count}件", group.Code, group.Name, group.Count);
             }
             
             // === メイン処理ループ ===

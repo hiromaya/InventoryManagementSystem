@@ -135,7 +135,7 @@ namespace InventorySystem.Reports.FastReport.Services
             _logger.LogInformation("CP在庫マスタからデータ取得中...");
             var cpInventories = await _cpInventoryRepository.GetAllAsync();
             
-            _logger.LogInformation("取得件数: {Count}件", cpInventories.Count);
+            _logger.LogInformation("取得件数: {Count}件", cpInventories.Count());
             
             // フィルタリング条件
             var filtered = cpInventories
