@@ -340,7 +340,7 @@ namespace InventorySystem.Reports.FastReport.Services
         }
 
         /// <summary>
-        /// 単一PDF生成
+        /// 単一PDF生成（ProductAccount実証済みパターン適用）
         /// </summary>
         private async Task GenerateSinglePdfAsync(
             List<InventoryFlatRow> flatData,
@@ -370,19 +370,47 @@ namespace InventorySystem.Reports.FastReport.Services
             // FastReportにデータソースを登録
             report.RegisterData(dataTable, "InventoryData");
             
+            // ⭐重要: データソースを有効化（ProductAccountと同じ）
+            var registeredDataSource = report.GetDataSource("InventoryData");
+            if (registeredDataSource != null)
+            {
+                registeredDataSource.Enabled = true;
+                _logger.LogInformation("データソース 'InventoryData' を有効化しました");
+            }
+            else
+            {
+                _logger.LogWarning("データソース 'InventoryData' が見つかりません");
+            }
+            
             // パラメータ設定
             report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
             report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
             
-            // レポート準備・エクスポート
+            // レポート準備
             report.Prepare();
             
-            using var pdfExport = new FR.Export.Pdf.PDFExport();
-            using var stream = new FileStream(outputPath, FileMode.Create);
+            // ⭐重要: PDFExport設定（ProductAccountから完全コピー）
+            using var pdfExport = new FR.Export.Pdf.PDFExport
+            {
+                EmbeddingFonts = true,              // 日本語フォント埋め込み（必須）
+                Title = $"在庫表_{jobDate:yyyyMMdd}",
+                Subject = "在庫表",
+                Creator = "在庫管理システム",
+                Author = "InventoryManagementSystem",
+                TextInCurves = false,
+                JpegQuality = 95,
+                OpenAfterExport = false
+            };
             
-            pdfExport.Export(report, stream);
+            // ⭐重要: MemoryStream経由でPDF生成
+            using var memoryStream = new MemoryStream();
+            report.Export(pdfExport, memoryStream);
             
-            _logger.LogInformation("PDF生成完了: {FilePath}", outputPath);
+            // MemoryStreamからファイルに書き出し
+            var pdfBytes = memoryStream.ToArray();
+            await File.WriteAllBytesAsync(outputPath, pdfBytes);
+            
+            _logger.LogInformation("PDF生成完了: {FilePath}, サイズ: {Size}bytes", outputPath, pdfBytes.Length);
         }
 
         /// <summary>
