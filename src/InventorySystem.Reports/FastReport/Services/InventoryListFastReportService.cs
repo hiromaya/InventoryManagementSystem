@@ -383,11 +383,30 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             
             // パラメータ設定
+            _logger.LogInformation("レポートパラメータを設定しています...");
             report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分ss秒"));
             report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日"));
-            
-            // レポート準備
-            report.Prepare();
+
+            // ⭐重要: TotalCountパラメータを追加
+            // 明細行（DETAIL）のみをカウントする方法
+            int detailCount = dataTable.AsEnumerable()
+                .Count(row => (row.Field<string>("RowType") ?? "") == "DETAIL");
+            report.SetParameterValue("TotalCount", detailCount.ToString());
+
+            _logger.LogInformation("TotalCountパラメータ設定: {Count}件", detailCount);
+
+            // レポート準備（エラーハンドリング追加）
+            _logger.LogInformation("レポートを準備中...");
+            try
+            {
+                report.Prepare();
+                _logger.LogInformation("レポート準備完了");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "report.Prepare()でエラーが発生しました");
+                throw new InvalidOperationException("レポートの準備に失敗しました", ex);
+            }
             
             // ⭐重要: PDFExport設定（ProductAccountから完全コピー）
             using var pdfExport = new FR.Export.Pdf.PDFExport
