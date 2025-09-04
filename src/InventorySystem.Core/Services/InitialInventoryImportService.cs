@@ -342,7 +342,7 @@ public class InitialInventoryImportService
             Unit = product?.UnitCode ?? "PCS",
             // CSVの11列目（前日在庫単価）を使用
             StandardPrice = record.PreviousStockUnitPrice,
-            AveragePrice = record.CurrentStockUnitPrice,  // CSVの16列目（当日在庫単価）を使用
+            AveragePrice = record.PreviousStockUnitPrice,  // CSVの11列目（前日在庫単価）を使用
             ProductCategory1 = product?.ProductCategory1 ?? "",
             ProductCategory2 = product?.ProductCategory2 ?? "",
             
