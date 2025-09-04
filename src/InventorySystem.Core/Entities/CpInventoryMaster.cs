@@ -30,6 +30,7 @@ public class CpInventoryMaster
     public decimal DailyStock { get; set; }                      // 当日在庫数
     public decimal DailyStockAmount { get; set; }                // 当日在庫金額
     public decimal DailyUnitPrice { get; set; }                  // 当日在庫単価
+    public decimal AveragePrice { get; set; }                    // 平均単価（粗利計算用）
     
     // 当日発生フラグ ('0':処理済み, '9':未処理)
     public char DailyFlag { get; set; } = '9';

@@ -859,6 +859,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) / 
                                (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity), 4)
                 END,
+                -- AveragePrice同期：DailyUnitPriceと同じ値を設定
+                AveragePrice = CASE 
+                    WHEN (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity) = 0 THEN 0
+                    ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) / 
+                               (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity), 4)
+                END,
                 -- ④当日在庫数 = 前日在庫数 + 当日入荷数 - 当日出荷数
                 DailyStock = PreviousDayStock + 
                              (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) - 
@@ -895,6 +901,26 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             -- 仮テーブル設計：全レコード対象";
         
         await connection.ExecuteAsync(adjustGrossProfitSql, new { });
+        
+        // 在庫マスタのAveragePriceを更新（逆同期）
+        const string updateInventoryMasterSql = @"
+            UPDATE im
+            SET im.AveragePrice = cp.DailyUnitPrice,
+                im.UpdatedDate = GETDATE()
+            FROM InventoryMaster im
+            INNER JOIN CpInventoryMaster cp ON
+                im.ProductCode = cp.ProductCode
+                AND im.GradeCode = cp.GradeCode
+                AND im.ClassCode = cp.ClassCode
+                AND im.ShippingMarkCode = cp.ShippingMarkCode
+                AND im.ManualShippingMark = cp.ManualShippingMark
+            WHERE cp.DailyUnitPrice > 0";
+
+        var syncCount = await connection.ExecuteAsync(updateInventoryMasterSql, new { });
+        
+        _logger.LogInformation(
+            "在庫マスタのAveragePriceを更新しました - 更新件数: {SyncCount}",
+            syncCount);
         
         return updateCount;
     }

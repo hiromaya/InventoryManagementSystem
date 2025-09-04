@@ -52,7 +52,7 @@ public class InitialInventoryRecord
 
     [Name("当日在庫単価")]
     [Index(15)]
-    public decimal StandardPrice { get; set; }
+    public decimal CurrentStockUnitPrice { get; set; }
 
     [Name("当日在庫金額")]
     [Index(16)]
@@ -81,7 +81,7 @@ public sealed class InitialInventoryRecordMap : ClassMap<InitialInventoryRecord>
         Map(m => m.PreviousStockUnitPrice).Index(10).Name("前日在庫単価");
         Map(m => m.PreviousStockAmount).Index(11).Name("前日在庫金額");
         Map(m => m.CurrentStockQuantity).Index(14).Name("当日在庫数量");
-        Map(m => m.StandardPrice).Index(15).Name("当日在庫単価");
+        Map(m => m.CurrentStockUnitPrice).Index(15).Name("当日在庫単価");
         Map(m => m.CurrentStockAmount).Index(16).Name("当日在庫金額");
         Map(m => m.AveragePrice).Index(17).Name("粗利計算用平均単価");
     }
