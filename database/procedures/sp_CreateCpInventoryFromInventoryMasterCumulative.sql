@@ -137,7 +137,14 @@ BEGIN
                     THEN 0
                 ELSE ISNULL(im.AveragePrice, 0)
             END AS DailyUnitPrice,
-            ISNULL(im.AveragePrice, 0) AS AveragePrice,  -- 平均単価（粗利計算用）
+            -- AveragePrice：DailyUnitPriceと同じロジックで統一
+            CASE 
+                WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity != 0 
+                    THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
+                WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
+                    THEN 0
+                ELSE ISNULL(im.AveragePrice, 0)
+            END AS AveragePrice,
             ISNULL(im.DailyFlag, '9') AS DailyFlag,  -- 未処理フラグ
             -- 日計項目（22個すべて0で初期化）
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
