@@ -111,7 +111,7 @@ BEGIN
                 WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity != 0 
                     THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
                 WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
-                    THEN 0
+                    THEN ISNULL(im.StandardPrice, 0)  -- 緊急修正：0強制設定を除去、StandardPriceを使用
                 ELSE ISNULL(im.StandardPrice, 0)
             END AS PreviousDayUnitPrice,
             -- 当日在庫（初期値は前日と同じ）
