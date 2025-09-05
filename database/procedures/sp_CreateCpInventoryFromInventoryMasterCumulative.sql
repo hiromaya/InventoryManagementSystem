@@ -160,46 +160,7 @@ BEGIN
         LEFT JOIN ClassMaster cm ON im.ClassCode = cm.ClassCode
         LEFT JOIN ShippingMarkMaster sm ON im.ShippingMarkCode = sm.ShippingMarkCode
         WHERE im.IsActive = 1  -- アクティブな在庫のみ
-        AND (@JobDate IS NULL OR im.JobDate <= @JobDate)  -- 指定日以前
-        -- 最新の在庫レコードのみ取得
-        AND NOT EXISTS (
-            SELECT 1 
-            FROM InventoryMaster im2 
-            WHERE im2.ProductCode = im.ProductCode
-                AND im2.GradeCode = im.GradeCode
-                AND im2.ClassCode = im.ClassCode
-                AND im2.ShippingMarkCode = im.ShippingMarkCode
-                AND im2.ManualShippingMark = im.ManualShippingMark
-                AND im2.IsActive = 1
-                AND (@JobDate IS NULL OR im2.JobDate <= @JobDate)
-                AND im2.JobDate > im.JobDate
-        )
-        -- 伝票に存在する5項目キーのみ
-        AND EXISTS (
-            SELECT 1 FROM SalesVouchers sv
-            WHERE (@JobDate IS NULL OR sv.VoucherDate <= @JobDate)  -- ← VoucherDateに修正
-            AND sv.ProductCode = im.ProductCode
-            AND sv.GradeCode = im.GradeCode
-            AND sv.ClassCode = im.ClassCode
-            AND sv.ShippingMarkCode = im.ShippingMarkCode
-            AND sv.ManualShippingMark = im.ManualShippingMark
-            UNION
-            SELECT 1 FROM PurchaseVouchers pv
-            WHERE (@JobDate IS NULL OR pv.VoucherDate <= @JobDate)  -- ← VoucherDateに修正
-            AND pv.ProductCode = im.ProductCode
-            AND pv.GradeCode = im.GradeCode
-            AND pv.ClassCode = im.ClassCode
-            AND pv.ShippingMarkCode = im.ShippingMarkCode
-            AND pv.ManualShippingMark = im.ManualShippingMark
-            UNION
-            SELECT 1 FROM InventoryAdjustments ia
-            WHERE (@JobDate IS NULL OR ia.JobDate <= @JobDate)  -- ← JobDateに修正
-            AND ia.ProductCode = im.ProductCode
-            AND ia.GradeCode = im.GradeCode
-            AND ia.ClassCode = im.ClassCode
-            AND ia.ShippingMarkCode = im.ShippingMarkCode
-            AND ia.ManualShippingMark = im.ManualShippingMark
-        );
+        AND im.JobDate = @JobDate  -- 指定日のレコードのみ
         
         SET @CreatedCount = @@ROWCOUNT;
         
