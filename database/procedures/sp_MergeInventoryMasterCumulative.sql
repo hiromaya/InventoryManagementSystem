@@ -119,22 +119,30 @@ BEGIN
             AND target.JobDate = @JobDate  -- JobDateを追加して日付別管理を実現
         )
         
-        -- 既存レコード：前日引継分に当日取引を反映
         WHEN MATCHED THEN
             UPDATE SET
-                -- CurrentStockには前日引継分が既に設定されているため、それに当日取引分を加算
+                -- 数量の更新
                 CurrentStock = target.CurrentStock + source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
-                CurrentStockAmount = target.CurrentStockAmount + source.TotalSalesAmount + source.TotalPurchaseAmount + source.TotalAdjustmentAmount,
                 
-                -- 当日在庫の更新（当日の取引分のみ）
+                -- 在庫金額は原価ベースで計算（target.AveragePriceを使用）
+                CurrentStockAmount = target.CurrentStockAmount + 
+                    (source.TotalSalesQty * COALESCE(NULLIF(target.StandardPrice, 0), target.AveragePrice, 0)) +
+                    source.TotalPurchaseAmount + 
+                    source.TotalAdjustmentAmount,
+                
+                -- 当日在庫数量
                 DailyStock = source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
-                DailyStockAmount = source.TotalSalesAmount + source.TotalPurchaseAmount + source.TotalAdjustmentAmount,
                 
-                -- メタデータの更新
+                -- 当日在庫金額も原価ベース（target.AveragePriceを使用）
+                DailyStockAmount = 
+                    (source.TotalSalesQty * COALESCE(NULLIF(target.StandardPrice, 0), target.AveragePrice, 0)) +
+                    source.TotalPurchaseAmount + 
+                    source.TotalAdjustmentAmount,
+                    
                 UpdatedDate = GETDATE(),
                 DataSetId = @DataSetId,
-                DailyFlag = N'0'  -- データありフラグ
-        
+                DailyFlag = N'0'
+
         -- 新規レコード：前月末在庫を考慮して作成
         WHEN NOT MATCHED THEN
             INSERT (
@@ -150,25 +158,31 @@ BEGIN
             VALUES (
                 source.ProductCode, source.GradeCode, source.ClassCode, 
                 source.ShippingMarkCode, source.ManualShippingMark,
-                source.ProductName,
-                source.UnitName,
-                source.StandardPrice,
-                source.ProductCategory1,
-                source.ProductCategory2,
+                source.ProductName, source.UnitName, source.StandardPrice,
+                source.ProductCategory1, source.ProductCategory2,
                 @JobDate, GETDATE(), GETDATE(),
-                -- 新規商品の在庫数量
+                
+                -- 在庫数量
                 source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
-                source.TotalSalesAmount + source.TotalPurchaseAmount + source.TotalAdjustmentAmount,
-                -- 当日在庫
+                
+                -- 在庫金額（原価ベース）
+               (source.TotalSalesQty * COALESCE(NULLIF(source.StandardPrice, 0), 0)) +
+                source.TotalPurchaseAmount + 
+                source.TotalAdjustmentAmount,
+                
+                -- 当日在庫数量
                 source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
-                source.TotalSalesAmount + source.TotalPurchaseAmount + source.TotalAdjustmentAmount,
-                N'0',  -- データありフラグ
-                @DataSetId,
-                0, 0,  -- 前月末在庫は0（新規商品のため）
-                0, 0, 0, 0  -- 粗利関連は0で初期化
+                
+                -- 当日在庫金額（原価ベース）
+               (source.TotalSalesQty * COALESCE(NULLIF(source.StandardPrice, 0), 0)) +
+                source.TotalPurchaseAmount + 
+                source.TotalAdjustmentAmount,
+                
+                N'0', @DataSetId,
+                0, 0, 0, 0, 0, 0
             )
         OUTPUT $action INTO @MergeOutput(ActionType);
-        
+
         -- 処理件数を計算
         SELECT 
             @InsertCount = COUNT(CASE WHEN ActionType = 'INSERT' THEN 1 END),
