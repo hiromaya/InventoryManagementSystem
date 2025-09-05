@@ -792,7 +792,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             0 as PurchaseQuantity,
                             s.Quantity as SalesQuantity,
                             0 as RemainingQuantity,
-                            s.UnitPrice,
+                            ISNULL(cp.DailyUnitPrice, cp.PreviousDayUnitPrice) as UnitPrice,
                             s.Amount,
                             ISNULL(s.GrossProfit, 0) as GrossProfit,
                             s.CustomerName as CustomerSupplierName,
