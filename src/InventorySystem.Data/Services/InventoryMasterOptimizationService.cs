@@ -344,6 +344,9 @@ namespace InventorySystem.Data.Services
                 result.UpdatedCount = mergeResults.updateCount;
                 result.ProcessedCount = result.InsertedCount + result.UpdatedCount;
                 
+                // 7. StandardPrice適正化処理
+                await FixStandardPricesAsync(connection, transaction, jobDate);
+                
                 await transaction.CommitAsync();
                 
                 _logger.LogInformation(
@@ -565,6 +568,143 @@ namespace InventorySystem.Data.Services
                 WHERE im.ProductName = '商品名未設定'";
 
             return await connection.ExecuteAsync(sql, transaction: transaction);
+        }
+
+        /// <summary>
+        /// StandardPrice適正化処理
+        /// 仕入データがない商品のStandardPriceが売上単価になってしまう問題を解決する
+        /// </summary>
+        /// <param name="connection">データベース接続</param>
+        /// <param name="transaction">トランザクション</param>
+        /// <param name="jobDate">処理対象日</param>
+        /// <returns>適正化された件数</returns>
+        private async Task FixStandardPricesAsync(SqlConnection connection, SqlTransaction transaction, DateTime jobDate)
+        {
+            try
+            {
+                _logger.LogInformation("StandardPrice適正化処理を開始します");
+                
+                // 仕入単価の取得と適正化
+                var updateQuery = @"
+                    WITH PurchasePrices AS (
+                        -- 仕入単価の平均を計算
+                        SELECT 
+                            ProductCode, 
+                            GradeCode, 
+                            ClassCode, 
+                            ShippingMarkCode,
+                            AVG(UnitPrice) as AvgPurchasePrice
+                        FROM PurchaseVouchers
+                        WHERE JobDate <= @JobDate
+                            AND UnitPrice > 0
+                        GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode
+                    ),
+                    SalesPrices AS (
+                        -- 売上単価の取得（問題判定用）
+                        SELECT 
+                            ProductCode, 
+                            GradeCode, 
+                            ClassCode, 
+                            ShippingMarkCode,
+                            MAX(UnitPrice) as SalesPrice
+                        FROM SalesVouchers
+                        WHERE JobDate = @JobDate
+                        GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode
+                    )
+                    UPDATE im
+                    SET 
+                        StandardPrice = COALESCE(
+                            -- 1. 仕入単価の平均（最優先）
+                            pp.AvgPurchasePrice,
+                            
+                            -- 2. ProductMasterのStandardPrice（0以外の場合）
+                            NULLIF(pm.StandardPrice, 0),
+                            
+                            -- 3. 移動平均単価
+                            NULLIF(im.AveragePrice, 0),
+                            
+                            -- 4. 前月末在庫単価
+                            CASE 
+                                WHEN im.PreviousMonthQuantity > 0 
+                                THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
+                                ELSE NULL 
+                            END,
+                            
+                            -- 5. 初期在庫単価（当日在庫から計算）
+                            CASE 
+                                WHEN im.CurrentStock > 0 AND im.CurrentStockAmount > 0
+                                THEN ROUND(im.CurrentStockAmount / im.CurrentStock, 4)
+                                ELSE NULL 
+                            END,
+                            
+                            -- 6. 売上単価の80%（粗利20%想定）
+                            ROUND(sp.SalesPrice * 0.8, 4),
+                            
+                            -- 7. 変更なし
+                            im.StandardPrice
+                        ),
+                        AveragePrice = COALESCE(
+                            pp.AvgPurchasePrice,
+                            NULLIF(im.AveragePrice, 0),
+                            im.StandardPrice
+                        ),
+                        UpdatedDate = GETDATE()
+                    FROM InventoryMaster im
+                    LEFT JOIN PurchasePrices pp 
+                        ON im.ProductCode = pp.ProductCode
+                        AND im.GradeCode = pp.GradeCode
+                        AND im.ClassCode = pp.ClassCode
+                        AND im.ShippingMarkCode = pp.ShippingMarkCode
+                    LEFT JOIN ProductMaster pm 
+                        ON im.ProductCode = pm.ProductCode
+                    LEFT JOIN SalesPrices sp
+                        ON im.ProductCode = sp.ProductCode
+                        AND im.GradeCode = sp.GradeCode
+                        AND im.ClassCode = sp.ClassCode
+                        AND im.ShippingMarkCode = sp.ShippingMarkCode
+                    WHERE 
+                        CAST(im.JobDate AS DATE) = CAST(@JobDate AS DATE)
+                        AND (
+                            -- StandardPriceが0の場合
+                            im.StandardPrice = 0
+                            OR 
+                            -- StandardPriceが売上単価と同じ場合（誤って設定された）
+                            (sp.SalesPrice IS NOT NULL AND ABS(im.StandardPrice - sp.SalesPrice) < 0.01)
+                        );";
+                
+                var parameters = new { JobDate = jobDate };
+                var updatedCount = await connection.ExecuteAsync(updateQuery, parameters, transaction);
+                
+                _logger.LogInformation($"StandardPrice適正化完了: {updatedCount}件更新");
+                
+                // デバッグ用：更新結果の確認
+                if (updatedCount > 0)
+                {
+                    var verifyQuery = @"
+                        SELECT TOP 10
+                            ProductCode,
+                            GradeCode,
+                            ClassCode,
+                            StandardPrice,
+                            AveragePrice
+                        FROM InventoryMaster
+                        WHERE CAST(JobDate AS DATE) = CAST(@JobDate AS DATE)
+                            AND ProductCode = '00104'
+                        ORDER BY ProductCode, GradeCode, ClassCode;";
+                    
+                    var results = await connection.QueryAsync(verifyQuery, parameters, transaction);
+                    foreach (var result in results)
+                    {
+                        _logger.LogDebug($"更新後: {result.ProductCode}-{result.GradeCode}-{result.ClassCode} " +
+                                        $"StandardPrice={result.StandardPrice:N2}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "StandardPrice適正化処理でエラーが発生しました");
+                throw;
+            }
         }
 
         private async Task<int> CleanupOldJobDatesAsync(
