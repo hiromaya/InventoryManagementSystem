@@ -1821,8 +1821,9 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
             {
                 if (args.Length < 2)
                 {
-                    System.Console.WriteLine("使用方法: product-account <JobDate>");
+                    System.Console.WriteLine("使用方法: product-account <JobDate> [--debug]");
                     System.Console.WriteLine("例: product-account 2025-06-30");
+                    System.Console.WriteLine("例: product-account 2025-06-30 --debug");
                     return;
                 }
 
@@ -1832,6 +1833,8 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                     System.Console.WriteLine("例: product-account 2025-06-30");
                     return;
                 }
+                
+                var enableDebug = args.Contains("--debug");
 
                 using (var scope = services.CreateScope())
                 {
@@ -1844,6 +1847,16 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
 
                     try
                     {
+                        // デバッグモードの設定
+                        InventorySystem.Core.Debug.InventoryTracker.IsEnabled = enableDebug;
+                        if (enableDebug)
+                        {
+                            InventorySystem.Core.Debug.InventoryTracker.Clear();
+                            logger.LogInformation("=== デバッグモード有効 ===");
+                            System.Console.WriteLine("=== デバッグモード有効 ===");
+                            System.Console.WriteLine("商品00104-025-028の追跡を開始します");
+                        }
+                        
                         logger.LogInformation("=== 商品勘定帳票作成開始 ===");
                         System.Console.WriteLine("=== 商品勘定帳票作成開始 ===");
                         System.Console.WriteLine($"対象日: {jobDate:yyyy-MM-dd}");
@@ -1925,11 +1938,12 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         // 3. 商品勘定帳票を作成
                         System.Console.WriteLine("📋 商品勘定帳票生成中...");
                         var pdfBytes = productAccountService.GenerateProductAccountReport(jobDate);
+                        string? pdfPath = null;
 
                         if (pdfBytes != null && pdfBytes.Length > 0)
                         {
                             // FileManagementServiceを使用してレポートパスを取得（他の帳票と同じ方式）
-                            var pdfPath = await fileManagementService.GetReportOutputPathAsync("ProductAccount", jobDate, "pdf");
+                            pdfPath = await fileManagementService.GetReportOutputPathAsync("ProductAccount", jobDate, "pdf");
 
                             await File.WriteAllBytesAsync(pdfPath, pdfBytes);
 
@@ -1940,6 +1954,46 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         else
                         {
                             System.Console.WriteLine($"❌ 商品勘定帳票の作成に失敗しました");
+                        }
+
+                        // デバッグファイル出力
+                        if (enableDebug)
+                        {
+                            var timestamp = DateTime.Now.ToString("HHmmss");
+                            var debugFileName = $"debug_tracking_{jobDate:yyyyMMdd}_{timestamp}.json";
+                            
+                            // デバッグファイルパスの決定
+                            string debugFilePath;
+                            if (!string.IsNullOrEmpty(pdfPath))
+                            {
+                                debugFilePath = Path.Combine(Path.GetDirectoryName(pdfPath)!, debugFileName);
+                            }
+                            else
+                            {
+                                // PDFが失敗した場合のフォールバック
+                                var defaultPath = await fileManagementService.GetReportOutputPathAsync("ProductAccount", jobDate, "json");
+                                debugFilePath = Path.Combine(Path.GetDirectoryName(defaultPath)!, debugFileName);
+                            }
+                            
+                            InventorySystem.Core.Debug.InventoryTracker.SaveToJson(debugFilePath);
+                            InventorySystem.Core.Debug.InventoryTracker.LogSummary(logger);
+                            
+                            System.Console.WriteLine($"✅ デバッグファイル出力: {debugFilePath}");
+                            logger.LogInformation($"デバッグファイル出力: {debugFilePath}");
+                            
+                            // デバッグ結果の要約を表示
+                            var debugData = InventorySystem.Core.Debug.InventoryTracker.GetAll();
+                            System.Console.WriteLine("\n=== 診断結果 ===");
+                            foreach (var data in debugData)
+                            {
+                                System.Console.WriteLine($"{data.ProcessName}: {data.Diagnosis}");
+                                if (data.Diagnosis.Contains("問題"))
+                                {
+                                    System.Console.WriteLine($"  CP当日単価: {data.DailyUnitPrice:N2}");
+                                    System.Console.WriteLine($"  売上単価: {data.SalesUnitPrice:N2}");
+                                    System.Console.WriteLine($"  前日在庫金額: {data.PreviousDayStockAmount:N2}");
+                                }
+                            }
                         }
 
                         logger.LogInformation("=== 商品勘定帳票作成完了 ===");

@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Debug;
 
 namespace InventorySystem.Data.Repositories;
 
@@ -22,6 +23,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             "sp_CreateCpInventoryFromInventoryMasterCumulative",
             new { JobDate = jobDate },
             commandType: CommandType.StoredProcedure);
+        
+        // デバッグ追跡（CP在庫マスタ作成後）
+        if (InventoryTracker.IsEnabled && jobDate.HasValue)
+        {
+            await TrackInventoryState(connection, "1_CP在庫作成直後", jobDate.Value);
+        }
         
         return result?.CreatedCount ?? 0;
     }
@@ -890,8 +897,20 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         
         using var connection = CreateConnection();
         
+        // デバッグ追跡（Process 2-4実行前）
+        if (InventoryTracker.IsEnabled)
+        {
+            await TrackInventoryStateFromCpInventoryMaster(connection, "2_Process2-4実行前");
+        }
+        
         // 在庫単価計算
         var updateCount = await connection.ExecuteAsync(sql, new { });
+        
+        // デバッグ追跡（Process 2-4実行後）
+        if (InventoryTracker.IsEnabled)
+        {
+            await TrackInventoryStateFromCpInventoryMaster(connection, "3_Process2-4実行後");
+        }
         
         // 粗利益の調整（在庫調整金額と加工費を減算）
         const string adjustGrossProfitSql = @"
@@ -1241,6 +1260,105 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 "CP在庫マスタ取得エラー: JobDate={JobDate}", 
                 jobDate);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// デバッグ用：在庫状態を追跡（指定日付）
+    /// </summary>
+    private async Task TrackInventoryState(SqlConnection connection, string processName, DateTime jobDate)
+    {
+        var query = @"
+            SELECT 
+                cp.ProductCode,
+                cp.GradeCode,
+                cp.ClassCode,
+                cp.ShippingMarkCode,
+                cp.ManualShippingMark,
+                cp.PreviousDayUnitPrice,
+                cp.DailyUnitPrice,
+                cp.StandardPrice,
+                cp.AveragePrice,
+                cp.PreviousDayStock,
+                cp.PreviousDayStockAmount,
+                cp.DailyPurchaseQuantity,
+                cp.DailyPurchaseAmount,
+                cp.DailySalesQuantity,
+                ISNULL(sv.UnitPrice, 0) as SalesUnitPrice,
+                ISNULL(sv.VoucherNumber, '') as VoucherNumber
+            FROM CpInventoryMaster cp
+            LEFT JOIN (
+                SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode,
+                       MAX(UnitPrice) as UnitPrice,
+                       MAX(VoucherNumber) as VoucherNumber
+                FROM SalesVouchers
+                WHERE JobDate = @JobDate
+                GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode
+                -- ManualShippingMarkは使用しない（4項目マッチング）
+            ) sv ON cp.ProductCode = sv.ProductCode
+                AND cp.GradeCode = sv.GradeCode
+                AND cp.ClassCode = sv.ClassCode
+                AND cp.ShippingMarkCode = sv.ShippingMarkCode
+            WHERE cp.ProductCode = '00104'
+                AND cp.GradeCode = '025'
+                AND cp.ClassCode = '028'
+                AND cp.JobDate = @JobDate";
+                
+        using var cmd = new SqlCommand(query, connection);
+        cmd.Parameters.AddWithValue("@JobDate", jobDate);
+        
+        using var reader = await cmd.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            var data = new InventoryTrackingData
+            {
+                ProductCode = reader["ProductCode"].ToString() ?? "",
+                GradeCode = reader["GradeCode"].ToString() ?? "",
+                ClassCode = reader["ClassCode"].ToString() ?? "",
+                ShippingMarkCode = reader["ShippingMarkCode"].ToString() ?? "",
+                ManualShippingMark = reader["ManualShippingMark"].ToString() ?? "",
+                PreviousDayUnitPrice = Convert.ToDecimal(reader["PreviousDayUnitPrice"]),
+                DailyUnitPrice = Convert.ToDecimal(reader["DailyUnitPrice"]),
+                StandardPrice = Convert.ToDecimal(reader["StandardPrice"]),
+                AveragePrice = Convert.ToDecimal(reader["AveragePrice"]),
+                PreviousDayStock = Convert.ToDecimal(reader["PreviousDayStock"]),
+                PreviousDayStockAmount = Convert.ToDecimal(reader["PreviousDayStockAmount"]),
+                DailyPurchaseQuantity = Convert.ToDecimal(reader["DailyPurchaseQuantity"]),
+                DailyPurchaseAmount = Convert.ToDecimal(reader["DailyPurchaseAmount"]),
+                DailySalesQuantity = Convert.ToDecimal(reader["DailySalesQuantity"]),
+                SalesUnitPrice = Convert.ToDecimal(reader["SalesUnitPrice"]),
+                VoucherNumber = reader["VoucherNumber"].ToString() ?? ""
+            };
+            
+            InventoryTracker.Track(processName, data);
+            
+            _logger.LogInformation(
+                $"[{processName}] 00104-025-028: " +
+                $"CP当日単価={data.DailyUnitPrice}, " +
+                $"売上単価={data.SalesUnitPrice}, " +
+                $"前日在庫={data.PreviousDayStock}, " +
+                $"前日金額={data.PreviousDayStockAmount}");
+        }
+    }
+
+    /// <summary>
+    /// デバッグ用：在庫状態を追跡（CP在庫マスタから日付を自動取得）
+    /// </summary>
+    private async Task TrackInventoryStateFromCpInventoryMaster(SqlConnection connection, string processName)
+    {
+        // CP在庫マスタから最新のJobDateを取得
+        var jobDateQuery = @"
+            SELECT TOP 1 JobDate 
+            FROM CpInventoryMaster 
+            WHERE ProductCode = '00104' 
+                AND GradeCode = '025' 
+                AND ClassCode = '028'
+            ORDER BY JobDate DESC";
+            
+        var jobDate = await connection.QueryFirstOrDefaultAsync<DateTime?>(jobDateQuery);
+        if (jobDate.HasValue)
+        {
+            await TrackInventoryState(connection, processName, jobDate.Value);
         }
     }
 }
