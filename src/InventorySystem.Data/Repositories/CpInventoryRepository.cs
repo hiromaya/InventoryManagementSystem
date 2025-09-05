@@ -919,8 +919,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         // var syncCount = await connection.ExecuteAsync(updateInventoryMasterSql, new { });
         
         _logger.LogInformation(
-            "在庫マスタのAveragePriceを更新しました - 更新件数: {SyncCount}",
-            syncCount);
+            "在庫マスタのAveragePriceを更新しました - 更新件数: {UpdateCount}",
+            updateCount);
         
         return updateCount;
     }
