@@ -68,7 +68,7 @@ namespace InventorySystem.Core.Debug
         /// <summary>
         /// 診断結果を判定
         /// </summary>
-        private static string GetDiagnosis(InventoryTrackingData data)
+        public static string GetDiagnosis(InventoryTrackingData data)
         {
             // 売上単価と当日単価が同じ場合は問題
             if (data.SalesUnitPrice > 0 && Math.Abs(data.DailyUnitPrice - data.SalesUnitPrice) < 0.01m)
