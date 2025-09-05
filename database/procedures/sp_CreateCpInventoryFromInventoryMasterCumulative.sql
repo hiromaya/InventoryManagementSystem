@@ -112,7 +112,7 @@ BEGIN
                     THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
                 WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
                     THEN ISNULL(im.StandardPrice, 0)  -- StandardPriceをフォールバック使用
-                ELSE COALESCE(NULLIF(im.AveragePrice, 0), im.StandardPrice, 0)
+                ELSE COALESCE(NULLIF(im.StandardPrice, 0), im.AveragePrice, 0)
             END AS PreviousDayUnitPrice,
             -- 当日在庫（初期値は前日と同じ）
             CASE 
@@ -130,7 +130,7 @@ BEGIN
                     THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
                 WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
                     THEN ISNULL(im.StandardPrice, 0)
-                ELSE COALESCE(NULLIF(im.AveragePrice, 0), im.StandardPrice, 0)
+                ELSE COALESCE(NULLIF(im.StandardPrice, 0), im.AveragePrice, 0)
             END AS DailyUnitPrice,
 
             -- AveragePrice（同じロジック）
@@ -139,7 +139,7 @@ BEGIN
                     THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
                 WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
                     THEN ISNULL(im.StandardPrice, 0)
-                ELSE COALESCE(NULLIF(im.AveragePrice, 0), im.StandardPrice, 0)
+                ELSE COALESCE(NULLIF(im.StandardPrice, 0), im.AveragePrice, 0)
             END AS AveragePrice,
 
             ISNULL(im.DailyFlag, '9') AS DailyFlag,  -- 未処理フラグ
