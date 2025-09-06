@@ -84,7 +84,7 @@ BEGIN
                 StandardPrice = source.StandardPrice,
                 UpdatedDate = GETDATE(),
                 DataSetId = @ProcessId,
-                ImportType = 'INITIAL',
+                ImportType = 'INIT',
                 IsActive = 1
         
         -- 新規レコード作成
@@ -109,7 +109,7 @@ BEGIN
                 source.CurrentStockQuantity, source.CurrentStockAmount,
                 0, 0,  -- 初期在庫なのでDailyStockは0
                 '9',   -- DailyFlag
-                @ProcessId, 'INITIAL', 1,
+                @ProcessId, 'INIT', 1,
                 0, 0, 0, 0  -- 粗利関連は0で初期化
             );
         
