@@ -669,7 +669,7 @@ namespace InventorySystem.Data.Services
                 
                 _logger.LogInformation($"初期在庫データから修正: {fixedFromInitial}件");
                 
-                // ステップ2: 初期在庫データがない商品の修正（仕入単価や推定値を使用）
+                // ステップ2: 初期在庫データがない商品の修正（仕入単価を使用）
                 var fixRemainingQuery = @"
                     WITH PurchasePrices AS (
                         -- 仕入単価の平均
@@ -696,21 +696,12 @@ namespace InventorySystem.Data.Services
                     )
                     UPDATE im
                     SET 
-                        StandardPrice = COALESCE(
-                            pp.AvgPurchasePrice,              -- 仕入単価があれば使用
-                            ROUND(sp.SalesPrice * 0.85, 4)   -- なければ売上単価の85%（粗利15%想定）
-                        ),
-                        AveragePrice = COALESCE(
-                            pp.AvgPurchasePrice,
-                            ROUND(sp.SalesPrice * 0.85, 4)
-                        ),
-                        CurrentStockAmount = im.CurrentStock * COALESCE(
-                            pp.AvgPurchasePrice,
-                            ROUND(sp.SalesPrice * 0.85, 4)
-                        ),
+                        StandardPrice = pp.AvgPurchasePrice,
+                        AveragePrice = pp.AvgPurchasePrice,
+                        CurrentStockAmount = im.CurrentStock * pp.AvgPurchasePrice,
                         UpdatedDate = GETDATE()
                     FROM InventoryMaster im
-                    LEFT JOIN PurchasePrices pp
+                    INNER JOIN PurchasePrices pp
                         ON im.ProductCode = pp.ProductCode
                         AND im.GradeCode = pp.GradeCode
                         AND im.ClassCode = pp.ClassCode
