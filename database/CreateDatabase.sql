@@ -31,6 +31,7 @@ BEGIN
         ProductName NVARCHAR(100) NOT NULL,         -- 商品名
         Unit NVARCHAR(10) NOT NULL,                 -- 単位
         StandardPrice DECIMAL(12,4) NOT NULL DEFAULT 0,    -- 標準単価
+        AveragePrice DECIMAL(12,4) NOT NULL DEFAULT 0,     -- 平均単価（原価のフォールバック用）
         ProductCategory1 NVARCHAR(10) NOT NULL DEFAULT '', -- 商品分類1
         ProductCategory2 NVARCHAR(10) NOT NULL DEFAULT '', -- 商品分類2
         JobDate DATE NOT NULL,                      -- 汎用日付2（ジョブデート）

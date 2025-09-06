@@ -1,0 +1,26 @@
+[
+  {
+    "TableName": "CpInventoryMaster",
+    "RecordCount": 26
+  },
+  {
+    "TableName": "InventoryMaster",
+    "RecordCount": 926
+  },
+  {
+    "TableName": "InitialInventory_Staging",
+    "RecordCount": 0
+  },
+  {
+    "TableName": "SalesVouchers",
+    "RecordCount": 259
+  },
+  {
+    "TableName": "PurchaseVouchers",
+    "RecordCount": 3
+  },
+  {
+    "TableName": "InventoryAdjustments",
+    "RecordCount": 0
+  }
+]

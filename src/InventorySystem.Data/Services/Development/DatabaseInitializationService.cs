@@ -113,7 +113,9 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "063_AddShippingMarkNameToUnInventoryMaster.sql",                      // UN在庫マスタにShippingMarkNameカラム追加
         "064_AddShippingMarkNameToCpInventoryMaster.sql",                      // CP在庫マスタにShippingMarkNameカラム追加
         "065_UnifyCategoryCodeDataType.sql",                                   // 分類マスタのCategoryCode型統一
-        "066_ConvertCategoryCodeToString.sql",                             // CategoryCodeをINTからNVARCHAR(3)に変換
+        "066_ConvertCategoryCodeToString.sql",                                 // CategoryCodeをINTからNVARCHAR(3)に変換
+        "067_AddAveragePriceToCpInventoryMaster.sql",                          // CpInventoryMasterにAveragePriceを追加
+        "068_AddAveragePriceToInventoryMaster.sql",                            // InventoryMasterにAveragePriceを追加
         
         // === 営業日報テーブル作成（SE1担当） ===
         "042_CreateBusinessDailyReport.sql",                                   // 営業日報テーブル作成
