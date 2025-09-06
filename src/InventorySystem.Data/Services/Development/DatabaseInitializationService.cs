@@ -101,6 +101,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         // === ストアドプロシージャ作成（Gemini推奨順序） ===
         "procedures/sp_MergeInitialInventory.sql",                              // 初期在庫マージ（最優先）
         "procedures/sp_UpdateOrCreateInventoryMasterCumulative.sql",            // 在庫マスタ累積更新
+        "procedures/sp_MergeInventoryMasterSnapshot.sql",                       // スナップショット在庫マージ（最適化サービスが使用）
         "procedures/sp_MergeInventoryMasterCumulative.sql",                     // 累積在庫マージ
         "procedures/sp_CreateProductLedgerData.sql",                            // 商品勘定帳票データ生成
         
