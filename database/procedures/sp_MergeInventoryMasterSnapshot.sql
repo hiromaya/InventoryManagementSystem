@@ -129,11 +129,18 @@ BEGIN
             UPDATE SET
                 -- 現在在庫を新しい値で上書き（累積しない）
                 CurrentStock = source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
-                CurrentStockAmount = source.TotalSalesAmount + source.TotalPurchaseAmount + source.TotalAdjustmentAmount,
+                -- 在庫金額は原価ベース（売上数量×原価 + 仕入額 + 調整額）
+                CurrentStockAmount =
+                    (source.TotalSalesQty * COALESCE(NULLIF(target.StandardPrice, 0), target.AveragePrice, 0))
+                    + ISNULL(source.TotalPurchaseAmount, 0)
+                    + ISNULL(source.TotalAdjustmentAmount, 0),
                 
                 -- 当日在庫も同じ値
                 DailyStock = source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
-                DailyStockAmount = source.TotalSalesAmount + source.TotalPurchaseAmount + source.TotalAdjustmentAmount,
+                DailyStockAmount =
+                    (source.TotalSalesQty * COALESCE(NULLIF(target.StandardPrice, 0), target.AveragePrice, 0))
+                    + ISNULL(source.TotalPurchaseAmount, 0)
+                    + ISNULL(source.TotalAdjustmentAmount, 0),
                 
                 -- JobDateを最新の日付に更新
                 JobDate = @JobDate,
@@ -166,10 +173,15 @@ BEGIN
                 @JobDate, GETDATE(), GETDATE(),
                 -- 新規商品の在庫数量
                 source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
-                source.TotalSalesAmount + source.TotalPurchaseAmount + source.TotalAdjustmentAmount,
+                -- 在庫金額は原価ベース（売上数量×原価 + 仕入額 + 調整額）
+                (source.TotalSalesQty * COALESCE(NULLIF(source.StandardPrice, 0), 0))
+                    + ISNULL(source.TotalPurchaseAmount, 0)
+                    + ISNULL(source.TotalAdjustmentAmount, 0),
                 -- 当日在庫（同じ値）
                 source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
-                source.TotalSalesAmount + source.TotalPurchaseAmount + source.TotalAdjustmentAmount,
+                (source.TotalSalesQty * COALESCE(NULLIF(source.StandardPrice, 0), 0))
+                    + ISNULL(source.TotalPurchaseAmount, 0)
+                    + ISNULL(source.TotalAdjustmentAmount, 0),
                 N'0',  -- データありフラグ
                 @DataSetId,
                 0, 0,  -- 前月末在庫は0（スナップショット管理のため）
