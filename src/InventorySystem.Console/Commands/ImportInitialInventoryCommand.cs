@@ -66,6 +66,8 @@ public class ImportInitialInventoryCommand
             var productRepository = scope.ServiceProvider.GetRequiredService<IProductMasterRepository>();
             var unifiedDataSetService = scope.ServiceProvider.GetRequiredService<IDataSetService>();
             var serviceLogger = scope.ServiceProvider.GetRequiredService<ILogger<InitialInventoryImportService>>();
+            var connectionString = _configuration.GetConnectionString("DefaultConnection")
+                                   ?? throw new InvalidOperationException("接続文字列が設定されていません");
 
             var service = new InitialInventoryImportService(
                 inventoryRepository,
@@ -74,7 +76,8 @@ public class ImportInitialInventoryCommand
                 serviceLogger,
                 importPath,
                 processedPath,
-                errorPath);
+                errorPath,
+                connectionString);
 
             var result = await service.ImportAsync(department);
 

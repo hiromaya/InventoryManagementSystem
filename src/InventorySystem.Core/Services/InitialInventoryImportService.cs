@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Data;
+using Microsoft.Data.SqlClient;
 using CsvHelper;
 using CsvHelper.Configuration;
 using InventorySystem.Core.Entities;
@@ -24,6 +26,7 @@ public class InitialInventoryImportService
     private readonly string _importPath;
     private readonly string _processedPath;
     private readonly string _errorPath;
+    private readonly string _connectionString;
 
     public InitialInventoryImportService(
         IInventoryRepository inventoryRepository,
@@ -32,7 +35,8 @@ public class InitialInventoryImportService
         ILogger<InitialInventoryImportService> logger,
         string importPath,
         string processedPath,
-        string errorPath)
+        string errorPath,
+        string connectionString)
     {
         _inventoryRepository = inventoryRepository;
         _productRepository = productRepository;
@@ -41,6 +45,7 @@ public class InitialInventoryImportService
         _importPath = importPath;
         _processedPath = processedPath;
         _errorPath = errorPath;
+        _connectionString = connectionString;
     }
 
     /// <summary>
@@ -95,49 +100,24 @@ public class InitialInventoryImportService
                 await WriteErrorRecordsAsync(targetFile, errorRecords);
             }
 
-            // 有効レコードをInventoryMasterに変換
-            var inventories = new List<InventoryMaster>();
-            var conversionErrors = new List<(InitialInventoryRecord record, string error)>();
+            // Stagingへ投入（設計どおりの経路に切替）
+            var processId = $"INITIAL_{jobDate:yyyyMMdd}_{DateTime.Now:HHmmss}";
+            await InsertToStagingAsync(validRecords, processId);
 
-            foreach (var record in validRecords)
-            {
-                try
-                {
-                    var inventory = await ConvertToInventoryMasterAsync(record, jobDate, dataSetId);
-                    inventories.Add(inventory);
-                }
-                catch (Exception ex)
-                {
-                    conversionErrors.Add((record, ex.Message));
-                    _logger.LogWarning("レコード変換エラー: 商品{ProductCode} - {Error}", 
-                        record.ProductCode, ex.Message);
-                }
-            }
+            // Staging→在庫マスタへマージ（SP実行）
+            await ExecuteMergeStoredProcedureAsync(processId, jobDate);
 
-            // 変換エラーがある場合は追記
-            if (conversionErrors.Any())
-            {
-                errorRecords.AddRange(conversionErrors.Select(e => (e.record, e.error)));
-                await WriteErrorRecordsAsync(targetFile, errorRecords);
-            }
-
-            // ErrorCountを設定
+            // 結果集計（Staging投入件数を成功件数とみなす）
             result.ErrorCount = errorRecords.Count;
-            _logger.LogInformation("変換完了 - 成功: {Success}件, エラー: {Error}件", inventories.Count, result.ErrorCount);
-
-            // データベースに一括登録
-            if (inventories.Any())
-            {
-                await BulkInsertInventoriesAsync(inventories, dataSetId, jobDate, department);
-                result.SuccessCount = inventories.Count;
-            }
+            result.SuccessCount = validRecords.Count;
+            _logger.LogInformation("Staging経由処理完了 - 成功: {Success}件, エラー: {Error}件", result.SuccessCount, result.ErrorCount);
 
             // 処理済みフォルダに移動
             await MoveToProcessedAsync(targetFile, jobDate);
 
             result.EndTime = DateTime.Now;
             result.IsSuccess = true;
-            result.Message = $"初期在庫インポート完了: {inventories.Count}件";
+            result.Message = $"初期在庫インポート完了（Staging経由）: {result.SuccessCount}件";
             result.DataSetId = dataSetId;
 
             _logger.LogInformation("=== 初期在庫インポート完了 ===");
@@ -152,6 +132,112 @@ public class InitialInventoryImportService
             result.Errors.Add(ex.ToString());
             return result;
         }
+    }
+
+    /// <summary>
+    /// InitialInventory_Stagingへレコードを挿入
+    /// - StandardPrice/AveragePrice は当日在庫単価（CurrentStockUnitPrice）を使用
+    /// - ManualShippingMark は8桁固定（右詰め空白埋め）に正規化
+    /// - ShippingMarkCode は4桁0埋め
+    /// </summary>
+    private async Task InsertToStagingAsync(List<InitialInventoryRecord> records, string processId)
+    {
+        if (records == null || records.Count == 0)
+        {
+            _logger.LogWarning("Staging挿入対象が0件のためスキップします");
+            return;
+        }
+
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+        using var transaction = await connection.BeginTransactionAsync();
+
+        const string sql = @"
+            INSERT INTO InitialInventory_Staging (
+                ProcessId,
+                ProductCode,
+                GradeCode,
+                ClassCode,
+                ShippingMarkCode,
+                ManualShippingMark,
+                PersonInChargeCode,
+                PreviousStockQuantity,
+                PreviousStockAmount,
+                CurrentStockQuantity,
+                CurrentStockAmount,
+                StandardPrice,
+                AveragePrice,
+                ProcessStatus
+            ) VALUES (
+                @ProcessId,
+                @ProductCode,
+                @GradeCode,
+                @ClassCode,
+                @ShippingMarkCode,
+                @ManualShippingMark,
+                @PersonInChargeCode,
+                @PreviousStockQuantity,
+                @PreviousStockAmount,
+                @CurrentStockQuantity,
+                @CurrentStockAmount,
+                @StandardPrice,
+                @AveragePrice,
+                'PENDING'
+            );";
+
+        using var cmd = new SqlCommand(sql, connection, (SqlTransaction)transaction);
+        cmd.CommandType = CommandType.Text;
+
+        int inserted = 0;
+        foreach (var r in records)
+        {
+            cmd.Parameters.Clear();
+            cmd.Parameters.AddWithValue("@ProcessId", processId);
+            cmd.Parameters.AddWithValue("@ProductCode", (r.ProductCode ?? string.Empty).PadLeft(5, '0'));
+            cmd.Parameters.AddWithValue("@GradeCode", (r.GradeCode ?? string.Empty).PadLeft(3, '0'));
+            cmd.Parameters.AddWithValue("@ClassCode", (r.ClassCode ?? string.Empty).PadLeft(3, '0'));
+            cmd.Parameters.AddWithValue("@ShippingMarkCode", (r.ShippingMarkCode ?? string.Empty).PadLeft(4, '0'));
+            // 8桁固定：右側にスペースを補完し8文字切り出し
+            var manual = (r.ManualShippingMark ?? string.Empty).TrimEnd();
+            manual = (manual + new string(' ', 8)).Substring(0, 8);
+            cmd.Parameters.AddWithValue("@ManualShippingMark", manual);
+            cmd.Parameters.AddWithValue("@PersonInChargeCode", r.PersonInChargeCode);
+            cmd.Parameters.AddWithValue("@PreviousStockQuantity", r.PreviousStockQuantity);
+            cmd.Parameters.AddWithValue("@PreviousStockAmount", r.PreviousStockAmount);
+            cmd.Parameters.AddWithValue("@CurrentStockQuantity", r.CurrentStockQuantity);
+            cmd.Parameters.AddWithValue("@CurrentStockAmount", r.CurrentStockAmount);
+            // Standard/Average は当日単価を使用
+            cmd.Parameters.AddWithValue("@StandardPrice", r.CurrentStockUnitPrice);
+            cmd.Parameters.AddWithValue("@AveragePrice", r.CurrentStockUnitPrice);
+
+            inserted += await cmd.ExecuteNonQueryAsync();
+        }
+
+        await transaction.CommitAsync();
+        _logger.LogInformation("InitialInventory_Stagingへ{Count}件挿入 (ProcessId={ProcessId})", inserted, processId);
+    }
+
+    /// <summary>
+    /// sp_MergeInitialInventory を実行して Staging→InventoryMaster を反映
+    /// </summary>
+    private async Task ExecuteMergeStoredProcedureAsync(string processId, DateTime jobDate)
+    {
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        using var cmd = new SqlCommand("sp_MergeInitialInventory", connection)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+        cmd.Parameters.Add(new SqlParameter("@ProcessId", SqlDbType.NVarChar, 50) { Value = processId });
+        cmd.Parameters.Add(new SqlParameter("@JobDate", SqlDbType.Date) { Value = jobDate.Date });
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        await cmd.ExecuteNonQueryAsync();
+        sw.Stop();
+
+        _logger.LogInformation("sp_MergeInitialInventory 実行完了: ProcessId={ProcessId}, JobDate={JobDate:yyyy-MM-dd}, {Ms}ms",
+            processId, jobDate, sw.ElapsedMilliseconds);
     }
 
     /// <summary>
