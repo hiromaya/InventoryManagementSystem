@@ -596,22 +596,30 @@ namespace InventorySystem.Data.Services
                             ManualShippingMark,
                             -- 複数の単価ソースを優先順位で選択
                             COALESCE(
-                                -- 1. StandardPriceカラム（汚染されていない場合）
-                                NULLIF(StandardPrice, 0),
-                                -- 2. 前日在庫単価を計算
+                                -- 1. 当日在庫単価（CurrentStockAmount / CurrentStockQuantity）
+                                CASE 
+                                    WHEN CurrentStockQuantity > 0 AND CurrentStockAmount > 0 
+                                    THEN ROUND(CurrentStockAmount / CurrentStockQuantity, 4)
+                                    ELSE NULL 
+                                END,
+                                -- 2. 前日在庫単価（PreviousStockAmount / PreviousStockQuantity）
                                 CASE 
                                     WHEN PreviousStockQuantity > 0 AND PreviousStockAmount > 0
                                     THEN ROUND(PreviousStockAmount / PreviousStockQuantity, 4)
                                     ELSE NULL 
                                 END,
-                                -- 3. AveragePriceカラム
+                                -- 3. StandardPriceカラム（0以外）
+                                NULLIF(StandardPrice, 0),
+                                -- 4. AveragePriceカラム（0以外）
                                 NULLIF(AveragePrice, 0)
                             ) as CorrectPrice
                         FROM InitialInventory_Staging
                         WHERE ProcessStatus = 'PROCESSED'
                             AND (
-                                StandardPrice > 0 
+                                -- 当日在庫または前日在庫、もしくはStandard/Averageが有効なもの
+                                (CurrentStockQuantity > 0 AND CurrentStockAmount > 0)
                                 OR (PreviousStockQuantity > 0 AND PreviousStockAmount > 0)
+                                OR StandardPrice > 0 
                                 OR AveragePrice > 0
                             )
                     ),
