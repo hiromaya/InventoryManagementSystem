@@ -357,10 +357,15 @@ namespace InventorySystem.Reports.FastReport.Services
 
             using var report = new FR.Report();
             
+            // テンプレート選択（環境変数 USE_MINIMAL_TEMPLATE=true で最小テンプレートを使用）
+            var useMinimalTemplate = string.Equals(Environment.GetEnvironmentVariable("USE_MINIMAL_TEMPLATE"), "true", StringComparison.OrdinalIgnoreCase);
+            var templatePath = GetTemplatePath(useMinimalTemplate);
+
             // テンプレート読み込み → スクリプト無効化（ProductAccountと同じ順序）
             report.ReportResourceString = "";
-            report.FileName = _templatePath;
-            report.Load(_templatePath);
+            report.FileName = templatePath;
+            _logger.LogInformation("テンプレート読込: {Template}", templatePath);
+            report.Load(templatePath);
             SetScriptLanguageToNone(report);
             
             // フラットデータをDataTableに変換
@@ -483,6 +488,44 @@ namespace InventorySystem.Reports.FastReport.Services
                 if (preparedCount == 0)
                 {
                     _logger.LogWarning("PreparedPagesが0です。テンプレートまたはデータバインドに問題がある可能性があります。");
+                    try
+                    {
+                        // DataBandの詳細診断
+                        var dataBand = report.FindObject("Data1") as FR.DataBand;
+                        if (dataBand == null)
+                        {
+                            _logger.LogError("DataBand 'Data1' が見つかりません");
+                        }
+                        else
+                        {
+                            _logger.LogError("=== DataBand診断 ===");
+                            _logger.LogError("DataBand.Name: {Name}", dataBand.Name);
+                            _logger.LogError("DataBand.Height: {Height}", dataBand.Height);
+                            _logger.LogError("DataBand.Visible: {Visible}", dataBand.Visible);
+                            _logger.LogError("DataBand.CanGrow: {CanGrow}", dataBand.CanGrow);
+                            _logger.LogError("DataBand.DataSource: {DS}", dataBand.DataSource?.Name ?? "(null)");
+                            if (dataBand.DataSource != null)
+                            {
+                                _logger.LogError("DataSource.Enabled: {Enabled}", dataBand.DataSource.Enabled);
+                                _logger.LogError("DataSource.RowCount: {RowCount}", dataBand.DataSource.RowCount);
+                            }
+                        }
+
+                        // 全オブジェクト一覧（ページ0のみ）
+                        var page = report.Pages.Count > 0 ? report.Pages[0] as FR.ReportPage : null;
+                        if (page != null)
+                        {
+                            _logger.LogError("=== ReportPageオブジェクト一覧 ({Count}件) ===", page.AllObjects.Count);
+                            foreach (var obj in page.AllObjects)
+                            {
+                                _logger.LogError(" - {Type}: {Name}", obj.GetType().Name, obj.Name);
+                            }
+                        }
+                    }
+                    catch (Exception diagEx)
+                    {
+                        _logger.LogWarning(diagEx, "PreparedPages=0時の診断で例外が発生しました");
+                    }
                 }
             }
             catch (Exception ex)
@@ -522,6 +565,13 @@ namespace InventorySystem.Reports.FastReport.Services
             await File.WriteAllBytesAsync(outputPath, pdfBytes);
             
             _logger.LogInformation("PDF生成完了: {FilePath}, サイズ: {Size}bytes", outputPath, pdfBytes.Length);
+        }
+
+        private string GetTemplatePath(bool useMinimal = false)
+        {
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var templateName = useMinimal ? "InventoryList_minimal.frx" : "InventoryList.frx";
+            return Path.Combine(baseDir, "FastReport", "Templates", templateName);
         }
 
         /// <summary>
