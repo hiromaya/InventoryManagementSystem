@@ -2257,7 +2257,8 @@ namespace InventorySystem.Reports.FastReport.Services
             if (value == 0) return "0.00 %";
             if (value < 0)
             {
-                return $"{Math.Abs(value):0.00}▲ %";
+                // 表示順序を 数値 → 空白 → % → ▲ に統一
+                return $"{Math.Abs(value):0.00} %▲";
             }
             else
             {
@@ -2335,7 +2336,8 @@ namespace InventorySystem.Reports.FastReport.Services
             var rate = Math.Round((grossProfit / salesAmount) * 100, 2);
             if (rate < 0)
             {
-                return $"{Math.Abs(rate):0.00}▲ %";
+                // 表示順序を 数値 → 空白 → % → ▲ に統一
+                return $"{Math.Abs(rate):0.00} %▲";
             }
 
             return $"{rate:0.00} %";
