@@ -2137,7 +2137,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["RemainingQuantity"] = FormatQuantity(item.RemainingQuantity);
                 row["UnitPrice"] = FormatUnitPrice(item.UnitPrice);
                 row["Amount"] = FormatAmount(item.Amount);
-                row["GrossProfit"] = FormatGrossProfit(item.GrossProfit, item.VoucherType);  // ▲処理含む、仕入データ制御
+                row["GrossProfit"] = FormatGrossProfit(item.GrossProfit, item.VoucherType, item.CategoryCode);  // ▲処理含む、仕入/振替制御
                 
                 // 新規プロパティの設定
                 row["RowType"] = item.RowType;
@@ -2754,10 +2754,10 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = FormatUnitPriceForSubtotal(inventoryUnitPrice),
                 Amount = FormatAmountForSubtotal(inventoryAmount),
                 GrossProfit = FormatGrossProfitForSubtotal(grossProfit),
-                // 粗利率（疑似右揃え）。売上金額= subtotalSales * subtotalInventoryUnitPrice
+                // 粗利率（疑似右揃え）。売上金額= sales * inventoryUnitPrice
                 CustomerSupplierName = FormatPercentageForSubtotalWithPadding(
-                    subtotalSales * subtotalInventoryUnitPrice,
-                    subtotalGrossProfit),
+                    sales * inventoryUnitPrice,
+                    grossProfit),
                 IsGrossProfitRate = true                                           // 粗利率表示フラグ
             };
         }
