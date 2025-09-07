@@ -1841,6 +1841,16 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                 }
                 
                 var enableDebug = args.Contains("--debug");
+                // 追加: --track-key の解析（例: 00104-025-028-7011）
+                string? trackingKeyArg = null;
+                if (args.Contains("--track-key"))
+                {
+                    var idx = Array.IndexOf(args, "--track-key");
+                    if (idx >= 0 && idx + 1 < args.Length)
+                    {
+                        trackingKeyArg = args[idx + 1];
+                    }
+                }
 
                 using (var scope = services.CreateScope())
                 {
@@ -1858,6 +1868,14 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         if (enableDebug)
                         {
                             InventorySystem.Core.Debug.InventoryTracker.Clear();
+                            if (!string.IsNullOrEmpty(trackingKeyArg))
+                            {
+                                var parts = trackingKeyArg.Split('-');
+                                if (parts.Length == 4)
+                                {
+                                    InventorySystem.Core.Debug.InventoryTracker.SetTrackingKey(parts[0], parts[1], parts[2], parts[3]);
+                                }
+                            }
                             logger.LogInformation("=== デバッグモード有効 ===");
                             System.Console.WriteLine("=== デバッグモード有効 ===");
                             System.Console.WriteLine("商品00104-025-028の追跡を開始します");
@@ -2003,8 +2021,30 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         // デバッグファイル出力
                         if (enableDebug)
                         {
+                            // 追加: --track-keyの解析
+                            string? trackingKey = null;
+                            if (args.Contains("--track-key"))
+                            {
+                                var idx = Array.IndexOf(args, "--track-key");
+                                if (idx >= 0 && idx + 1 < args.Length)
+                                {
+                                    trackingKey = args[idx + 1];
+                                }
+                            }
+
+                            // InventoryTrackerへキーを設定
+                            if (!string.IsNullOrEmpty(trackingKey))
+                            {
+                                var parts = trackingKey.Split('-');
+                                if (parts.Length == 4)
+                                {
+                                    InventorySystem.Core.Debug.InventoryTracker.SetTrackingKey(parts[0], parts[1], parts[2], parts[3]);
+                                }
+                            }
+
                             var timestamp = DateTime.Now.ToString("HHmmss");
-                            var debugFileName = $"debug_tracking_{jobDate:yyyyMMdd}_{timestamp}.json";
+                            var keySuffix = string.IsNullOrEmpty(trackingKey) ? "" : $"_{trackingKey}";
+                            var debugFileName = $"debug_tracking_{jobDate:yyyyMMdd}{keySuffix}_{timestamp}.json";
                             
                             // デバッグファイルパスの決定
                             string debugFilePath;

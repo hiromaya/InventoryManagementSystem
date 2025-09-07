@@ -1305,13 +1305,19 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND cp.GradeCode = sv.GradeCode
                     AND cp.ClassCode = sv.ClassCode
                     AND cp.ShippingMarkCode = sv.ShippingMarkCode
-                WHERE cp.ProductCode = '00104'
-                    AND cp.GradeCode = '025'
-                    AND cp.ClassCode = '028'
-                    AND cp.JobDate = @JobDate";
+                WHERE cp.JobDate = @JobDate
+                  AND (@PCode IS NULL OR cp.ProductCode = @PCode)
+                  AND (@GCode IS NULL OR cp.GradeCode = @GCode)
+                  AND (@CCode IS NULL OR cp.ClassCode = @CCode)
+                  AND (@SCode IS NULL OR cp.ShippingMarkCode = @SCode)";
                     
             using var cmd = new SqlCommand(query, connection);
             cmd.Parameters.AddWithValue("@JobDate", jobDate);
+            var key = InventorySystem.Core.Debug.InventoryTracker.GetTrackingKey();
+            cmd.Parameters.AddWithValue("@PCode", (object?)key.ProductCode ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@GCode", (object?)key.GradeCode ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@CCode", (object?)key.ClassCode ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@SCode", (object?)key.ShippingMarkCode ?? DBNull.Value);
             
             using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
@@ -1338,8 +1344,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 
                 InventoryTracker.Track(processName, data);
                 
+                var titleKey = key.ShippingMarkCode == null ?
+                    $"{key.ProductCode}-{key.GradeCode}-{key.ClassCode}" :
+                    $"{key.ProductCode}-{key.GradeCode}-{key.ClassCode}-{key.ShippingMarkCode}";
                 _logger.LogInformation(
-                    $"[{processName}] 00104-025-028: " +
+                    $"[{processName}] {titleKey}: " +
                     $"CP当日単価={data.DailyUnitPrice:N2}, " +
                     $"売上単価={data.SalesUnitPrice:N2}, " +
                     $"前日在庫={data.PreviousDayStock:N2}, " +
@@ -1348,7 +1357,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             }
             else
             {
-                _logger.LogWarning($"[{processName}] 00104-025-028: データが見つかりません");
+                var titleKey = InventorySystem.Core.Debug.InventoryTracker.GetTrackingKey();
+                var keyText = titleKey.ShippingMarkCode == null ?
+                    $"{titleKey.ProductCode}-{titleKey.GradeCode}-{titleKey.ClassCode}" :
+                    $"{titleKey.ProductCode}-{titleKey.GradeCode}-{titleKey.ClassCode}-{titleKey.ShippingMarkCode}";
+                _logger.LogWarning($"[{processName}] {keyText}: データが見つかりません");
             }
         }
         catch (Exception ex)
@@ -1373,12 +1386,19 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             var jobDateQuery = @"
                 SELECT TOP 1 JobDate 
                 FROM CpInventoryMaster 
-                WHERE ProductCode = '00104' 
-                    AND GradeCode = '025' 
-                    AND ClassCode = '028'
+                WHERE (@PCode IS NULL OR ProductCode = @PCode)
+                  AND (@GCode IS NULL OR GradeCode = @GCode)
+                  AND (@CCode IS NULL OR ClassCode = @CCode)
+                  AND (@SCode IS NULL OR ShippingMarkCode = @SCode)
                 ORDER BY JobDate DESC";
-                
-            var jobDate = await connection.QueryFirstOrDefaultAsync<DateTime?>(jobDateQuery);
+
+            var key = InventorySystem.Core.Debug.InventoryTracker.GetTrackingKey();
+            var jobDate = await connection.QueryFirstOrDefaultAsync<DateTime?>(jobDateQuery, new {
+                PCode = (object?)key.ProductCode ?? DBNull.Value,
+                GCode = (object?)key.GradeCode ?? DBNull.Value,
+                CCode = (object?)key.ClassCode ?? DBNull.Value,
+                SCode = (object?)key.ShippingMarkCode ?? DBNull.Value
+            });
             if (jobDate.HasValue)
             {
                 await TrackInventoryState(processName, jobDate.Value);

@@ -42,6 +42,11 @@ namespace InventorySystem.Core.Debug
     {
         private static readonly List<InventoryTrackingData> _trackingData = new();
         private static bool _isEnabled = false;
+        // 追跡対象キー（デフォルトは従来の 00104-025-028、荷印コードは未指定）
+        private static string _trackProductCode = "00104";
+        private static string _trackGradeCode = "025";
+        private static string _trackClassCode = "028";
+        private static string? _trackShippingMarkCode = null;
 
         /// <summary>
         /// デバッグモードの有効/無効
@@ -51,6 +56,17 @@ namespace InventorySystem.Core.Debug
             get => _isEnabled;
             set => _isEnabled = value;
         }
+
+        public static void SetTrackingKey(string productCode, string gradeCode, string classCode, string shippingMarkCode)
+        {
+            _trackProductCode = productCode ?? _trackProductCode;
+            _trackGradeCode = gradeCode ?? _trackGradeCode;
+            _trackClassCode = classCode ?? _trackClassCode;
+            _trackShippingMarkCode = string.IsNullOrWhiteSpace(shippingMarkCode) ? null : shippingMarkCode;
+        }
+
+        public static (string ProductCode, string GradeCode, string ClassCode, string? ShippingMarkCode) GetTrackingKey()
+            => (_trackProductCode, _trackGradeCode, _trackClassCode, _trackShippingMarkCode);
 
         /// <summary>
         /// 追跡データを記録
@@ -115,12 +131,18 @@ namespace InventorySystem.Core.Debug
         {
             if (!_isEnabled) return;
 
-            var targetData = _trackingData.Where(d => 
-                d.ProductCode == "00104" && 
-                d.GradeCode == "025" && 
-                d.ClassCode == "028").ToList();
-                
-            logger.LogInformation("=== 00104-025-028 追跡サマリー ===");
+            var key = GetTrackingKey();
+            var targetData = _trackingData.Where(d =>
+                d.ProductCode == key.ProductCode &&
+                d.GradeCode == key.GradeCode &&
+                d.ClassCode == key.ClassCode &&
+                (string.IsNullOrEmpty(key.ShippingMarkCode) || d.ShippingMarkCode == key.ShippingMarkCode)
+            ).ToList();
+
+            var title = string.IsNullOrEmpty(key.ShippingMarkCode)
+                ? $"=== {key.ProductCode}-{key.GradeCode}-{key.ClassCode} 追跡サマリー ==="
+                : $"=== {key.ProductCode}-{key.GradeCode}-{key.ClassCode}-{key.ShippingMarkCode} 追跡サマリー ===";
+            logger.LogInformation(title);
             foreach (var data in targetData)
             {
                 logger.LogInformation(

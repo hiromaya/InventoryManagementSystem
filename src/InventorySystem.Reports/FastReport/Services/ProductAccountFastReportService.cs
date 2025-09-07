@@ -2529,6 +2529,24 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private ProductAccountFlatRow CreateDetailRowWithProductInfo(ProductAccountReportModel data, dynamic productKey, string staffCode, string staffName, int sequence)
         {
+            // 明細金額は「対象数量 × 在庫単価」で再計算する
+            decimal quantity = 0m;
+            if (string.Equals(data.RecordType, "Sales", StringComparison.OrdinalIgnoreCase))
+            {
+                quantity = data.SalesQuantity;
+            }
+            else if (string.Equals(data.RecordType, "Purchase", StringComparison.OrdinalIgnoreCase))
+            {
+                quantity = data.PurchaseQuantity;
+            }
+            else if (string.Equals(data.RecordType, "Adjustment", StringComparison.OrdinalIgnoreCase))
+            {
+                quantity = data.PurchaseQuantity != 0 ? data.PurchaseQuantity : data.SalesQuantity;
+            }
+
+            decimal unitPrice = data.UnitPrice;
+            decimal calculatedAmount = Math.Round(quantity * unitPrice, 0, MidpointRounding.AwayFromZero);
+
             return new ProductAccountFlatRow
             {
                 RowType = RowTypes.Detail,
@@ -2559,7 +2577,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 SalesQuantity = FormatQuantity(data.SalesQuantity),
                 RemainingQuantity = FormatQuantity(data.RemainingQuantity),
                 UnitPrice = FormatUnitPrice(data.UnitPrice),
-                Amount = FormatAmount(data.Amount),
+                Amount = FormatAmount(calculatedAmount),
                 GrossProfit = FormatGrossProfit(data.GrossProfit, data.VoucherType)
             };
         }
@@ -2569,6 +2587,24 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private ProductAccountFlatRow CreateDetailRow(ProductAccountReportModel data, int sequence)
         {
+            // 予備メソッド（使用箇所は限定的だが整合のため同様の計算に合わせる）
+            decimal quantity = 0m;
+            if (string.Equals(data.RecordType, "Sales", StringComparison.OrdinalIgnoreCase))
+            {
+                quantity = data.SalesQuantity;
+            }
+            else if (string.Equals(data.RecordType, "Purchase", StringComparison.OrdinalIgnoreCase))
+            {
+                quantity = data.PurchaseQuantity;
+            }
+            else if (string.Equals(data.RecordType, "Adjustment", StringComparison.OrdinalIgnoreCase))
+            {
+                quantity = data.PurchaseQuantity != 0 ? data.PurchaseQuantity : data.SalesQuantity;
+            }
+
+            decimal unitPrice = data.UnitPrice;
+            decimal calculatedAmount = Math.Round(quantity * unitPrice, 0, MidpointRounding.AwayFromZero);
+
             return new ProductAccountFlatRow
             {
                 RowType = RowTypes.Detail,
@@ -2599,7 +2635,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 SalesQuantity = FormatQuantity(data.SalesQuantity),
                 RemainingQuantity = FormatQuantity(data.RemainingQuantity),
                 UnitPrice = FormatUnitPrice(data.UnitPrice),
-                Amount = FormatAmount(data.Amount),
+                Amount = FormatAmount(calculatedAmount),
                 GrossProfit = FormatGrossProfit(data.GrossProfit, data.VoucherType)
             };
         }
