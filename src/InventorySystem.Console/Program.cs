@@ -304,6 +304,12 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
             // Process 2-5: 売上伝票への在庫単価書き込みと粗利計算サービス
             builder.Services.AddScoped<GrossProfitCalculationService>();
 
+            // CP在庫検証・校正サービス
+            builder.Services.AddScoped<ICpInventoryValidationService>(provider =>
+                new InventorySystem.Data.Services.CpInventoryValidationService(
+                    connectionString,
+                    provider.GetRequiredService<ILogger<InventorySystem.Data.Services.CpInventoryValidationService>>()));
+
             // SE3: マスタ同期サービス（商品勘定・在庫表担当）
             builder.Services.AddScoped<InventorySystem.Data.Services.IMasterSyncService>(provider =>
                 new InventorySystem.Data.Services.MasterSyncService(
@@ -1935,6 +1941,44 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                             System.Console.WriteLine($"⚠️ Process 2-5実行中にエラーが発生しましたが、商品勘定作成を継続します: {processEx.Message}");
                         }
 
+                        // 3-a. CP在庫検証・校正（Process 2-5後）
+                        try
+                        {
+                            var validationService = scopedServices.GetRequiredService<ICpInventoryValidationService>();
+                            var validationResult = await validationService.ValidateAsync(jobDate);
+
+                            if (validationResult.ErrorCount > 0)
+                            {
+                                logger.LogWarning("CP在庫検証: {Count}件のエラーを検出", validationResult.ErrorCount);
+                                try
+                                {
+                                    var corrected = await validationService.ApplyCorrectionsAsync(jobDate, validationResult);
+                                    logger.LogInformation("CP在庫校正: {Count}件を修正", corrected);
+                                }
+                                catch (Exception fixEx)
+                                {
+                                    logger.LogError(fixEx, "校正失敗、元データで継続");
+                                }
+
+                            }
+
+                            // デバッグ出力（テキスト）
+                            if (enableDebug)
+                            {
+                                var fms = scopedServices.GetRequiredService<IFileManagementService>();
+                                var probePath = await fms.GetReportOutputPathAsync("ProductAccount", jobDate, "pdf");
+                                var reportDir = Path.GetDirectoryName(probePath)!;
+                                var debugTxtPath = Path.Combine(reportDir, $"CpValidation_{jobDate:yyyyMMdd}_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+                                await WriteCpValidationReportAsync(debugTxtPath, validationResult);
+                                System.Console.WriteLine($"✅ 検証レポート出力: {debugTxtPath}");
+                                logger.LogInformation("検証レポート出力: {Path}", debugTxtPath);
+                            }
+                        }
+                        catch (Exception vex)
+                        {
+                            logger.LogError(vex, "CP在庫検証処理中にエラーが発生しました（帳票生成は継続）");
+                        }
+
                         // 3. 商品勘定帳票を作成
                         System.Console.WriteLine("📋 商品勘定帳票生成中...");
                         var pdfBytes = productAccountService.GenerateProductAccountReport(jobDate);
@@ -2005,6 +2049,34 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         System.Console.WriteLine($"❌ エラーが発生しました: {ex.Message}");
                     }
                 }
+            }
+
+            static async Task WriteCpValidationReportAsync(string path, InventorySystem.Core.Models.CpInventoryValidationResult result)
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] CP在庫検証レポート");
+                sb.AppendLine("=====================================");
+                sb.AppendLine($"総レコード: {result.TotalRecords:N0}件");
+                sb.AppendLine($"エラー: {result.ErrorCount}件");
+                sb.AppendLine($"警告: {result.WarningCount}件");
+                sb.AppendLine();
+                foreach (var (issue, idx) in result.Issues.Select((x, i) => (x, i + 1)))
+                {
+                    sb.AppendLine($"[{issue.Severity}] #{idx} {issue.IssueType}");
+                    sb.AppendLine($"  商品:{issue.ProductCode} 荷印:{issue.ShippingMarkCode} 手入力:{issue.ManualShippingMark} 等級:{issue.GradeCode} 階級:{issue.ClassCode}");
+                    if (issue.ExpectedValue.HasValue || issue.ActualValue.HasValue)
+                    {
+                        var exp = issue.ExpectedValue.HasValue ? issue.ExpectedValue.Value.ToString("N2") : "-";
+                        var act = issue.ActualValue.HasValue ? issue.ActualValue.Value.ToString("N2") : "-";
+                        var diff = issue.Difference.HasValue ? issue.Difference.Value.ToString("N2") : "-";
+                        sb.AppendLine($"  期待値:{exp} 実際値:{act} 差異:{diff}");
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.Description)) sb.AppendLine($"  説明: {issue.Description}");
+                    if (!string.IsNullOrWhiteSpace(issue.CorrectionApplied)) sb.AppendLine($"  校正: {issue.CorrectionApplied}");
+                    sb.AppendLine();
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                await File.WriteAllTextAsync(path, sb.ToString(), Encoding.UTF8);
             }
 
             static async Task DebugCsvStructureAsync(string[] args)
