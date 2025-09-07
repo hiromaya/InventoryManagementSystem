@@ -121,10 +121,7 @@ public class ProductAccountReportModel
     /// </summary>
     public decimal SalesAmount { get; set; }
 
-    /// <summary>
-    /// 売上伝票金額（売価での売上）
-    /// </summary>
-    public decimal SalesAmount { get; set; }
+    
 
     /// <summary>
     /// 粗利益
