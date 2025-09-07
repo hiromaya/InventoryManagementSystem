@@ -518,7 +518,19 @@ namespace InventorySystem.Reports.FastReport.Services
                             _logger.LogError("=== ReportPageオブジェクト一覧 ({Count}件) ===", page.AllObjects.Count);
                             foreach (var obj in page.AllObjects)
                             {
-                                _logger.LogError(" - {Type}: {Name}", obj.GetType().Name, obj.Name);
+                                var type = obj?.GetType();
+                                var nameValue = "(unknown)";
+                                try
+                                {
+                                    var nameProp = type?.GetProperty("Name");
+                                    if (nameProp != null)
+                                    {
+                                        var val = nameProp.GetValue(obj);
+                                        nameValue = val?.ToString() ?? "(null)";
+                                    }
+                                }
+                                catch { /* ignore diagnostics errors */ }
+                                _logger.LogError(" - {Type}: {Name}", type?.Name ?? "(null)", nameValue);
                             }
                         }
                     }
