@@ -415,6 +415,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     decimal subtotalInventoryUnitPrice = 0; // 追加
                     decimal subtotalInventoryAmount = 0;
                     decimal subtotalGrossProfit = 0;
+                    decimal subtotalSalesAmount = 0;      // 追加: 売上伝票金額合計
                     
                     // CP在庫マスタから前日残と在庫単価を取得
                     var cpInventoryData = GetCpInventoryData(productGroup.Key, jobDate);
@@ -434,21 +435,13 @@ namespace InventorySystem.Reports.FastReport.Services
                         subtotalPurchase += detail.PurchaseQuantity;
                         subtotalSales += detail.SalesQuantity;
                         subtotalGrossProfit += detail.GrossProfit;
+                        subtotalSalesAmount += detail.SalesAmount;
                     }
                     
                     // 当日残を計算
                     subtotalCurrentBalance = subtotalPreviousBalance + subtotalPurchase - subtotalSales;
                     
-                    // 粗利率を計算
-                    decimal grossProfitRate = 0;
-                    if (subtotalSales != 0 && subtotalInventoryUnitPrice != 0)
-                    {
-                        decimal salesAmount = subtotalSales * subtotalInventoryUnitPrice;
-                        if (salesAmount != 0)
-                        {
-                            grossProfitRate = Math.Round((subtotalGrossProfit / salesAmount) * 100, 2);
-                        }
-                    }
+                    // 粗利率は印字時に売上伝票金額を用いてフォーマットするため、ここでは計算しない
                     
                     // 商品別小計（2行構成）
                     if (subtotalPurchase != 0 || subtotalSales != 0 || subtotalInventoryAmount != 0)
@@ -467,7 +460,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             subtotalInventoryUnitPrice,
                             subtotalInventoryAmount,
                             subtotalGrossProfit,
-                            grossProfitRate,
+                            subtotalSalesAmount,
                             sequence++));
                     }
                     
@@ -759,6 +752,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             cp.PreviousDayStock as RemainingQuantity,
                             cp.PreviousDayUnitPrice as UnitPrice,
                             cp.PreviousDayStockAmount as Amount,
+                            0 as SalesAmount,
                             0 as GrossProfit,
                             '' as CustomerSupplierName,
                             'Previous' as RecordType,  -- 重要：前残高のRecordType
@@ -795,6 +789,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             0 as RemainingQuantity,
                             ISNULL(cp.DailyUnitPrice, cp.PreviousDayUnitPrice) as UnitPrice,
                             s.Amount,
+                            s.Amount as SalesAmount,
                             ISNULL(s.GrossProfit, 0) as GrossProfit,
                             s.CustomerName as CustomerSupplierName,
                             'Sales' as RecordType,
@@ -838,6 +833,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             0 as RemainingQuantity,
                             p.UnitPrice,
                             p.Amount,
+                            0 as SalesAmount,
                             0 as GrossProfit,
                             p.SupplierName as CustomerSupplierName,
                             'Purchase' as RecordType,
@@ -882,6 +878,7 @@ namespace InventorySystem.Reports.FastReport.Services
                             0 as RemainingQuantity,
                             ia.UnitPrice,
                             ia.Amount,
+                            0 as SalesAmount,
                             CASE 
                                 WHEN ia.CategoryCode IN (1, 3, 2, 5, 6) THEN -ia.Amount  -- ロス・腐り・加工費・調整は金額をマイナス粗利益
                                 WHEN ia.CategoryCode = 4 THEN 0  -- 振替は粗利益なし
@@ -2717,7 +2714,7 @@ namespace InventorySystem.Reports.FastReport.Services
             decimal inventoryUnitPrice,   // 在庫単価（追加）
             decimal inventoryAmount,      // 在庫金額
             decimal grossProfit,          // 粗利益
-            decimal grossProfitRate,      // 粗利率（追加）
+            decimal salesAmount,          // 売上伝票金額（追加）
             int sequence)
         {
             _logger.LogDebug($"小計数値行生成: StaffCode={staffCode}, StaffName={staffName}");
@@ -2754,9 +2751,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = FormatUnitPriceForSubtotal(inventoryUnitPrice),
                 Amount = FormatAmountForSubtotal(inventoryAmount),
                 GrossProfit = FormatGrossProfitForSubtotal(grossProfit),
-                // 粗利率（疑似右揃え）。売上金額= sales * inventoryUnitPrice
+                // 粗利率（疑似右揃え）。分母=売上伝票金額（SalesVouchers.Amount合計）
                 CustomerSupplierName = FormatPercentageForSubtotalWithPadding(
-                    sales * inventoryUnitPrice,
+                    grossProfitRate,
                     grossProfit),
                 IsGrossProfitRate = true                                           // 粗利率表示フラグ
             };

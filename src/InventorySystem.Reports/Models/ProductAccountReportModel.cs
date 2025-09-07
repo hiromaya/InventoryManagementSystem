@@ -117,6 +117,16 @@ public class ProductAccountReportModel
     public decimal Amount { get; set; }
 
     /// <summary>
+    /// 売上金額（粗利率の分母用：SalesVouchers.Amount 合計）
+    /// </summary>
+    public decimal SalesAmount { get; set; }
+
+    /// <summary>
+    /// 売上伝票金額（売価での売上）
+    /// </summary>
+    public decimal SalesAmount { get; set; }
+
+    /// <summary>
     /// 粗利益
     /// </summary>
     public decimal GrossProfit { get; set; }
