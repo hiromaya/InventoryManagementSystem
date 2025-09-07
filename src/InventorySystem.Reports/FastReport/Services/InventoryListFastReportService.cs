@@ -389,11 +389,71 @@ namespace InventorySystem.Reports.FastReport.Services
                     _logger.LogInformation("データソース行数: {RowCount}", registeredDataSource.RowCount);
                 }
                 catch { /* ignore */ }
+
+                // DataBandに明示的にデータソースを割り当て（テンプレートの参照ズレ対策）
+                try
+                {
+                    var page = report.Pages.Count > 0 ? report.Pages[0] as FR.ReportPage : null;
+                    if (page != null)
+                    {
+                        foreach (var obj in page.AllObjects)
+                        {
+                            if (obj is FR.DataBand band)
+                            {
+                                if (string.Equals(band.Name, "Data1", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    band.DataSource = registeredDataSource;
+                                    _logger.LogInformation("DataBand '{BandName}' にデータソース '{DSName}' を割当", band.Name, registeredDataSource.Name);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "DataBandへのDataSource割当時の警告");
+                }
             }
             else
             {
                 _logger.LogWarning("データソース 'InventoryData' が見つかりません");
             }
+
+            // 追加診断: テンプレート内のDataBandとデータソースの関連をログ出力
+            try
+            {
+                var page = report.Pages.Count > 0 ? report.Pages[0] as FR.ReportPage : null;
+                if (page != null)
+                {
+                    _logger.LogInformation("ページ '{PageName}' には {Count} 個のオブジェクトがあります", page.Name, page.AllObjects.Count);
+                    foreach (var obj in page.AllObjects)
+                    {
+                        if (obj is FR.DataBand band)
+                        {
+                            var ds = band.DataSource;
+                            _logger.LogInformation("DataBand '{BandName}' のDataSource: {DS}", band.Name, ds?.Name ?? "(null)");
+                        }
+                    }
+                }
+
+                // 辞書に登録されているデータソース一覧
+                var list = report.Dictionary?.DataSources?.Cast<object>()?.ToList();
+                if (list != null)
+                {
+                    _logger.LogInformation("辞書データソース数: {Count}", list.Count);
+                    foreach (var dsObj in list)
+                    {
+                        try
+                        {
+                            var nameProp = dsObj.GetType().GetProperty("Name");
+                            var name = nameProp?.GetValue(dsObj)?.ToString() ?? "(unknown)";
+                            _logger.LogInformation("  - DataSource: {Name}", name);
+                        }
+                        catch { /* ignore */ }
+                    }
+                }
+            }
+            catch { /* ignore */ }
             
             // パラメータ設定
             _logger.LogInformation("レポートパラメータを設定しています...");

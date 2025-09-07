@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="2025-01-01" ReportInfo.Modified="09/03/2025 15:23:30" ReportInfo.CreatorVersion="2024.1.3.0">
+<Report ScriptLanguage="None" ReportInfo.Created="2025-01-01" ReportInfo.Modified="09/07/2025 22:40:00" ReportInfo.CreatorVersion="2024.1.3.0">
   <Dictionary>
     <TableDataSource Name="InventoryData" ReferenceName="InventoryData" DataType="System.Int32" Enabled="true">
       <Column Name="RowType" DataType="System.String"/>
@@ -26,7 +26,7 @@
   <ReportPage Name="Page1" RawPaperSize="9" Watermark.Font="Arial, 60pt">
     <PageHeaderBand Name="PageHeader1" Width="718.2" Height="175.6">
       <TextObject Name="CreateDateTime" Width="359.1" Height="18.9" Text="作成日：[CreateDate]" Font="ＭＳ ゴシック, 9pt"/>
-      <TextObject Name="PageInfo" Left="612.2" Width="68.2" Height="18.9" Text="[InventoryData.CurrentPage] / [InventoryData.TotalPages] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="PageInfo" Left="612.2" Width="68.2" Height="18.9" Text="[Page#] / [TotalPages#] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="Title" Top="18.9" Width="718.2" Height="18.9" Text="※　[JobDate]　在　庫　表　※" HorzAlign="Center" Font="ＭＳ ゴシック, 12pt"/>
       <TextObject Name="StaffLabel" Top="47.25" Width="359.1" Height="18.9" Text="[IIF([InventoryData.StaffCode] != &quot;&quot;, &quot;担当者コード：&quot; + [InventoryData.StaffCode], &quot;&quot;)]" Font="ＭＳ ゴシック, 9pt"/>
       <TextObject Name="HeaderProduct" Top="156.7" Width="150" Height="18.9" Text="商　品　名" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 9pt"/>
