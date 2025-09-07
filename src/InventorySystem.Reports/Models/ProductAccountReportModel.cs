@@ -228,6 +228,11 @@ public class ProductAccountReportModel
     /// </summary>
     public string MonthDayDisplay { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 区分コード（在庫調整の種別判定用: 振替=4など）
+    /// </summary>
+    public int? CategoryCode { get; set; }
+
     // === C#側データ加工用の新規プロパティ ===
     
     /// <summary>

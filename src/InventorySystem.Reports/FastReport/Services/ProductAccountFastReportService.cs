@@ -736,7 +736,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     _logger.LogError(ex, "文字列比較詳細チェッククエリでエラーが発生");
                 }
                 
-                var sql = @"
+            var sql = @"
                     WITH ProductAccount AS (
                         -- 前残高データ（CP在庫マスタから）
                         SELECT 
@@ -761,7 +761,8 @@ namespace InventorySystem.Reports.FastReport.Services
                             cp.PreviousDayStockAmount as Amount,
                             0 as GrossProfit,
                             '' as CustomerSupplierName,
-                            'Previous' as RecordType  -- 重要：前残高のRecordType
+                            'Previous' as RecordType,  -- 重要：前残高のRecordType
+                            NULL as CategoryCode
                         FROM CpInventoryMaster cp
                         WHERE cp.JobDate = @JobDate
                           AND (@DepartmentCode IS NULL OR cp.ProductCategory1 = @DepartmentCode)
@@ -796,7 +797,8 @@ namespace InventorySystem.Reports.FastReport.Services
                             s.Amount,
                             ISNULL(s.GrossProfit, 0) as GrossProfit,
                             s.CustomerName as CustomerSupplierName,
-                            'Sales' as RecordType
+                            'Sales' as RecordType,
+                            NULL as CategoryCode
                         FROM SalesVouchers s
                         LEFT JOIN ProductMaster pm ON s.ProductCode = pm.ProductCode
                         LEFT JOIN CpInventoryMaster cp ON s.ProductCode = cp.ProductCode 
@@ -838,7 +840,8 @@ namespace InventorySystem.Reports.FastReport.Services
                             p.Amount,
                             0 as GrossProfit,
                             p.SupplierName as CustomerSupplierName,
-                            'Purchase' as RecordType
+                            'Purchase' as RecordType,
+                            NULL as CategoryCode
                         FROM PurchaseVouchers p
                         LEFT JOIN ProductMaster pm ON p.ProductCode = pm.ProductCode
                         LEFT JOIN CpInventoryMaster cp ON p.ProductCode = cp.ProductCode 
@@ -885,7 +888,8 @@ namespace InventorySystem.Reports.FastReport.Services
                                 ELSE 0
                             END as GrossProfit,
                             '' as CustomerSupplierName,
-                            'Adjustment' as RecordType
+                            'Adjustment' as RecordType,
+                            ia.CategoryCode as CategoryCode
                         FROM InventoryAdjustments ia
                         LEFT JOIN ProductMaster pm ON ia.ProductCode = pm.ProductCode
                         LEFT JOIN CpInventoryMaster cp ON ia.ProductCode = cp.ProductCode 
@@ -2223,10 +2227,16 @@ namespace InventorySystem.Reports.FastReport.Services
         /// 粗利益フォーマット（整数部7桁、マイナスは▲表示）
         /// 仕入データ（11,12）と振替データでは空白を返す
         /// </summary>
-        private string FormatGrossProfit(decimal value, string voucherType = "")
+        private string FormatGrossProfit(decimal value, string voucherType = "", int? categoryCode = null)
         {
-            // 仕入データ（11,12）と振替データでは空白を返す
-            if (voucherType == "11" || voucherType == "12" || voucherType == "振替")
+            // 仕入データ（11,12）では空白
+            if (voucherType == "11" || voucherType == "12")
+            {
+                return "";
+            }
+
+            // 振替データ（在庫調整71かつCategoryCode=4）は空白
+            if (voucherType == "71" && categoryCode == 4)
             {
                 return "";
             }
@@ -2317,32 +2327,41 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// パーセンテージフォーマット（集計行専用）- 0も表示
         /// </summary>
-        private string FormatPercentageForSubtotal(decimal value)
+        private string FormatPercentageForSubtotal(decimal salesAmount, decimal grossProfit)
         {
-            if (value == 0) return "0.00 %";  // 0も表示
-            
-            if (value < 0)
+            // 売上金額が0の場合は「****」を表示
+            if (salesAmount == 0)
             {
-                return $"{Math.Abs(value):0.00}▲ %";
+                return "****";
             }
-            
-            return $"{value:0.00} %";
+
+            var rate = Math.Round((grossProfit / salesAmount) * 100, 2);
+            if (rate < 0)
+            {
+                return $"{Math.Abs(rate):0.00}▲ %";
+            }
+
+            return $"{rate:0.00} %";
         }
 
         /// <summary>
         /// 粗利率を疑似右揃えでフォーマット（全角スペースパディング）
         /// </summary>
-        private string FormatPercentageForSubtotalWithPadding(decimal value)
+        private string FormatPercentageForSubtotalWithPadding(decimal salesAmount, decimal grossProfit)
         {
-            string percentage = FormatPercentageForSubtotal(value);
-            
+            string percentage = FormatPercentageForSubtotal(salesAmount, grossProfit);
+
             // 粗利率の値に応じてスペース数を調整
             string padding;
-            if (percentage.Contains("▲"))
+            if (percentage == "****")
+            {
+                padding = "　　　　　　　　　　　　　";  // 13個（****の場合）
+            }
+            else if (percentage.Contains("▲"))
             {
                 padding = "　　　　　　　　　　　　";  // 12個（▲がある場合）
             }
-            else if (value >= 100)
+            else if (salesAmount != 0 && Math.Abs(grossProfit / salesAmount * 100) >= 100)
             {
                 padding = "　　　　　　　　　　　";    // 11個（3桁の場合）
             }
@@ -2350,7 +2369,7 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 padding = "　　　　　　　　　　　　";  // 12個（2桁以下）
             }
-            
+
             return padding + percentage;
         }
         
@@ -2578,7 +2597,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 RemainingQuantity = FormatQuantity(data.RemainingQuantity),
                 UnitPrice = FormatUnitPrice(data.UnitPrice),
                 Amount = FormatAmount(calculatedAmount),
-                GrossProfit = FormatGrossProfit(data.GrossProfit, data.VoucherType)
+                GrossProfit = FormatGrossProfit(data.GrossProfit, data.VoucherType, data.CategoryCode)
             };
         }
         
@@ -2636,7 +2655,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 RemainingQuantity = FormatQuantity(data.RemainingQuantity),
                 UnitPrice = FormatUnitPrice(data.UnitPrice),
                 Amount = FormatAmount(calculatedAmount),
-                GrossProfit = FormatGrossProfit(data.GrossProfit, data.VoucherType)
+                GrossProfit = FormatGrossProfit(data.GrossProfit, data.VoucherType, data.CategoryCode)
             };
         }
         
@@ -2735,7 +2754,10 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = FormatUnitPriceForSubtotal(inventoryUnitPrice),
                 Amount = FormatAmountForSubtotal(inventoryAmount),
                 GrossProfit = FormatGrossProfitForSubtotal(grossProfit),
-                CustomerSupplierName = FormatPercentageForSubtotalWithPadding(grossProfitRate),  // 粗利率（疑似右揃え）
+                // 粗利率（疑似右揃え）。売上金額= subtotalSales * subtotalInventoryUnitPrice
+                CustomerSupplierName = FormatPercentageForSubtotalWithPadding(
+                    subtotalSales * subtotalInventoryUnitPrice,
+                    subtotalGrossProfit),
                 IsGrossProfitRate = true                                           // 粗利率表示フラグ
             };
         }

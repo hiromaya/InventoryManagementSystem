@@ -358,6 +358,8 @@ namespace InventorySystem.Reports.FastReport.Services
             using var report = new FR.Report();
             
             // テンプレート読み込み → スクリプト無効化（ProductAccountと同じ順序）
+            report.ReportResourceString = "";
+            report.FileName = _templatePath;
             report.Load(_templatePath);
             SetScriptLanguageToNone(report);
             
@@ -375,7 +377,18 @@ namespace InventorySystem.Reports.FastReport.Services
             if (registeredDataSource != null)
             {
                 registeredDataSource.Enabled = true;
+                try
+                {
+                    // FR側データソースを初期化してRowCountを有効化
+                    registeredDataSource.Init();
+                }
+                catch { /* ignore */ }
                 _logger.LogInformation("データソース 'InventoryData' を有効化しました");
+                try
+                {
+                    _logger.LogInformation("データソース行数: {RowCount}", registeredDataSource.RowCount);
+                }
+                catch { /* ignore */ }
             }
             else
             {
@@ -400,7 +413,17 @@ namespace InventorySystem.Reports.FastReport.Services
             try
             {
                 report.Prepare();
-                _logger.LogInformation("レポート準備完了");
+                var preparedCount = 0;
+                try
+                {
+                    preparedCount = report.PreparedPages?.Count ?? -1;
+                }
+                catch { /* ignore */ }
+                _logger.LogInformation("レポート準備完了 (PreparedPages={PreparedPages})", preparedCount);
+                if (preparedCount == 0)
+                {
+                    _logger.LogWarning("PreparedPagesが0です。テンプレートまたはデータバインドに問題がある可能性があります。");
+                }
             }
             catch (Exception ex)
             {
@@ -426,7 +449,16 @@ namespace InventorySystem.Reports.FastReport.Services
             report.Export(pdfExport, memoryStream);
             
             // MemoryStreamからファイルに書き出し
+            var length = memoryStream.Length;
+            if (length == 0)
+            {
+                _logger.LogWarning("PDF書き出し後のMemoryStream.Lengthが0です。Export処理が正常に行われていない可能性があります。");
+            }
             var pdfBytes = memoryStream.ToArray();
+            if (pdfBytes.Length == 0)
+            {
+                _logger.LogWarning("ToArray()の結果も0バイトです。テンプレートのデータソース名/バンド設定を確認してください。");
+            }
             await File.WriteAllBytesAsync(outputPath, pdfBytes);
             
             _logger.LogInformation("PDF生成完了: {FilePath}, サイズ: {Size}bytes", outputPath, pdfBytes.Length);
