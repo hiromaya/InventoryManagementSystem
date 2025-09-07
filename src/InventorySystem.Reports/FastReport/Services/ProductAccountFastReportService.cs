@@ -2753,7 +2753,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 GrossProfit = FormatGrossProfitForSubtotal(grossProfit),
                 // 粗利率（疑似右揃え）。分母=売上伝票金額（SalesVouchers.Amount合計）
                 CustomerSupplierName = FormatPercentageForSubtotalWithPadding(
-                    grossProfitRate,
+                    salesAmount,
                     grossProfit),
                 IsGrossProfitRate = true                                           // 粗利率表示フラグ
             };
