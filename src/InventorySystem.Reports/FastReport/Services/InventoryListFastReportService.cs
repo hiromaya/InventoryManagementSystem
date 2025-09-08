@@ -365,7 +365,99 @@ namespace InventorySystem.Reports.FastReport.Services
             report.ReportResourceString = "";
             report.FileName = templatePath;
             _logger.LogInformation("テンプレート読込: {Template}", templatePath);
+            // === テンプレート読込前診断 ===
+            _logger.LogError($"=== テンプレート読込前診断 ===");
+            var templateExists = System.IO.File.Exists(templatePath);
+            _logger.LogError($"Template exists: {templateExists}");
+            if (templateExists)
+            {
+                try
+                {
+                    var fileInfo = new System.IO.FileInfo(templatePath);
+                    _logger.LogError($"File size: {fileInfo.Length} bytes");
+                    var content = System.IO.File.ReadAllText(templatePath);
+                    var head = content.Substring(0, Math.Min(200, content.Length));
+                    _logger.LogError($"File content (first 200 chars): {head}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "テンプレート読込前のファイル読み取りで例外が発生");
+                }
+            }
+
+            // FastReportの初期状態
+            _logger.LogError($"Before Load - report.Pages.Count: {report.Pages?.Count ?? -1}");
+            _logger.LogError($"Before Load - report.FileName: {report.FileName ?? "null"}");
+
+            // テンプレート読み込み
+            _logger.LogError($"Calling report.Load({templatePath})...");
             report.Load(templatePath);
+            _logger.LogError($"report.Load() completed");
+
+            // === 読込後の状態確認 ===
+            _logger.LogError($"=== 読込後の状態確認 ===");
+            _logger.LogError($"After Load - report.FileName: {report.FileName ?? "null"}");
+            _logger.LogError($"After Load - report.Pages is null: {report.Pages == null}");
+            _logger.LogError($"After Load - report.Pages.Count: {report.Pages?.Count ?? -1}");
+
+            if (report.Pages != null && report.Pages.Count > 0)
+            {
+                try
+                {
+                    for (int i = 0; i < report.Pages.Count; i++)
+                    {
+                        var page = report.Pages[i];
+                        _logger.LogError($"Page[{i}]: Type={page?.GetType().Name ?? "null"}, Name={page?.Name ?? "null"}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "読込後のPages列挙で例外が発生");
+                }
+            }
+            else
+            {
+                _logger.LogError("WARNING: No pages loaded!");
+                _logger.LogError("Trying alternative load method...");
+                try
+                {
+                    using (var stream = System.IO.File.OpenRead(templatePath))
+                    {
+                        report.Load(stream);
+                    }
+                    _logger.LogError($"Alternative load - Pages.Count: {report.Pages?.Count ?? -1}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Alternative load failed: {ex.Message}");
+                }
+            }
+            // テンプレート読み込み直後の診断（緊急追加）
+            _logger.LogError($"=== テンプレート読込直後の診断 ===");
+            _logger.LogError($"report.Pages.Count: {report.Pages.Count}");
+
+            if (report.Pages.Count > 0)
+            {
+                _logger.LogError($"Pages[0].Name: {report.Pages[0].Name}");
+                _logger.LogError($"Pages[0] Type: {report.Pages[0].GetType().FullName}");
+                
+                // ReportPageとして取得を試みる
+                if (report.Pages[0] is FastReport.ReportPage reportPage)
+                {
+                    _logger.LogError($"ReportPage.Bands.Count: {reportPage.Bands.Count}");
+                    foreach (FastReport.BandBase band in reportPage.Bands)
+                    {
+                        _logger.LogError($"Band: {band.GetType().Name} - {band.Name}");
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogError("Pages.Count is 0 - テンプレートが読み込まれていません");
+            }
+
+            // Dictionaryの確認
+            _logger.LogError($"Dictionary.DataSources.Count: {report.Dictionary.DataSources.Count}");
             SetScriptLanguageToNone(report);
             
             // フラットデータをDataTableに変換
@@ -459,6 +551,43 @@ namespace InventorySystem.Reports.FastReport.Services
                 }
             }
             catch { /* ignore */ }
+
+            // 追加診断②: FindObjectの前に全オブジェクトを列挙し、FindObject/LINQ検索の結果を確認
+            try
+            {
+                _logger.LogError("=== 全オブジェクトの列挙 ===");
+                foreach (var anyObj in report.AllObjects)
+                {
+                    try
+                    {
+                        var typeName = anyObj?.GetType().Name ?? "(null)";
+                        var nameVal = (anyObj as object)?.GetType().GetProperty("Name")?.GetValue(anyObj)?.ToString() ?? "(null)";
+                        var parentName = (anyObj as FR.Base)?.Parent?.Name ?? "(null)";
+                        _logger.LogError($"Object: Type={typeName}, Name={nameVal}, Parent={parentName}");
+
+                        if (anyObj is FR.DataBand db)
+                        {
+                            _logger.LogError($"  -> DataBand found! DataSource={db.DataSource?.Name ?? "null"}");
+                        }
+                    }
+                    catch { /* ignore per-object diagnostics errors */ }
+                }
+
+                _logger.LogError("=== FindObjectテスト ===");
+                var foundData1 = report.FindObject("Data1");
+                _logger.LogError($"FindObject('Data1'): {foundData1?.GetType().Name ?? "NULL"}, Name={foundData1?.Name ?? "NULL"}");
+
+                var allDataBands = report.AllObjects.OfType<FR.DataBand>().ToList();
+                _logger.LogError($"AllObjects.OfType<DataBand>().Count: {allDataBands.Count}");
+                foreach (var band in allDataBands)
+                {
+                    _logger.LogError($"DataBand via LINQ: Name={band.Name}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "FindObject/AllObjects診断で例外が発生");
+            }
             
             // パラメータ設定
             _logger.LogInformation("レポートパラメータを設定しています...");
