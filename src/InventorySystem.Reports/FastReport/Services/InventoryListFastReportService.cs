@@ -442,10 +442,10 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogError($"Pages[0] Type: {report.Pages[0].GetType().FullName}");
                 
                 // ReportPageとして取得を試みる
-                if (report.Pages[0] is FastReport.ReportPage reportPage)
+                if (report.Pages[0] is FR.ReportPage reportPage)
                 {
                     _logger.LogError($"ReportPage.Bands.Count: {reportPage.Bands.Count}");
-                    foreach (FastReport.BandBase band in reportPage.Bands)
+                    foreach (FR.BandBase band in reportPage.Bands)
                     {
                         _logger.LogError($"Band: {band.GetType().Name} - {band.Name}");
                     }
