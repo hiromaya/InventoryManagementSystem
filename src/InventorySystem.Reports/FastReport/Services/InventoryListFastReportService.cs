@@ -651,21 +651,28 @@ namespace InventorySystem.Reports.FastReport.Services
                 // DataBandに明示的にデータソースを割り当て（テンプレートの参照ズレ対策）
                 try
                 {
-                    var page = report.Pages.Count > 0 ? report.Pages[0] as FR.ReportPage : null;
-                    if (page != null)
+                    int assignCount = 0;
+                    // 全ページのBandsを直接走査（AllObjectsに依存しない）
+                    foreach (var p in report.Pages)
                     {
-                        foreach (var obj in page.AllObjects)
+                        if (p is FR.ReportPage rp)
                         {
-                            if (obj is FR.DataBand band)
+                            foreach (var bandBase in rp.Bands)
                             {
-                                if (string.Equals(band.Name, "Data1", StringComparison.OrdinalIgnoreCase))
+                                if (bandBase is FR.DataBand dataBand)
                                 {
-                                    band.DataSource = registeredDataSource;
-                                    _logger.LogInformation("DataBand '{BandName}' にデータソース '{DSName}' を割当", band.Name, registeredDataSource.Name);
+                                    // Data1 を優先して割当。必要に応じて未設定Bandにも割当
+                                    if (string.Equals(dataBand.Name, "Data1", StringComparison.OrdinalIgnoreCase) || dataBand.DataSource == null)
+                                    {
+                                        dataBand.DataSource = registeredDataSource;
+                                        assignCount++;
+                                        _logger.LogInformation("DataBand '{BandName}' にDataSource='{DSName}' を割当完了", dataBand.Name, registeredDataSource.Name);
+                                    }
                                 }
                             }
                         }
                     }
+                    _logger.LogInformation("DataBandへのDataSource割当数: {Count}", assignCount);
                 }
                 catch (Exception ex)
                 {
@@ -853,16 +860,18 @@ namespace InventorySystem.Reports.FastReport.Services
             using var memoryStream = new MemoryStream();
             report.Export(pdfExport, memoryStream);
             
-            // MemoryStreamからファイルに書き出し
+            // MemoryStreamからファイルに書き出し（0バイトは即エラー）
             var length = memoryStream.Length;
             if (length == 0)
             {
-                _logger.LogWarning("PDF書き出し後のMemoryStream.Lengthが0です。Export処理が正常に行われていない可能性があります。");
+                _logger.LogError("PDF書き出し後のMemoryStream.Lengthが0です。DataBand未バインドの可能性。");
+                throw new InvalidOperationException("FastReportエクスポート結果が0バイトです（DataBand未バインドの可能性）。");
             }
             var pdfBytes = memoryStream.ToArray();
             if (pdfBytes.Length == 0)
             {
-                _logger.LogWarning("ToArray()の結果も0バイトです。テンプレートのデータソース名/バンド設定を確認してください。");
+                _logger.LogError("ToArray()の結果も0バイトです。テンプレートとデータソースの設定を確認してください。");
+                throw new InvalidOperationException("FastReportエクスポート結果が0バイトです（ToArray）。");
             }
             await File.WriteAllBytesAsync(outputPath, pdfBytes);
             
