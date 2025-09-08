@@ -55,54 +55,38 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogInformation("Phase 1: データ準備開始");
                 var cpInventoryData = await PrepareInventoryData(jobDate);
                 
-                // Phase 2: フラットデータ生成
-                _logger.LogInformation("Phase 2: 担当者別フラットデータ生成");
-                var flatData = GenerateFlatData(cpInventoryData);
-                
-                // 担当者コード空を"000"に変換（ProductAccountと同じ）
-                foreach (var item in flatData)
+                // Phase 2: 担当者別フラットデータ生成（商品勘定パターンに準拠）
+                _logger.LogInformation("Phase 2: 担当者別フラットデータ生成（スタッフ毎に独立）");
+                var staffDataDict = GenerateFlatDataByStaff(cpInventoryData);
+                if (staffDataDict.Count == 0)
                 {
-                    if (string.IsNullOrEmpty(item.StaffCode))
-                    {
-                        item.StaffCode = "000";
-                        item.StaffName = "担当者未設定";
-                    }
+                    throw new InvalidOperationException("在庫表のデータが存在しません（担当者グループなし）");
                 }
-                
-                if (!flatData.Any())
-                {
-                    throw new InvalidOperationException("在庫表のデータが存在しません");
-                }
-                
-                // Phase 3: 1次PDF生成（仮ページ番号）
-                _logger.LogInformation("Phase 3: 1次PDF生成（仮ページ番号）");
+
+                // Phase 3: 担当者別1次PDF生成（仮ページ番号）
+                _logger.LogInformation("Phase 3: 担当者別1次PDF生成（仮ページ番号）");
                 tempFolder = Path.Combine(
                     AppDomain.CurrentDomain.BaseDirectory,
                     "Output",
                     $"Temp_{DateTime.Now:yyyyMMddHHmmss}");
                 Directory.CreateDirectory(tempFolder);
-                
-                var tempPdfFiles = new List<string>();
-                var tempPdfFile = Path.Combine(tempFolder, "temp_inventory.pdf");
-                await GenerateSinglePdfAsync(flatData, 1, flatData.Count, 999, tempPdfFile, jobDate);
-                tempPdfFiles.Add(tempPdfFile);
-                
-                // Phase 4: ページ数解析
-                _logger.LogInformation("Phase 4: ページ数解析");
-                var totalPages = GetPdfPageCount(tempPdfFile);
-                _logger.LogInformation("総ページ数: {TotalPages}", totalPages);
-                
-                // Phase 5: 2次PDF生成（正確なページ番号）
-                _logger.LogInformation("Phase 5: 2次PDF生成（正確なページ番号）");
-                var finalPdfFile = Path.Combine(tempFolder, "final_inventory.pdf");
-                await GenerateSinglePdfAsync(flatData, 1, flatData.Count, totalPages, finalPdfFile, jobDate);
-                
-                // Phase 6: 最終PDF読み込み
-                _logger.LogInformation("Phase 6: 最終PDF読み込み");
-                var finalPdfBytes = await File.ReadAllBytesAsync(finalPdfFile);
-                
-                _logger.LogInformation("在庫表FastReport PDF生成完了: ファイルサイズ={FileSize}bytes", finalPdfBytes.Length);
-                return finalPdfBytes;
+
+                var firstPassPdfs = await GenerateFirstPassPdfs(staffDataDict, tempFolder, jobDate);
+
+                // Phase 4: 担当者別ページ数カウント
+                _logger.LogInformation("Phase 4: 担当者別ページ数カウント");
+                var pageCounts = CountPagesByStaff(firstPassPdfs);
+
+                // Phase 5: 担当者別2次PDF生成（正確なページ番号）
+                _logger.LogInformation("Phase 5: 担当者別2次PDF生成（正確なページ番号）");
+                var finalPdfs = await GenerateSecondPassPdfs(staffDataDict, pageCounts, tempFolder, jobDate);
+
+                // Phase 6: PDF結合（担当者順）
+                _logger.LogInformation("Phase 6: PDF結合（担当者順）");
+                var mergedPdfBytes = MergePdfs(finalPdfs);
+
+                _logger.LogInformation("在庫表FastReport PDF生成完了: ファイルサイズ={FileSize}bytes", mergedPdfBytes.Length);
+                return mergedPdfBytes;
             }
             catch (Exception ex)
             {
@@ -221,6 +205,183 @@ namespace InventorySystem.Reports.FastReport.Services
             
             // 35行改ページ制御（ProductAccountと同じ実装）
             return ApplyPageBreakControl(flatRows);
+        }
+
+        /// <summary>
+        /// 担当者別のフラットデータを作成（各担当者ごとに独立したリスト）
+        /// </summary>
+        private Dictionary<string, List<InventoryFlatRow>> GenerateFlatDataByStaff(List<CpInventoryMaster> sourceData)
+        {
+            var result = new Dictionary<string, List<InventoryFlatRow>>();
+
+            // 担当者でグループ化（null/空は "000" に）
+            var staffGroups = sourceData
+                .GroupBy(x => x.ProductCategory1 ?? "000")
+                .OrderBy(g => g.Key);
+
+            foreach (var staffGroup in staffGroups)
+            {
+                var staffCode = string.IsNullOrEmpty(staffGroup.Key) ? "000" : staffGroup.Key;
+                var staffName = staffCode == "000" ? "担当者未設定" : $"担当者{staffCode}";
+
+                var rows = new List<InventoryFlatRow>();
+
+                // 担当者ヘッダー
+                rows.Add(new InventoryFlatRow
+                {
+                    RowType = RowTypes.StaffHeader,
+                    IsPageBreak = "1",
+                    IsBold = "1",
+                    StaffCode = staffCode,
+                    StaffName = staffName,
+                    Col1 = $"担当者: {staffCode} - {staffName}"
+                });
+
+                // 商品でグループ化
+                var productGroups = staffGroup
+                    .GroupBy(x => x.Key.ProductCode)
+                    .OrderBy(g => g.Key);
+
+                decimal staffTotalQuantity = 0;
+                decimal staffTotalAmount = 0;
+
+                foreach (var productGroup in productGroups)
+                {
+                    decimal productSubtotalQuantity = 0;
+                    decimal productSubtotalAmount = 0;
+
+                    foreach (var item in productGroup)
+                    {
+                        var detail = CreateDetailRow(item);
+                        detail.StaffCode = staffCode;
+                        detail.StaffName = staffName;
+                        rows.Add(detail);
+                        productSubtotalQuantity += item.DailyStock;
+                        productSubtotalAmount += item.DailyStockAmount;
+                    }
+
+                    rows.Add(CreateProductSubtotalRow(productSubtotalQuantity, productSubtotalAmount));
+                    staffTotalQuantity += productSubtotalQuantity;
+                    staffTotalAmount += productSubtotalAmount;
+                }
+
+                rows.Add(CreateStaffTotalRow(staffTotalQuantity, staffTotalAmount));
+
+                // 改ページ制御を適用
+                var withPageBreaks = ApplyPageBreakControl(rows);
+                result[staffCode] = withPageBreaks;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 担当者別1次PDF（仮ページ番号）を生成
+        /// </summary>
+        private async Task<Dictionary<string, string>> GenerateFirstPassPdfs(
+            Dictionary<string, List<InventoryFlatRow>> staffDataDict,
+            string tempFolder,
+            DateTime jobDate)
+        {
+            var pdfPaths = new Dictionary<string, string>();
+
+            foreach (var kvp in staffDataDict.OrderBy(k => k.Key))
+            {
+                var staffCode = kvp.Key;
+                var rows = kvp.Value;
+                var pdfPath = Path.Combine(tempFolder, $"temp_staff_{staffCode}.pdf");
+                _logger.LogInformation("担当者 {Staff} の1次PDF生成: {File}", staffCode, Path.GetFileName(pdfPath));
+                await GenerateSinglePdfAsync(rows, 1, rows.Count, 999, pdfPath, jobDate);
+                pdfPaths[staffCode] = pdfPath;
+            }
+
+            return pdfPaths;
+        }
+
+        /// <summary>
+        /// 担当者別ページ数を取得
+        /// </summary>
+        private Dictionary<string, int> CountPagesByStaff(Dictionary<string, string> firstPassPdfs)
+        {
+            var pageCounts = new Dictionary<string, int>();
+            int cumulative = 0;
+            foreach (var kvp in firstPassPdfs.OrderBy(k => k.Key))
+            {
+                var pages = GetPdfPageCount(kvp.Value);
+                pageCounts[kvp.Key] = pages;
+                cumulative += pages;
+                _logger.LogInformation("担当者 {Staff}: {Pages}ページ", kvp.Key, pages);
+            }
+            _logger.LogInformation("総ページ数: {Total}", cumulative);
+            return pageCounts;
+        }
+
+        /// <summary>
+        /// 担当者別2次PDF（正確なページ番号）を生成
+        /// </summary>
+        private async Task<List<string>> GenerateSecondPassPdfs(
+            Dictionary<string, List<InventoryFlatRow>> staffDataDict,
+            Dictionary<string, int> pageCounts,
+            string tempFolder,
+            DateTime jobDate)
+        {
+            var finalPdfs = new List<string>();
+            var totalPages = pageCounts.Values.Sum();
+            var offset = 0;
+
+            foreach (var kvp in staffDataDict.OrderBy(k => k.Key))
+            {
+                var staffCode = kvp.Key;
+                var rows = kvp.Value;
+                var staffPageCount = pageCounts.TryGetValue(staffCode, out var p) ? p : 0;
+                var pdfPath = Path.Combine(tempFolder, $"final_staff_{staffCode}.pdf");
+                _logger.LogInformation("担当者 {Staff} の最終PDF生成: ページ {From}-{To}/{Total}", staffCode, offset + 1, offset + staffPageCount, totalPages);
+                await GenerateSinglePdfAsync(rows, offset + 1, rows.Count, totalPages, pdfPath, jobDate);
+                finalPdfs.Add(pdfPath);
+                offset += staffPageCount;
+            }
+
+            DeleteFirstPassPdfs(tempFolder);
+            return finalPdfs;
+        }
+
+        private void DeleteFirstPassPdfs(string tempFolder)
+        {
+            try
+            {
+                foreach (var file in Directory.GetFiles(tempFolder, "temp_staff_*.pdf"))
+                {
+                    File.Delete(file);
+                    _logger.LogDebug("1次PDF削除: {File}", Path.GetFileName(file));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "1次PDF削除エラー（続行）");
+            }
+        }
+
+        /// <summary>
+        /// PDFを結合してバイト配列で返す
+        /// </summary>
+        private byte[] MergePdfs(List<string> pdfPaths)
+        {
+            _logger.LogInformation("PDF結合開始: {Count}ファイル", pdfPaths.Count);
+            using var output = new PdfSharp.Pdf.PdfDocument();
+            foreach (var path in pdfPaths)
+            {
+                using var input = PdfReader.Open(path, PdfDocumentOpenMode.Import);
+                for (int i = 0; i < input.PageCount; i++)
+                {
+                    output.AddPage(input.Pages[i]);
+                }
+                _logger.LogDebug("結合: {File}", Path.GetFileName(path));
+            }
+            using var ms = new MemoryStream();
+            output.Save(ms, false);
+            var bytes = ms.ToArray();
+            _logger.LogInformation("PDF結合完了: {Size}バイト", bytes.Length);
+            return bytes;
         }
 
         /// <summary>
