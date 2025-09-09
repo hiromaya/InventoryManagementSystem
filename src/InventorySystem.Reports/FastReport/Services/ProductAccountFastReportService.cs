@@ -731,36 +731,39 @@ namespace InventorySystem.Reports.FastReport.Services
                 
             var sql = @"
                     WITH ProductAccount AS (
-                        -- 前残高データ（CP在庫マスタから）
+                        -- 前残高データ（InventoryCarryoverMasterから全期間分）
                         SELECT 
-                            cp.ProductCode,
-                            ISNULL(cp.ProductName, '') as ProductName,
-                            ISNULL(cp.ProductCategory1, '') as ProductCategory1,
-                            cp.ShippingMarkCode,
-                            cp.ShippingMarkName,
-                            cp.ManualShippingMark,
-                            cp.GradeCode,
-                            cp.GradeName,
-                            cp.ClassCode,
-                            cp.ClassName,
+                            co.ProductCode,
+                            ISNULL(co.ProductName, '') as ProductName,
+                            ISNULL(co.ProductCategory1, '') as ProductCategory1,
+                            co.ShippingMarkCode,
+                            ISNULL(sm.ShippingMarkName, '') as ShippingMarkName,
+                            co.ManualShippingMark,
+                            co.GradeCode,
+                            ISNULL(gm.GradeName, '') as GradeName,
+                            co.ClassCode,
+                            ISNULL(cm.ClassName, '') as ClassName,
                             '' as VoucherNumber,
                             '' as VoucherType,
                             '前残' as DisplayCategory,
-                            @JobDate as TransactionDate,
+                            co.LastReceiptDate as TransactionDate,
                             0 as PurchaseQuantity,
                             0 as SalesQuantity,
-                            cp.PreviousDayStock as RemainingQuantity,
-                            cp.PreviousDayUnitPrice as UnitPrice,
-                            cp.PreviousDayStockAmount as Amount,
+                            co.CarryoverQuantity as RemainingQuantity,
+                            co.CarryoverUnitPrice as UnitPrice,
+                            co.CarryoverAmount as Amount,
                             0 as SalesAmount,
                             0 as GrossProfit,
                             '' as CustomerSupplierName,
                             'Previous' as RecordType,  -- 重要：前残高のRecordType
                             NULL as CategoryCode
-                        FROM CpInventoryMaster cp
-                        WHERE cp.JobDate = @JobDate
-                          AND (@DepartmentCode IS NULL OR cp.ProductCategory1 = @DepartmentCode)
-                          AND cp.PreviousDayStock <> 0
+                        FROM InventoryCarryoverMaster co
+                        LEFT JOIN ShippingMarkMaster sm ON co.ShippingMarkCode = sm.ShippingMarkCode
+                        LEFT JOIN GradeMaster gm ON co.GradeCode = gm.GradeCode
+                        LEFT JOIN ClassMaster cm ON co.ClassCode = cm.ClassCode
+                        WHERE co.JobDate < @JobDate
+                          AND (@DepartmentCode IS NULL OR co.ProductCategory1 = @DepartmentCode)
+                          AND co.CarryoverQuantity <> 0
                         
                         UNION ALL
                         
@@ -900,7 +903,9 @@ namespace InventorySystem.Reports.FastReport.Services
                     )
                     SELECT * FROM ProductAccount
                     ORDER BY ProductCategory1, ProductCode, ShippingMarkCode, ManualShippingMark, 
-                             GradeCode, ClassCode, TransactionDate, VoucherNumber";
+                             GradeCode, ClassCode,
+                             CASE WHEN RecordType = 'Previous' THEN 0 ELSE 1 END,
+                             TransactionDate, VoucherNumber";
                 
                 var results = connection.Query<ProductAccountReportModel>(sql, new { 
                     JobDate = jobDate, 
@@ -2124,7 +2129,15 @@ namespace InventorySystem.Reports.FastReport.Services
                 row["ClassName"] = TruncateString(item.ClassName, 6);  // 6文字切り詰め
                 row["VoucherNumber"] = GetLast4Digits(item.VoucherNumber);  // 下4桁のみ
                 row["DisplayCategory"] = item.DisplayCategory;
-                row["MonthDay"] = item.TransactionDate.ToString("MM/dd");
+                // 前残で日付が未設定(DateTime.MinValue)の場合は空表示
+                if (item.TransactionDate == DateTime.MinValue)
+                {
+                    row["MonthDay"] = ""; // または "--/--"
+                }
+                else
+                {
+                    row["MonthDay"] = item.TransactionDate.ToString("MM/dd");
+                }
                 row["CustomerSupplierName"] = TruncateString(item.CustomerSupplierName, 10);  // 10文字切り詰め
                 row["GroupKey"] = item.GroupKey;
                 

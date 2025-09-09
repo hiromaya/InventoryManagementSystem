@@ -89,7 +89,10 @@ public class CpInventoryMaster
     public decimal MonthlyGrossProfit { get; set; }             // 月計粗利益
     public decimal MonthlyWalkingAmount { get; set; }           // 月計歩引き額
     public decimal MonthlyIncentiveAmount { get; set; }         // 月計奨励金
-    
+
+    // 最終入荷日（仕入・在庫調整(1/3/6)・振替(4)のプラス数量で更新）
+    public DateTime? LastReceiptDate { get; set; }
+
     // DataSetId管理を廃止（仮テーブル設計のため）
     
     // 部門コード

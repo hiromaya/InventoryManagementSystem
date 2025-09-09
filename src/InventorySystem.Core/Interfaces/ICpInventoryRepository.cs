@@ -150,6 +150,16 @@ public interface ICpInventoryRepository
     /// 仮テーブル設計：全レコード対象
     /// </summary>
     Task<int> CalculateWalkingAmountAsync(DateTime jobDate);
+
+    /// <summary>
+    /// 最終入荷日をCarryoverから補完する（cp.LastReceiptDateがNULLの場合）
+    /// </summary>
+    Task<int> SeedLastReceiptDateFromCarryoverAsync(DateTime jobDate);
+
+    /// <summary>
+    /// 最終入荷日を当日の入荷データに基づき更新する
+    /// </summary>
+    Task<int> UpdateLastReceiptDateAsync(DateTime jobDate);
     
     /// <summary>
     /// 前日の在庫マスタから前日在庫を引き継ぐ

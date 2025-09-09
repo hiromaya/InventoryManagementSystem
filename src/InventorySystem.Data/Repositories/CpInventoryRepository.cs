@@ -450,6 +450,94 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         return await connection.ExecuteAsync(sql, new { });
     }
 
+    /// <summary>
+    /// 最終入荷日を更新する（バッチ）
+    /// 条件:
+    ///  - 仕入伝票: VoucherType in ('11','12'), DetailType='1', Quantity>0
+    ///  - 在庫調整: VoucherType in ('71','72'), DetailType='1', Quantity>0, CategoryCode in (1,3,4,6)
+    /// 除外:
+    ///  - 売上返品（51/52かつ明細2）はそもそも対象外
+    /// </summary>
+    public async Task<int> UpdateLastReceiptDateAsync(DateTime jobDate)
+    {
+        using var connection = CreateConnection();
+        var total = 0;
+
+        // 仕入の入荷で更新
+        const string updateFromPurchase = @"
+            UPDATE cp
+            SET cp.LastReceiptDate = @JobDate,
+                cp.UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            WHERE cp.JobDate = @JobDate
+              AND EXISTS (
+                SELECT 1 FROM PurchaseVouchers pv
+                WHERE pv.JobDate = @JobDate
+                  AND pv.VoucherType IN ('11','12')
+                  AND pv.DetailType = '1'
+                  AND pv.Quantity > 0
+                  AND pv.ProductCode = cp.ProductCode
+                  AND pv.GradeCode = cp.GradeCode
+                  AND pv.ClassCode = cp.ClassCode
+                  AND pv.ShippingMarkCode = cp.ShippingMarkCode
+                  AND pv.ManualShippingMark = cp.ManualShippingMark
+              )";
+        total += await connection.ExecuteAsync(updateFromPurchase, new { JobDate = jobDate });
+
+        // 在庫調整の入荷（区分 1,3,4,6）のみで更新（2,5は除外）
+        const string updateFromAdjustments = @"
+            UPDATE cp
+            SET cp.LastReceiptDate = @JobDate,
+                cp.UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            WHERE cp.JobDate = @JobDate
+              AND EXISTS (
+                SELECT 1 FROM InventoryAdjustments ia
+                WHERE ia.JobDate = @JobDate
+                  AND ia.VoucherType IN ('71','72')
+                  AND ia.DetailType = '1'
+                  AND ia.Quantity > 0
+                  AND ia.CategoryCode IN (1,3,4,6)
+                  AND ia.ProductCode = cp.ProductCode
+                  AND ia.GradeCode = cp.GradeCode
+                  AND ia.ClassCode = cp.ClassCode
+                  AND ia.ShippingMarkCode = cp.ShippingMarkCode
+                  AND ia.ManualShippingMark = cp.ManualShippingMark
+              )";
+        total += await connection.ExecuteAsync(updateFromAdjustments, new { JobDate = jobDate });
+
+        return total;
+    }
+
+    /// <summary>
+    /// 前日のCarryoverから最終入荷日を補完（cp側に値が無い場合）
+    /// </summary>
+    public async Task<int> SeedLastReceiptDateFromCarryoverAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE cp
+            SET cp.LastReceiptDate = co.LastReceiptDate,
+                cp.UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            CROSS APPLY (
+                SELECT TOP 1 c.LastReceiptDate
+                FROM InventoryCarryoverMaster c
+                WHERE c.ProductCode = cp.ProductCode
+                  AND c.GradeCode = cp.GradeCode
+                  AND c.ClassCode = cp.ClassCode
+                  AND c.ShippingMarkCode = cp.ShippingMarkCode
+                  AND c.ManualShippingMark = cp.ManualShippingMark
+                  AND c.JobDate < @JobDate
+                  AND c.LastReceiptDate IS NOT NULL
+                ORDER BY c.JobDate DESC
+            ) co
+            WHERE cp.JobDate = @JobDate
+              AND cp.LastReceiptDate IS NULL";
+
+        using var connection = CreateConnection();
+        return await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+    }
+
     public async Task<int> SetDailyFlagToProcessedAsync()
     {
         // このメソッドは使用しないため無効化
@@ -579,6 +667,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             DailyIncentiveAmount = row.DailyIncentiveAmount ?? 0m,
             DailyDiscountAmount = row.DailyDiscountAmount ?? 0m,
             DailyPurchaseDiscountAmount = row.DailyPurchaseDiscountAmount ?? 0m,
+            LastReceiptDate = row.LastReceiptDate,
             // 月計項目
             MonthlySalesQuantity = row.MonthlySalesQuantity ?? 0m,
             MonthlySalesAmount = row.MonthlySalesAmount ?? 0m,
@@ -857,22 +946,41 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             UPDATE CpInventoryMaster
             SET
                 -- ①仮在庫数 = 前日在庫数 + 当日入荷数（仕入-仕返）
-                DailyReceiptQuantity = DailyPurchaseQuantity - DailyPurchaseReturnQuantity,
-                -- ②仮在庫金額 = 前日在庫金額 + 当日入荷金額
-                DailyReceiptAmount = DailyPurchaseAmount - DailyPurchaseReturnAmount,
+                --    仕様に基づき、在庫調整（区分1/3/6）、加工費（区分2/5）、振替（区分4）の入荷も含める
+                DailyReceiptQuantity = 
+                    (DailyPurchaseQuantity - DailyPurchaseReturnQuantity)
+                    + DailyInventoryAdjustmentQuantity
+                    + DailyTransferQuantity,
+                -- ②仮在庫金額 = 前日在庫金額 + 当日入荷金額（在庫調整/加工費/振替の金額を含む）
+                DailyReceiptAmount = 
+                    (DailyPurchaseAmount - DailyPurchaseReturnAmount)
+                    + DailyInventoryAdjustmentAmount
+                    + DailyTransferAmount,
                 -- ③当日在庫単価 = 仮在庫金額 ÷ 仮在庫数（0除算対策、小数第5位四捨五入）
                 DailyUnitPrice = CASE 
-                    WHEN (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity) = 0 THEN 0
-                    ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) / 
-                               (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity), 4)
+                    WHEN (PreviousDayStock + 
+                          (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) +
+                          DailyInventoryAdjustmentQuantity + DailyTransferQuantity) = 0 THEN 0
+                    ELSE ROUND((PreviousDayStockAmount + 
+                                (DailyPurchaseAmount - DailyPurchaseReturnAmount) +
+                                DailyInventoryAdjustmentAmount + DailyTransferAmount) / 
+                               (PreviousDayStock + 
+                                (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) +
+                                DailyInventoryAdjustmentQuantity + DailyTransferQuantity), 4)
                 END,
                 -- AveragePrice同期：DailyUnitPriceと同じ値を設定
                 AveragePrice = CASE 
-                    WHEN (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity) = 0 THEN 0
-                    ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) / 
-                               (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity), 4)
+                    WHEN (PreviousDayStock + 
+                          (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) +
+                          DailyInventoryAdjustmentQuantity + DailyTransferQuantity) = 0 THEN 0
+                    ELSE ROUND((PreviousDayStockAmount + 
+                                (DailyPurchaseAmount - DailyPurchaseReturnAmount) +
+                                DailyInventoryAdjustmentAmount + DailyTransferAmount) / 
+                               (PreviousDayStock + 
+                                (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) +
+                                DailyInventoryAdjustmentQuantity + DailyTransferQuantity), 4)
                 END,
-                -- ④当日在庫数 = 前日在庫数 + 当日入荷数 - 当日出荷数
+                -- ④当日在庫数 = 前日在庫数 + 当日入荷数 - 当日出荷数 - 在庫調整 - 加工 - 振替
                 DailyStock = PreviousDayStock + 
                              (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) - 
                              (DailySalesQuantity - DailySalesReturnQuantity) -
@@ -888,9 +996,15 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                      DailyProcessingQuantity -
                      DailyTransferQuantity) * 
                     CASE 
-                        WHEN (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity) = 0 THEN 0
-                        ELSE ROUND((PreviousDayStockAmount + DailyPurchaseAmount - DailyPurchaseReturnAmount) / 
-                                   (PreviousDayStock + DailyPurchaseQuantity - DailyPurchaseReturnQuantity), 4)
+                        WHEN (PreviousDayStock + 
+                              (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) +
+                              DailyInventoryAdjustmentQuantity + DailyProcessingQuantity + DailyTransferQuantity) = 0 THEN 0
+                        ELSE ROUND((PreviousDayStockAmount + 
+                                    (DailyPurchaseAmount - DailyPurchaseReturnAmount) +
+                                    DailyInventoryAdjustmentAmount + DailyProcessingAmount + DailyTransferAmount) / 
+                                   (PreviousDayStock + 
+                                    (DailyPurchaseQuantity - DailyPurchaseReturnQuantity) +
+                                    DailyInventoryAdjustmentQuantity + DailyProcessingQuantity + DailyTransferQuantity), 4)
                     END, 4),
                 UpdatedDate = GETDATE()
             -- 仮テーブル設計：全レコード対象";

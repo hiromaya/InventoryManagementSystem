@@ -168,7 +168,7 @@ public class InventoryListService : IInventoryListService
                 CurrentStockAmount = cpInventory.DailyStockAmount,
                 PreviousStockQuantity = cpInventory.PreviousDayStock,
                 PreviousStockAmount = cpInventory.PreviousDayStockAmount,
-                LastReceiptDate = cpInventory.DailyReceiptQuantity > 0 ? cpInventory.JobDate : (DateTime?)null
+                LastReceiptDate = cpInventory.LastReceiptDate
             };
 
             // 滞留マーク計算
