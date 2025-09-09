@@ -271,6 +271,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogInformation("テンプレート読込: {Template}", templatePath);
                 report.Load(templatePath);
 
+                // .NET 8対策: レポートスクリプトを完全無効化（CodeDom回避）
+                SetScriptLanguageToNone(report);
+
                 // データ登録
                 report.RegisterData(dataTable, "InventoryData");
                 var dataSource = report.GetDataSource("InventoryData");
@@ -296,6 +299,46 @@ namespace InventorySystem.Reports.FastReport.Services
                     report.Export(pdfExport, stream);
                     return stream.ToArray();
                 }
+            }
+        }
+
+        // FastReportのスクリプトを完全に無効化（商品勘定/アンマッチと同等の対策）
+        private void SetScriptLanguageToNone(FR.Report report)
+        {
+            try
+            {
+                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                if (scriptLanguageProperty != null)
+                {
+                    var enumType = scriptLanguageProperty.PropertyType;
+                    if (enumType.IsEnum)
+                    {
+                        var noneValue = Enum.GetValues(enumType).Cast<object>()
+                            .FirstOrDefault(v => v.ToString() == "None");
+                        if (noneValue != null)
+                        {
+                            scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("ScriptLanguageをNoneに設定しました");
+                        }
+                    }
+                }
+
+                // ReportResourceStringをクリア
+                report.ReportResourceString = "";
+
+                // 内部Scriptプロパティをnullにクリア（反射）
+                var scriptProperty = report.GetType().GetProperty(
+                    "Script",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (scriptProperty != null)
+                {
+                    scriptProperty.SetValue(report, null);
+                    _logger.LogInformation("Scriptプロパティをnullに設定しました");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Script無効化処理中の警告");
             }
         }
 
@@ -445,4 +488,3 @@ namespace InventorySystem.Reports.FastReport.Services
     }
 }
 #endif
-
