@@ -38,15 +38,28 @@ BEGIN
                 -- 商品属性はマスタから補完
                 ISNULL(pm.ProductName, N'商品' + s.ProductCode) as ProductName,
                 ISNULL(pm.UnitCode, N'PCS') as Unit,
-                ISNULL(pm.ProductCategory1, N'') as ProductCategory1,
+                -- 初期在庫は担当者コード（PersonInChargeCode）を商品分類1として保存
+                CONVERT(NVARCHAR(10), s.PersonInChargeCode) as ProductCategory1,
                 ISNULL(pm.ProductCategory2, N'') as ProductCategory2,
 
-                -- Carryover（初期在庫は当日列を採用）
-                CarryoverQuantity  = ISNULL(s.CurrentStockQuantity, 0),
-                CarryoverAmount    = ISNULL(s.CurrentStockAmount, 0),
-                CarryoverUnitPrice = COALESCE(NULLIF(s.StandardPrice, 0), NULLIF(s.AveragePrice, 0),
-                                            CASE WHEN ISNULL(s.CurrentStockQuantity, 0) = 0 THEN 0 
-                                                 ELSE s.CurrentStockAmount / NULLIF(s.CurrentStockQuantity, 0) END)
+                -- Carryover（優先順位: 当日>前日。数量が0の系は無視）
+                CarryoverQuantity  = CASE 
+                                        WHEN ISNULL(s.CurrentStockQuantity, 0) > 0 THEN s.CurrentStockQuantity
+                                        WHEN ISNULL(s.PreviousStockQuantity, 0) > 0 THEN s.PreviousStockQuantity
+                                        ELSE 0
+                                     END,
+                CarryoverAmount    = CASE 
+                                        WHEN ISNULL(s.CurrentStockQuantity, 0) > 0 THEN s.CurrentStockAmount
+                                        WHEN ISNULL(s.PreviousStockQuantity, 0) > 0 THEN s.PreviousStockAmount
+                                        ELSE 0
+                                     END,
+                CarryoverUnitPrice = CASE 
+                                        WHEN ISNULL(s.CurrentStockQuantity, 0) > 0 AND ISNULL(s.CurrentStockAmount, 0) > 0
+                                            THEN s.CurrentStockAmount / NULLIF(s.CurrentStockQuantity, 0)
+                                        WHEN ISNULL(s.PreviousStockQuantity, 0) > 0 AND ISNULL(s.PreviousStockAmount, 0) > 0
+                                            THEN s.PreviousStockAmount / NULLIF(s.PreviousStockQuantity, 0)
+                                        ELSE ISNULL(s.StandardPrice, 0)
+                                     END
             FROM InitialInventory_Staging s
             LEFT JOIN ProductMaster pm ON pm.ProductCode = s.ProductCode
             WHERE s.ProcessId = @ProcessId
@@ -74,7 +87,7 @@ BEGIN
                 target.CarryoverQuantity = source.CarryoverQuantity,
                 target.CarryoverAmount = source.CarryoverAmount,
                 target.CarryoverUnitPrice = source.CarryoverUnitPrice,
-                target.LastReceiptDate = NULL,
+                target.LastReceiptDate = @JobDate,
                 target.ImportType = 'INIT',
                 target.Origin = 'INITIAL_IMPORT',
                 target.UpdatedAt = GETDATE(),
@@ -93,7 +106,7 @@ BEGIN
                 source.CarryoverQuantity, source.CarryoverAmount, source.CarryoverUnitPrice,
                 0, 0, 0,
                 @JobDate, @ProcessId, 'INIT', 'INITIAL_IMPORT', GETDATE(), GETDATE(), 'import-initial-inventory',
-                NULL
+                @JobDate
             );
 
         SET @Inserted = @Inserted + (CASE WHEN @@ROWCOUNT > 0 THEN @@ROWCOUNT ELSE 0 END);
