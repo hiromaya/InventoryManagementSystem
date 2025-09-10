@@ -218,14 +218,15 @@ public class InitialInventoryImportService
     }
 
     /// <summary>
-    /// sp_MergeInitialInventory を実行して Staging→InventoryMaster を反映
+    /// 初期在庫を CarryoverMaster に反映（Staging→Carryover）
     /// </summary>
     private async Task ExecuteMergeStoredProcedureAsync(string processId, DateTime jobDate)
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
 
-        using var cmd = new SqlCommand("sp_MergeInitialInventory", connection)
+        // Carryover統合: 初期在庫の取り込み先を InventoryCarryoverMaster に切替
+        using var cmd = new SqlCommand("sp_MergeInitialInventoryToCarryover", connection)
         {
             CommandType = CommandType.StoredProcedure
         };
@@ -236,7 +237,7 @@ public class InitialInventoryImportService
         await cmd.ExecuteNonQueryAsync();
         sw.Stop();
 
-        _logger.LogInformation("sp_MergeInitialInventory 実行完了: ProcessId={ProcessId}, JobDate={JobDate:yyyy-MM-dd}, {Ms}ms",
+        _logger.LogInformation("sp_MergeInitialInventoryToCarryover 実行完了: ProcessId={ProcessId}, JobDate={JobDate:yyyy-MM-dd}, {Ms}ms",
             processId, jobDate, sw.ElapsedMilliseconds);
     }
 

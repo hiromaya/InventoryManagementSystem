@@ -24,6 +24,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
     private readonly IInventoryRepository _inventoryRepository;
     private readonly ICpInventoryRepository _cpInventoryRepository;
     private readonly IUnInventoryRepository _unInventoryRepository;
+    private readonly ICarryoverRepository _carryoverRepository;
     private readonly IDailyCloseManagementRepository _dailyCloseRepository;
     private readonly ISalesVoucherRepository _salesRepository;
     private readonly IPurchaseVoucherRepository _purchaseRepository;
@@ -38,6 +39,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         IInventoryRepository inventoryRepository,
         ICpInventoryRepository cpInventoryRepository,
         IUnInventoryRepository unInventoryRepository,
+        ICarryoverRepository carryoverRepository,
         IDailyCloseManagementRepository dailyCloseRepository,
         ISalesVoucherRepository salesRepository,
         IPurchaseVoucherRepository purchaseRepository,
@@ -50,6 +52,7 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
         _inventoryRepository = inventoryRepository;
         _cpInventoryRepository = cpInventoryRepository;
         _unInventoryRepository = unInventoryRepository;
+        _carryoverRepository = carryoverRepository;
         _dailyCloseRepository = dailyCloseRepository;
         _salesRepository = salesRepository;
         _purchaseRepository = purchaseRepository;
@@ -785,6 +788,18 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
                 ExecutedBy = executedBy
             };
             var updateCount = await UpdateInventoryMaster(context);
+
+            // CP在庫M → CarryoverMaster へスナップショット保存（商品日報と同じDataSetIdを採用）
+            try
+            {
+                _logger.LogInformation("CP→Carryover統合を実行: JobDate={JobDate}, DataSetId={DataSetId}", jobDate, dailyReportDataSetId);
+                await _carryoverRepository.MergeFromCpInventoryAsync(jobDate, dailyReportDataSetId);
+                _logger.LogInformation("CP→Carryover統合完了");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "CP→Carryover統合に失敗しました（処理は継続）");
+            }
             result.UpdatedInventoryCount = updateCount;
             
             // 日次終了管理テーブルに記録

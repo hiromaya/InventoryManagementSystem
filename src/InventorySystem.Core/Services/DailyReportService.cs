@@ -98,6 +98,12 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
                 var adjustmentResult = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(reportDate);
                 _logger.LogInformation("在庫調整データ集計完了 - 更新件数: {Count}", adjustmentResult);
                 
+                // 3.5 最終入荷日（CP）更新（前日のCarryoverからの補完→当日の入荷に基づく更新）
+                _logger.LogInformation("最終入荷日（CP）補完・更新開始");
+                await _cpInventoryRepository.SeedLastReceiptDateFromCarryoverAsync(reportDate);
+                await _cpInventoryRepository.UpdateLastReceiptDateAsync(reportDate);
+                _logger.LogInformation("最終入荷日（CP）補完・更新完了");
+                
                 // 経費項目の計算を追加
                 var discountResult = await _cpInventoryRepository.CalculatePurchaseDiscountAsync(reportDate);
                 _logger.LogInformation("仕入値引計算完了 - 更新件数: {Count}", discountResult);

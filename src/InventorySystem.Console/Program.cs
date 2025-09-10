@@ -129,6 +129,8 @@ namespace InventorySystem.Console
                     new CpInventoryRepository(connectionString, provider.GetRequiredService<ILogger<CpInventoryRepository>>()));
             builder.Services.AddScoped<IUnInventoryRepository>(provider =>
                     new UnInventoryRepository(connectionString, provider.GetRequiredService<ILogger<UnInventoryRepository>>()));
+            builder.Services.AddScoped<ICarryoverRepository>(provider =>
+                    new CarryoverRepository(connectionString, provider.GetRequiredService<ILogger<CarryoverRepository>>()));
             builder.Services.AddScoped<ISalesVoucherRepository>(provider =>
                     new SalesVoucherRepository(connectionString, provider.GetRequiredService<ILogger<SalesVoucherRepository>>()));
             builder.Services.AddScoped<IPurchaseVoucherRepository>(provider =>

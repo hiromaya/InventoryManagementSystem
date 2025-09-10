@@ -761,8 +761,7 @@ namespace InventorySystem.Reports.FastReport.Services
                         LEFT JOIN ShippingMarkMaster sm ON co.ShippingMarkCode = sm.ShippingMarkCode
                         LEFT JOIN GradeMaster gm ON co.GradeCode = gm.GradeCode
                         LEFT JOIN ClassMaster cm ON co.ClassCode = cm.ClassCode
-                        WHERE co.JobDate < @JobDate
-                          AND (@DepartmentCode IS NULL OR co.ProductCategory1 = @DepartmentCode)
+                        WHERE (@DepartmentCode IS NULL OR co.ProductCategory1 = @DepartmentCode)
                           AND co.CarryoverQuantity <> 0
                         
                         UNION ALL
