@@ -275,12 +275,26 @@ namespace InventorySystem.Reports.FastReport.Services
                 SetScriptLanguageToNone(report);
 
                 // データ登録
+                _logger.LogInformation("DataTable概要: 行数={RowCount}, 列数={ColCount}", dataTable.Rows.Count, dataTable.Columns.Count);
+                if (dataTable.Rows.Count > 0)
+                {
+                    try
+                    {
+                        var r0 = dataTable.Rows[0];
+                        _logger.LogInformation("先頭行プレビュー: Col1='{Col1}', Col2='{Col2}', StaffCode='{Staff}'",
+                            r0["Col1"]?.ToString() ?? string.Empty,
+                            r0["Col2"]?.ToString() ?? string.Empty,
+                            r0["StaffCode"]?.ToString() ?? string.Empty);
+                    }
+                    catch { /* ログのみ */ }
+                }
                 report.RegisterData(dataTable, "InventoryData");
                 var dataSource = report.GetDataSource("InventoryData");
                 if (dataSource != null)
                 {
                     dataSource.Enabled = true;
                     dataSource.Init();
+                    _logger.LogInformation("データソース登録: Name={Name}, Enabled={Enabled}", dataSource.Name, dataSource.Enabled);
                 }
 
                 // DataBandへの直接割当
@@ -288,9 +302,23 @@ namespace InventorySystem.Reports.FastReport.Services
 
                 // パラメータ設定（存在しない場合は無視）
                 try { report.SetParameterValue("JobDate", jobDate.ToString("yyyy年MM月dd日")); } catch { }
+                try { report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy年MM月dd日 HH時mm分")); } catch { }
 
                 // レポート準備
                 report.Prepare();
+                try
+                {
+                    var preparedPages = report?.PreparedPages?.Count ?? 0;
+                    _logger.LogInformation("Prepare完了: 準備済みページ数={Pages}", preparedPages);
+                    if (preparedPages == 0)
+                    {
+                        _logger.LogWarning("Prepareは成功したがページが生成されていません（0ページ）");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Prepare結果の確認中に例外が発生しました（続行）");
+                }
 
                 // PDF出力
                 using (var pdfExport = new PDFExport())
