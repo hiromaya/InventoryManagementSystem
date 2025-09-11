@@ -1,0 +1,619 @@
+商品勘定の帳票システムを完成さえるために日時終了処理において
+▌も、移行用在庫マスタを使用する方向で実装を検討しております。
+▌
+▌１．CP在庫マスタで在庫情報を計算
+▌２．日時終了処理にて残存している在庫情報を移行用在庫マスタへ
+▌記録する。
+▌３．移行用在庫マスタは日時終了処理の際に上書き更新とする。在
+▌庫マスタと同様にデーターセット方式にし、以前の情報は復元可能
+▌とします。　４．移行用在庫マスタは在庫マスタとは別テーブルで
+▌管理します。なぜならもし日時終了処理を失敗して復元しなければ
+▌ならなくなった際に在庫マスタは復元する必要がないからです。ま
+▌だコードは修正しません。実装計画を経てます。
+
+> 了解しました。ご方針に沿って、日時終了処理と帳票連携ま
+  で含めた実装計画を整理します（設計・計画のみ、コード修正
+  なし）。
+
+  目的
+
+  - CP在庫マスタで得た当日時点の在庫結果を「移行用在庫マスタ
+  （新規テーブル）」へ毎日確定保存
+  - 移行用在庫マスタは日次終了処理のたびに上書き（データセッ
+  ト方式で履歴復元可能）し、商品勘定の前残明細はここから全期
+  間検索
+  - 在庫マスタとは完全分離し、復元時も在庫マスタへは影響しな
+  い構成
+
+  全体フロー
+
+  1. CP在庫マスタ（ワーク）で当日の在庫計算（既存）
+  2. 商品勘定・日報など帳票生成（既存）
+  3. 日次終了処理（新規/拡張）
+      - CP在庫Mから前残となる在庫を抽出
+      - 移行用在庫マスタへ上書き（データセット方式）
+      - 完了後、CP在庫マスタを削除（既存）
+  4. 帳票側の参照
+      - 商品勘定の前残明細は、移行用在庫マスタから「全期間」
+  検索して印字
+
+  テーブル設計（新規: 移行用在庫マスタ）
+
+  - テーブル名（例）: InventoryCarryoverMaster
+  - キー・検索軸
+      - 5項目キー: ProductCode, GradeCode, ClassCode,
+  ShippingMarkCode, ManualShippingMark
+      - JobDate（日単位のスナップショット）
+      - DataSetId（日次終了ごとにユニーク）
+      - 主キー案: (ProductCode, GradeCode, ClassCode,
+  ShippingMarkCode, ManualShippingMark, JobDate, DataSetId)
+      - 復元用に DataSetId を含める（任意だが履歴整合のため
+  推奨）
+  - データ項目（ZAIK CSV形式準拠、初期在庫と整合）
+      - 前残項目: CarryoverQuantity, CarryoverAmount,
+  CarryoverUnitPrice
+      - 当日在庫項目（任意）: CurrentStockQuantity,
+  CurrentStockAmount, CurrentStockUnitPrice（必要範囲で）
+      - 商品情報: ProductName, Unit,
+  ProductCategory1(PersonInChargeCode), ProductCategory2 等
+      - 監査: JobDate, DataSetId, CreatedAt, UpdatedAt,
+  CreatedBy='daily-close'
+  - インデックス
+      - 検索用: (ProductCode, GradeCode, ClassCode,
+  ShippingMarkCode, ManualShippingMark, JobDate)
+      - 履歴用: (DataSetId)
+
+  日次終了処理（拡張）
+
+  - 新規ステップ: CP在庫M → 移行用在庫マスタへのマージ
+      - 抽出対象: 通常は当日終了時点の在庫（DailyStock,
+  DailyStockAmount, DailyUnitPrice）
+      - 5項目キーごとに1行
+      - 単価計算は CP在庫Mで既に計算済み（移動平均）
+  - 実装方式
+      - A. Staging + Stored
+  Procedure（sp_MergeInventoryCarryover）
+      - import-initial-inventory のパターンを踏襲
+      - Stagingへ INSERT → SPで MERGE into
+  InventoryCarryoverMaster（当日DataSetIdで上書き/挿入）
+  - B. 直接MERGE
+      - Dapperで直接MERGE文を実行
+  - 上書きルール
+      - 同一5キー＋JobDate＋DataSetId（当日）で UPDATE、なけ
+  れば INSERT
+      - 毎日DataSetIdを新規発行（復元はDataSetId単位で可能）
+  - 完了後
+      - CP在庫マスタ削除（既存）
+      - ProcessHistoryへの記録
+  （ProcessType='CARRYOVER_MERGE'、任意）
+
+  商品勘定（前残明細の参照）
+
+  - 現状: 前残を明細として出していない / 小計にのみ反映
+  - 変更（設計）:
+      - Report JobDateに対して、InventoryCarryoverMaster
+  を「全期間遡って検索」し、5項目キー単位で
+  RecordType='Previous'の明細行として列挙
+      - 表示値
+      - 数量: CarryoverQuantity
+      - 単価: CarryoverUnitPrice（小数第4位）
+      - 金額: 数量×単価（0桁丸め、▲右表示）
+      - 粗利益: 空欄（前残行は粗利に関与しない）
+  - 並び順
+      - 現在の明細順（取引日付→伝票番号）に影響しない形で「前
+  段のブロック」として印字（実帳票の順序に合わせて実装）
+  - 注意
+      - 「全期間遡って」の解釈
+      - 指定日の冒頭時点に残っている起源（Carryover）の列挙
+      - 実装は、当日以前（< JobDate）のデータセットで残ってい
+  るレコードを抽出する形（残数0は除外）
+      - 必要なら「DataSetId時点の残数」を保持するカラム追加も
+  検討（残数を日々持つ場合）
+
+  復元シナリオ
+
+  - 移行用在庫マスタは在庫マスタと別管理
+  - 復元時は対象 DataSetId を選択して復元
+  （InventoryCarryoverMaster → CP在庫再構築など）
+  - 在庫マスタの復元は不要という要件を満たす
+
+  移行ステップ（段階計画）
+
+  1. スキーマ追加: InventoryCarryoverMaster（CSV準拠）
+  2. 日次終了処理に SP（sp_MergeInventoryCarryover）を追加
+      - CP在庫M→Carryover のStaging/MERGE
+  3. 帳票: ProductAccount で Carryover を
+  RecordType='Previous' 明細として挿入（まずは当日直前分、次
+  に全期間）
+  4. 最適化: インデックス・ページング・DataSetId管理の整備
+
+  補足（現状維持点）
+
+  - 明細の金額: 在庫単価×数量（原価）で表示（本物帳票と一致）
+  - 小計の在庫単価/在庫金額: CP在庫Mの値を印字（仕様通り）
+  - 小計の粗利率: 分母＝売上伝票金額（SalesVouchers.Amount合
+  計）、売上0→“****”表示（修正済み）
+  - 振替（71 & CategoryCode=4）の粗利益は空欄（修正済み）
+
+  この方針で詳細設計（テーブル定義・SP仕様・日次終了処理フ
+  ロー・帳票の取り込み位置と順序）に落とし込みます。次に、
+  Carryoverテーブルの具体スキーマ案とSPのI/O仕様を提示します
+  が、問題なければ続行します。
+
+▌あと、この移行用在庫マスタはdotnet run
+▌import-initial-inventory DeptAの初期在庫取り込みと統合してほ
+▌しいです。現在のこの初期在庫取り込みコマンドでは、移行用在庫
+▌マスタではなく在庫マスタに記録されてしまっています。この初期
+▌在庫取り込み情報も移行用在庫マスタへ記録指せるようにします。
+
+> 承知しました。初期在庫取り込み（dotnet run
+  import-initial-inventory DeptA）も「移行用在庫マスタ」に統
+  合する設計・実装計画を以下にまとめます（設計のみ、コード修
+  正なし）。
+
+  方針と目的
+
+  - 目的: 初期在庫（導入日）も日次終了処理時の繰越前残も、
+  同一の「移行用在庫マスタ（新規テーブル）」に集約・永続化
+  し、商品勘定の前残明細はここを単一ソースとして全期間遡って
+  参照。
+  - 既存との差分: これまで初期在庫取り込みはInventoryMaster
+  に記録していたが、今後はCarryoverMasterに記録
+  （InventoryMasterは従来用途のまま切り離し）。日次終了の繰越
+  もCarryoverMasterに記録。
+
+  データモデル（移行用在庫マスタ）
+
+  - テーブル名（案）: InventoryCarryoverMaster
+  - 主キー（案）: (ProductCode, GradeCode, ClassCode,
+  ShippingMarkCode, ManualShippingMark, JobDate, DataSetId)
+  - 必須カラム（ZAIK CSV互換＋拡張）
+      - 5キー: ProductCode(5桁0埋め), GradeCode(3桁),
+  ClassCode(3桁), ShippingMarkCode(4桁), ManualShippingMark(8
+  文字固定)
+      - 商品情報: ProductName, Unit,
+  ProductCategory1(PersonInChargeCode), ProductCategory2
+      - 前残系: CarryoverQuantity, CarryoverAmount,
+  CarryoverUnitPrice（0除算対策）
+      - 当日系（任意）: CurrentStockQuantity,
+  CurrentStockAmount, CurrentStockUnitPrice（必要範囲で）
+      - 管理: JobDate, DataSetId, ImportType（'INIT'
+  or 'CARRYOVER'）、Origin（'INITIAL_IMPORT' or
+  'DAILY_CLOSE'）、CreatedAt, UpdatedAt, CreatedBy
+  - インデックス
+      - 検索用: (5キー, JobDate), (5キー), (ImportType,
+  JobDate), (DataSetId)
+
+  統合対象1：初期在庫取り込み（import-initial-inventory）
+
+  - 現状: InitialInventoryImportService →
+  InitialInventory_Staging → sp_MergeInitialInventory →
+  InventoryMaster
+  - 変更計画:
+      - ステージングは流用可（フォーマットはZAIK CSV準拠）
+      - 新SP: sp_MergeInitialInventoryToCarryover（仮称）
+      - 入力: Staging（ZAIK形式; ProductCode/Grade/Class/
+  Shipping/Manual、前残数量/金額/単価、商品名、担当者 等）
+      - 処理: InventoryCarryoverMasterへ
+  MERGE（ImportType='INIT', Origin='INITIAL_IMPORT',
+  JobDate=CSV想定日 or 指定日）
+      - キー整形: 5キーは既存ルール（0埋め・8文字固定）で正
+  規化
+  - InitialInventoryImportService 変更点（設計のみ）
+      - 既存の `ExecuteMergeStoredProcedureAsync(processId,
+  jobDate)` 呼出を carryover用SPに差し替え
+      - DataSetManagementはProcessType='CARRYOVER_INIT'で記録
+  （現行INITとの差分管理）
+      - 旧InventoryMasterへの書き込みは停止（互換が必要なら
+  FeatureFlagで切替可能に）
+
+  統合対象2：日次終了処理（DAILY CLOSE）
+
+  - 現状: CP在庫Mで計算 → 帳票 → CP在庫M削除
+  - 変更計画:
+      - CP在庫M→（Stagingへ投下）
+  → sp_MergeCarryoverFromCpInventory（仮称）
+  → InventoryCarryoverMasterへ当日の繰越を上書き保存
+  （ImportType='CARRYOVER', Origin='DAILY_CLOSE', JobDate=
+  当日）
+      - Upsertルール: 同一5キー＋当日JobDate＋DataSetIdで
+  UPDATE/INSERT
+      - 完了後、CP在庫M削除（現状どおり）
+
+  帳票側（商品勘定）の参照
+
+  - 前残明細の生成
+      - 参照元: InventoryCarryoverMaster（ImportType IN
+  ('INIT','CARRYOVER')）
+      - 範囲: 「全期間遡って」→ 指定日の開始時点に存在する前
+  残（JobDate < 対象日 かつ 残数>0）を全部列挙
+      - 表示: RecordType='Previous' の明細（数量×単価にて金額
+  表示、粗利益空欄）
+      - 並び順: 実帳票に合わせ、当日の取引明細の前に「前残明
+  細ブロック」を出す（要レイアウト調整）
+  - 当日の小計・集計
+      - これまで通り、在庫単価/在庫金額はCP在庫Mの値（当日ス
+  ナップショット）を使用
+      - 粗利率分母は売上伝票金額合計（修正済み）
+
+  コマンド・サービス変更（設計）
+
+  - import-initial-inventory
+      - 既存の InitialInventoryImportService を carryover向け
+  に動くように切替（SP変更）
+      - ProcessHistory: ProcessType='CARRYOVER_INIT' を新設
+      - DataSetId: 現状フォーマット
+  （INITIAL_YYYYMMDD_HHMMSS）流用 or CARRYOVER_INIT_... に変
+  更（区別したい場合）
+  - 日次終了処理
+      - 新規ユースケース: ICarryoverRepository（仮）or 既存
+  IInventoryRepository 拡張 → Carryover用MERGEメソッドを実装
+      - SP: sp_MergeCarryoverFromCpInventory 作成、Stagingへ
+  投入した後にMERGE（または即MERGE）
+
+  移行・互換
+
+  - 段階導入
+      - Phase 1: CarryoverMaster作成 +
+  import-initial-inventoryの書込み先をCarryoverへ変更
+  （DataSetId, ImportType='INIT'）
+      - Phase 2: 日次終了処理からCarryoverへ繰越
+  （ImportType='CARRYOVER'）
+      - Phase 3: 商品勘定でCarryoverから前残明細を全期間参照
+  （現状の「前残を小計のみ」は併存可/廃止可）
+  - 互換オプション
+      - FeatureFlag: 初期在庫の書込み先（InventoryMaster vs
+  CarryoverMaster）を切替可能に（移行期のリスク低減）
+
+  バリデーション・正規化
+
+  - 5キー正規化
+      - ProductCode(5桁0埋め), GradeCode(3桁), ClassCode(3
+  桁), ShippingMarkCode(4桁), ManualShippingMark(8文字右詰め
+  空白埋め/切詰め)
+      - 既存のCSV・CP在庫と同一ロジックをSPで実施（現行
+  sp_MergeInitialInventoryと同様）
+  - 単価・金額
+      - 単価は小数第4位、金額は0桁丸め（現行ルール）
+  - データセット方式
+      - DataSetIdで毎日のスナップショットを一意管理。復元時は
+  対象DataSetIdをインポートして戻す（在庫マスタの復元不要）
+
+  性能・索引
+
+  - 全期間検索（前残明細）に対応するため、以下の索引を推奨
+      - IX_Carryover_5Key_JobDate: (ProductCode, GradeCode,
+  ClassCode, ShippingMarkCode, ManualShippingMark, JobDate)
+      - IX_Carryover_ImportType_JobDate: (ImportType,
+  JobDate)
+      - IX_Carryover_DataSetId: (DataSetId)
+
+  テスト観点
+
+  - import-initial-inventory が CarryoverMasterへ正しく書き込
+  まれる
+  - 日次終了後、CarryoverMasterに当日繰越が記録される（CP削除
+  後も前残として参照可）
+  - 商品勘定: 前残明細が全期間分出力され、当日の取引明細の前
+  段に正しく並ぶ
+  - 粗利率・振替・調整の既存仕様は保持
+
+  この計画で進めます。次段階は「CarryoverMasterテーブ
+  ル定義」「Staging・SP仕様（初期在庫用／日次繰越用）」
+  「import-initial-inventoryサービスのI/O変更」「日次終了処理
+  への挿入ポイント」を詳細化します。ご要望があれば、これらの
+  DDL・SP仕様書ドラフトも作成します。
+
+▌dotnet run import-initial-inventory DeptAのコマンドを調査し
+▌て移行用在庫マスタのテーブル情報をインプっとしてください。
+
+• Explored
+  └ Read sp_MergeInitialInventory.sql,
+         InitialInventoryImportService.cs
+
+> 以下、dotnet run import-initial-inventory DeptA のコマンド
+  実装を調査し、「移行用在庫マスタ」に必要なテーブル情報（カ
+  ラム定義・型・マッピング）をインプットします（設計・調査の
+  み、コード変更なし）。
+
+  コマンド実体とフロー
+
+  - エントリ: Program.cs → ExecuteImportInitialInventoryAsync
+  → ImportInitialInventoryCommand.ExecuteAsync(department)
+  - サービス: InitialInventoryImportService
+      - CSV探索: ZAIK*.csv を部門フォルダから取得
+      - 日付抽出: ファイル名 ZAIKYYYYMMDD.csv から jobDate
+  推定
+      - CSV読込: ReadCsvFileAsync で InitialInventoryRecord
+  のリスト取得（バリデーションあり）
+      - ステージング投入: InsertToStagingAsync(records,
+  processId)
+      - マージSP実行:
+  ExecuteMergeStoredProcedureAsync(processId, jobDate) →
+  sp_MergeInitialInventory を呼び出し、InventoryMasterへMERGE
+      - 処理結果: DataSetId INITIAL_YYYYMMDD_HHmmss を付与
+  し、処理済みへ移動
+
+  現在のステージング定義（InsertToStaging）
+
+  - 挿入先: InitialInventory_Staging
+  - カラム一覧（コードから）
+      - ProcessId NVARCHAR(50)
+      - ProductCode NVARCHAR(5)（5桁0埋め）
+      - GradeCode NVARCHAR(3)（3桁0埋め）
+      - ClassCode NVARCHAR(3)（3桁0埋め）
+      - ShippingMarkCode NVARCHAR(4)（4桁0埋め）
+      - ManualShippingMark NVARCHAR(8)（右詰め空白埋め、8文字
+  固定）
+      - PersonInChargeCode NVARCHAR(…)]（担当者＝商品分類1
+  相当）
+      - PreviousStockQuantity DECIMAL(18,4)
+      - PreviousStockAmount DECIMAL(18,4)
+      - CurrentStockQuantity DECIMAL(18,4)
+      - CurrentStockAmount DECIMAL(18,4)
+      - StandardPrice DECIMAL(18,4)（当日在庫単価を転用）
+      - AveragePrice DECIMAL(18,4)（当日在庫単価を転用）
+      - ProcessStatus NVARCHAR(…)（'PENDING' →
+  'PROCESSED'/'ERROR'）
+
+  現行のMERGE（sp_MergeInitialInventory）
+
+  - ソース: StagingData（InitialInventory_Staging +
+  ProductMaster参照）
+      - 正規化: 5キーの0埋め/空白埋め
+      - 商品属性の補完: ProductName/Unit/ProductCategory1/2
+  - ターゲット: InventoryMaster
+  - 更新/挿入:
+      - MATCHED: PreviousMonthQuantity/Amount、CurrentStock/
+  Amount、StandardPrice 等更新。ImportType='INIT'
+      - NOT MATCHED: 新規INSERT（Daily系は0初期化、
+  DailyFlag='9'、ImportType='INIT'）
+
+  移行用在庫マスタ（新規）に必要なテーブル情報（インプット）
+
+  - 目的: 初期在庫（導入）と日次終了時の繰越前残を、同一の
+  「移行用在庫マスタ」に集約保存。商品勘定の「前残明細」はこ
+  れを全期間遡って参照。
+  - テーブル名（案）: InventoryCarryoverMaster
+  - 主キー/一意性
+      - 主キー（推奨）: (ProductCode, GradeCode, ClassCode,
+  ShippingMarkCode, ManualShippingMark, JobDate, DataSetId)
+      - インデックス:
+      - `IX_Carryover_5Key_JobDate`（検索用）
+      - `IX_Carryover_ImportType_JobDate`（期間検索/復元用）
+      - `IX_Carryover_DataSetId`（復元用）
+
+  - カラム定義（ZAIK形式＋管理項目）
+      - キー系
+      - `ProductCode NVARCHAR(5)`（0埋め）
+      - `GradeCode NVARCHAR(3)`（0埋め）
+      - `ClassCode NVARCHAR(3)`（0埋め）
+      - `ShippingMarkCode NVARCHAR(4)`（0埋め）
+      - `ManualShippingMark NVARCHAR(8)`（右詰め空白埋め 8文
+  字固定）
+  - 商品属性
+      - `ProductName NVARCHAR(100)`（ProductMasterから補完）
+      - `Unit NVARCHAR(10)`（'PCS'等）
+      - `ProductCategory1 NVARCHAR(10)`（担当者コード）
+      - `ProductCategory2 NVARCHAR(10)`（必要なら）
+  - 前残系（ZAIKの「前日在庫」相当）
+      - `CarryoverQuantity DECIMAL(18,4)`
+      - `CarryoverAmount DECIMAL(18,4)`
+      - `CarryoverUnitPrice DECIMAL(18,4)`（=Amount/
+  Quantity。0除算対策込みで設定）
+  - 当日系（任意、必要に応じて）
+      - `CurrentStockQuantity DECIMAL(18,4)`
+      - `CurrentStockAmount DECIMAL(18,4)`
+      - `CurrentStockUnitPrice DECIMAL(18,4)`
+  - 管理
+      - `JobDate DATE`（スナップショット日）
+      - `DataSetId NVARCHAR(50)`（INITIAL_… / CARRYOVER_…等）
+      - `ImportType NVARCHAR(20)`（'INIT' or 'CARRYOVER'）
+      - `Origin NVARCHAR(20)`（'INITIAL_IMPORT' or
+  'DAILY_CLOSE' 等）
+      - `CreatedAt DATETIME`、`UpdatedAt DATETIME`
+      - `CreatedBy NVARCHAR(50)`（'import-initial-inventory' /
+  'daily-close' 等）
+
+  - ステージング（初期在庫の流用）
+      - 既存 InitialInventory_Staging を流用可能（上記カラム
+  参照）
+      - 移行用のMERGE SPを新設（例:
+  sp_MergeInitialInventoryToCarryover）
+      - マッピング: Staging → CarryoverMaster
+      - 正規化: 既存のsp_MergeInitialInventoryと同様の0埋め/
+  空白埋め
+      - 設定: `ImportType='INIT'`, `Origin='INITIAL_IMPORT'`,
+  `DataSetId=@ProcessId`, `JobDate=@JobDate`
+
+  import-initial-inventory の統合（Carryoverへ）
+
+  - 変更点（設計）
+      -
+
+InitialInventoryImportService.ExecuteMergeStoredProcedureAsync(processId,
+  jobDate) の呼先を在庫マスタ用SPから Carryover用SPへ差し替え
+  （既存のInsertToStagingはそのまま使用可）
+      - ProcessHistory は ProcessType='CARRYOVER_INIT' で記録
+  （任意）
+      - 5キー正規化はSP側で踏襲
+      - DataSetId は INITIAL_YYYYMMDD_HHmmss のままでも良い
+  が、Carryoverと判別したい場合はプレフィクス変更も検討
+
+  日次終了処理の連携（Carryoverへ繰越）
+
+  - CP在庫M（当日）→ CarryoverMaster へ
+  MERGE（ImportType='CARRYOVER', Origin='DAILY_CLOSE'）
+      - 新SP（例: sp_MergeCarryoverFromCpInventory）
+      - 入力: 5キー、DailyStock/DailyStockAmount/
+  DailyUnitPrice、商品属性（必要ならMaster参照）
+      - 出力: CarryoverMaster Upsert（当日 JobDate /
+  DataSetId）
+
+  商品勘定での参照
+
+  - 前残明細: InventoryCarryoverMaster から全期間（< 対象日）
+  で抽出、RecordType='Previous'の明細として列挙（数量×単価で
+  金額表示）
+  - 当日の集計: 現状どおり CP在庫Mの値を印字（在庫単価・在庫
+  金額）
+
+  まとめ（インプットすべきテーブル情報）
+
+  - 追加テーブル: InventoryCarryoverMaster（上記カラム定義）
+  - 既存ステージングを流用（InitialInventory_Staging）
+  - 新SP:
+      - sp_MergeInitialInventoryToCarryover(@ProcessId,
+  @JobDate) — 初期在庫をCarryoverへ
+      - sp_MergeCarryoverFromCpInventory(@JobDate,
+  @DataSetId) — CPから繰越をCarryoverへ
+  - インデックス／正規化: 既存のsp_MergeInitialInventoryの正
+  規化ロジック（0埋め・空白埋め・商品属性補完）をそのまま採用
+
+  この内容でCarryoverの設計・DDL/ストアド仕様を具体に起こせま
+  す。必要であれば、次にCREATE TABLE/INDEXのDDL案、2つのMERGE
+  SPの雛形（ZAIK CSV互換）を提示します。
+
+▌わかりました。他に聞きたいことはありますか？なければ実装計画
+▌をまとめてください。
+
+> 質問はありません。以下に実装計画を統合しました。
+
+  全体方針
+
+  - 移行用在庫マスタ（新規）を追加し、初期在庫（導入時）と日
+  次繰越（前残）を集約保存。
+  - 商品勘定は、移行用在庫マスタから前残明細を全期間遡って
+  参照。CP在庫Mは当日スナップショットの集計（在庫単価/在庫金
+  額）用に継続。
+  - import-initial-inventory は移行用在庫マスタに統合（従来の
+  在庫マスタ書込を切替）。
+
+  データモデル
+
+  - 新規テーブル InventoryCarryoverMaster
+      - 5キー: ProductCode(5), GradeCode(3), ClassCode(3),
+  ShippingMarkCode(4), ManualShippingMark(8固定)
+      - 商品属性: ProductName, Unit, ProductCategory1,
+  ProductCategory2
+      - 前残系: CarryoverQuantity, CarryoverAmount,
+  CarryoverUnitPrice
+      - 当日系(任意): CurrentStockQuantity,
+  CurrentStockAmount, CurrentStockUnitPrice
+      - 管理: JobDate, DataSetId,
+  ImportType('INIT'|'CARRYOVER'),
+  Origin('INITIAL_IMPORT'|'DAILY_CLOSE'), CreatedAt,
+  UpdatedAt, CreatedBy
+      - 主キー(推奨): (ProductCode, GradeCode, ClassCode,
+  ShippingMarkCode, ManualShippingMark, JobDate, DataSetId)
+      - インデックス:
+      - `IX_Carryover_5Key_JobDate`
+      - `IX_Carryover_ImportType_JobDate`
+      - `IX_Carryover_DataSetId`
+  - ステージングは既存の InitialInventory_Staging を流用
+  （ZAIK CSV互換）
+
+  DBマイグレーション
+
+  - CREATE TABLE InventoryCarryoverMaster ...
+  - 既存 InitialInventory_Staging は流用（必要なら
+  PersonInChargeCode 等型確認）
+  - 既存 sp_MergeInitialInventory は残しつつ、新規SP追加
+
+  新規/修正ストアド
+
+  - sp_MergeInitialInventoryToCarryover(@ProcessId, @JobDate)
+      - InitialInventory_Staging → InventoryCarryoverMaster
+  へ MERGE
+      - 正規化: 5キーの0埋め/空白埋め、商品属性の補完
+      - ImportType='INIT', Origin='INITIAL_IMPORT',
+  DataSetId=@ProcessId
+  - sp_MergeCarryoverFromCpInventory(@JobDate, @DataSetId)
+      - CpInventoryMaster から Carryover（前残）を抽出し
+  て MERGE
+      - 5キー、`DailyStock`→`CarryoverQuantity`、
+  `DailyStockAmount`→`CarryoverAmount`、
+  `DailyUnitPrice`→`CarryoverUnitPrice`
+      - 商品属性/担当者はCPまたはマスタから補完
+  - ImportType='CARRYOVER', Origin='DAILY_CLOSE'
+  - エラーログ/ProcessHistory連携（任意）
+
+  アプリ側の変更（サービス/コマンド）
+
+  - InitialInventoryImportService
+      - ステージング投入は現状のまま
+      - SP呼び出しを sp_MergeInitialInventory →
+  sp_MergeInitialInventoryToCarryover に切替
+      - ProcessHistory は ProcessType='CARRYOVER_INIT' で記録
+  （任意）
+      - DataSetId は現状 INITIAL_YYYYMMDD_HHmmss を維持 or
+  CARRYOVER_INIT_... に変更（区別したい場合）
+  - 日次終了処理（DAILY CLOSE）
+      - CP在庫M→Carryover へのマージ（SP
+  sp_MergeCarryoverFromCpInventory 呼出）
+      - 完了後、CP在庫M削除（既存の順序を維持）
+      - ProcessHistory へ ProcessType='CARRYOVER_MERGE' で記
+  録（任意）
+  - FeatureFlag（任意）
+      - import-initial-inventory の書込み先（InventoryMaster
+  vs CarryoverMaster）を切替可能に（移行期のリスク低減）
+
+  商品勘定（Reports）
+
+  - 前残明細の生成（RecordType='Previous'）
+      - 参照: InventoryCarryoverMaster
+      - 範囲: 対象日より前（< JobDate）のレコードを全期間遡っ
+  て検索（必要に応じて残数>0条件の導入を検討）
+      - 表示:
+      - 数量: `CarryoverQuantity`
+      - 単価: `CarryoverUnitPrice`（小数第4位丸め、現行ルー
+  ル）
+      - 金額: 数量×単価（0桁丸め、負は“▲”を末尾）
+      - 粗利益: 空欄（前残は粗利に関与しない）
+  - 出力順: 取引明細の前にブロックとして配置（実帳票の順に合
+  わせる）
+  - 既存の小計「【前日残】」は冗長になるため、前残明細化の導
+  入に合わせて調整（表示/非表示の選択肢）
+
+  パフォーマンス・最適化
+
+  - 全期間検索はキー範囲を絞る（当日対象のキー集合を先に導出
+  し、そのキーで Carryover をフィルタ）
+  - 必要な索引を作成（5Key+JobDate、ImportType+JobDate）
+  - Carryover件数が増大する前提で、ページングや事前集約を検討
+
+  テスト・検証
+
+  - import-initial-inventory:
+      - CarryoverMasterに ImportType='INIT' で書込まれること
+      - DataSetId/JobDate/5キー正規化が正しいこと
+  - 日次終了処理:
+      - CP→Carryover のマージ（ImportType='CARRYOVER'）が正し
+  いこと
+      - CP削除後も前残がCarryoverで参照可能
+  - 商品勘定:
+      - 前残明細が全期間分出力される（数量×単価の金額、粗利益
+  空欄）
+      - 当日の小計（在庫単価/金額）はCP在庫Mの値
+      - 粗利率分母は売上伝票金額合計（売上0→“****”）、振替粗
+  利益空欄など既存仕様の維持
+
+  段階導入（推奨）
+
+  - Phase 1: CarryoverMaster新設・DDL/索引作
+  成、sp_MergeInitialInventoryToCarryover 実装、
+  import-initial-inventory切替
+  - Phase 2: sp_MergeCarryoverFromCpInventory 実装、日次終了
+  処理に組込み
+  - Phase 3: 商品勘定に Carryover 前残明細の全期間表示を追加
+  （レイアウト/順序の最終調整）
+
+  運用メモ
+
+  - 復元時は DataSetId 単位で CarryoverMaster のスナップ
+  ショットを選択（在庫マスタの復元不要）
+  - 5キーの正規化（0埋め・8桁固定）はSP側で統一（既存実装に合
+  わせる）
+
+  必要に応じて、DDLおよびSPの雛形（CREATE TABLE / MERGE SP）
+  まで詳細化します。

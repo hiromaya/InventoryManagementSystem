@@ -22,17 +22,27 @@ BEGIN
     RETURN;
 END
 
--- 5項目の主キーが既に存在するかチェック
+-- 5項目の主キーが既に存在するかチェック（実際のPK名を取得して列数を数える）
+DECLARE @PKName sysname;
 DECLARE @PKColumnCount INT;
-SELECT @PKColumnCount = COUNT(*)
-FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
-WHERE TABLE_NAME = 'InventoryMaster' 
-AND CONSTRAINT_NAME = 'PK_InventoryMaster';
+SELECT @PKName = kc.name
+FROM sys.key_constraints kc
+WHERE kc.parent_object_id = OBJECT_ID('InventoryMaster')
+  AND kc.[type] = 'PK';
 
-IF @PKColumnCount = 5
+IF @PKName IS NOT NULL
 BEGIN
-    PRINT '主キーは既に5項目に変更済みです。スキップします。';
-    RETURN;
+    SELECT @PKColumnCount = COUNT(*)
+    FROM sys.index_columns ic
+    INNER JOIN sys.indexes i ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+    WHERE i.object_id = OBJECT_ID('InventoryMaster')
+      AND i.is_primary_key = 1;
+
+    IF @PKColumnCount = 5
+    BEGIN
+        PRINT '主キーは既に5項目に変更済みです。スキップします。';
+        RETURN;
+    END
 END
 
 PRINT '========== InventoryMaster 主キー変更開始 ==========';
@@ -48,8 +58,8 @@ BEGIN TRY
     -- 1. 一時テーブルの作成（最新JobDateのデータのみを保持）
     PRINT '1. 一時テーブルを作成します...';
     
-    -- 現在のテーブル構造を確認して動的に一時テーブルを作成
-    DECLARE @CreateTempTableSQL NVARCHAR(MAX) = '
+    -- 動的SQL内で作成された#tempはスコープ外になるため、静的に作成する（可用カラムは既定値0で保持）
+    IF OBJECT_ID('tempdb..#TempInventoryMaster') IS NOT NULL DROP TABLE #TempInventoryMaster;
     CREATE TABLE #TempInventoryMaster (
         ProductCode NVARCHAR(15) NOT NULL,
         GradeCode NVARCHAR(15) NOT NULL,
@@ -58,48 +68,55 @@ BEGIN TRY
         ManualShippingMark NVARCHAR(50) NOT NULL,
         ProductName NVARCHAR(100) NOT NULL,
         Unit NVARCHAR(20) NOT NULL,
-        StandardPrice DECIMAL(18,4) NOT NULL,
-        ProductCategory1 NVARCHAR(10) NOT NULL,
-        ProductCategory2 NVARCHAR(10) NOT NULL,
+        StandardPrice DECIMAL(18,4) NOT NULL DEFAULT 0,
+        ProductCategory1 NVARCHAR(10) NOT NULL DEFAULT '',
+        ProductCategory2 NVARCHAR(10) NOT NULL DEFAULT '',
         JobDate DATE NOT NULL,
-        CreatedDate DATETIME2 NOT NULL,
-        UpdatedDate DATETIME2 NOT NULL,
-        CurrentStock DECIMAL(18,4) NOT NULL,
-        CurrentStockAmount DECIMAL(18,4) NOT NULL,
-        DailyStock DECIMAL(18,4) NOT NULL,
-        DailyStockAmount DECIMAL(18,4) NOT NULL,
-        DailyFlag CHAR(1) NOT NULL,
-        DataSetId NVARCHAR(50) NOT NULL';
-
-    -- 粗利計算関連カラムの確認と追加
-    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('InventoryMaster') AND name = 'DailyGrossProfit')
-    BEGIN
-        SET @CreateTempTableSQL = @CreateTempTableSQL + ',
-        DailyGrossProfit DECIMAL(18,4) NOT NULL,
-        DailyAdjustmentAmount DECIMAL(18,4) NOT NULL,
-        DailyProcessingCost DECIMAL(18,4) NOT NULL,
-        FinalGrossProfit DECIMAL(18,4) NOT NULL';
-    END
-
-    -- 前月繰越関連カラムの確認と追加
-    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('InventoryMaster') AND name = 'PreviousMonthQuantity')
-    BEGIN
-        SET @CreateTempTableSQL = @CreateTempTableSQL + ',
+        CreatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),
+        UpdatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),
+        CurrentStock DECIMAL(18,4) NOT NULL DEFAULT 0,
+        CurrentStockAmount DECIMAL(18,4) NOT NULL DEFAULT 0,
+        DailyStock DECIMAL(18,4) NOT NULL DEFAULT 0,
+        DailyStockAmount DECIMAL(18,4) NOT NULL DEFAULT 0,
+        DailyFlag CHAR(1) NOT NULL DEFAULT '9',
+        DataSetId NVARCHAR(50) NOT NULL DEFAULT '',
+        -- オプション列（存在しない環境でも挿入省略により既定値0で保持）
+        DailyGrossProfit DECIMAL(18,4) NOT NULL DEFAULT 0,
+        DailyAdjustmentAmount DECIMAL(18,4) NOT NULL DEFAULT 0,
+        DailyProcessingCost DECIMAL(18,4) NOT NULL DEFAULT 0,
+        FinalGrossProfit DECIMAL(18,4) NOT NULL DEFAULT 0,
         PreviousMonthQuantity DECIMAL(18,4) NOT NULL DEFAULT 0,
-        PreviousMonthAmount DECIMAL(18,4) NOT NULL DEFAULT 0';
-    END
-
-    SET @CreateTempTableSQL = @CreateTempTableSQL + ');';
-
-    -- 一時テーブルを作成
-    EXEC sp_executesql @CreateTempTableSQL;
+        PreviousMonthAmount DECIMAL(18,4) NOT NULL DEFAULT 0
+    );
 
     -- 2. 最新JobDateのデータを一時テーブルに移行
     PRINT '2. 最新JobDateのデータを抽出します...';
     
-    -- 動的SQLでデータを挿入
+    -- 挿入カラムリストとSELECT句を同期して構築
+    DECLARE @InsertColumns NVARCHAR(MAX) = '
+        ProductCode,
+        GradeCode,
+        ClassCode,
+        ShippingMarkCode,
+        ManualShippingMark,
+        ProductName,
+        Unit,
+        StandardPrice,
+        ProductCategory1,
+        ProductCategory2,
+        JobDate,
+        CreatedDate,
+        UpdatedDate,
+        CurrentStock,
+        CurrentStockAmount,
+        DailyStock,
+        DailyStockAmount,
+        DailyFlag,
+        DataSetId';
+
+    -- 動的SQLでデータを挿入（カラムリストを明示）
     DECLARE @InsertSQL NVARCHAR(MAX) = '
-    INSERT INTO #TempInventoryMaster
+    INSERT INTO #TempInventoryMaster (' + @InsertColumns + ')
     SELECT 
         im.ProductCode,
         im.GradeCode,
@@ -124,6 +141,10 @@ BEGIN TRY
     -- カラムが存在する場合のみ追加
     IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('InventoryMaster') AND name = 'DailyGrossProfit')
     BEGIN
+        -- カラムリストにも追加
+        SET @InsertColumns = @InsertColumns + ',
+        DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit';
+        
         SET @InsertSQL = @InsertSQL + ',
         im.DailyGrossProfit,
         im.DailyAdjustmentAmount,
@@ -133,6 +154,10 @@ BEGIN TRY
 
     IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('InventoryMaster') AND name = 'PreviousMonthQuantity')
     BEGIN
+        -- カラムリストにも追加
+        SET @InsertColumns = @InsertColumns + ',
+        PreviousMonthQuantity, PreviousMonthAmount';
+
         SET @InsertSQL = @InsertSQL + ',
         im.PreviousMonthQuantity,
         im.PreviousMonthAmount';
@@ -158,19 +183,25 @@ BEGIN TRY
         AND im.ManualShippingMark = latest.ManualShippingMark
         AND im.JobDate = latest.LatestJobDate;';
 
-    -- 動的SQLを実行
+    -- 動的SQLを実行（挿入カラムリストは@InsertSQL内に埋込済み）
     EXEC sp_executesql @InsertSQL;
 
     DECLARE @TempCount INT;
     SELECT @TempCount = COUNT(*) FROM #TempInventoryMaster;
     PRINT '   抽出されたレコード数: ' + CAST(@TempCount AS NVARCHAR(20));
 
-    -- 3. 既存の主キー制約を削除
+    -- 3. 既存の主キー制約を削除（名前に依存せず実テーブルのPKを削除）
     PRINT '3. 既存の主キー制約を削除します...';
-    IF EXISTS (SELECT * FROM sys.key_constraints WHERE name = 'PK_InventoryMaster' AND parent_object_id = OBJECT_ID('InventoryMaster'))
+    DECLARE @DropPKSql nvarchar(400);
+    SELECT @PKName = kc.name
+    FROM sys.key_constraints kc
+    WHERE kc.parent_object_id = OBJECT_ID('InventoryMaster')
+      AND kc.[type] = 'PK';
+    IF @PKName IS NOT NULL
     BEGIN
-        ALTER TABLE InventoryMaster DROP CONSTRAINT PK_InventoryMaster;
-        PRINT '   主キー制約を削除しました';
+        SET @DropPKSql = N'ALTER TABLE dbo.InventoryMaster DROP CONSTRAINT ' + QUOTENAME(@PKName) + N';';
+        EXEC sp_executesql @DropPKSql;
+        PRINT '   主キー制約を削除しました: ' + @PKName;
     END
     ELSE
     BEGIN
@@ -183,14 +214,24 @@ BEGIN TRY
 
     -- 5. JobDateカラムを主キーから除外した新しい主キー制約を作成
     PRINT '5. 新しい主キー制約（5項目）を作成します...';
-    ALTER TABLE InventoryMaster 
-    ADD CONSTRAINT PK_InventoryMaster PRIMARY KEY CLUSTERED (
-        ProductCode, 
-        GradeCode, 
-        ClassCode, 
-        ShippingMarkCode, 
-        ManualShippingMark
-    );
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.key_constraints kc
+        WHERE kc.parent_object_id = OBJECT_ID('InventoryMaster') AND kc.[type] = 'PK'
+    )
+    BEGIN
+        ALTER TABLE InventoryMaster 
+        ADD CONSTRAINT PK_InventoryMaster PRIMARY KEY CLUSTERED (
+            ProductCode, 
+            GradeCode, 
+            ClassCode, 
+            ShippingMarkCode, 
+            ManualShippingMark
+        );
+    END
+    ELSE
+    BEGIN
+        PRINT '   既に主キーが存在します（作成をスキップ）';
+    END
 
     -- 6. JobDateに非クラスター化インデックスを作成（検索パフォーマンス用）
     PRINT '6. JobDateに非クラスター化インデックスを作成します...';

@@ -1,0 +1,102 @@
+[
+  {
+    "ProductCode": "00104",
+    "GradeCode": "000",
+    "ClassCode": "000",
+    "PreviousStockQuantity": 0.0000,
+    "PreviousStockAmount": 0.0000,
+    "CurrentStockQuantity": 0.0000,
+    "CurrentStockAmount": 0.0000,
+    "StandardPrice": 0.0000
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "004",
+    "ClassCode": "046",
+    "PreviousStockQuantity": 0.0000,
+    "PreviousStockAmount": 0.0000,
+    "CurrentStockQuantity": 0.0000,
+    "CurrentStockAmount": 0.0000,
+    "StandardPrice": 4600.0000
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "020",
+    "PreviousStockQuantity": 0.0000,
+    "PreviousStockAmount": 0.0000,
+    "CurrentStockQuantity": 0.0000,
+    "CurrentStockAmount": 0.0000,
+    "StandardPrice": 4000.0000
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "022",
+    "PreviousStockQuantity": 3.0000,
+    "PreviousStockAmount": 11100.0000,
+    "CurrentStockQuantity": 0.0000,
+    "CurrentStockAmount": 0.0000,
+    "StandardPrice": 3700.0000
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "024",
+    "PreviousStockQuantity": 51.0000,
+    "PreviousStockAmount": 217299.9993,
+    "CurrentStockQuantity": 0.0000,
+    "CurrentStockAmount": 0.0000,
+    "StandardPrice": 4260.7843
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "028",
+    "PreviousStockQuantity": 37.0000,
+    "PreviousStockAmount": 222000.0000,
+    "CurrentStockQuantity": 0.0000,
+    "CurrentStockAmount": 0.0000,
+    "StandardPrice": 6000.0000
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "040",
+    "PreviousStockQuantity": 0.0000,
+    "PreviousStockAmount": 0.0000,
+    "CurrentStockQuantity": 0.0000,
+    "CurrentStockAmount": 0.0000,
+    "StandardPrice": 0.0000
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "046",
+    "PreviousStockQuantity": 0.0000,
+    "PreviousStockAmount": 0.0000,
+    "CurrentStockQuantity": 0.0000,
+    "CurrentStockAmount": 0.0000,
+    "StandardPrice": 0.0000
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "025",
+    "ClassCode": "046",
+    "PreviousStockQuantity": 6.0000,
+    "PreviousStockAmount": 36000.0000,
+    "CurrentStockQuantity": 0.0000,
+    "CurrentStockAmount": 0.0000,
+    "StandardPrice": 6000.0000
+  },
+  {
+    "ProductCode": "00104",
+    "GradeCode": "027",
+    "ClassCode": "020",
+    "PreviousStockQuantity": 0.0000,
+    "PreviousStockAmount": 0.0000,
+    "CurrentStockQuantity": 0.0000,
+    "CurrentStockAmount": 0.0000,
+    "StandardPrice": 3600.0000
+  }
+]
