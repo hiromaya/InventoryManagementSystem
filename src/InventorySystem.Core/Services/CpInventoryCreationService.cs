@@ -37,7 +37,7 @@ namespace InventorySystem.Core.Services
             _logger = logger;
         }
 
-        public async Task<CpInventoryCreationResult> CreateCpInventoryFromInventoryMasterAsync(DateTime jobDate)
+        public async Task<CpInventoryCreationResult> CreateCpInventoryFromCarryoverAsync(DateTime jobDate)
         {
             var result = new CpInventoryCreationResult
             {
@@ -47,7 +47,7 @@ namespace InventorySystem.Core.Services
 
             try
             {
-                _logger.LogInformation("CP在庫マスタ作成開始: JobDate={JobDate} (仮テーブル設計)", jobDate);
+                _logger.LogInformation("CP在庫マスタ作成開始（Carryoverソース）: JobDate={JobDate} (仮テーブル設計)", jobDate);
 
                 // CP在庫マスタの削除を保留（日次終了処理まで保持）
                 // Phase 1改修: 削除タイミングを日次終了処理後に変更
@@ -60,9 +60,9 @@ namespace InventorySystem.Core.Services
                 _logger.LogInformation("既存CP在庫マスタ削除: {Count}件", result.DeletedCount);
                 */
 
-                // 2. 在庫マスタからのコピー
-                result.CopiedCount = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(jobDate);
-                _logger.LogInformation("在庫マスタからコピー: {Count}件", result.CopiedCount);
+                // 2. Carryoverからのコピー
+                result.CopiedCount = await _cpInventoryRepository.CreateCpInventoryFromCarryoverAsync(jobDate);
+                _logger.LogInformation("Carryoverからコピー: {Count}件", result.CopiedCount);
 
                 result.Success = true;
 

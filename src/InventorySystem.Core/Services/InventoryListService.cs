@@ -67,7 +67,7 @@ public class InventoryListService : IInventoryListService
 
             // 1. CP在庫M作成
             _logger.LogInformation("CP在庫マスタ作成開始");
-            var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(reportDate);
+            var createResult = await _cpInventoryRepository.CreateCpInventoryFromCarryoverAsync(reportDate);
             _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
 
             // 2. 当日エリアクリア

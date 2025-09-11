@@ -789,16 +789,16 @@ public class DailyCloseService : BatchProcessBase, IDailyCloseService
             };
             var updateCount = await UpdateInventoryMaster(context);
 
-            // CP在庫M → CarryoverMaster へスナップショット保存（商品日報と同じDataSetIdを採用）
+            // CP在庫 → InventoryMaster へスナップショット保存（Carryover経路を停止）
             try
             {
-                _logger.LogInformation("CP→Carryover統合を実行: JobDate={JobDate}, DataSetId={DataSetId}", jobDate, dailyReportDataSetId);
-                await _carryoverRepository.MergeFromCpInventoryAsync(jobDate, dailyReportDataSetId);
-                _logger.LogInformation("CP→Carryover統合完了");
+                _logger.LogInformation("CP→InventoryMaster統合を実行: JobDate={JobDate}, DataSetId={DataSetId}", jobDate, dailyReportDataSetId);
+                var merged = await _inventoryRepository.UpdateFromCpInventoryAsync(dailyReportDataSetId, jobDate);
+                _logger.LogInformation("CP→InventoryMaster統合完了: 更新件数={Count}", merged);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "CP→Carryover統合に失敗しました（処理は継続）");
+                _logger.LogWarning(ex, "CP→InventoryMaster統合に失敗しました（処理は継続）");
             }
             result.UpdatedInventoryCount = updateCount;
             

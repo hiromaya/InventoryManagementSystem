@@ -87,6 +87,10 @@ BEGIN
                 source.LastReceiptDate
             );
 
+        -- アクティブ制御（全体0→今回DataSetId=1）
+        UPDATE InventoryCarryoverMaster SET IsActive = 0;
+        UPDATE InventoryCarryoverMaster SET IsActive = 1 WHERE DataSetId = @DataSetId;
+
         PRINT N'Carryoverへ取込完了（CP→Carryover）: ' + CONVERT(NVARCHAR, @JobDate, 120) + N' / ' + @DataSetId;
     END TRY
     BEGIN CATCH

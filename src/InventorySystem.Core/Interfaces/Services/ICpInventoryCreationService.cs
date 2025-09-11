@@ -10,11 +10,11 @@ namespace InventorySystem.Core.Interfaces.Services
     public interface ICpInventoryCreationService
     {
         /// <summary>
-        /// 在庫マスタからCP在庫マスタを作成する（仮テーブル設計）
+        /// 移行用在庫マスタ（IsActive=1）からCP在庫マスタを作成する（仮テーブル設計）
         /// </summary>
         /// <param name="jobDate">処理日付</param>
         /// <returns>作成結果</returns>
-        Task<CpInventoryCreationResult> CreateCpInventoryFromInventoryMasterAsync(DateTime jobDate);
+        Task<CpInventoryCreationResult> CreateCpInventoryFromCarryoverAsync(DateTime jobDate);
 
         /// <summary>
         /// 在庫マスタに存在しない商品を検出する

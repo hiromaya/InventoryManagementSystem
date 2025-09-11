@@ -2,6 +2,7 @@ using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Debug;
@@ -10,27 +11,33 @@ namespace InventorySystem.Data.Repositories;
 
 public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
 {
-    public CpInventoryRepository(string connectionString, ILogger<CpInventoryRepository> logger) : base(connectionString, logger)
+    private readonly IConfiguration _configuration;
+
+    public CpInventoryRepository(string connectionString, ILogger<CpInventoryRepository> logger, IConfiguration configuration) : base(connectionString, logger)
     {
+        _configuration = configuration;
     }
 
     public async Task<int> CreateCpInventoryFromInventoryMasterAsync(DateTime? jobDate)
     {
-        // 累積管理対応版：在庫マスタのレコードをCP在庫マスタにコピー
-        // jobDateがnullの場合は全期間対象
         using var connection = new SqlConnection(_connectionString);
+        var effectiveDate = jobDate ?? DateTime.Today;
         var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
-            "sp_CreateCpInventoryFromInventoryMasterCumulative",
-            new { JobDate = jobDate },
+            "sp_CreateCpInventoryFromInventoryMaster",
+            new { JobDate = effectiveDate },
             commandType: CommandType.StoredProcedure);
-        
-        // デバッグ追跡（CP在庫マスタ作成後）
-        if (InventoryTracker.IsEnabled && jobDate.HasValue)
+
+        if (InventoryTracker.IsEnabled)
         {
-            await TrackInventoryState("1_CP在庫作成直後", jobDate.Value);
+            await TrackInventoryState("1_CP在庫作成直後 (InventoryMasterベース)", effectiveDate);
         }
-        
         return result?.CreatedCount ?? 0;
+    }
+
+    public async Task<int> CreateCpInventoryFromCarryoverAsync(DateTime jobDate)
+    {
+        // 後方互換API: InventoryMaster版に移行
+        return await CreateCpInventoryFromInventoryMasterAsync(jobDate);
     }
 
     public async Task<int> ClearDailyAreaAsync()
@@ -307,6 +314,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND CategoryCode IN (1, 3, 6)  -- 在庫調整の単位コード
                     AND Quantity > 0  -- 入荷データ
                     AND ProductCode != '00000'
+                    AND IsActive = 1
+                    AND DataSetId = (
+                        SELECT MAX(DataSetId) FROM InventoryAdjustments 
+                        WHERE IsActive = 1 {(jobDate.HasValue ? "AND JobDate = @JobDate" : string.Empty)}
+                    )
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) adj ON cp.ProductCode = adj.ProductCode 
                 AND cp.GradeCode = adj.GradeCode 
@@ -315,8 +327,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ManualShippingMark COLLATE Japanese_CI_AS = adj.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象
             """;
-        
+        var swAdj = System.Diagnostics.Stopwatch.StartNew();
         var adjustmentResult = await connection.ExecuteAsync(adjustmentSql, new { JobDate = jobDate });
+        swAdj.Stop();
+        _logger.LogInformation("Step Adjust(調整): {Count}件更新, {Elapsed}ms", adjustmentResult, swAdj.ElapsedMilliseconds);
         totalUpdated += adjustmentResult;
         
         // 2. 加工費（単位コード: 02, 05）
@@ -344,6 +358,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND CategoryCode IN (2, 5)  -- 加工費の単位コード
                     AND Quantity > 0  -- 入荷データ
                     AND ProductCode != '00000'
+                    AND IsActive = 1
+                    AND DataSetId = (
+                        SELECT MAX(DataSetId) FROM InventoryAdjustments 
+                        WHERE IsActive = 1 {(jobDate.HasValue ? "AND JobDate = @JobDate" : string.Empty)}
+                    )
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) adj ON cp.ProductCode = adj.ProductCode 
                 AND cp.GradeCode = adj.GradeCode 
@@ -352,8 +371,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ManualShippingMark COLLATE Japanese_CI_AS = adj.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象
             """;
-        
+        var swProc = System.Diagnostics.Stopwatch.StartNew();
         var processingResult = await connection.ExecuteAsync(processingSql, new { JobDate = jobDate });
+        swProc.Stop();
+        _logger.LogInformation("Step Processing(加工): {Count}件更新, {Elapsed}ms", processingResult, swProc.ElapsedMilliseconds);
         totalUpdated += processingResult;
         
         // 3. 振替（単位コード: 04）
@@ -381,6 +402,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     AND CategoryCode = 4  -- 振替の単位コード
                     AND Quantity > 0  -- 入荷データ
                     AND ProductCode != '00000'
+                    AND IsActive = 1
+                    AND DataSetId = (
+                        SELECT MAX(DataSetId) FROM InventoryAdjustments 
+                        WHERE IsActive = 1 {(jobDate.HasValue ? "AND JobDate = @JobDate" : string.Empty)}
+                    )
                 GROUP BY ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark
             ) adj ON cp.ProductCode = adj.ProductCode 
                 AND cp.GradeCode = adj.GradeCode 
@@ -389,8 +415,10 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 AND cp.ManualShippingMark COLLATE Japanese_CI_AS = adj.ManualShippingMark COLLATE Japanese_CI_AS
             -- 仮テーブル設計：全レコード対象
             """;
-        
+        var swTrans = System.Diagnostics.Stopwatch.StartNew();
         var transferResult = await connection.ExecuteAsync(transferSql, new { JobDate = jobDate });
+        swTrans.Stop();
+        _logger.LogInformation("Step Transfer(振替): {Count}件更新, {Elapsed}ms", transferResult, swTrans.ElapsedMilliseconds);
         totalUpdated += transferResult;
         
         return totalUpdated;
@@ -533,6 +561,45 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             ) co
             WHERE cp.JobDate = @JobDate
               AND cp.LastReceiptDate IS NULL";
+
+        using var connection = CreateConnection();
+        return await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+    }
+
+    /// <summary>
+    /// 初期在庫（CarryoverMaster）から前日/当日初期在庫を種付け（初日対策）
+    /// - 対象: CarryoverMaster.JobDate = @JobDate のスナップショット
+    /// - 反映: cp.PreviousDayStock/Amount/UnitPrice と cp.DailyStock/Amount/UnitPrice
+    /// </summary>
+    public async Task<int> SeedPreviousDayFromCarryoverAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            UPDATE cp
+            SET 
+                cp.PreviousDayStock = ISNULL(co.CarryoverQuantity, 0),
+                cp.PreviousDayStockAmount = ISNULL(co.CarryoverAmount, 0),
+                cp.PreviousDayUnitPrice = CASE 
+                    WHEN ISNULL(co.CarryoverQuantity, 0) > 0 AND ISNULL(co.CarryoverAmount, 0) > 0 
+                        THEN ROUND(co.CarryoverAmount / NULLIF(co.CarryoverQuantity, 0), 4)
+                    ELSE cp.PreviousDayUnitPrice
+                END,
+                -- 当日の初期値も前日値で初期化（集計後に再計算される）
+                cp.DailyStock = ISNULL(co.CarryoverQuantity, cp.DailyStock),
+                cp.DailyStockAmount = ISNULL(co.CarryoverAmount, cp.DailyStockAmount),
+                cp.DailyUnitPrice = CASE 
+                    WHEN ISNULL(co.CarryoverQuantity, 0) > 0 AND ISNULL(co.CarryoverAmount, 0) > 0 
+                        THEN ROUND(co.CarryoverAmount / NULLIF(co.CarryoverQuantity, 0), 4)
+                    ELSE cp.DailyUnitPrice
+                END,
+                cp.UpdatedDate = GETDATE()
+            FROM CpInventoryMaster cp
+            INNER JOIN InventoryCarryoverMaster co
+                ON co.ProductCode = cp.ProductCode
+               AND co.GradeCode = cp.GradeCode
+               AND co.ClassCode = cp.ClassCode
+               AND co.ShippingMarkCode = cp.ShippingMarkCode
+               AND co.ManualShippingMark = cp.ManualShippingMark
+               AND co.JobDate = @JobDate;";
 
         using var connection = CreateConnection();
         return await connection.ExecuteAsync(sql, new { JobDate = jobDate });

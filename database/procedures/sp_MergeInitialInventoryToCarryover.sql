@@ -116,6 +116,10 @@ BEGIN
         SET ProcessStatus = 'PROCESSED'
         WHERE ProcessId = @ProcessId AND ProcessStatus = 'PENDING';
 
+        -- アクティブ制御（全体0→今回ProcessId=1）
+        UPDATE InventoryCarryoverMaster SET IsActive = 0;
+        UPDATE InventoryCarryoverMaster SET IsActive = 1 WHERE DataSetId = @ProcessId;
+
         COMMIT TRANSACTION;
 
         PRINT N'Carryoverへ取込完了: ProcessId=' + @ProcessId;

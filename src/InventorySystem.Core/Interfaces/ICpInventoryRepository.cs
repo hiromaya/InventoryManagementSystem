@@ -9,7 +9,7 @@ public interface ICpInventoryRepository
     /// 仮テーブル設計：全削除後に再作成
     /// </summary>
     /// <param name="jobDate">対象日付（nullの場合は全期間）</param>
-    Task<int> CreateCpInventoryFromInventoryMasterAsync(DateTime? jobDate);
+    Task<int> CreateCpInventoryFromCarryoverAsync(DateTime jobDate);
     
     /// <summary>
     /// CP在庫マスタの当日エリアをクリアし、当日発生フラグを'9'にセットする
@@ -154,12 +154,13 @@ public interface ICpInventoryRepository
     /// <summary>
     /// 最終入荷日をCarryoverから補完する（cp.LastReceiptDateがNULLの場合）
     /// </summary>
-    Task<int> SeedLastReceiptDateFromCarryoverAsync(DateTime jobDate);
+    Task<int> UpdateLastReceiptDateAsync(DateTime jobDate);
 
     /// <summary>
-    /// 最終入荷日を当日の入荷データに基づき更新する
+    /// 初期在庫（CarryoverMaster）から前日在庫を種付けする（初日対応）
+    /// JobDate当日のCarryoverをCP在庫の前日・当日初期値に反映
     /// </summary>
-    Task<int> UpdateLastReceiptDateAsync(DateTime jobDate);
+    Task<int> SeedPreviousDayFromCarryoverAsync(DateTime jobDate);
     
     /// <summary>
     /// 前日の在庫マスタから前日在庫を引き継ぐ

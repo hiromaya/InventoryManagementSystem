@@ -126,7 +126,10 @@ namespace InventorySystem.Console
             builder.Services.AddScoped<IInventoryRepository>(provider =>
                     new InventoryRepository(connectionString, provider.GetRequiredService<ILogger<InventoryRepository>>()));
             builder.Services.AddScoped<ICpInventoryRepository>(provider =>
-                    new CpInventoryRepository(connectionString, provider.GetRequiredService<ILogger<CpInventoryRepository>>()));
+                    new CpInventoryRepository(
+                        connectionString,
+                        provider.GetRequiredService<ILogger<CpInventoryRepository>>(),
+                        provider.GetRequiredService<IConfiguration>()));
             builder.Services.AddScoped<IUnInventoryRepository>(provider =>
                     new UnInventoryRepository(connectionString, provider.GetRequiredService<ILogger<UnInventoryRepository>>()));
             builder.Services.AddScoped<ICarryoverRepository>(provider =>
@@ -1404,7 +1407,7 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         // 既存データセット使用時：CP在庫マスタ作成
                         System.Console.WriteLine("📊 CP在庫マスタ作成中...");
                         var cpInventoryRepository = scopedServices.GetRequiredService<ICpInventoryRepository>();
-                        await cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(jobDate);
+                        await cpInventoryRepository.CreateCpInventoryFromCarryoverAsync(jobDate);
                         await cpInventoryRepository.ClearDailyAreaAsync();
                         await cpInventoryRepository.AggregateSalesDataAsync(jobDate);
                         await cpInventoryRepository.AggregatePurchaseDataAsync(jobDate);
@@ -1743,7 +1746,7 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
 
                         // 2. CP在庫マスタを作成（仮テーブル設計）
                         System.Console.WriteLine("📊 CP在庫マスタ作成中...");
-                        await cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(jobDate);
+                        await cpInventoryRepository.CreateCpInventoryFromCarryoverAsync(jobDate);
                         await cpInventoryRepository.ClearDailyAreaAsync();
                         await cpInventoryRepository.AggregateSalesDataAsync(jobDate);
                         await cpInventoryRepository.AggregatePurchaseDataAsync(jobDate);
@@ -1892,7 +1895,7 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
 
                         // 2. CP在庫マスタを作成（仮テーブル設計）
                         System.Console.WriteLine("📊 CP在庫マスタ作成中...");
-                        await cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(jobDate);
+                        await cpInventoryRepository.CreateCpInventoryFromCarryoverAsync(jobDate);
                         await cpInventoryRepository.ClearDailyAreaAsync();
                         await cpInventoryRepository.AggregateSalesDataAsync(jobDate);
                         await cpInventoryRepository.AggregatePurchaseDataAsync(jobDate);
@@ -4369,7 +4372,7 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         System.Console.WriteLine();
 
                         // CP在庫マスタ作成実行
-                        var result = await cpInventoryCreationService.CreateCpInventoryFromInventoryMasterAsync(jobDate); // 仮テーブル設計
+                        var result = await cpInventoryCreationService.CreateCpInventoryFromCarryoverAsync(jobDate); // 仮テーブル設計
 
                         if (result.Success)
                         {

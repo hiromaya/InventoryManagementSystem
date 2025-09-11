@@ -79,7 +79,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
                 _logger.LogInformation("新規データセット作成 - DataSetId: {DataSetId}", context.DataSetId);
                 // 1. CP在庫M作成
                 _logger.LogInformation("CP在庫マスタ作成開始");
-                var createResult = await _cpInventoryRepository.CreateCpInventoryFromInventoryMasterAsync(reportDate);
+                var createResult = await _cpInventoryRepository.CreateCpInventoryFromCarryoverAsync(reportDate);
                 _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
 
                 // 2. 当日エリアクリア
@@ -99,10 +99,9 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
                 _logger.LogInformation("在庫調整データ集計完了 - 更新件数: {Count}", adjustmentResult);
                 
                 // 3.5 最終入荷日（CP）更新（前日のCarryoverからの補完→当日の入荷に基づく更新）
-                _logger.LogInformation("最終入荷日（CP）補完・更新開始");
-                await _cpInventoryRepository.SeedLastReceiptDateFromCarryoverAsync(reportDate);
+                _logger.LogInformation("最終入荷日（CP）更新開始");
                 await _cpInventoryRepository.UpdateLastReceiptDateAsync(reportDate);
-                _logger.LogInformation("最終入荷日（CP）補完・更新完了");
+                _logger.LogInformation("最終入荷日（CP）更新完了");
                 
                 // 経費項目の計算を追加
                 var discountResult = await _cpInventoryRepository.CalculatePurchaseDiscountAsync(reportDate);
