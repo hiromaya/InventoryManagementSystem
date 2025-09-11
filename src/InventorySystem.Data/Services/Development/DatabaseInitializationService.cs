@@ -92,6 +92,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "110_CreateInventoryCarryoverMaster.sql",  // 移行用在庫マスタ（前残スナップショット）
         "111_AddLastReceiptDateToCarryover.sql",   // Carryoverに最終入荷日を追加
         "112_AddLastReceiptDateToCpInventoryMaster.sql", // CP在庫に最終入荷日を追加
+        "113_AddIsActiveToCarryoverMaster.sql",    // CarryoverにIsActive追加（依存SPより先に必須）
         
         // === DataSetManagement統合マイグレーション ===
         "036_MigrateDataSetsToDataSetManagement.sql", // DataSetsからDataSetManagementへの完全統合
@@ -109,6 +110,8 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "procedures/sp_MergeInventoryMasterCumulative.sql",                     // 累積在庫マージ
         "procedures/sp_CreateProductLedgerData.sql",                            // 商品勘定帳票データ生成
         "procedures/sp_MergeCarryoverFromCpInventory.sql",                      // CP→Carryover（日次終了）
+        // InventoryMaster統合向け追加
+        "procedures/sp_CreateCpInventoryFromInventoryMaster.sql",               // InventoryMasterからCP在庫作成
         
         // === UN在庫マスタ作成（アンマッチチェック専用） ===
         "060_CreateUnInventoryMaster.sql",                                     // UN在庫マスタテーブル作成
