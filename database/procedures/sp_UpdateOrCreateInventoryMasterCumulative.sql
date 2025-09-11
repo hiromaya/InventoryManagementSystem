@@ -55,9 +55,9 @@ BEGIN
             ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
             ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
             JobDate, CreatedDate, UpdatedDate,
+            CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice,
             CurrentStock, CurrentStockAmount,
-            DailyStock, DailyStockAmount, DailyFlag,
-            PreviousMonthQuantity, PreviousMonthAmount
+            DailyStock, DailyStockAmount, DailyFlag
         )
         SELECT DISTINCT
             v.ProductCode, v.GradeCode, v.ClassCode, v.ShippingMarkCode, v.ManualShippingMark,
@@ -67,7 +67,8 @@ BEGIN
             ISNULL(pm.ProductCategory1, ''), 
             ISNULL(pm.ProductCategory2, ''),
             @JobDate, GETDATE(), GETDATE(),
-            0, 0, 0, 0, '0', 0, 0
+            0, 0, 0,  -- CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice
+            0, 0, 0, 0, '0'
         FROM (
             SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, ProductName
             FROM SalesVouchers WHERE JobDate = @JobDate
