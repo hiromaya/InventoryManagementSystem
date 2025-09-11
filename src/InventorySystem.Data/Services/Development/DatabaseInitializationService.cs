@@ -94,6 +94,9 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "112_AddLastReceiptDateToCpInventoryMaster.sql", // CP在庫に最終入荷日を追加
         "113_AddIsActiveToCarryoverMaster.sql",    // CarryoverにIsActive追加（依存SPより先に必須）
         
+        // === 在庫マスタ統合（Carryover→InventoryMaster統合） ===
+        "200_InventoryMasterIntegration.sql",      // 5項目キー桁数是正 + Carryoverカラム統合 + データ移行
+        
         // === DataSetManagement統合マイグレーション ===
         "036_MigrateDataSetsToDataSetManagement.sql", // DataSetsからDataSetManagementへの完全統合
         "037_FixDataSetManagementDefaultConstraints.sql", // UpdatedAtデフォルト制約追加（プレースホルダー）
