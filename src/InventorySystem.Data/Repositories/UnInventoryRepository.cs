@@ -32,7 +32,10 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
             SELECT 
                 i.ProductCode, i.GradeCode, i.ClassCode, i.ShippingMarkCode, i.ManualShippingMark,
                 ISNULL(sm.ShippingMarkName, '') as ShippingMarkName,
-                ISNULL(i.PreviousMonthQuantity, 0),
+                CASE 
+                    WHEN i.DailyFlag = '9' THEN ISNULL(i.CarryoverQuantity, 0)
+                    ELSE ISNULL(i.CurrentStock, 0)
+                END,
                 0 as DailyStock,
                 '9' as DailyFlag,
                 i.JobDate,
