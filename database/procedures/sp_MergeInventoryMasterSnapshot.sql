@@ -156,11 +156,10 @@ BEGIN
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
+                CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice,
                 CurrentStock, CurrentStockAmount, 
                 DailyStock, DailyStockAmount,
-                DailyFlag, DataSetId,
-                PreviousMonthQuantity, PreviousMonthAmount,
-                DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit
+                DailyFlag, DataSetId
             )
             VALUES (
                 source.ProductCode, source.GradeCode, source.ClassCode, 
@@ -171,6 +170,7 @@ BEGIN
                 source.ProductCategory1,
                 source.ProductCategory2,
                 @JobDate, GETDATE(), GETDATE(),
+                0, 0, 0,  -- Carryover fields
                 -- 新規商品の在庫数量
                 source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
                 -- 在庫金額は原価ベース（売上数量×原価 + 仕入額 + 調整額）
@@ -183,9 +183,7 @@ BEGIN
                     + ISNULL(source.TotalPurchaseAmount, 0)
                     + ISNULL(source.TotalAdjustmentAmount, 0),
                 N'0',  -- データありフラグ
-                @DataSetId,
-                0, 0,  -- 前月末在庫は0（スナップショット管理のため）
-                0, 0, 0, 0  -- 粗利関連は0で初期化
+                @DataSetId
             )
         OUTPUT $action INTO @MergeOutput(ActionType);
         

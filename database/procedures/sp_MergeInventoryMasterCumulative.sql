@@ -149,11 +149,10 @@ BEGIN
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
+                CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice,
                 CurrentStock, CurrentStockAmount, 
                 DailyStock, DailyStockAmount,
-                DailyFlag, DataSetId,
-                PreviousMonthQuantity, PreviousMonthAmount,
-                DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit
+                DailyFlag, DataSetId
             )
             VALUES (
                 source.ProductCode, source.GradeCode, source.ClassCode, 
@@ -161,6 +160,7 @@ BEGIN
                 source.ProductName, source.UnitName, source.StandardPrice,
                 source.ProductCategory1, source.ProductCategory2,
                 @JobDate, GETDATE(), GETDATE(),
+                0, 0, 0,
                 
                 -- 在庫数量
                 source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
@@ -178,8 +178,7 @@ BEGIN
                 source.TotalPurchaseAmount + 
                 source.TotalAdjustmentAmount,
                 
-                N'0', @DataSetId,
-                0, 0, 0, 0, 0, 0
+                N'0', @DataSetId
             )
         OUTPUT $action INTO @MergeOutput(ActionType);
 

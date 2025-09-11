@@ -99,45 +99,45 @@ BEGIN
             GETDATE() AS UpdatedDate,
             -- 前日在庫の設定を条件分岐（DailyFlag='9'は前月末在庫）
             CASE 
-                WHEN im.DailyFlag = '9' THEN im.PreviousMonthQuantity
+                WHEN im.DailyFlag = '9' THEN im.CarryoverQuantity
                 ELSE im.CurrentStock
             END AS PreviousDayStock,
             CASE 
-                WHEN im.DailyFlag = '9' THEN im.PreviousMonthAmount
+                WHEN im.DailyFlag = '9' THEN im.CarryoverAmount
                 ELSE im.CurrentStockAmount
             END AS PreviousDayStockAmount,
             -- 前日在庫単価の計算（前月末在庫は単価を直接計算）
             CASE 
-                WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity != 0 
-                    THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
-                WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
+                WHEN im.DailyFlag = '9' AND im.CarryoverQuantity != 0 
+                    THEN ROUND(im.CarryoverAmount / im.CarryoverQuantity, 4)
+                WHEN im.DailyFlag = '9' AND im.CarryoverQuantity = 0 
                     THEN ISNULL(im.StandardPrice, 0)  -- StandardPriceをフォールバック使用
                 ELSE COALESCE(NULLIF(im.StandardPrice, 0), im.AveragePrice, 0)
             END AS PreviousDayUnitPrice,
             -- 当日在庫（初期値は前日と同じ）
             CASE 
-                WHEN im.DailyFlag = '9' THEN im.PreviousMonthQuantity
+                WHEN im.DailyFlag = '9' THEN im.CarryoverQuantity
                 ELSE im.CurrentStock
             END AS DailyStock,
             CASE 
-                WHEN im.DailyFlag = '9' THEN im.PreviousMonthAmount
+                WHEN im.DailyFlag = '9' THEN im.CarryoverAmount
                 ELSE im.CurrentStockAmount
             END AS DailyStockAmount,
 
             -- 当日在庫単価
             CASE 
-                WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity != 0 
-                    THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
-                WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
+                WHEN im.DailyFlag = '9' AND im.CarryoverQuantity != 0 
+                    THEN ROUND(im.CarryoverAmount / im.CarryoverQuantity, 4)
+                WHEN im.DailyFlag = '9' AND im.CarryoverQuantity = 0 
                     THEN ISNULL(im.StandardPrice, 0)
                 ELSE COALESCE(NULLIF(im.StandardPrice, 0), im.AveragePrice, 0)
             END AS DailyUnitPrice,
 
             -- AveragePrice（同じロジック）
             CASE 
-                WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity != 0 
-                    THEN ROUND(im.PreviousMonthAmount / im.PreviousMonthQuantity, 4)
-                WHEN im.DailyFlag = '9' AND im.PreviousMonthQuantity = 0 
+                WHEN im.DailyFlag = '9' AND im.CarryoverQuantity != 0 
+                    THEN ROUND(im.CarryoverAmount / im.CarryoverQuantity, 4)
+                WHEN im.DailyFlag = '9' AND im.CarryoverQuantity = 0 
                     THEN ISNULL(im.StandardPrice, 0)
                 ELSE COALESCE(NULLIF(im.StandardPrice, 0), im.AveragePrice, 0)
             END AS AveragePrice,
