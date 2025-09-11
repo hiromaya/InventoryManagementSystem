@@ -43,7 +43,7 @@ BEGIN
                 AND s.ProcessStatus = 'PENDING'
         )
         
-        -- 2. 在庫マスタへのMERGE処理
+        -- 2. 在庫マスタへのMERGE処理（統合後スキーマ対応: Carryover* 列を使用）
         MERGE InventoryMaster AS target
         USING (
             SELECT 
@@ -77,15 +77,18 @@ BEGIN
         -- 既存レコードが存在する場合（通常は初期在庫では発生しないが念のため）
         WHEN MATCHED THEN
             UPDATE SET
-                PreviousMonthQuantity = source.PreviousStockQuantity,
-                PreviousMonthAmount = source.PreviousStockAmount,
-                CurrentStock = source.CurrentStockQuantity,
-                CurrentStockAmount = source.CurrentStockAmount,
-                StandardPrice = source.StandardPrice,
-                UpdatedDate = GETDATE(),
-                DataSetId = @ProcessId,
-                ImportType = 'INIT',
-                IsActive = 1
+                CarryoverQuantity  = ISNULL(source.PreviousStockQuantity, 0),
+                CarryoverAmount    = ISNULL(source.PreviousStockAmount, 0),
+                CarryoverUnitPrice = CASE WHEN ISNULL(source.PreviousStockQuantity, 0) = 0 
+                                           THEN 0 
+                                           ELSE ROUND(ISNULL(source.PreviousStockAmount, 0) / NULLIF(source.PreviousStockQuantity, 0), 4) END,
+                CurrentStock       = ISNULL(source.CurrentStockQuantity, 0),
+                CurrentStockAmount = ISNULL(source.CurrentStockAmount, 0),
+                StandardPrice      = ISNULL(source.StandardPrice, 0),
+                UpdatedDate        = GETDATE(),
+                DataSetId          = @ProcessId,
+                ImportType         = 'INIT',
+                IsActive           = 1
         
         -- 新規レコード作成
         WHEN NOT MATCHED THEN
@@ -93,24 +96,24 @@ BEGIN
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
                 JobDate, CreatedDate, UpdatedDate,
-                PreviousMonthQuantity, PreviousMonthAmount,
+                CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice,
                 CurrentStock, CurrentStockAmount,
                 DailyStock, DailyStockAmount,
-                DailyFlag, DataSetId, ImportType, IsActive,
-                DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit
+                DailyFlag, DataSetId, ImportType, IsActive
             )
             VALUES (
                 source.ProductCode, source.GradeCode, source.ClassCode,
                 source.ShippingMarkCode, source.ManualShippingMark,
-                source.ProductName, source.Unit, source.StandardPrice,
+                source.ProductName, source.Unit, ISNULL(source.StandardPrice, 0),
                 source.ProductCategory1, source.ProductCategory2,
                 @JobDate, GETDATE(), GETDATE(),
-                source.PreviousStockQuantity, source.PreviousStockAmount,
-                source.CurrentStockQuantity, source.CurrentStockAmount,
+                ISNULL(source.PreviousStockQuantity, 0), ISNULL(source.PreviousStockAmount, 0),
+                CASE WHEN ISNULL(source.PreviousStockQuantity, 0) = 0 THEN 0 
+                     ELSE ROUND(ISNULL(source.PreviousStockAmount, 0) / NULLIF(source.PreviousStockQuantity, 0), 4) END,
+                ISNULL(source.CurrentStockQuantity, 0), ISNULL(source.CurrentStockAmount, 0),
                 0, 0,  -- 初期在庫なのでDailyStockは0
                 '9',   -- DailyFlag
-                @ProcessId, 'INIT', 1,
-                0, 0, 0, 0  -- 粗利関連は0で初期化
+                @ProcessId, 'INIT', 1
             );
         
         SET @InsertCount = @@ROWCOUNT;
