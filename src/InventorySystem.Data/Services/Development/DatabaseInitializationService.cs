@@ -662,43 +662,89 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         try
         {
             _logger.LogInformation("すべてのテーブルを削除します");
-            
-            // 段階1: すべての外部キー制約を先に削除
+
+            // 段階1: すべての外部キー制約を先に削除（まとめて）
             _logger.LogInformation("外部キー制約を削除中...");
             var dropConstraintsSql = @"
-                DECLARE @sql NVARCHAR(MAX) = '';
+                DECLARE @sql NVARCHAR(MAX) = N'';
                 SELECT @sql = @sql + 
-                    'ALTER TABLE [' + SCHEMA_NAME(fk.schema_id) + '].[' + OBJECT_NAME(fk.parent_object_id) + 
-                    '] DROP CONSTRAINT [' + fk.name + ']; '
+                    N'ALTER TABLE ' + QUOTENAME(SCHEMA_NAME(fk.schema_id)) + N'.' + QUOTENAME(OBJECT_NAME(fk.parent_object_id)) + 
+                    N' DROP CONSTRAINT ' + QUOTENAME(fk.name) + N';'
                 FROM sys.foreign_keys fk
                 ORDER BY fk.name;
                 
                 IF LEN(@sql) > 0
                 BEGIN
-                    PRINT 'Dropping foreign key constraints: ' + @sql;
                     EXEC sp_executesql @sql;
                 END";
-            
-            await connection.ExecuteAsync(dropConstraintsSql);
+            await connection.ExecuteAsync(new CommandDefinition(dropConstraintsSql, commandTimeout: 300));
             _logger.LogInformation("外部キー制約の削除が完了しました");
-            
-            // 段階2: すべてのユーザーテーブルを削除
-            _logger.LogInformation("テーブルを削除中...");
-            var dropTablesSql = @"
-                DECLARE @sql NVARCHAR(MAX) = '';
-                SELECT @sql = @sql + 'DROP TABLE [' + SCHEMA_NAME(schema_id) + '].[' + name + ']; '
-                FROM sys.tables
-                WHERE type = 'U'
-                ORDER BY name;
-                
-                IF LEN(@sql) > 0
-                BEGIN
-                    PRINT 'Dropping tables: ' + @sql;
-                    EXEC sp_executesql @sql;
-                END";
-            
-            await connection.ExecuteAsync(dropTablesSql);
-            _logger.LogInformation("すべてのテーブルを削除しました");
+
+            // 段階2: ユーザーテーブルを1件ずつ安全に削除（ロック待ち短縮、テンポラル対応）
+            _logger.LogInformation("テーブルを削除中（逐次）...");
+
+            // ロック待ちの上限を短縮してフリーズを回避（5秒）
+            await connection.ExecuteAsync("SET LOCK_TIMEOUT 5000;");
+
+            // テーブル一覧を取得（テンポラル情報付き）
+            var tables = (await connection.QueryAsync<(string SchemaName, string TableName, int TemporalType, int? HistoryTableId, string HistSchema, string HistName)>(@"
+                SELECT 
+                    SCHEMA_NAME(t.schema_id) AS SchemaName,
+                    t.name AS TableName,
+                    t.temporal_type AS TemporalType,
+                    t.history_table_id AS HistoryTableId,
+                    OBJECT_SCHEMA_NAME(t.history_table_id) AS HistSchema,
+                    OBJECT_NAME(t.history_table_id) AS HistName
+                FROM sys.tables t
+                WHERE t.type = 'U'
+                ORDER BY t.name;"))
+                .ToList();
+
+            foreach (var t in tables)
+            {
+                var fullName = $"[{t.SchemaName}].[{t.TableName}]";
+
+                try
+                {
+                    // テンポラルテーブルは先にSYSTEM_VERSIONINGをOFFにして履歴も削除
+                    if (t.TemporalType != 0)
+                    {
+                        _logger.LogInformation("テンポラル解除: {Table}", fullName);
+
+                        // SYSTEM_VERSIONING OFF
+                        var svOff = $"ALTER TABLE {fullName} SET (SYSTEM_VERSIONING = OFF);";
+                        await connection.ExecuteAsync(new CommandDefinition(svOff, commandTimeout: 60));
+
+                        // 履歴テーブルが存在する場合は先に削除
+                        if (t.HistoryTableId.HasValue && !string.IsNullOrWhiteSpace(t.HistSchema) && !string.IsNullOrWhiteSpace(t.HistName))
+                        {
+                            var histFull = $"[{t.HistSchema}].[{t.HistName}]";
+                            var dropHist = $"DROP TABLE {histFull};";
+                            await connection.ExecuteAsync(new CommandDefinition(dropHist, commandTimeout: 60));
+                        }
+                    }
+
+                    // 依存トリガー等で遅延するケースに備えて都度実行
+                    var dropSql = $"DROP TABLE {fullName};";
+                    await connection.ExecuteAsync(new CommandDefinition(dropSql, commandTimeout: 60));
+                    _logger.LogInformation("DROP TABLE 完了: {Table}", fullName);
+                }
+                catch (SqlException ex) when (ex.Number == 3701) // 対象が存在しない
+                {
+                    _logger.LogWarning("既に削除済み: {Table}", fullName);
+                }
+                catch (SqlException ex) when (ex.Number == 1222) // ロックタイムアウト
+                {
+                    _logger.LogWarning("ロックタイムアウト: {Table} をスキップします", fullName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "テーブル {Table} の削除に失敗しました", fullName);
+                    // 強制削除フロー継続のためスキップ
+                }
+            }
+
+            _logger.LogInformation("すべてのテーブル削除処理が完了しました（逐次）");
         }
         catch (Exception ex)
         {
