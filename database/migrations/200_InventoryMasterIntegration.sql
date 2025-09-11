@@ -31,6 +31,7 @@ BEGIN TRY
         ProductName        NVARCHAR(100) NOT NULL DEFAULT N'',
         Unit               NVARCHAR(20)  NOT NULL DEFAULT N'PCS',
         StandardPrice      DECIMAL(18,4) NOT NULL DEFAULT 0,
+        AveragePrice       DECIMAL(18,4) NOT NULL DEFAULT 0,
         ProductCategory1   NVARCHAR(10)  NOT NULL DEFAULT N'',
         ProductCategory2   NVARCHAR(10)  NOT NULL DEFAULT N'',
 
@@ -77,7 +78,7 @@ BEGIN TRY
     -- Step 3: 既存InventoryMasterデータを移行（桁数正規化 + 前残はPreviousMonth*→Carryover*に移送）
     INSERT INTO dbo.InventoryMaster_New (
         ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
-        ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+        ProductName, Unit, StandardPrice, AveragePrice, ProductCategory1, ProductCategory2,
         CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice,
         CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
         JobDate, DataSetId, ImportType, Origin, IsActive, DailyFlag,
@@ -90,7 +91,7 @@ BEGIN TRY
         RIGHT('000'   + CAST(ClassCode AS NVARCHAR(50)), 3),
         RIGHT('0000'  + CAST(ShippingMarkCode AS NVARCHAR(50)), 4),
         LEFT(RTRIM(COALESCE(ManualShippingMark, N'')) + REPLICATE(' ', 8), 8),
-        ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
+        ProductName, Unit, StandardPrice, ISNULL(AveragePrice, 0), ProductCategory1, ProductCategory2,
         ISNULL(PreviousMonthQuantity, 0), ISNULL(PreviousMonthAmount, 0), 0,
         ISNULL(CurrentStock, 0), ISNULL(CurrentStockAmount, 0), ISNULL(DailyStock, 0), ISNULL(DailyStockAmount, 0),
         JobDate, DataSetId, ImportType, N'INVENTORY_MASTER', ISNULL(IsActive, 1), DailyFlag,
