@@ -74,6 +74,8 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         
         // === 完全版マスタテーブル作成（最優先） ===
         "05_create_master_tables.sql",              // 完全版マスタテーブル作成（CreatedAt/UpdatedAt対応）
+        // 部門コードなどの横断的な列追加（CreateDatabase後、SP作成前に必須）
+        "06_add_department_columns.sql",
         
         // === CP在庫マスタカラム追加（ストアドプロシージャ作成前に必須） ===
         "029_CreateShippingMarkMaster.sql",         // ShippingMarkMasterテーブル作成
@@ -824,6 +826,11 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 if (migrationFileName == "05_create_master_tables.sql")
                 {
                     // 05_create_master_tables.sqlはdatabaseフォルダにある
+                    migrationPath = Path.Combine(Path.GetDirectoryName(migrationsPath), migrationFileName);
+                }
+                else if (migrationFileName == "06_add_department_columns.sql")
+                {
+                    // 06_add_department_columns.sql も database 直下
                     migrationPath = Path.Combine(Path.GetDirectoryName(migrationsPath), migrationFileName);
                 }
                 else if (migrationFileName.StartsWith("procedures/"))

@@ -146,13 +146,13 @@ BEGIN
             -- 日計項目（22個すべて0で初期化）
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 
-            ISNULL(im.DailyGrossProfit, 0),  -- DailyGrossProfitは既存値を使用
+            0,  -- DailyGrossProfit は初期在庫生成時点では0（Process 2-5で算出）
             0, 0, 0,
             -- 月計項目（17個すべて0で初期化）
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0,
             -- その他
-            ISNULL(im.DepartmentCode, 'DEFAULT') AS DepartmentCode
+            ISNULL(im.ProductCategory1, 'DeptA') AS DepartmentCode
         FROM InventoryMaster im
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
         LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode
