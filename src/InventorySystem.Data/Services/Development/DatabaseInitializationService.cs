@@ -744,6 +744,8 @@ public class DatabaseInitializationService : IDatabaseInitializationService
                 }
             }
 
+            // 後続のスクリプト実行に影響しないよう LOCK_TIMEOUT を既定値（無制限）に戻す
+            await connection.ExecuteAsync("SET LOCK_TIMEOUT -1;");
             _logger.LogInformation("すべてのテーブル削除処理が完了しました（逐次）");
         }
         catch (Exception ex)
