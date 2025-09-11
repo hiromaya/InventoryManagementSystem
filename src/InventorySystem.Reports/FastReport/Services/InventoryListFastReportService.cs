@@ -96,6 +96,9 @@ namespace InventorySystem.Reports.FastReport.Services
             // テンプレート読み込み
             report.Load(templatePath);
             
+            // スクリプトを完全に無効化（ProductAccountと同等の対策）
+            SetScriptLanguageToNone(report);
+            
             // データ登録（最重要）
             report.RegisterData(dataTable, "InventoryData");
             
@@ -118,6 +121,48 @@ namespace InventorySystem.Reports.FastReport.Services
             // 実行ディレクトリからの相対パス
             var basePath = AppDomain.CurrentDomain.BaseDirectory;
             return Path.Combine(basePath, "FastReport", "Templates", "InventoryList.frx");
+        }
+
+        /// <summary>
+        /// FastReportのスクリプトを完全に無効化する（CodeDOMコンパイル抑止）
+        /// ProductAccountFastReportService と同等の実装
+        /// </summary>
+        private void SetScriptLanguageToNone(Report report)
+        {
+            try
+            {
+                // ScriptLanguage を None に設定
+                var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
+                if (scriptLanguageProperty != null)
+                {
+                    var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                    if (scriptLanguageType.IsEnum)
+                    {
+                        var noneValue = Enum.GetValues(scriptLanguageType)
+                            .Cast<object>()
+                            .FirstOrDefault(v => v.ToString() == "None");
+                        if (noneValue != null)
+                        {
+                            scriptLanguageProperty.SetValue(report, noneValue);
+                            _logger.LogInformation("InventoryList: ScriptLanguageをNoneに設定しました");
+                        }
+                    }
+                }
+
+                // 非公開 Script プロパティを null に設定（念のため）
+                var scriptProperty = report.GetType().GetProperty(
+                    "Script",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (scriptProperty != null)
+                {
+                    scriptProperty.SetValue(report, null);
+                    _logger.LogInformation("InventoryList: Scriptプロパティをnullに設定しました");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("InventoryList: ScriptLanguage設定時の警告: {Message}", ex.Message);
+            }
         }
     }
 }
