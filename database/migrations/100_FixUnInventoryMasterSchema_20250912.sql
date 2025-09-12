@@ -29,6 +29,29 @@ BEGIN
 END
 GO
 
+-- Step 2.5: 依存インデックスの削除（列サイズ変更前に必須）
+IF EXISTS (
+    SELECT 1 FROM sys.indexes WHERE name = 'IX_UnInventoryMaster_JobDate' AND object_id = OBJECT_ID('UnInventoryMaster'))
+BEGIN
+    DROP INDEX IX_UnInventoryMaster_JobDate ON UnInventoryMaster;
+    PRINT 'Dropped IX_UnInventoryMaster_JobDate';
+END
+GO
+IF EXISTS (
+    SELECT 1 FROM sys.indexes WHERE name = 'IX_UnInventoryMaster_ProductCode' AND object_id = OBJECT_ID('UnInventoryMaster'))
+BEGIN
+    DROP INDEX IX_UnInventoryMaster_ProductCode ON UnInventoryMaster;
+    PRINT 'Dropped IX_UnInventoryMaster_ProductCode';
+END
+GO
+IF EXISTS (
+    SELECT 1 FROM sys.indexes WHERE name = 'IX_UnInventoryMaster_Product' AND object_id = OBJECT_ID('UnInventoryMaster'))
+BEGIN
+    DROP INDEX IX_UnInventoryMaster_Product ON UnInventoryMaster;
+    PRINT 'Dropped IX_UnInventoryMaster_Product';
+END
+GO
+
 -- Step 3: カラムサイズの修正
 IF COL_LENGTH('UnInventoryMaster', 'ProductCode') IS NOT NULL
     ALTER TABLE UnInventoryMaster ALTER COLUMN ProductCode NVARCHAR(5) NOT NULL;
@@ -80,4 +103,3 @@ GO
 
 PRINT '=== UnInventoryMasterテーブル修正完了 ===';
 GO
-
