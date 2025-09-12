@@ -1427,7 +1427,7 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         }
                         try
                         {
-                            var seeded = await cpInventoryRepository.SeedLastReceiptDateFromCarryoverAsync(jobDate);
+                            var seeded = await cpInventoryRepository.SeedPreviousDayFromCarryoverAsync(jobDate);
                             logger.LogInformation("最終入荷日 補完（Carryoverベース）: {Count}件", seeded);
                         }
                         catch (Exception ex)
