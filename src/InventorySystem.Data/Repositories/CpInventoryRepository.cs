@@ -23,7 +23,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         using var connection = new SqlConnection(_connectionString);
         var effectiveDate = jobDate ?? DateTime.Today;
         var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
-            "sp_CreateCpInventoryFromInventoryMaster",
+            "sp_CreateCpInventoryFromInventoryMasterCumulative",
             new { JobDate = effectiveDate },
             commandType: CommandType.StoredProcedure);
 
