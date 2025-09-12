@@ -2366,19 +2366,19 @@ namespace InventorySystem.Reports.FastReport.Services
             string padding;
             if (percentage == "****")
             {
-                padding = "　　　　　　　　　　　　　";  // 13個（****の場合）
+                padding = "　　　　　　　　　　　　";  // 12個（****の場合）
             }
             else if (percentage.Contains("▲"))
             {
-                padding = "　　　　　　　　　　　　";  // 12個（▲がある場合）
+                padding = "　　　　　　　　　　　";  // 11個（▲がある場合）
             }
             else if (salesAmount != 0 && Math.Abs(grossProfit / salesAmount * 100) >= 100)
             {
-                padding = "　　　　　　　　　　　";    // 11個（3桁の場合）
+                padding = "　　　　　　　　　　";    // 10個（3桁の場合）
             }
             else
             {
-                padding = "　　　　　　　　　　　　";  // 12個（2桁以下）
+                padding = "　　　　　　　　　　　";  // 11個（2桁以下）
             }
 
             return padding + percentage;
@@ -2709,7 +2709,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = "【在庫単価】",
                 Amount = "【在庫金額】",
                 GrossProfit = "【粗利益】",
-                CustomerSupplierName = "　　　　　　　　　　　【粗利率】",               // 取引先名列に配置（全角スペース11個で疑似右揃え）
+                CustomerSupplierName = "　　　　　　　　　　【粗利率】",                 // 全角スペース10個に減らしてフレーム内に収める
                 IsGrossProfitRate = true                        // 粗利率表示フラグ
             };
         }
