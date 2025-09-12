@@ -80,7 +80,7 @@
       <TextObject Name="Data13" Left="1032" Width="101" Height="20" Text="[ProductAccount.UnitPrice]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
       <TextObject Name="Data14" Left="1133" Width="118" Height="20" Text="[ProductAccount.Amount]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
       <TextObject Name="Data15" Left="1251" Width="102" Height="20" Text="[ProductAccount.GrossProfit]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Data16" Left="1353" Width="159" Height="20" Text="[ProductAccount.CustomerSupplierName]" HorzAlign="[IIF([ProductAccount.IsGrossProfitRate],Right,Left)]" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 10pt" Trimming="EllipsisCharacter"/>
+      <TextObject Name="Data16" Left="1353" Width="159" Height="20" Text="[ProductAccount.CustomerSupplierName]" HorzAlign="Left" VertAlign="Center" WordWrap="false" Font="ＭＳ ゴシック, 10pt" Trimming="EllipsisCharacter"/>
     </DataBand>
     
     <!-- ページフッター -->

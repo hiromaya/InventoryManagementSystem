@@ -2360,12 +2360,31 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private string FormatPercentageForSubtotalWithPadding(decimal salesAmount, decimal grossProfit)
         {
-            // 列幅をFRXの Data16（取引先名/粗利率）に合わせる
-            const int grossProfitRateColumnWidthPx = 159; // ProductAccount.frx Data16 Width
-
+            // 左寄せ固定の列で疑似右寄せを実現するため、固定の全角スペース数でパディングする
+            // 列幅: 159px（FRX Data16）。過剰パディングでフレームアウトしないよう控えめに設定。
             var percentage = FormatPercentageForSubtotal(salesAmount, grossProfit);
-            // 列幅に対して右寄せになるよう半角スペースでパディング
-            return PadLeftForAlignment(percentage, grossProfitRateColumnWidthPx);
+
+            string full = "　"; // 全角スペース U+3000
+            string padding;
+
+            if (percentage == "****")
+            {
+                padding = new string(full[0], 10); // 10個
+            }
+            else if (percentage.Contains("▲"))
+            {
+                padding = new string(full[0], 9); // 9個（マイナス時）
+            }
+            else if (salesAmount != 0 && Math.Abs(grossProfit / salesAmount * 100) >= 100)
+            {
+                padding = new string(full[0], 8); // 8個（3桁）
+            }
+            else
+            {
+                padding = new string(full[0], 9); // 9個（2桁以下）
+            }
+
+            return padding + percentage;
         }
         
         /// <summary>
