@@ -1414,6 +1414,26 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         await cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(jobDate);
                         await cpInventoryRepository.CalculateDailyStockAsync();
                         await cpInventoryRepository.SetDailyFlagToProcessedAsync();
+
+                        // 最終入荷日（LastReceiptDate）を設定/補完
+                        try
+                        {
+                            var updated = await cpInventoryRepository.UpdateLastReceiptDateAsync(jobDate);
+                            logger.LogInformation("最終入荷日 更新（当日入荷ベース）: {Count}件", updated);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogWarning(ex, "当日入荷による最終入荷日の更新に失敗しました");
+                        }
+                        try
+                        {
+                            var seeded = await cpInventoryRepository.SeedLastReceiptDateFromCarryoverAsync(jobDate);
+                            logger.LogInformation("最終入荷日 補完（Carryoverベース）: {Count}件", seeded);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogWarning(ex, "Carryoverからの最終入荷日補完に失敗しました");
+                        }
                         System.Console.WriteLine("✅ CP在庫マスタ作成完了");
                     }
                     System.Console.WriteLine();
