@@ -32,10 +32,7 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
             SELECT 
                 i.ProductCode, i.GradeCode, i.ClassCode, i.ShippingMarkCode, i.ManualShippingMark,
                 ISNULL(sm.ShippingMarkName, '') as ShippingMarkName,
-                CASE 
-                    WHEN i.DailyFlag = '9' THEN ISNULL(i.CarryoverQuantity, 0)
-                    ELSE ISNULL(i.CurrentStock, 0)
-                END,
+                ISNULL(i.CarryoverQuantity, 0),
                 0 as DailyStock,
                 '9' as DailyFlag,
                 i.JobDate,
@@ -43,23 +40,14 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
                 GETDATE()
             FROM InventoryMaster i
             LEFT JOIN ShippingMarkMaster sm ON i.ShippingMarkCode = sm.ShippingMarkCode
-            WHERE (@TargetDate IS NULL OR i.JobDate = @TargetDate)
-                -- ☆5項目主キー全てのマスタ存在チェックを追加☆
-                -- 1. 商品マスタ：必須チェック（'00000'以外は必ずマスタに存在する必要がある）
+            WHERE (@TargetDate IS NULL OR i.JobDate <= @TargetDate)
+                AND i.IsActive = 1
+                -- マスタ存在チェック
                 AND i.ProductCode != '00000' 
                 AND EXISTS (SELECT 1 FROM ProductMaster pm WHERE pm.ProductCode = i.ProductCode)
-                
-                -- 2. 等級マスタ：コード'000'は許可、それ以外は存在チェック
                 AND (i.GradeCode = '000' OR EXISTS (SELECT 1 FROM GradeMaster gm WHERE gm.GradeCode = i.GradeCode))
-                
-                -- 3. 階級マスタ：コード'000'は許可、それ以外は存在チェック  
                 AND (i.ClassCode = '000' OR EXISTS (SELECT 1 FROM ClassMaster cm WHERE cm.ClassCode = i.ClassCode))
-                
-                -- 4. 荷印マスタ：コード'0000'は許可、それ以外は存在チェック
-                AND (i.ShippingMarkCode = '0000' OR EXISTS (SELECT 1 FROM ShippingMarkMaster sm WHERE sm.ShippingMarkCode = i.ShippingMarkCode))
-                
-                -- 5. 荷印名：8文字固定長であることを確認（空白8文字も有効）
-                AND LEN(RTRIM(COALESCE(i.ManualShippingMark, ''))) <= 8
+                AND (i.ShippingMarkCode = '0000' OR EXISTS (SELECT 1 FROM ShippingMarkMaster sm2 WHERE sm2.ShippingMarkCode = i.ShippingMarkCode))
             """;
 
         try

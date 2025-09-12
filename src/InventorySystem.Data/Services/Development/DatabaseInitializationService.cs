@@ -120,7 +120,9 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         
         // === UN在庫マスタ作成（アンマッチチェック専用） ===
         "060_CreateUnInventoryMaster.sql",                                     // UN在庫マスタテーブル作成
+        "063_AddShippingMarkNameToUnInventoryMaster.sql",                      // UN在庫マスタにShippingMarkNameカラム追加
         "AlterUnInventoryMaster_20250912.sql",                                 // UN在庫マスタ列・サイズ調整（冪等）
+        "100_FixUnInventoryMasterSchema_20250912.sql",                         // UN在庫マスタ 5項目キーのサイズ統一
         
         // === CP在庫マスタ・UN在庫マスタの名称カラム追加（ストアドプロシージャ作成前に必須） ===
         "061_AddGradeClassNamesToCpInventoryMaster.sql",                       // CpInventoryMasterにGradeName/ClassName追加
