@@ -97,15 +97,9 @@ BEGIN
             im.JobDate, 
             GETDATE() AS CreatedDate, 
             GETDATE() AS UpdatedDate,
-            -- 前日在庫の設定を条件分岐（DailyFlag='9'は前月末在庫）
-            CASE 
-                WHEN im.DailyFlag = '9' THEN im.CarryoverQuantity
-                ELSE im.CurrentStock
-            END AS PreviousDayStock,
-            CASE 
-                WHEN im.DailyFlag = '9' THEN im.CarryoverAmount
-                ELSE im.CurrentStockAmount
-            END AS PreviousDayStockAmount,
+            -- 前日在庫は常に繰越在庫（Carryover）を使用する
+            im.CarryoverQuantity AS PreviousDayStock,
+            im.CarryoverAmount   AS PreviousDayStockAmount,
             -- 前日在庫単価の計算（前月末在庫は単価を直接計算）
             CASE 
                 WHEN im.DailyFlag = '9' AND im.CarryoverQuantity != 0 
