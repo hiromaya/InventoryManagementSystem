@@ -8,6 +8,7 @@ USE InventoryManagementDB;
 GO
 
 -- 現在の構造を表示
+-- 現在の構造を表示
 PRINT '===== 修正前のUnInventoryMasterテーブル構造 =====';
 SELECT 
     c.name AS ColumnName,
@@ -199,6 +200,7 @@ WHERE kc.parent_object_id = OBJECT_ID('UnInventoryMaster')
     AND kc.type = 'PK'
 GROUP BY kc.name;
 GO
+<<<<<<< HEAD
 
 -- 9. すべてのインデックスを表示
 PRINT '';
@@ -224,3 +226,5 @@ PRINT '';
 PRINT 'AlterUnInventoryMaster_20250912_Final.sql 実行完了';
 PRINT '================================================';
 GO
+=======
+>>>>>>> a24d722 (fix(migration): avoid PK dependency error by skipping ALTER COLUMN in AlterUnInventoryMaster_20250912 (sizes handled by 100_Fix schema); keep only additive column changes)
