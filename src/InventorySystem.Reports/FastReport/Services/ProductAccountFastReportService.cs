@@ -793,38 +793,36 @@ namespace InventorySystem.Reports.FastReport.Services
                 
             var sql = @"
                     WITH ProductAccount AS (
-                        -- 前残高データ（InventoryCarryoverMasterから全期間分）
+                        -- 前残高データ（CpInventoryMasterから取得）
                         SELECT 
-                            co.ProductCode,
-                            ISNULL(co.ProductName, '') as ProductName,
-                            ISNULL(co.ProductCategory1, '') as ProductCategory1,
-                            co.ShippingMarkCode,
-                            ISNULL(sm.ShippingMarkName, '') as ShippingMarkName,
-                            co.ManualShippingMark,
-                            co.GradeCode,
-                            ISNULL(gm.GradeName, '') as GradeName,
-                            co.ClassCode,
-                            ISNULL(cm.ClassName, '') as ClassName,
+                            cp.ProductCode,
+                            ISNULL(cp.ProductName, '') as ProductName,
+                            ISNULL(cp.ProductCategory1, '') as ProductCategory1,
+                            cp.ShippingMarkCode,
+                            ISNULL(cp.ShippingMarkName, '') as ShippingMarkName,
+                            cp.ManualShippingMark,
+                            cp.GradeCode,
+                            ISNULL(cp.GradeName, '') as GradeName,
+                            cp.ClassCode,
+                            ISNULL(cp.ClassName, '') as ClassName,
                             '' as VoucherNumber,
                             '' as VoucherType,
                             '前残' as DisplayCategory,
-                            co.LastReceiptDate as TransactionDate,
+                            cp.LastReceiptDate as TransactionDate,
                             0 as PurchaseQuantity,
                             0 as SalesQuantity,
-                            co.CarryoverQuantity as RemainingQuantity,
-                            co.CarryoverUnitPrice as UnitPrice,
-                            co.CarryoverAmount as Amount,
+                            ABS(cp.PreviousDayStock) as RemainingQuantity,
+                            cp.PreviousDayUnitPrice as UnitPrice,
+                            ABS(cp.PreviousDayStockAmount) as Amount,
                             0 as SalesAmount,
                             0 as GrossProfit,
                             '' as CustomerSupplierName,
                             'Previous' as RecordType,  -- 重要：前残高のRecordType
                             NULL as CategoryCode
-                        FROM InventoryCarryoverMaster co
-                        LEFT JOIN ShippingMarkMaster sm ON co.ShippingMarkCode = sm.ShippingMarkCode
-                        LEFT JOIN GradeMaster gm ON co.GradeCode = gm.GradeCode
-                        LEFT JOIN ClassMaster cm ON co.ClassCode = cm.ClassCode
-                        WHERE (@DepartmentCode IS NULL OR co.ProductCategory1 = @DepartmentCode)
-                          AND co.CarryoverQuantity <> 0
+                        FROM CpInventoryMaster cp
+                        WHERE cp.JobDate = @JobDate
+                          AND cp.PreviousDayStock <> 0
+                          AND (@DepartmentCode IS NULL OR cp.ProductCategory1 = @DepartmentCode)
                         
                         UNION ALL
                         
