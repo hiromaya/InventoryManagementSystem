@@ -22,6 +22,10 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
     /// </summary>
     public async Task<int> CreateFromInventoryMasterAsync(DateTime? targetDate = null)
     {
+        // 事前に ShippingMarkName 列が存在しない環境に配慮して冪等に追加（初期化未実行時の保険）
+        const string ensureColumnSql = @"IF COL_LENGTH('UnInventoryMaster','ShippingMarkName') IS NULL
+    ALTER TABLE UnInventoryMaster ADD ShippingMarkName NVARCHAR(100) NOT NULL DEFAULT '';";
+
         const string sql = """
             INSERT INTO UnInventoryMaster (
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
@@ -53,6 +57,8 @@ public class UnInventoryRepository : BaseRepository, IUnInventoryRepository
         try
         {
             using var connection = CreateConnection();
+            // 列の存在を冪等に確保
+            await connection.ExecuteAsync(ensureColumnSql);
             var count = await connection.ExecuteAsync(sql, new 
             { 
                 TargetDate = targetDate 
