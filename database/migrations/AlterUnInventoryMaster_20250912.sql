@@ -200,31 +200,3 @@ WHERE kc.parent_object_id = OBJECT_ID('UnInventoryMaster')
     AND kc.type = 'PK'
 GROUP BY kc.name;
 GO
-<<<<<<< HEAD
-
--- 9. すべてのインデックスを表示
-PRINT '';
-PRINT '===== すべてのインデックス =====';
-SELECT 
-    i.name AS IndexName,
-    i.type_desc AS IndexType,
-    i.is_primary_key AS IsPK,
-    STRING_AGG(COL_NAME(ic.object_id, ic.column_id), ', ') 
-        WITHIN GROUP (ORDER BY ic.key_ordinal) AS IndexColumns
-FROM sys.indexes i
-INNER JOIN sys.index_columns ic 
-    ON i.object_id = ic.object_id 
-    AND i.index_id = ic.index_id
-WHERE i.object_id = OBJECT_ID('UnInventoryMaster')
-    AND i.type > 0
-    AND ic.is_included_column = 0
-GROUP BY i.name, i.type_desc, i.is_primary_key
-ORDER BY i.is_primary_key DESC, i.name;
-GO
-
-PRINT '';
-PRINT 'AlterUnInventoryMaster_20250912_Final.sql 実行完了';
-PRINT '================================================';
-GO
-=======
->>>>>>> a24d722 (fix(migration): avoid PK dependency error by skipping ALTER COLUMN in AlterUnInventoryMaster_20250912 (sizes handled by 100_Fix schema); keep only additive column changes)
