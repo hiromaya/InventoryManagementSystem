@@ -127,7 +127,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         // === CP在庫マスタ・UN在庫マスタの名称カラム追加（ストアドプロシージャ作成前に必須） ===
         "061_AddGradeClassNamesToCpInventoryMaster.sql",                       // CpInventoryMasterにGradeName/ClassName追加
         "062_UpdateCpInventoryMasterNames.sql",                                // 既存データのGradeName/ClassName更新
-        "063_AddShippingMarkNameToUnInventoryMaster.sql",                      // UN在庫マスタにShippingMarkNameカラム追加
+        // 重複実行回避のため 063 はここでは実行しない（060→063→100→Alter のブロックで実行済み）
         "064_AddShippingMarkNameToCpInventoryMaster.sql",                      // CP在庫マスタにShippingMarkNameカラム追加
         "065_UnifyCategoryCodeDataType.sql",                                   // 分類マスタのCategoryCode型統一
         "066_ConvertCategoryCodeToString.sql",                                 // CategoryCodeをINTからNVARCHAR(3)に変換
