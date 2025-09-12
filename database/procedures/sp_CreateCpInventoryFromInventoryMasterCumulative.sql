@@ -112,7 +112,7 @@ BEGIN
                     THEN ROUND(im.CarryoverAmount / im.CarryoverQuantity, 4)
                 WHEN im.DailyFlag = '9' AND im.CarryoverQuantity = 0 
                     THEN ISNULL(im.StandardPrice, 0)  -- StandardPriceをフォールバック使用
-                ELSE COALESCE(NULLIF(im.StandardPrice, 0), im.AveragePrice, 0)
+                ELSE COALESCE(NULLIF(im.StandardPrice, 0), im.CarryoverUnitPrice, 0)
             END AS PreviousDayUnitPrice,
             -- 当日在庫（初期値は前日と同じ）
             CASE 
@@ -130,7 +130,7 @@ BEGIN
                     THEN ROUND(im.CarryoverAmount / im.CarryoverQuantity, 4)
                 WHEN im.DailyFlag = '9' AND im.CarryoverQuantity = 0 
                     THEN ISNULL(im.StandardPrice, 0)
-                ELSE COALESCE(NULLIF(im.StandardPrice, 0), im.AveragePrice, 0)
+                ELSE COALESCE(NULLIF(im.StandardPrice, 0), im.CarryoverUnitPrice, 0)
             END AS DailyUnitPrice,
 
             -- AveragePrice（同じロジック）
@@ -139,20 +139,20 @@ BEGIN
                     THEN ROUND(im.CarryoverAmount / im.CarryoverQuantity, 4)
                 WHEN im.DailyFlag = '9' AND im.CarryoverQuantity = 0 
                     THEN ISNULL(im.StandardPrice, 0)
-                ELSE COALESCE(NULLIF(im.StandardPrice, 0), im.AveragePrice, 0)
+                ELSE COALESCE(NULLIF(im.StandardPrice, 0), im.CarryoverUnitPrice, 0)
             END AS AveragePrice,
 
             ISNULL(im.DailyFlag, '9') AS DailyFlag,  -- 未処理フラグ
             -- 日計項目（22個すべて0で初期化）
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 
-            0,  -- DailyGrossProfit は初期在庫生成時点では0（Process 2-5で算出）
+            0,  -- DailyGrossProfitも0で初期化
             0, 0, 0,
             -- 月計項目（17個すべて0で初期化）
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0,
             -- その他
-            ISNULL(im.ProductCategory1, 'DeptA') AS DepartmentCode
+            'DEFAULT' AS DepartmentCode  -- InventoryMasterにDepartmentCodeカラムがないため固定値
         FROM InventoryMaster im
         LEFT JOIN ProductMaster pm ON im.ProductCode = pm.ProductCode
         LEFT JOIN UnitMaster u ON pm.UnitCode = u.UnitCode

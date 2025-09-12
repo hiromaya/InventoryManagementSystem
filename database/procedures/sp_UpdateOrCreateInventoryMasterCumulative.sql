@@ -54,10 +54,11 @@ BEGIN
         INSERT INTO InventoryMaster (
             ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
             ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
-            JobDate, CreatedDate, UpdatedDate,
-            CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice,
+            JobDate, CreatedDate, UpdatedDate, CreatedBy,
             CurrentStock, CurrentStockAmount,
-            DailyStock, DailyStockAmount, DailyFlag
+            DailyStock, DailyStockAmount, DailyFlag,
+            CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice,
+            DataSetId, ImportType, Origin, IsActive
         )
         SELECT DISTINCT
             v.ProductCode, v.GradeCode, v.ClassCode, v.ShippingMarkCode, v.ManualShippingMark,
@@ -66,9 +67,10 @@ BEGIN
             ISNULL(pm.StandardPrice, 0),
             ISNULL(pm.ProductCategory1, ''), 
             ISNULL(pm.ProductCategory2, ''),
-            @JobDate, GETDATE(), GETDATE(),
-            0, 0, 0,  -- CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice
-            0, 0, 0, 0, '0'
+            @JobDate, GETDATE(), GETDATE(), 'SYSTEM',
+            0, 0, 0, 0, '0',
+            0, 0, 0,
+            @DatasetId, 'VOUCHER', 'SYSTEM', 1
         FROM (
             SELECT ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark, ProductName
             FROM SalesVouchers WHERE JobDate = @JobDate

@@ -52,7 +52,57 @@ namespace InventorySystem.Reports.FastReport.Services
             
             _logger.LogInformation("商品勘定テンプレートパス: {Path}", _templatePath);
         }
-        
+
+        /// <summary>
+        /// 前残行を作成
+        /// </summary>
+        private ProductAccountFlatRow CreatePreviousBalanceRow(
+            ProductAccountReportModel previousData,
+            string staffCode,
+            string staffName,
+            int sequence)
+        {
+            // LastReceiptDateはpreviousData.TransactionDateに格納される想定
+            var monthDay = previousData.TransactionDate == DateTime.MinValue
+                ? string.Empty
+                : previousData.TransactionDate.ToString("MM/dd");
+
+            return new ProductAccountFlatRow
+            {
+                RowType = RowTypes.Detail,
+                RowSequence = sequence,
+                IsGrayBackground = false,
+                IsBold = false,
+
+                // 基本情報
+                ProductCategory1 = staffCode,
+                ProductCategory1Name = staffName,
+                ProductCode = previousData.ProductCode,
+                ProductName = previousData.ProductName,
+                ShippingMarkCode = previousData.ShippingMarkCode,
+                ShippingMarkName = previousData.ShippingMarkName,
+                ManualShippingMark = previousData.ManualShippingMark,
+                GradeCode = previousData.GradeCode,
+                GradeName = previousData.GradeName,
+                ClassCode = previousData.ClassCode,
+                ClassName = previousData.ClassName,
+
+                // 前残固有の設定
+                VoucherNumber = string.Empty, // 伝票番号は空欄
+                DisplayCategory = "前残",
+                MonthDay = monthDay, // 最終入荷日（MM/DD）
+                CustomerSupplierName = string.Empty, // 取引先名は空欄
+
+                // 数量・金額（前残は残数量のみ）
+                PurchaseQuantity = FormatQuantity(0),
+                SalesQuantity = FormatQuantity(0),
+                RemainingQuantity = FormatQuantity(previousData.RemainingQuantity),
+                UnitPrice = FormatUnitPrice(previousData.UnitPrice),
+                Amount = FormatAmount(previousData.Amount),
+                GrossProfit = string.Empty // 前残は粗利益なし
+            };
+        }
+
         public byte[] GenerateProductAccountReport(DateTime jobDate, string? departmentCode = null)
         {
             try
@@ -392,20 +442,25 @@ namespace InventorySystem.Reports.FastReport.Services
                 foreach (var productGroup in productGroups)
                 {
                     // 商品グループヘッダーは削除（不要）
-                    
-                    // 前残行の作成（必要に応じて）
-                    var previousBalance = CreatePreviousBalanceIfNeeded(productGroup.Key, sequence);
-                    if (previousBalance != null)
-                    {
-                        flatRows.Add(previousBalance);
-                        sequence++;
-                    }
-                    
-                    // 明細行（日付・伝票番号順）
+
+                    // グループ内の前残（最新1件）を抽出
+                    var previousData = productGroup
+                        .Where(x => string.Equals(x.RecordType, "Previous", StringComparison.OrdinalIgnoreCase))
+                        .FirstOrDefault();
+
+                    // 当日取引（日付・伝票番号順）
                     var details = productGroup
-                        .Where(x => x.RecordType != "Previous") // 前残は別途処理
+                        .Where(x => !string.Equals(x.RecordType, "Previous", StringComparison.OrdinalIgnoreCase))
                         .OrderBy(x => x.TransactionDate)
-                        .ThenBy(x => x.VoucherNumber);
+                        .ThenBy(x => x.VoucherNumber)
+                        .ToList();
+
+                    // 前残行を最初に追加（あれば）
+                    if (previousData != null)
+                    {
+                        var prevRow = CreatePreviousBalanceRow(previousData, staffCode, staffName, sequence++);
+                        flatRows.Add(prevRow);
+                    }
                     
                     // 集計用変数
                     decimal subtotalPreviousBalance = 0;  // 追加
@@ -417,13 +472,20 @@ namespace InventorySystem.Reports.FastReport.Services
                     decimal subtotalGrossProfit = 0;
                     decimal subtotalSalesAmount = 0;      // 追加: 売上伝票金額合計
                     
-                    // CP在庫マスタから前日残と在庫単価を取得
+                    // CP在庫マスタから在庫単価・金額を取得、前残数量は前残データを優先
                     var cpInventoryData = GetCpInventoryData(productGroup.Key, jobDate);
-                    if (cpInventoryData != null)
+                    if (previousData != null)
+                    {
+                        subtotalPreviousBalance = previousData.RemainingQuantity;
+                    }
+                    else if (cpInventoryData != null)
                     {
                         subtotalPreviousBalance = cpInventoryData.PreviousDayStock ?? 0;
-                        subtotalInventoryUnitPrice = cpInventoryData.DailyUnitPrice ?? 0;  // 修正
-                        subtotalInventoryAmount = cpInventoryData.DailyStockAmount ?? 0;   // 修正
+                    }
+                    if (cpInventoryData != null)
+                    {
+                        subtotalInventoryUnitPrice = cpInventoryData.DailyUnitPrice ?? 0;
+                        subtotalInventoryAmount = cpInventoryData.DailyStockAmount ?? 0;
                     }
                     
                     foreach (var detail in details)

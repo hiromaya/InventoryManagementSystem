@@ -131,14 +131,14 @@ BEGIN
                 CurrentStock = source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
                 -- 在庫金額は原価ベース（売上数量×原価 + 仕入額 + 調整額）
                 CurrentStockAmount =
-                    (source.TotalSalesQty * COALESCE(NULLIF(target.StandardPrice, 0), target.AveragePrice, 0))
+                    (source.TotalSalesQty * COALESCE(NULLIF(target.StandardPrice, 0), target.CarryoverUnitPrice, 0))
                     + ISNULL(source.TotalPurchaseAmount, 0)
                     + ISNULL(source.TotalAdjustmentAmount, 0),
                 
                 -- 当日在庫も同じ値
                 DailyStock = source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
                 DailyStockAmount =
-                    (source.TotalSalesQty * COALESCE(NULLIF(target.StandardPrice, 0), target.AveragePrice, 0))
+                    (source.TotalSalesQty * COALESCE(NULLIF(target.StandardPrice, 0), target.CarryoverUnitPrice, 0))
                     + ISNULL(source.TotalPurchaseAmount, 0)
                     + ISNULL(source.TotalAdjustmentAmount, 0),
                 
@@ -155,11 +155,11 @@ BEGIN
             INSERT (
                 ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark,
                 ProductName, Unit, StandardPrice, ProductCategory1, ProductCategory2,
-                JobDate, CreatedDate, UpdatedDate,
-                CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice,
+                JobDate, CreatedDate, UpdatedDate, CreatedBy,
                 CurrentStock, CurrentStockAmount, 
                 DailyStock, DailyStockAmount,
-                DailyFlag, DataSetId
+                DailyFlag, DataSetId, ImportType, Origin, IsActive,
+                CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice
             )
             VALUES (
                 source.ProductCode, source.GradeCode, source.ClassCode, 
@@ -169,8 +169,7 @@ BEGIN
                 source.StandardPrice,
                 source.ProductCategory1,
                 source.ProductCategory2,
-                @JobDate, GETDATE(), GETDATE(),
-                0, 0, 0,  -- Carryover fields
+                @JobDate, GETDATE(), GETDATE(), 'SYSTEM',
                 -- 新規商品の在庫数量
                 source.TotalSalesQty + source.TotalPurchaseQty + source.TotalAdjustmentQty,
                 -- 在庫金額は原価ベース（売上数量×原価 + 仕入額 + 調整額）
@@ -183,7 +182,8 @@ BEGIN
                     + ISNULL(source.TotalPurchaseAmount, 0)
                     + ISNULL(source.TotalAdjustmentAmount, 0),
                 N'0',  -- データありフラグ
-                @DataSetId
+                @DataSetId, 'SNAPSHOT', 'SYSTEM', 1,
+                0, 0, 0  -- CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice（スナップショット管理のため0）
             )
         OUTPUT $action INTO @MergeOutput(ActionType);
         
