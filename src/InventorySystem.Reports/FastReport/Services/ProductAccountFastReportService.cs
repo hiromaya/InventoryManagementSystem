@@ -2360,12 +2360,10 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private string FormatPercentageForSubtotalWithPadding(decimal salesAmount, decimal grossProfit)
         {
-            // 固定パディングは一旦コメントアウト（通常表示に戻す）
-            // string full = "　"; // 全角スペース U+3000
-            // var percentage = FormatPercentageForSubtotal(salesAmount, grossProfit);
-            // return new string(full[0], 9) + percentage;
-
-            return FormatPercentageForSubtotal(salesAmount, grossProfit);
+            // 要望：全角3文字相当のパディングを付けて表示（左寄せ列での疑似右寄せ用）
+            var percentage = FormatPercentageForSubtotal(salesAmount, grossProfit);
+            string full = "　"; // 全角スペース U+3000
+            return new string(full[0], 3) + percentage;
         }
         
         /// <summary>
