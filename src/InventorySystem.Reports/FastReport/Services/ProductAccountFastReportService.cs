@@ -2360,31 +2360,12 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private string FormatPercentageForSubtotalWithPadding(decimal salesAmount, decimal grossProfit)
         {
-            // 左寄せ固定の列で疑似右寄せを実現するため、固定の全角スペース数でパディングする
-            // 列幅: 159px（FRX Data16）。過剰パディングでフレームアウトしないよう控えめに設定。
-            var percentage = FormatPercentageForSubtotal(salesAmount, grossProfit);
+            // 固定パディングは一旦コメントアウト（通常表示に戻す）
+            // string full = "　"; // 全角スペース U+3000
+            // var percentage = FormatPercentageForSubtotal(salesAmount, grossProfit);
+            // return new string(full[0], 9) + percentage;
 
-            string full = "　"; // 全角スペース U+3000
-            string padding;
-
-            if (percentage == "****")
-            {
-                padding = new string(full[0], 10); // 10個
-            }
-            else if (percentage.Contains("▲"))
-            {
-                padding = new string(full[0], 9); // 9個（マイナス時）
-            }
-            else if (salesAmount != 0 && Math.Abs(grossProfit / salesAmount * 100) >= 100)
-            {
-                padding = new string(full[0], 8); // 8個（3桁）
-            }
-            else
-            {
-                padding = new string(full[0], 9); // 9個（2桁以下）
-            }
-
-            return padding + percentage;
+            return FormatPercentageForSubtotal(salesAmount, grossProfit);
         }
         
         /// <summary>
@@ -2712,7 +2693,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = "【在庫単価】",
                 Amount = "【在庫金額】",
                 GrossProfit = "【粗利益】",
-                CustomerSupplierName = "　　　　　　　　　　【粗利率】",                 // 全角スペース10個に減らしてフレーム内に収める
+                // 固定パディングは一旦無効化（通常表示へ）
+                CustomerSupplierName = "【粗利率】",
                 IsGrossProfitRate = true                        // 粗利率表示フラグ
             };
         }
