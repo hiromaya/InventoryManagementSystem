@@ -292,5 +292,33 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogWarning("InventoryList: 式クリア中の警告: {Message}", ex.Message);
             }
         }
+
+        /// <summary>
+        /// 滞留マークを算出（11/21/31日で !/!!/!!!）
+        /// </summary>
+        private string CalculateStagnationMark(DateTime? lastReceiptDate, DateTime jobDate)
+        {
+            if (!lastReceiptDate.HasValue || lastReceiptDate.Value == DateTime.MinValue)
+            {
+                return string.Empty;
+            }
+            var days = (jobDate.Date - lastReceiptDate.Value.Date).Days;
+            if (days >= 31) return "!!!";
+            if (days >= 21) return "!!";
+            if (days >= 11) return "!";
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 担当者名（フェーズ1.5は仮実装）
+        /// </summary>
+        private string GetStaffName(string? staffCode)
+        {
+            if (string.IsNullOrWhiteSpace(staffCode) || staffCode == "000")
+            {
+                return "未設定";
+            }
+            return $"担当者{staffCode}";
+        }
     }
 }
