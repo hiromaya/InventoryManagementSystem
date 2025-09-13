@@ -210,6 +210,24 @@ namespace InventorySystem.Reports.FastReport.Services
             report.SetParameterValue("JobDate", jobDate.ToString("yyyy/MM/dd"));
             report.SetParameterValue("TotalCount", dataTable.Rows.Count.ToString());
 
+            // 直前でスクリプト無効化を再度強制
+            try
+            {
+                var slProp = report.GetType().GetProperty("ScriptLanguage");
+                if (slProp != null && slProp.PropertyType.IsEnum)
+                {
+                    var none = Enum.GetValues(slProp.PropertyType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
+                    if (none != null) slProp.SetValue(report, none);
+                }
+                var scriptProp = report.GetType().GetProperty("Script",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                scriptProp?.SetValue(report, null);
+            }
+            catch { /* ignore */ }
+
+            // 表現式の無害化（万一のCodeDOM回避）
+            TryNeutralizeExpressions(report);
+
             // 準備と出力
             _logger.LogInformation("レポート準備開始");
             report.Prepare();
@@ -287,7 +305,12 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             try
             {
-                // Phase1ではStaffLabelはテンプレ側のIIFを使用（無効化しない）
+                // Phase1.5: StaffLabelも簡略化してCodeDOM経路を避ける
+                var staffLabel = report.FindObject("StaffLabel") as FR.TextObject;
+                if (staffLabel != null)
+                {
+                    staffLabel.Text = "[IIF([InventoryData.StaffCode] != \"\", \"担当者コード：\" + [InventoryData.StaffCode], \"\")]";
+                }
 
                 // PageInfo の TotalPages# 参照を簡略化（Page# のみ）
                 var pageInfo = report.FindObject("PageInfo") as FR.TextObject;
@@ -306,6 +329,38 @@ namespace InventorySystem.Reports.FastReport.Services
             catch (Exception ex)
             {
                 _logger.LogWarning("InventoryList: 式クリア中の警告: {Message}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// バンド/オブジェクトの式や条件プロパティを汎用的に空にする（安全策）
+        /// </summary>
+        private void TryNeutralizeExpressions(Report report)
+        {
+            try
+            {
+                for (int i = 0; i < report.Pages.Count; i++)
+                {
+                    if (report.Pages[i] is FR.ReportPage page)
+                    {
+                        foreach (var obj in page.AllObjects)
+                        {
+                            var t = obj.GetType();
+                            var cond = t.GetProperty("Condition");
+                            cond?.SetValue(obj, "");
+                            var expr = t.GetProperty("Expression");
+                            expr?.SetValue(obj, "");
+                            var filter = t.GetProperty("Filter");
+                            filter?.SetValue(obj, null);
+                            var dataFilter = t.GetProperty("FilterExpression");
+                            dataFilter?.SetValue(obj, "");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("InventoryList: TryNeutralizeExpressions 警告: {Message}", ex.Message);
             }
         }
 
