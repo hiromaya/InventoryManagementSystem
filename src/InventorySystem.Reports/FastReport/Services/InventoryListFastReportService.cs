@@ -305,17 +305,17 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             try
             {
-                // Phase1.5: StaffLabelも簡略化してCodeDOM経路を避ける
+                // StaffLabelは式を撤去（空文字）
                 var staffLabel = report.FindObject("StaffLabel") as FR.TextObject;
-                if (staffLabel != null)
-                {
-                    staffLabel.Text = "[IIF([InventoryData.StaffCode] != \"\", \"担当者コード：\" + [InventoryData.StaffCode], \"\")]";
-                }
+                if (staffLabel != null) staffLabel.Text = string.Empty;
 
-                // PageInfo の TotalPages# 参照を簡略化（Page# のみ）
+                // PageInfoは静的テキストに固定
                 var pageInfo = report.FindObject("PageInfo") as FR.TextObject;
-                // PageInfoの簡略化は維持（TotalPages#依存を避ける）
-                if (pageInfo != null) pageInfo.Text = "[Page#] 頁";
+                if (pageInfo != null) pageInfo.Text = "1 / 1 頁";
+
+                // Titleは静的文言に固定
+                var title = report.FindObject("Title") as FR.TextObject;
+                if (title != null) title.Text = "※　在　庫　表　※";
 
                 // DataBand の StartNewPageExpression をクリア
                 var dataBand = report.FindObject("Data1");
