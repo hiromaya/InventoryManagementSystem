@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using FastReport;
+using FR = global::FastReport;
 using FastReport.Export.Pdf;
 using InventorySystem.Core.Interfaces;
 using InventorySystem.Core.Entities;
@@ -156,6 +157,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogInformation("データソース有効化: InventoryData");
                 _logger.LogInformation("DataTable登録完了: {RowCount}行, {ColumnCount}列", dataTable.Rows.Count, dataTable.Columns.Count);
             }
+
+            // テンプレート内の潜在的な式/複雑表現を最小化（Phase1安全策）
+            TryClearPotentialExpressions(report);
             
             // パラメータ（最小限）
             report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy/MM/dd HH:mm"));
@@ -220,10 +224,53 @@ namespace InventorySystem.Reports.FastReport.Services
                     scriptProperty.SetValue(report, null);
                     _logger.LogInformation("InventoryList: Scriptプロパティをnullに設定しました");
                 }
+
+                // 反映結果をログ
+                var currentLang = scriptLanguageProperty?.GetValue(report)?.ToString() ?? "(unknown)";
+                var scriptValue = scriptProperty?.GetValue(report);
+                _logger.LogInformation("InventoryList: ScriptLanguage現値={Lang}, Script is null={IsNull}", currentLang, scriptValue == null);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning("InventoryList: ScriptLanguage設定時の警告: {Message}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// テンプレ内の潜在的なスクリプト/式由来のコンパイルを避けるため、式を簡略化
+        /// </summary>
+        private void TryClearPotentialExpressions(Report report)
+        {
+            try
+            {
+                // StaffLabel の IIF 式を無効化（空に）
+                var staffLabel = report.FindObject("StaffLabel") as FR.TextObject;
+                if (staffLabel != null)
+                {
+                    staffLabel.Text = "";
+                    _logger.LogInformation("InventoryList: StaffLabelの式をクリアしました");
+                }
+
+                // PageInfo の TotalPages# 参照を簡略化（Page# のみ）
+                var pageInfo = report.FindObject("PageInfo") as FR.TextObject;
+                if (pageInfo != null)
+                {
+                    pageInfo.Text = "[Page#] 頁";
+                    _logger.LogInformation("InventoryList: PageInfoをPage#のみに簡略化しました");
+                }
+
+                // DataBand の StartNewPageExpression をクリア
+                var dataBand = report.FindObject("Data1");
+                if (dataBand != null)
+                {
+                    var prop = dataBand.GetType().GetProperty("StartNewPageExpression");
+                    prop?.SetValue(dataBand, "");
+                    _logger.LogInformation("InventoryList: DataBand.StartNewPageExpressionをクリアしました");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("InventoryList: 式クリア中の警告: {Message}", ex.Message);
             }
         }
     }
