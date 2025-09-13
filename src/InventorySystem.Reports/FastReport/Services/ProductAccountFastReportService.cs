@@ -1786,7 +1786,8 @@ namespace InventorySystem.Reports.FastReport.Services
             string currentStaffCode = "";
             string currentStaffName = "";
             int currentPageRows = 0;
-            const int MAX_ROWS_PER_PAGE = 35;
+            // フォントサイズを11ptに拡大したため、1ページあたりの実用行数を調整
+            const int MAX_ROWS_PER_PAGE = 34; // 以前: 35
             
             // === 担当者別件数の事前確認（デバッグ用） ===
             var staffGroups = flatData
@@ -1894,7 +1895,7 @@ namespace InventorySystem.Reports.FastReport.Services
                         var pageBreakRow = CreatePageBreakRow(table, currentStaffCode, currentStaffName);
                         table.Rows.Add(pageBreakRow);
                         currentPageRows = 0;
-                        _logger.LogInformation($"ページブレーク挿入: 担当者={currentStaffCode}, 行数=35");
+                        _logger.LogInformation($"ページブレーク挿入: 担当者={currentStaffCode}, 行数={MAX_ROWS_PER_PAGE}");
                     }
                 }
                 
