@@ -79,9 +79,10 @@ namespace InventorySystem.Reports.FastReport.Services
             dt.Columns.Add("StaffCode", typeof(string));
             dt.Columns.Add("StaffName", typeof(string));
 
-            // === 表示データ列（9列）===
+            // === 表示データ列（9列＋手入力）===
             dt.Columns.Add("Col1", typeof(string));
             dt.Columns.Add("Col2", typeof(string));
+            dt.Columns.Add("ColManual", typeof(string));
             dt.Columns.Add("Col3", typeof(string));
             dt.Columns.Add("Col4", typeof(string));
             dt.Columns.Add("Col5", typeof(string));
@@ -133,6 +134,7 @@ namespace InventorySystem.Reports.FastReport.Services
                     staffName,     // StaffName
                     $"{item.Key.ProductCode} {item.ProductName}",                               // Col1
                     $"{item.Key.ShippingMarkCode} {item.ShippingMarkName}".Trim(),             // Col2
+                    (item.ManualShippingMark ?? string.Empty).Trim(),                           // ColManual
                     item.GradeName ?? string.Empty,                                              // Col3
                     item.ClassName ?? string.Empty,                                              // Col4
                     item.PreviousDayStock.ToString("N2"),                                        // Col5
