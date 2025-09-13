@@ -107,8 +107,12 @@ namespace InventorySystem.Reports.FastReport.Services
             _logger.LogInformation("CP在庫マスタから{Count}件取得", cpInventoryData.Count());
 
             // 除外条件・ソート
+            // Current系の同義としてDaily系を使用（CpInventoryMasterの現行プロパティ名に準拠）
             var filtered = cpInventoryData
+                // 当日在庫数量/金額が共に0の行を除外（CurrentStock/Amount の同義）
                 .Where(x => !(x.DailyStock == 0 && x.DailyStockAmount == 0))
+                // 前日在庫0を除外（PreviousStock の同義）
+                .Where(x => x.PreviousDayStock != 0)
                 .OrderBy(x => string.IsNullOrEmpty(x.ProductCategory1) ? "000" : x.ProductCategory1)
                 .ThenBy(x => x.Key.ProductCode)
                 .ThenBy(x => x.Key.ShippingMarkCode)
@@ -125,6 +129,25 @@ namespace InventorySystem.Reports.FastReport.Services
                 var staffName = GetStaffName(staffCode);
                 var stagnation = CalculateStagnationMark(item.LastReceiptDate, jobDate);
 
+                // 表示値の準備（指示に基づくマッピング）
+                var col1_ProductName = item.ProductName ?? string.Empty; // 商品名のみ
+                var col2_Shipping = !string.IsNullOrWhiteSpace(item.ShippingMarkName)
+                    ? item.ShippingMarkName
+                    : (item.Key.ShippingMarkCode ?? string.Empty); // 荷印名が空ならコードを表示
+                var colManual = (item.ManualShippingMark ?? string.Empty).Trim();
+
+                // Current系の同義としてDaily系を使用（現行エンティティ準拠）
+                var currentStock = item.DailyStock;
+                var currentUnitPrice = item.DailyUnitPrice;
+                var currentAmount = item.DailyStockAmount;
+
+                var col5_Quantity = FormatQuantity(currentStock);
+                var col6_UnitPrice = FormatUnitPrice(currentUnitPrice);
+                var col7_Amount = FormatAmount(currentAmount);
+                var col8_LastReceipt = item.LastReceiptDate.HasValue
+                    ? item.LastReceiptDate.Value.ToString("(yy-MM-dd)")
+                    : string.Empty;
+
                 dt.Rows.Add(
                     "DETAIL",     // RowType
                     "0",          // IsPageBreak
@@ -132,16 +155,16 @@ namespace InventorySystem.Reports.FastReport.Services
                     "0",          // IsGrayBackground
                     staffCode,     // StaffCode
                     staffName,     // StaffName
-                    $"{item.Key.ProductCode} {item.ProductName}",                               // Col1
-                    $"{item.Key.ShippingMarkCode} {item.ShippingMarkName}".Trim(),             // Col2
-                    (item.ManualShippingMark ?? string.Empty).Trim(),                           // ColManual
+                    col1_ProductName,                                                           // Col1
+                    col2_Shipping,                                                              // Col2
+                    colManual,                                                                  // ColManual
                     item.GradeName ?? string.Empty,                                              // Col3
                     item.ClassName ?? string.Empty,                                              // Col4
-                    item.PreviousDayStock.ToString("N2"),                                        // Col5
-                    item.DailyStock.ToString("N2"),                                              // Col6
-                    item.DailyStockAmount.ToString("N0"),                                        // Col7
-                    stagnation,                                                                  // Col8
-                    string.Empty,                                                                // Col9
+                    col5_Quantity,                                                               // Col5（当日在庫数量）
+                    col6_UnitPrice,                                                              // Col6（当日在庫単価）
+                    col7_Amount,                                                                 // Col7（当日在庫金額）
+                    col8_LastReceipt,                                                            // Col8（最終入荷日）
+                    stagnation,                                                                  // Col9（滞留マーク）
                     "1", "1"   // CurrentPage, TotalPages（仮）
                 );
             }
@@ -264,21 +287,12 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             try
             {
-                // StaffLabel の IIF 式を無効化（空に）
-                var staffLabel = report.FindObject("StaffLabel") as FR.TextObject;
-                if (staffLabel != null)
-                {
-                    staffLabel.Text = "";
-                    _logger.LogInformation("InventoryList: StaffLabelの式をクリアしました");
-                }
+                // Phase1ではStaffLabelはテンプレ側のIIFを使用（無効化しない）
 
                 // PageInfo の TotalPages# 参照を簡略化（Page# のみ）
                 var pageInfo = report.FindObject("PageInfo") as FR.TextObject;
-                if (pageInfo != null)
-                {
-                    pageInfo.Text = "[Page#] 頁";
-                    _logger.LogInformation("InventoryList: PageInfoをPage#のみに簡略化しました");
-                }
+                // PageInfoの簡略化は維持（TotalPages#依存を避ける）
+                if (pageInfo != null) pageInfo.Text = "[Page#] 頁";
 
                 // DataBand の StartNewPageExpression をクリア
                 var dataBand = report.FindObject("Data1");
@@ -293,6 +307,28 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 _logger.LogWarning("InventoryList: 式クリア中の警告: {Message}", ex.Message);
             }
+        }
+
+        // 数値フォーマット（商品勘定の仕様に準拠）
+        private string FormatQuantity(decimal? value)
+        {
+            if (value == null || value.Value == 0m) return string.Empty;
+            if (value.Value < 0m) return $"{Math.Abs(value.Value):N2}▲";
+            return value.Value.ToString("N2");
+        }
+
+        private string FormatAmount(decimal? value)
+        {
+            if (value == null || value.Value == 0m) return string.Empty;
+            if (value.Value < 0m) return $"{Math.Abs(value.Value):N0}▲";
+            return value.Value.ToString("N0");
+        }
+
+        private string FormatUnitPrice(decimal? value)
+        {
+            if (value == null || value.Value == 0m) return string.Empty;
+            if (value.Value < 0m) return $"{Math.Abs(value.Value):N0}▲";
+            return value.Value.ToString("N0");
         }
 
         /// <summary>
