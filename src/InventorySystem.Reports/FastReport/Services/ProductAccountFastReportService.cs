@@ -2751,8 +2751,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 UnitPrice = "【在庫単価】",
                 Amount = "【在庫金額】",
                 GrossProfit = "【粗利益】",
-                // 固定パディングは一旦無効化（通常表示へ）
-                CustomerSupplierName = "【粗利率】",
+                // 固定パディングでヘッダーを右にずらす（全角空白×2）
+                CustomerSupplierName = "　　【粗利率】",
                 IsGrossProfitRate = true                        // 粗利率表示フラグ
             };
         }
