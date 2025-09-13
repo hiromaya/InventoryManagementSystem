@@ -1787,7 +1787,7 @@ namespace InventorySystem.Reports.FastReport.Services
             string currentStaffName = "";
             int currentPageRows = 0;
             // フォントサイズを11ptに拡大したため、1ページあたりの実用行数を調整
-            const int MAX_ROWS_PER_PAGE = 34; // 以前: 35
+            const int MAX_ROWS_PER_PAGE = 33; // 以前: 35→34→33
             
             // === 担当者別件数の事前確認（デバッグ用） ===
             var staffGroups = flatData
