@@ -83,6 +83,8 @@ BEGIN
                 CurrentStock = source.CurrentStockQuantity,
                 CurrentStockAmount = source.CurrentStockAmount,
                 StandardPrice = source.StandardPrice,
+                -- 初期在庫スナップショット日を最終入荷日に設定（ファイル名由来の@JobDate）
+                LastReceiptDate = @JobDate,
                 UpdatedDate = GETDATE(),
                 DataSetId = @ProcessId,
                 ImportType = 'INIT',
@@ -97,7 +99,8 @@ BEGIN
                 CarryoverQuantity, CarryoverAmount, CarryoverUnitPrice,
                 CurrentStock, CurrentStockAmount,
                 DailyStock, DailyStockAmount,
-                DailyFlag, DataSetId, ImportType, Origin, IsActive
+                DailyFlag, DataSetId, ImportType, Origin, IsActive,
+                LastReceiptDate
             )
             VALUES (
                 source.ProductCode, source.GradeCode, source.ClassCode,
@@ -109,7 +112,8 @@ BEGIN
                 source.CurrentStockQuantity, source.CurrentStockAmount,
                 0, 0,  -- 初期在庫なのでDailyStockは0
                 '9',   -- DailyFlag
-                @ProcessId, 'INIT', 'INITIAL', 1
+                @ProcessId, 'INIT', 'INITIAL', 1,
+                @JobDate  -- 最終入荷日を初期在庫日で設定
             );
         
         SET @InsertCount = @@ROWCOUNT;
