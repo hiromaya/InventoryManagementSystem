@@ -287,6 +287,10 @@ namespace InventorySystem.Reports.FastReport.Services
 
         private void AddSubtotalRow(DataTable dataTable, decimal quantity, decimal amount)
         {
+            // 前に空白行
+            AddBlankRow(dataTable);
+
+            // 小計行
             var row = dataTable.NewRow();
             row["RowType"] = "PRODUCT_SUBTOTAL";
             row["IsPageBreak"] = "0";
@@ -298,6 +302,22 @@ namespace InventorySystem.Reports.FastReport.Services
             row["CurrentPage"] = "1";
             row["TotalPages"] = "1";
             dataTable.Rows.Add(row);
+
+            // 後ろに空白行
+            AddBlankRow(dataTable);
+        }
+
+        private void AddBlankRow(DataTable dataTable)
+        {
+            var blank = dataTable.NewRow();
+            blank["RowType"] = "BLANK";
+            blank["IsPageBreak"] = "0";
+            blank["IsBold"] = "0";
+            blank["IsGrayBackground"] = "0";
+            blank["CurrentPage"] = "1";
+            blank["TotalPages"] = "1";
+            // 他の列（StaffCode/Name, Col1..Col9）は既定の空文字のままでOK
+            dataTable.Rows.Add(blank);
         }
 
         /// <summary>
