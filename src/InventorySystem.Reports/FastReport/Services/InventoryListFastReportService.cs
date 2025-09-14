@@ -352,7 +352,7 @@ namespace InventorySystem.Reports.FastReport.Services
             row["IsGrayBackground"] = "1";    // グレー背景
             row["StaffCode"] = string.Empty;
             row["StaffName"] = string.Empty;
-            row["Col1"] = "※　合　　計　※";
+            row["Col1"] = "※　合　 計　※";
             row["Col5"] = FormatQuantity(totalQuantity);
             row["Col7"] = FormatAmount(totalAmount);
             row["CurrentPage"] = "1";
