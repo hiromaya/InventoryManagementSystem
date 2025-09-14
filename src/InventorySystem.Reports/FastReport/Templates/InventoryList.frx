@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="None" ReportInfo.Created="2025-01-01" ReportInfo.Modified="09/07/2025 22:40:00" ReportInfo.CreatorVersion="2024.1.3.0">
+<Report ScriptLanguage="CSharp" ReportInfo.Created="2025-01-01" ReportInfo.Modified="09/14/2025 16:41:20" ReportInfo.CreatorVersion="2024.1.3.0">
   <Dictionary>
     <TableDataSource Name="InventoryData" ReferenceName="InventoryData" DataType="System.Int32" Enabled="true">
       <Column Name="RowType" DataType="System.String"/>
@@ -25,23 +25,23 @@
     <Parameter Name="JobDate" DataType="System.String" AsString=""/>
   </Dictionary>
   <ReportPage Name="Page1" RawPaperSize="9" Watermark.Font="Arial, 60pt">
-    <PageHeaderBand Name="PageHeader1" Width="718.2" Height="175.6">
+    <PageHeaderBand Name="PageHeader1" Width="718.2" Height="149.1">
       <TextObject Name="CreateDateTime" Width="359.1" Height="18.9" Text="作成日：[CreateDate]" Font="ＭＳ ゴシック, 10pt"/>
       <TextObject Name="PageInfo" Left="612.2" Width="68.2" Height="18.9" Text="[Page#] / [TotalPages#] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 10pt"/>
       <TextObject Name="Title" Top="18.9" Width="718.2" Height="18.9" Text="※　[JobDate]　在　庫　表　※" HorzAlign="Center" Font="ＭＳ ゴシック, 12pt"/>
-      <TextObject Name="StaffLabel" Text="担当者コード：[InventoryData.StaffCode]" />
-      <TextObject Name="HeaderProduct" Top="156.7" Width="140" Height="18.9" Text="商　品　名" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderShipping" Left="140" Top="156.7" Width="50" Height="18.9" Text="荷　印" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderManual" Left="190" Top="156.7" Width="50" Height="18.9" Text="手入力" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderGrade" Left="240" Top="156.7" Width="60" Height="18.9" Text="等　級" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderClass" Left="300" Top="156.7" Width="60" Height="18.9" Text="階　級" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderQuantity" Left="360" Top="156.7" Width="80" Height="18.9" Text="在庫数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderUnitPrice" Left="440" Top="156.7" Width="70" Height="18.9" Text="在庫単価" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderAmount" Left="510" Top="156.7" Width="90" Height="18.9" Text="在庫金額" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderLastDate" Left="600" Top="156.7" Width="80" Height="18.9" Text="最終入荷日" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderMark" Left="680" Top="156.7" Width="38.2" Height="18.9" Text="ﾏｰｸ" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="StaffLabel" Text="担当者コード：[InventoryData.StaffCode]" Font="MS UI Gothic, 9pt"/>
+      <TextObject Name="HeaderProduct" Top="130.2" Width="140" Height="18.9" Text="商　品　名" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+      <TextObject Name="HeaderShipping" Left="140" Top="130.2" Width="50" Height="18.9" Text="荷　印" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+      <TextObject Name="HeaderManual" Left="190" Top="130.2" Width="50" Height="18.9" Text="手入力" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+      <TextObject Name="HeaderGrade" Left="240" Top="130.2" Width="60" Height="18.9" Text="等　級" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+      <TextObject Name="HeaderClass" Left="300" Top="130.2" Width="60" Height="18.9" Text="階　級" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+      <TextObject Name="HeaderQuantity" Left="360" Top="130.2" Width="80" Height="18.9" Text="在庫数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+      <TextObject Name="HeaderUnitPrice" Left="440" Top="130.2" Width="70" Height="18.9" Text="在庫単価" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+      <TextObject Name="HeaderAmount" Left="510" Top="130.2" Width="90" Height="18.9" Text="在庫金額" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+      <TextObject Name="HeaderLastDate" Left="600" Top="130.2" Width="80" Height="18.9" Text="最終入荷日" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+      <TextObject Name="HeaderMark" Left="680" Top="130.2" Width="38.2" Height="18.9" Text="ﾏｰｸ" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
     </PageHeaderBand>
-    <DataBand Name="Data1" Top="179.6" Width="718.2" Height="18.9" DataSource="InventoryData">
+    <DataBand Name="Data1" Top="153.1" Width="718.2" Height="18.9" DataSource="InventoryData">
       <TextObject Name="DataCol1" Width="140" Height="18.9" Text="[InventoryData.Col1]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="DataCol2" Left="140" Width="50" Height="18.9" Text="[InventoryData.Col2]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt" Trimming="EllipsisCharacter"/>
       <TextObject Name="DataColManual" Left="190" Width="50" Height="18.9" Text="[InventoryData.ColManual]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt" Trimming="EllipsisCharacter"/>
@@ -53,6 +53,6 @@
       <TextObject Name="DataCol8" Left="600" Width="80" Height="18.9" Text="[InventoryData.Col8]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
       <TextObject Name="DataCol9" Left="680" Width="38.2" Height="18.9" Text="[InventoryData.Col9]" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
     </DataBand>
-    <PageFooterBand Name="PageFooter1" Top="202.5" Width="718.2" Height="18.9"/>
+    <PageFooterBand Name="PageFooter1" Top="176.0" Width="718.2" Height="18.9"/>
   </ReportPage>
 </Report>
