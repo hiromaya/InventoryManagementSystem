@@ -281,45 +281,61 @@ namespace InventorySystem.Reports.FastReport.Services
         {
             try
             {
-                // ScriptLanguage を None に設定
+                // デバッグ: 利用可能な列挙値を確認
                 var scriptLanguageProperty = report.GetType().GetProperty("ScriptLanguage");
                 if (scriptLanguageProperty != null)
                 {
                     var scriptLanguageType = scriptLanguageProperty.PropertyType;
+                    _logger.LogInformation("ScriptLanguageType: {TypeName}", scriptLanguageType.FullName);
+                    
                     if (scriptLanguageType.IsEnum)
                     {
-                        var noneValue = Enum.GetValues(scriptLanguageType)
-                            .Cast<object>()
-                            .FirstOrDefault(v => v.ToString() == "None");
+                        // 利用可能な全ての値をログ出力
+                        var enumValues = Enum.GetValues(scriptLanguageType);
+                        _logger.LogInformation("利用可能な値: {Values}", 
+                            string.Join(", ", enumValues.Cast<object>().Select(v => v.ToString())));
+                        
+                        // 方法1: 数値インデックスで設定（Noneは通常0）
+                        var noneValue = enumValues.GetValue(0); // 最初の値（通常None）
                         if (noneValue != null)
                         {
                             scriptLanguageProperty.SetValue(report, noneValue);
-                            _logger.LogInformation("InventoryList: ScriptLanguageをNoneに設定しました");
+                            _logger.LogInformation("ScriptLanguageを{Value}に設定しました（インデックス0）", noneValue);
+                            
+                            // 確認
+                            var newValue = scriptLanguageProperty.GetValue(report);
+                            _logger.LogInformation("設定後の値: {Value}", newValue);
                         }
                     }
                 }
-
-                // 非公開 Script プロパティを null に設定（念のため）
-                var scriptProperty = report.GetType().GetProperty(
-                    "Script",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (scriptProperty != null)
+                else
                 {
-                    scriptProperty.SetValue(report, null);
-                    _logger.LogInformation("InventoryList: Scriptプロパティをnullに設定しました");
+                    _logger.LogError("ScriptLanguageプロパティが見つかりません");
                 }
 
-                // 反映結果をログ
-                var currentLang = scriptLanguageProperty?.GetValue(report)?.ToString() ?? "(unknown)";
-                var scriptValue = scriptProperty?.GetValue(report);
-                _logger.LogInformation("InventoryList: ScriptLanguage現値={Lang}, Script is null={IsNull}", currentLang, scriptValue == null);
+                // Scriptプロパティをnullに設定
+                var scriptProperty = report.GetType().GetProperty("Script", 
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (scriptProperty != null && scriptProperty.CanWrite)
+                {
+                    scriptProperty.SetValue(report, null);
+                    _logger.LogInformation("Scriptプロパティをnullに設定しました");
+                }
+                
+                // ReportScriptプロパティも試す
+                var reportScriptProperty = report.GetType().GetProperty("ReportScript", 
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (reportScriptProperty != null && reportScriptProperty.CanWrite)
+                {
+                    reportScriptProperty.SetValue(report, string.Empty);
+                    _logger.LogInformation("ReportScriptプロパティを空に設定しました");
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning("InventoryList: ScriptLanguage設定時の警告: {Message}", ex.Message);
+                _logger.LogError(ex, "SetScriptLanguageToNoneでエラー");
             }
         }
-
         // TryClearPotentialExpressions / TryNeutralizeExpressions は使用しない
 
         // 数値フォーマット（商品勘定の仕様に準拠）
