@@ -70,6 +70,8 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 MonthlyTransferQuantity = 0, MonthlyTransferAmount = 0,
                 MonthlyGrossProfit = 0, MonthlyWalkingAmount = 0,
                 MonthlyIncentiveAmount = 0,
+                -- 当日入荷フラグ初期化
+                HasTodayReceipt = 0,
                 UpdatedDate = GETDATE()
             -- 仮テーブル設計：全レコード対象
             """;
@@ -255,6 +257,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                     WHEN purchase.ProductCode IS NOT NULL THEN '0' 
                     ELSE cp.DailyFlag 
                 END,
+                -- 仕入入荷があれば当日入荷フラグをON
+                HasTodayReceipt = CASE 
+                    WHEN purchase.PurchaseQuantity IS NOT NULL AND purchase.PurchaseQuantity > 0 THEN 1
+                    ELSE cp.HasTodayReceipt
+                END,
                 UpdatedDate = GETDATE()
             FROM CpInventoryMaster cp
             LEFT JOIN (
@@ -299,6 +306,11 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
                 DailyFlag = CASE 
                     WHEN adj.ProductCode IS NOT NULL THEN '0' 
                     ELSE cp.DailyFlag 
+                END,
+                -- 在庫調整入荷（区分1,3,4,6かつ数量>0）があれば当日入荷フラグをON
+                HasTodayReceipt = CASE 
+                    WHEN adj.AdjustmentQuantity IS NOT NULL AND adj.AdjustmentQuantity > 0 THEN 1
+                    ELSE cp.HasTodayReceipt
                 END,
                 UpdatedDate = GETDATE()
             FROM CpInventoryMaster cp
@@ -741,6 +753,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             DailyDiscountAmount = row.DailyDiscountAmount ?? 0m,
             DailyPurchaseDiscountAmount = row.DailyPurchaseDiscountAmount ?? 0m,
             LastReceiptDate = row.LastReceiptDate,
+            HasTodayReceipt = row.HasTodayReceipt ?? false,
             // 月計項目
             MonthlySalesQuantity = row.MonthlySalesQuantity ?? 0m,
             MonthlySalesAmount = row.MonthlySalesAmount ?? 0m,
@@ -752,6 +765,67 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             MonthlyWalkingAmount = row.MonthlyWalkingAmount ?? 0m,
             MonthlyIncentiveAmount = row.MonthlyIncentiveAmount ?? 0m
         };
+    }
+
+    /// <summary>
+    /// 当日入荷フラグを設定する
+    /// 仕入（11/12）または在庫調整（71/72、区分1/3/4/6）で数量>0の場合にフラグを立てる
+    /// </summary>
+    public async Task<int> SetHasTodayReceiptFlagAsync(DateTime jobDate)
+    {
+        const string sql = @"
+        UPDATE cp
+        SET cp.HasTodayReceipt = 1,
+            cp.UpdatedDate = GETDATE()
+        FROM CpInventoryMaster cp
+        WHERE cp.JobDate = @JobDate
+          AND (
+            EXISTS (
+              SELECT 1 FROM PurchaseVouchers pv
+              WHERE pv.JobDate = @JobDate
+                AND pv.VoucherType IN ('11','12')
+                AND pv.DetailType = '1'
+                AND pv.Quantity > 0
+                AND pv.ProductCode = cp.ProductCode
+                AND pv.GradeCode = cp.GradeCode
+                AND pv.ClassCode = cp.ClassCode
+                AND pv.ShippingMarkCode = cp.ShippingMarkCode
+                AND pv.ManualShippingMark = cp.ManualShippingMark
+            )
+            OR
+            EXISTS (
+              SELECT 1 FROM InventoryAdjustments ia
+              WHERE ia.JobDate = @JobDate
+                AND ia.VoucherType IN ('71','72')
+                AND ia.DetailType = '1'
+                AND ia.Quantity > 0
+                AND ia.CategoryCode IN (1,3,4,6)
+                AND ia.ProductCode = cp.ProductCode
+                AND ia.GradeCode = cp.GradeCode
+                AND ia.ClassCode = cp.ClassCode
+                AND ia.ShippingMarkCode = cp.ShippingMarkCode
+                AND ia.ManualShippingMark = cp.ManualShippingMark
+            )
+          )";
+
+        using var connection = CreateConnection();
+        return await connection.ExecuteAsync(sql, new { JobDate = jobDate });
+    }
+
+    /// <summary>
+    /// 当日入荷フラグがtrueの商品の最終入荷日を当日に更新する
+    /// </summary>
+    public async Task<int> UpdateLastReceiptDateByFlagAsync(DateTime jobDate)
+    {
+        const string sql = @"
+        UPDATE CpInventoryMaster
+        SET LastReceiptDate = @JobDate,
+            UpdatedDate = GETDATE()
+        WHERE JobDate = @JobDate
+          AND HasTodayReceipt = 1";
+
+        using var connection = CreateConnection();
+        return await connection.ExecuteAsync(sql, new { JobDate = jobDate });
     }
 
     /// <summary>

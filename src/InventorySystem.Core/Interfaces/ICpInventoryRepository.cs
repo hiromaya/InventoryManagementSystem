@@ -201,4 +201,14 @@ public interface ICpInventoryRepository
     /// ShippingMarkMaster/GradeMaster/ClassMaster をJOINし、表示用名称を含めて返す。
     /// </summary>
     Task<IEnumerable<CpInventoryMaster>> GetInventoryForReportAsync(DateTime jobDate);
+
+    /// <summary>
+    /// 当日入荷フラグを設定する（仕入/調整の当日入荷がある行を1に）
+    /// </summary>
+    Task<int> SetHasTodayReceiptFlagAsync(DateTime jobDate);
+
+    /// <summary>
+    /// 当日入荷フラグがtrueの商品の最終入荷日を当日に更新する
+    /// </summary>
+    Task<int> UpdateLastReceiptDateByFlagAsync(DateTime jobDate);
 }

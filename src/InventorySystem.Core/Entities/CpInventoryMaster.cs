@@ -92,6 +92,8 @@ public class CpInventoryMaster
 
     // 最終入荷日（仕入・在庫調整(1/3/6)・振替(4)のプラス数量で更新）
     public DateTime? LastReceiptDate { get; set; }
+    // 当日入荷フラグ（仕入/調整で在庫が増加した場合に当日分で立つ）
+    public bool HasTodayReceipt { get; set; }
 
     // DataSetId管理を廃止（仮テーブル設計のため）
     

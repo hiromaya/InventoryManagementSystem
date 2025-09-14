@@ -82,6 +82,11 @@ public class InventoryListService : IInventoryListService
             await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(reportDate);
             _logger.LogInformation("当日データ集計完了");
 
+            // 3.5 当日入荷フラグに基づく最終入荷日更新
+            _logger.LogInformation("当日入荷フラグに基づく最終入荷日更新開始");
+            var updatedCount = await _cpInventoryRepository.UpdateLastReceiptDateByFlagAsync(reportDate);
+            _logger.LogInformation("最終入荷日更新完了: {UpdatedCount}件", updatedCount);
+
             // 4. 当日在庫計算
             _logger.LogInformation("当日在庫計算開始");
             await _cpInventoryRepository.CalculateDailyStockAsync();
