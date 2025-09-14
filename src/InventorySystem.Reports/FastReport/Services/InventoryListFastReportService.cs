@@ -189,7 +189,7 @@ namespace InventorySystem.Reports.FastReport.Services
             report.FileName = templatePath;             // 参照ファイル名を設定
             report.Load(templatePath);
             
-            // スクリプトを完全に無効化（ProductAccountと同等の対策）
+            // スクリプトを完全に無効化（1回のみ）
             SetScriptLanguageToNone(report);
             
             // データ登録（最重要）
@@ -202,31 +202,26 @@ namespace InventorySystem.Reports.FastReport.Services
                 _logger.LogInformation("DataTable登録完了: {RowCount}行, {ColumnCount}列", dataTable.Rows.Count, dataTable.Columns.Count);
             }
 
-            // テンプレート内の潜在的な式/複雑表現を最小化（Phase1安全策）
-            TryClearPotentialExpressions(report);
+            // DataBand のデータソースを明示的に設定
+            if (report.Pages.Count > 0 && report.Pages[0] is FR.ReportPage rp)
+            {
+                foreach (var band in rp.Bands)
+                {
+                    if (band is FR.DataBand db && db.Name == "Data1")
+                    {
+                        db.DataSource = report.GetDataSource("InventoryData");
+                        _logger.LogInformation("DataBand設定完了");
+                        break;
+                    }
+                }
+            }
             
             // パラメータ（最小限）
             report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy/MM/dd HH:mm"));
             report.SetParameterValue("JobDate", jobDate.ToString("yyyy/MM/dd"));
             report.SetParameterValue("TotalCount", dataTable.Rows.Count.ToString());
 
-            // 直前でスクリプト無効化を再度強制
-            try
-            {
-                var slProp = report.GetType().GetProperty("ScriptLanguage");
-                if (slProp != null && slProp.PropertyType.IsEnum)
-                {
-                    var none = Enum.GetValues(slProp.PropertyType).Cast<object>().FirstOrDefault(v => v.ToString() == "None");
-                    if (none != null) slProp.SetValue(report, none);
-                }
-                var scriptProp = report.GetType().GetProperty("Script",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                scriptProp?.SetValue(report, null);
-            }
-            catch { /* ignore */ }
-
-            // 表現式の無害化（万一のCodeDOM回避）
-            TryNeutralizeExpressions(report);
+            // 余計な前処理は行わず、そのままPrepare
 
             // 準備と出力
             _logger.LogInformation("レポート準備開始");
@@ -298,71 +293,7 @@ namespace InventorySystem.Reports.FastReport.Services
             }
         }
 
-        /// <summary>
-        /// テンプレ内の潜在的なスクリプト/式由来のコンパイルを避けるため、式を簡略化
-        /// </summary>
-        private void TryClearPotentialExpressions(Report report)
-        {
-            try
-            {
-                // StaffLabelは式を撤去（空文字）
-                var staffLabel = report.FindObject("StaffLabel") as FR.TextObject;
-                if (staffLabel != null) staffLabel.Text = string.Empty;
-
-                // PageInfoは静的テキストに固定
-                var pageInfo = report.FindObject("PageInfo") as FR.TextObject;
-                if (pageInfo != null) pageInfo.Text = "1 / 1 頁";
-
-                // Titleは静的文言に固定
-                var title = report.FindObject("Title") as FR.TextObject;
-                if (title != null) title.Text = "※　在　庫　表　※";
-
-                // DataBand の StartNewPageExpression をクリア
-                var dataBand = report.FindObject("Data1");
-                if (dataBand != null)
-                {
-                    var prop = dataBand.GetType().GetProperty("StartNewPageExpression");
-                    prop?.SetValue(dataBand, "");
-                    _logger.LogInformation("InventoryList: DataBand.StartNewPageExpressionをクリアしました");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning("InventoryList: 式クリア中の警告: {Message}", ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// バンド/オブジェクトの式や条件プロパティを汎用的に空にする（安全策）
-        /// </summary>
-        private void TryNeutralizeExpressions(Report report)
-        {
-            try
-            {
-                for (int i = 0; i < report.Pages.Count; i++)
-                {
-                    if (report.Pages[i] is FR.ReportPage page)
-                    {
-                        foreach (var obj in page.AllObjects)
-                        {
-                            var t = obj.GetType();
-                            var cond = t.GetProperty("Condition");
-                            cond?.SetValue(obj, "");
-                            var expr = t.GetProperty("Expression");
-                            expr?.SetValue(obj, "");
-                            var filter = t.GetProperty("Filter");
-                            filter?.SetValue(obj, null);
-                            var dataFilter = t.GetProperty("FilterExpression");
-                            dataFilter?.SetValue(obj, "");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning("InventoryList: TryNeutralizeExpressions 警告: {Message}", ex.Message);
-            }
-        }
+        // TryClearPotentialExpressions / TryNeutralizeExpressions は使用しない
 
         // 数値フォーマット（商品勘定の仕様に準拠）
         private string FormatQuantity(decimal? value)
