@@ -176,6 +176,7 @@ namespace InventorySystem.Reports.FastReport.Services
         /// <summary>
         /// 最もシンプルなPDF生成
         /// </summary>
+
         private byte[] GenerateSimplePdf(DataTable dataTable, DateTime jobDate)
         {
             using var report = new Report();
@@ -185,12 +186,41 @@ namespace InventorySystem.Reports.FastReport.Services
             _logger.LogInformation("テンプレート: {Path}", templatePath);
             
             // テンプレート読み込み
-            report.ReportResourceString = string.Empty; // ProductAccountと同様にクリア
-            report.FileName = templatePath;             // 参照ファイル名を設定
             report.Load(templatePath);
             
-            // スクリプトを完全に無効化（1回のみ）
+            // ★ Load直後のScriptLanguage値を確認
+            _logger.LogInformation("Load直後: ScriptLanguage={0}", report.ScriptLanguage);
+            
+            // スクリプトを完全に無効化
             SetScriptLanguageToNone(report);
+            
+            // ★ SetScriptLanguageToNone後の値を確認
+            _logger.LogInformation("設定後: ScriptLanguage={0}", report.ScriptLanguage);
+            
+            // ★ 重要：Compileを明示的にスキップ
+            try
+            {
+                // リフレクションでScriptRestrictionsプロパティを設定
+                var scriptRestrictionsProperty = report.GetType().GetProperty("ScriptRestrictions");
+                if (scriptRestrictionsProperty != null)
+                {
+                    scriptRestrictionsProperty.SetValue(report, true);
+                    _logger.LogInformation("ScriptRestrictionsをtrueに設定");
+                }
+                
+                // リフレクションでNeedCompileプロパティをfalseに設定
+                var needCompileProperty = report.GetType().GetProperty("NeedCompile", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (needCompileProperty != null)
+                {
+                    needCompileProperty.SetValue(report, false);
+                    _logger.LogInformation("NeedCompileをfalseに設定");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("追加設定の警告: {Message}", ex.Message);
+            }
             
             // データ登録（最重要）
             report.RegisterData(dataTable, "InventoryData");
@@ -199,7 +229,6 @@ namespace InventorySystem.Reports.FastReport.Services
             {
                 ds.Enabled = true;
                 _logger.LogInformation("データソース有効化: InventoryData");
-                _logger.LogInformation("DataTable登録完了: {RowCount}行, {ColumnCount}列", dataTable.Rows.Count, dataTable.Columns.Count);
             }
 
             // DataBand のデータソースを明示的に設定
@@ -221,8 +250,6 @@ namespace InventorySystem.Reports.FastReport.Services
             report.SetParameterValue("JobDate", jobDate.ToString("yyyy/MM/dd"));
             report.SetParameterValue("TotalCount", dataTable.Rows.Count.ToString());
 
-            // 余計な前処理は行わず、そのままPrepare
-
             // 準備と出力
             _logger.LogInformation("レポート準備開始");
             report.Prepare();
@@ -235,7 +262,7 @@ namespace InventorySystem.Reports.FastReport.Services
             
             return stream.ToArray();
         }
-        
+
         /// <summary>
         /// テンプレートパス取得
         /// </summary>
