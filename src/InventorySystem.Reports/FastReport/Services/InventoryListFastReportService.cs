@@ -90,9 +90,8 @@ namespace InventorySystem.Reports.FastReport.Services
             dt.Columns.Add("CurrentPage", typeof(string));
             dt.Columns.Add("TotalPages", typeof(string));
 
-            // === CP在庫マスタからデータ取得 ===
-            // 指示のGetInventoryForReportAsyncが未定義のため、現行のGetByJobDateAsyncを使用
-            var cpInventoryData = await _cpInventoryRepository.GetByJobDateAsync(jobDate);
+            // === CP在庫マスタからデータ取得（名称JOIN付メソッド） ===
+            var cpInventoryData = await _cpInventoryRepository.GetInventoryForReportAsync(jobDate);
 
             if (cpInventoryData == null || !cpInventoryData.Any())
             {

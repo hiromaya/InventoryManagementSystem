@@ -701,6 +701,12 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             StandardPrice = row.StandardPrice ?? 0m,
             ProductCategory1 = row.ProductCategory1 ?? string.Empty,
             ProductCategory2 = row.ProductCategory2 ?? string.Empty,
+            // 名称系（JOINで取得される場合あり）
+            ShippingMarkName = row.ShippingMarkName ?? string.Empty,
+            GradeName = row.GradeName ?? string.Empty,
+            ClassName = row.ClassName ?? string.Empty,
+            // 手入力荷印（エンティティ直下プロパティにも設定）
+            ManualShippingMark = row.ManualShippingMark ?? string.Empty,
             JobDate = row.JobDate ?? DateTime.MinValue,
             CreatedDate = row.CreatedDate ?? DateTime.MinValue,
             UpdatedDate = row.UpdatedDate ?? DateTime.MinValue,
@@ -746,6 +752,47 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             MonthlyWalkingAmount = row.MonthlyWalkingAmount ?? 0m,
             MonthlyIncentiveAmount = row.MonthlyIncentiveAmount ?? 0m
         };
+    }
+
+    /// <summary>
+    /// 在庫表用のCP在庫マスタ取得（名称JOIN付）
+    /// </summary>
+    public async Task<IEnumerable<CpInventoryMaster>> GetInventoryForReportAsync(DateTime jobDate)
+    {
+        var sql = @"
+        SELECT 
+            cp.*,
+            sm.ShippingMarkName,
+            gm.GradeName,
+            cm.ClassName
+        FROM CpInventoryMaster cp
+        LEFT JOIN ShippingMarkMaster sm ON cp.ShippingMarkCode = sm.ShippingMarkCode
+        LEFT JOIN GradeMaster gm ON cp.GradeCode = gm.GradeCode  
+        LEFT JOIN ClassMaster cm ON cp.ClassCode = cm.ClassCode
+        WHERE cp.JobDate = @JobDate
+        ORDER BY 
+            ISNULL(cp.ProductCategory1, '000'),
+            cp.ProductCode,
+            cp.ShippingMarkCode,
+            cp.ManualShippingMark,
+            cp.GradeCode,
+            cp.ClassCode";
+
+        using var connection = new SqlConnection(_connectionString);
+        var rows = await connection.QueryAsync<dynamic>(sql, new { JobDate = jobDate });
+        var list = rows.Select(MapToCpInventoryMaster).ToList();
+
+        foreach (var item in list)
+        {
+            _logger.LogInformation(
+                "データ確認: ShippingMarkName={SM}, ManualShippingMark={MS}, GradeName={GN}, ClassName={CN}",
+                string.IsNullOrEmpty(item.ShippingMarkName) ? "NULL" : item.ShippingMarkName,
+                string.IsNullOrEmpty(item.ManualShippingMark) ? "NULL" : item.ManualShippingMark,
+                string.IsNullOrEmpty(item.GradeName) ? "NULL" : item.GradeName,
+                string.IsNullOrEmpty(item.ClassName) ? "NULL" : item.ClassName);
+        }
+
+        return list;
     }
     
     /// <summary>

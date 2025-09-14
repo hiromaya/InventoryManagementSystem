@@ -195,4 +195,10 @@ public interface ICpInventoryRepository
     /// <param name="jobDate">対象日付</param>
     /// <returns>CP在庫マスタ一覧</returns>
     Task<IEnumerable<CpInventoryMaster>> GetByJobDateAsync(DateTime jobDate);
+
+    /// <summary>
+    /// 在庫表用のCP在庫マスタ取得（名称JOIN付）
+    /// ShippingMarkMaster/GradeMaster/ClassMaster をJOINし、表示用名称を含めて返す。
+    /// </summary>
+    Task<IEnumerable<CpInventoryMaster>> GetInventoryForReportAsync(DateTime jobDate);
 }
