@@ -1,16 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="None" ReportInfo.Created="2025-01-01" ReportInfo.Modified="09/07/2025 22:40:00" ReportInfo.CreatorVersion="2024.1.3.0">
+<Report ReportInfo.Created="2025-09-07" ReportInfo.Modified="2025-09-07" ReportInfo.CreatorVersion="2024.1.3.0">
   <Dictionary>
-    <TableDataSource Name="InventoryData" ReferenceName="InventoryData" DataType="System.Int32" Enabled="true">
+    <TableDataSource Name="InventoryData" ReferenceName="InventoryData" Enabled="true">
       <Column Name="RowType" DataType="System.String"/>
-      <Column Name="IsPageBreak" DataType="System.String"/>
-      <Column Name="IsBold" DataType="System.String"/>
-      <Column Name="IsGrayBackground" DataType="System.String"/>
-      <Column Name="StaffCode" DataType="System.String"/>
-      <Column Name="StaffName" DataType="System.String"/>
       <Column Name="Col1" DataType="System.String"/>
       <Column Name="Col2" DataType="System.String"/>
-      <Column Name="ColManual" DataType="System.String"/>
       <Column Name="Col3" DataType="System.String"/>
       <Column Name="Col4" DataType="System.String"/>
       <Column Name="Col5" DataType="System.String"/>
@@ -18,41 +12,19 @@
       <Column Name="Col7" DataType="System.String"/>
       <Column Name="Col8" DataType="System.String"/>
       <Column Name="Col9" DataType="System.String"/>
-      <Column Name="CurrentPage" DataType="System.String"/>
-      <Column Name="TotalPages" DataType="System.String"/>
     </TableDataSource>
-    <Parameter Name="CreateDate" DataType="System.String" AsString=""/>
-    <Parameter Name="JobDate" DataType="System.String" AsString=""/>
   </Dictionary>
-  <ReportPage Name="Page1" RawPaperSize="9" Watermark.Font="Arial, 60pt">
-    <PageHeaderBand Name="PageHeader1" Width="718.2" Height="175.6">
-      <TextObject Name="CreateDateTime" Width="359.1" Height="18.9" Text="作成日：[CreateDate]" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="PageInfo" Left="612.2" Width="68.2" Height="18.9" Text="[Page#] / [TotalPages#] 頁" HorzAlign="Right" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="Title" Top="18.9" Width="718.2" Height="18.9" Text="※　[JobDate]　在　庫　表　※" HorzAlign="Center" Font="ＭＳ ゴシック, 12pt"/>
-      <TextObject Name="StaffLabel" Top="47.25" Width="359.1" Height="18.9" Text="[IIF([InventoryData.StaffCode] != &quot;&quot;, &quot;担当者コード：&quot; + [InventoryData.StaffCode], &quot;&quot;)]" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderProduct" Top="156.7" Width="140" Height="18.9" Text="商　品　名" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderShipping" Left="140" Top="156.7" Width="50" Height="18.9" Text="荷　印" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderManual" Left="190" Top="156.7" Width="50" Height="18.9" Text="手入力" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderGrade" Left="240" Top="156.7" Width="60" Height="18.9" Text="等　級" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderClass" Left="300" Top="156.7" Width="60" Height="18.9" Text="階　級" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderQuantity" Left="360" Top="156.7" Width="80" Height="18.9" Text="在庫数量" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderUnitPrice" Left="440" Top="156.7" Width="70" Height="18.9" Text="在庫単価" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderAmount" Left="510" Top="156.7" Width="90" Height="18.9" Text="在庫金額" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderLastDate" Left="600" Top="156.7" Width="80" Height="18.9" Text="最終入荷日" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="HeaderMark" Left="680" Top="156.7" Width="38.2" Height="18.9" Text="ﾏｰｸ" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+
+  <ReportPage Name="Page1" PaperWidth="297" PaperHeight="210" Landscape="true" LeftMargin="10" TopMargin="10" RightMargin="10" BottomMargin="10" Watermark.Font="Arial, 60pt">
+    <PageHeaderBand Name="PageHeader1" Height="30">
+      <TextObject Name="Title" Left="0" Top="0" Width="260" Height="20" Text="在庫表（テスト）" Font="ＭＳ ゴシック, 12pt, style=Bold"/>
+      <TextObject Name="PageInfo" Left="650" Top="0" Width="100" Height="20" Text="[Page#]/[TotalPages#]" HorzAlign="Right" Font="ＭＳ ゴシック, 9pt"/>
     </PageHeaderBand>
-    <DataBand Name="Data1" Top="179.6" Width="718.2" Height="18.9" DataSource="InventoryData">
-      <TextObject Name="DataCol1" Width="140" Height="18.9" Text="[InventoryData.Col1]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt" Trimming="EllipsisCharacter"/>
-      <TextObject Name="DataCol2" Left="140" Width="50" Height="18.9" Text="[InventoryData.Col2]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt" Trimming="EllipsisCharacter"/>
-      <TextObject Name="DataColManual" Left="190" Width="50" Height="18.9" Text="[InventoryData.ColManual]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt" Trimming="EllipsisCharacter"/>
-      <TextObject Name="DataCol3" Left="240" Width="60" Height="18.9" Text="[InventoryData.Col3]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="DataCol4" Left="300" Width="60" Height="18.9" Text="[InventoryData.Col4]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="DataCol5" Left="360" Width="80" Height="18.9" Text="[InventoryData.Col5]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="DataCol6" Left="440" Width="70" Height="18.9" Text="[InventoryData.Col6]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="DataCol7" Left="510" Width="90" Height="18.9" Text="[InventoryData.Col7]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="DataCol8" Left="600" Width="80" Height="18.9" Text="[InventoryData.Col8]" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
-      <TextObject Name="DataCol9" Left="680" Width="38.2" Height="18.9" Text="[InventoryData.Col9]" HorzAlign="Center" VertAlign="Center" Font="ＭＳ ゴシック, 10pt"/>
+
+    <DataBand Name="Data1" Top="50" Height="20" DataSource="InventoryData" Visible="true" CanGrow="true" CanShrink="false">
+      <TextObject Name="Col1Text" Left="0" Top="0" Width="120" Height="20" Text="[InventoryData.Col1]" Border.Lines="All" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Col2Text" Left="120" Top="0" Width="120" Height="20" Text="[InventoryData.Col2]" Border.Lines="All" Font="ＭＳ ゴシック, 9pt"/>
+      <TextObject Name="Col3Text" Left="240" Top="0" Width="120" Height="20" Text="[InventoryData.Col3]" Border.Lines="All" Font="ＭＳ ゴシック, 9pt"/>
     </DataBand>
-    <PageFooterBand Name="PageFooter1" Top="202.5" Width="718.2" Height="18.9"/>
   </ReportPage>
 </Report>
