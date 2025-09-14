@@ -94,7 +94,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "110_CreateInventoryCarryoverMaster.sql",  // 移行用在庫マスタ（前残スナップショット）
         "111_AddLastReceiptDateToCarryover.sql",   // Carryoverに最終入荷日を追加
         "112_AddLastReceiptDateToCpInventoryMaster.sql", // CP在庫に最終入荷日を追加
-        "113_AddHasTodayReceiptToCpInventoryMaster.sql", // CP在庫に当日入荷フラグ追加
+        "114_AddHasTodayReceiptToCpInventoryMaster.sql", // CP在庫に当日入荷フラグ追加
         "113_AddIsActiveToCarryoverMaster.sql",    // CarryoverにIsActive追加（依存SPより先に必須）
         
         // === 在庫マスタ統合（Carryover→InventoryMaster統合） ===
