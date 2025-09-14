@@ -121,14 +121,24 @@ namespace InventorySystem.Reports.FastReport.Services
             _logger.LogInformation("除外件数: {Excluded}件, 対象件数: {Count}件", excluded, filtered.Count);
 
             string? previousProductCode = null;
+            string? previousStaffCode = null;      // 担当者コードの前回値
             decimal subtotalQuantity = 0m;
             decimal subtotalAmount = 0m;
+            decimal grandTotalQuantity = 0m;       // 全体合計 数量
+            decimal grandTotalAmount = 0m;         // 全体合計 金額
 
             foreach (var item in filtered)
             {
                 var staffCode = string.IsNullOrEmpty(item.ProductCategory1) ? "000" : item.ProductCategory1;
-                var staffName = GetStaffName(staffCode);
                 var stagnation = CalculateStagnationMark(item.LastReceiptDate, jobDate);
+
+                // 担当者変更チェック（改ページ指示）
+                bool isPageBreak = false;
+                if (!string.IsNullOrEmpty(previousStaffCode) && previousStaffCode != staffCode)
+                {
+                    isPageBreak = true;
+                    _logger.LogInformation("担当者変更で改ページ: {Previous} → {Current}", previousStaffCode, staffCode);
+                }
 
                 // 商品コードが変わったら小計行を追加
                 var currentProductCode = item.Key.ProductCode ?? string.Empty;
@@ -159,12 +169,12 @@ namespace InventorySystem.Reports.FastReport.Services
                     : string.Empty;
 
                 dt.Rows.Add(
-                    "DETAIL",     // RowType
-                    "0",          // IsPageBreak
-                    "0",          // IsBold
-                    "0",          // IsGrayBackground
-                    staffCode,     // StaffCode
-                    staffName,     // StaffName
+                    "DETAIL",                         // RowType
+                    isPageBreak ? "1" : "0",          // IsPageBreak
+                    "0",                              // IsBold
+                    "0",                              // IsGrayBackground
+                    staffCode,                         // StaffCode
+                    string.Empty,                      // StaffName（在庫表では未使用）
                     col1_ProductName,                                                           // Col1
                     col2_Shipping,                                                              // Col2
                     colManual,                                                                  // ColManual
@@ -181,7 +191,11 @@ namespace InventorySystem.Reports.FastReport.Services
                 // 小計累積
                 subtotalQuantity += item.DailyStock;
                 subtotalAmount += item.DailyStockAmount;
+                // 全体合計累積
+                grandTotalQuantity += item.DailyStock;
+                grandTotalAmount += item.DailyStockAmount;
                 previousProductCode = currentProductCode;
+                previousStaffCode = staffCode;
             }
 
             // 最後の商品の小計
@@ -190,7 +204,10 @@ namespace InventorySystem.Reports.FastReport.Services
                 AddSubtotalRow(dt, subtotalQuantity, subtotalAmount);
             }
 
-            _logger.LogInformation("DataTable作成完了: {RowCount}行", dt.Rows.Count);
+            // 全体合計行
+            AddGrandTotalRow(dt, grandTotalQuantity, grandTotalAmount);
+
+            _logger.LogInformation("DataTable作成完了: {RowCount}行（合計行含む）", dt.Rows.Count);
             return dt;
         }
 
@@ -320,6 +337,32 @@ namespace InventorySystem.Reports.FastReport.Services
         }
 
         /// <summary>
+        /// 全体合計行を追加
+        /// </summary>
+        private void AddGrandTotalRow(DataTable dataTable, decimal totalQuantity, decimal totalAmount)
+        {
+            // 視覚的な区切りとして前に空行を2行
+            AddBlankRow(dataTable);
+            AddBlankRow(dataTable);
+
+            var row = dataTable.NewRow();
+            row["RowType"] = "GRAND_TOTAL";
+            row["IsPageBreak"] = "0";
+            row["IsBold"] = "1";              // 太字
+            row["IsGrayBackground"] = "1";    // グレー背景
+            row["StaffCode"] = string.Empty;
+            row["StaffName"] = string.Empty;
+            row["Col1"] = "※　合　　計　※";
+            row["Col5"] = FormatQuantity(totalQuantity);
+            row["Col7"] = FormatAmount(totalAmount);
+            row["CurrentPage"] = "1";
+            row["TotalPages"] = "1";
+            dataTable.Rows.Add(row);
+
+            _logger.LogInformation("全体合計行追加: 数量={Quantity}, 金額={Amount}", totalQuantity, totalAmount);
+        }
+
+        /// <summary>
         /// テンプレートパス取得
         /// </summary>
         private string GetTemplatePath()
@@ -437,11 +480,8 @@ namespace InventorySystem.Reports.FastReport.Services
         /// </summary>
         private string GetStaffName(string? staffCode)
         {
-            if (string.IsNullOrWhiteSpace(staffCode) || staffCode == "000")
-            {
-                return "未設定";
-            }
-            return $"担当者{staffCode}";
+            // 在庫表では担当者名は使用しない
+            return string.Empty;
         }
     }
 }
