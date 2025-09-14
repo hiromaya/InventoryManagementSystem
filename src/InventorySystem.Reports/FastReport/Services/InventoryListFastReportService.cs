@@ -30,22 +30,20 @@ namespace InventorySystem.Reports.FastReport.Services
         }
 
         /// <summary>
-        /// メインメソッド：在庫表PDFを生成
-        /// Phase 1では単純なPDF生成のみ実装
+        /// 在庫表PDFを生成（CP在庫マスタ連携版）
         /// </summary>
         public async Task<byte[]> GenerateInventoryListAsync(DateTime jobDate, string? dataSetId = null)
         {
-            _logger.LogInformation("=== Phase 1.5: CP在庫マスタ連携実装 ===");
-            _logger.LogInformation("対象日: {JobDate}", jobDate.ToString("yyyy-MM-dd"));
+            _logger.LogInformation("在庫表生成開始: JobDate={JobDate}", jobDate);
 
             try
             {
-                // Step 1: CP在庫マスタから在庫表用DataTableを作成
-                var inventoryDataTable = await CreateInventoryDataTableAsync(jobDate);
-                _logger.LogInformation("在庫データ取得完了: {RowCount}行", inventoryDataTable.Rows.Count);
+                // Step 1: CP在庫マスタからデータ取得→DataTable作成
+                var dataTable = await CreateInventoryDataTableAsync(jobDate);
+                _logger.LogInformation("在庫データ行数: {RowCount}", dataTable.Rows.Count);
 
                 // Step 2: PDF生成
-                var pdfBytes = GenerateSimplePdf(inventoryDataTable, jobDate);
+                var pdfBytes = GeneratePdf(dataTable, jobDate);
                 _logger.LogInformation("PDF生成完了: {Size}バイト", pdfBytes.Length);
 
                 if (pdfBytes.Length == 0)
@@ -57,14 +55,11 @@ namespace InventorySystem.Reports.FastReport.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Phase 1 PDF生成エラー");
+                _logger.LogError(ex, "在庫表生成エラー");
                 throw;
             }
         }
 
-        /// <summary>
-        /// テスト用の単純なDataTable作成
-        /// </summary>
         private async Task<DataTable> CreateInventoryDataTableAsync(DateTime jobDate)
         {
             var dt = new DataTable("InventoryData");
@@ -96,6 +91,7 @@ namespace InventorySystem.Reports.FastReport.Services
             dt.Columns.Add("TotalPages", typeof(string));
 
             // === CP在庫マスタからデータ取得 ===
+            // 指示のGetInventoryForReportAsyncが未定義のため、現行のGetByJobDateAsyncを使用
             var cpInventoryData = await _cpInventoryRepository.GetByJobDateAsync(jobDate);
 
             if (cpInventoryData == null || !cpInventoryData.Any())
@@ -104,7 +100,8 @@ namespace InventorySystem.Reports.FastReport.Services
                 return dt;
             }
 
-            _logger.LogInformation("CP在庫マスタから{Count}件取得", cpInventoryData.Count());
+            var totalCount = cpInventoryData.Count();
+            _logger.LogInformation("CP在庫マスタから{Count}件取得", totalCount);
 
             // 除外条件・ソート
             // Current系の同義としてDaily系を使用（CpInventoryMasterの現行プロパティ名に準拠）
@@ -121,13 +118,27 @@ namespace InventorySystem.Reports.FastReport.Services
                 .ThenBy(x => x.Key.ClassCode)
                 .ToList();
 
-            _logger.LogInformation("除外条件適用後: {Count}件", filtered.Count);
+            var excluded = totalCount - filtered.Count;
+            _logger.LogInformation("除外件数: {Excluded}件, 対象件数: {Count}件", excluded, filtered.Count);
+
+            string? previousProductCode = null;
+            decimal subtotalQuantity = 0m;
+            decimal subtotalAmount = 0m;
 
             foreach (var item in filtered)
             {
                 var staffCode = string.IsNullOrEmpty(item.ProductCategory1) ? "000" : item.ProductCategory1;
                 var staffName = GetStaffName(staffCode);
                 var stagnation = CalculateStagnationMark(item.LastReceiptDate, jobDate);
+
+                // 商品コードが変わったら小計行を追加
+                var currentProductCode = item.Key.ProductCode ?? string.Empty;
+                if (!string.IsNullOrEmpty(previousProductCode) && previousProductCode != currentProductCode)
+                {
+                    AddSubtotalRow(dt, subtotalQuantity, subtotalAmount);
+                    subtotalQuantity = 0m;
+                    subtotalAmount = 0m;
+                }
 
                 // 表示値の準備（指示に基づくマッピング）
                 var col1_ProductName = item.ProductName ?? string.Empty; // 商品名のみ
@@ -167,6 +178,17 @@ namespace InventorySystem.Reports.FastReport.Services
                     stagnation,                                                                  // Col9（滞留マーク）
                     "1", "1"   // CurrentPage, TotalPages（仮）
                 );
+
+                // 小計累積
+                subtotalQuantity += item.DailyStock;
+                subtotalAmount += item.DailyStockAmount;
+                previousProductCode = currentProductCode;
+            }
+
+            // 最後の商品の小計
+            if (!string.IsNullOrEmpty(previousProductCode))
+            {
+                AddSubtotalRow(dt, subtotalQuantity, subtotalAmount);
             }
 
             _logger.LogInformation("DataTable作成完了: {RowCount}行", dt.Rows.Count);
@@ -174,10 +196,10 @@ namespace InventorySystem.Reports.FastReport.Services
         }
 
         /// <summary>
-        /// 最もシンプルなPDF生成
+        /// PDF生成
         /// </summary>
 
-        private byte[] GenerateSimplePdf(DataTable dataTable, DateTime jobDate)
+        private byte[] GeneratePdf(DataTable dataTable, DateTime jobDate)
         {
             using var report = new Report();
             
@@ -261,6 +283,21 @@ namespace InventorySystem.Reports.FastReport.Services
             report.Export(pdfExport, stream);
             
             return stream.ToArray();
+        }
+
+        private void AddSubtotalRow(DataTable dataTable, decimal quantity, decimal amount)
+        {
+            var row = dataTable.NewRow();
+            row["RowType"] = "PRODUCT_SUBTOTAL";
+            row["IsPageBreak"] = "0";
+            row["IsBold"] = "1";
+            row["IsGrayBackground"] = "0";
+            row["Col1"] = "＊　小　　計　＊";
+            row["Col5"] = FormatQuantity(quantity);
+            row["Col7"] = FormatAmount(amount);
+            row["CurrentPage"] = "1";
+            row["TotalPages"] = "1";
+            dataTable.Rows.Add(row);
         }
 
         /// <summary>
