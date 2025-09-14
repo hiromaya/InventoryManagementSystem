@@ -295,7 +295,7 @@ namespace InventorySystem.Reports.FastReport.Services
             row["IsPageBreak"] = "0";
             row["IsBold"] = "1";
             row["IsGrayBackground"] = "0";
-            row["Col1"] = "＊　小　　計　＊";
+            row["Col1"] = "＊　小　 計　＊";
             row["Col5"] = FormatQuantity(quantity);
             row["Col7"] = FormatAmount(amount);
             row["CurrentPage"] = "1";
