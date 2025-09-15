@@ -228,9 +228,10 @@ ORDER BY
                 row["StaffCode"] = x.StaffCode;
                 row["StaffName"] = string.Empty; // 在庫表は担当者名を出力しない
                 row["Col1"] = x.ProductName ?? string.Empty;
-                var shipping = string.IsNullOrEmpty(x.ManualShippingMark) ? (x.ShippingMarkName ?? x.ShippingMarkCode) : x.ManualShippingMark;
-                row["Col2"] = shipping ?? string.Empty;
-                row["ColManual"] = x.ManualShippingMark ?? string.Empty;
+                // 荷印は必ず名称優先（ShippingMarkName）。名称が無い場合のみコードにフォールバック。
+                var shippingName = !string.IsNullOrEmpty(x.ShippingMarkName) ? x.ShippingMarkName : x.ShippingMarkCode;
+                row["Col2"] = shippingName ?? string.Empty;         // 荷印（名称）
+                row["ColManual"] = x.ManualShippingMark ?? string.Empty; // 手入力荷印（別カラム）
                 row["Col3"] = x.GradeName ?? string.Empty;
                 row["Col4"] = x.ClassName ?? string.Empty;
                 row["Col5"] = FormatQuantity(x.DailyStock);
