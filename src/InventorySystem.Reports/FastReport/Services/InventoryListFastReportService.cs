@@ -266,6 +266,7 @@ ORDER BY
 
         private void AddSubtotalRow(DataTable dt, decimal qty, decimal amt, string staffCode, string staffName)
         {
+            // 前に空白行のみ挿入し、後ろの空白は入れない（行間を1行分狭く）
             AddBlank(dt, staffCode, staffName);
             var r = dt.NewRow();
             r["RowType"] = "PRODUCT_SUBTOTAL";
@@ -278,7 +279,6 @@ ORDER BY
             r["Col5"] = FormatQuantity(qty);
             r["Col7"] = FormatAmount(amt);
             dt.Rows.Add(r);
-            AddBlank(dt, staffCode, staffName);
         }
 
         private void AddBlank(DataTable dt, string staffCode, string staffName)
@@ -295,6 +295,7 @@ ORDER BY
 
         private void AddStaffTotalRow(DataTable dt, decimal qty, decimal amt, string staffCode, string staffName)
         {
+            // 前に空白行のみ挿入し、後ろの空白は入れない（行間を1行分狭く）
             AddBlank(dt, staffCode, staffName);
             var r = dt.NewRow();
             r["RowType"] = "STAFF_TOTAL";
@@ -307,7 +308,6 @@ ORDER BY
             r["Col5"] = FormatQuantity(qty);
             r["Col7"] = FormatAmount(amt);
             dt.Rows.Add(r);
-            AddBlank(dt, staffCode, staffName);
         }
 
         private byte[] GeneratePdfForDataTable(DataTable dataTable, DateTime jobDate, int startPage, int pageCount, int totalPages)
