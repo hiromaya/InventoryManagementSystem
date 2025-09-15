@@ -266,8 +266,7 @@ ORDER BY
 
         private void AddSubtotalRow(DataTable dt, decimal qty, decimal amt, string staffCode, string staffName)
         {
-            // 前に空白行のみ挿入し、後ろの空白は入れない（行間を1行分狭く）
-            AddBlank(dt, staffCode, staffName);
+            // 小計の下側にのみ1行の余白を入れる（上側はなし）
             var r = dt.NewRow();
             r["RowType"] = "PRODUCT_SUBTOTAL";
             r["IsPageBreak"] = "0";
@@ -279,6 +278,8 @@ ORDER BY
             r["Col5"] = FormatQuantity(qty);
             r["Col7"] = FormatAmount(amt);
             dt.Rows.Add(r);
+            // 下側に1行の空白を追加
+            AddBlank(dt, staffCode, staffName);
         }
 
         private void AddBlank(DataTable dt, string staffCode, string staffName)
@@ -295,8 +296,7 @@ ORDER BY
 
         private void AddStaffTotalRow(DataTable dt, decimal qty, decimal amt, string staffCode, string staffName)
         {
-            // 前に空白行のみ挿入し、後ろの空白は入れない（行間を1行分狭く）
-            AddBlank(dt, staffCode, staffName);
+            // 合計の上側は余白なし（直前行に続けて表示）。後ろ側も余白なし。
             var r = dt.NewRow();
             r["RowType"] = "STAFF_TOTAL";
             r["IsPageBreak"] = "0";
