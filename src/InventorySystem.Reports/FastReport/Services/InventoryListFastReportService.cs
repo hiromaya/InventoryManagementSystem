@@ -197,7 +197,7 @@ ORDER BY
             {
                 var head = dt.NewRow();
                 head["RowType"] = "STAFF_HEADER";
-                head["IsPageBreak"] = "1"; // 担当者の先頭で改ページ
+                head["IsPageBreak"] = "0"; // 改ページはPAGE_BREAKに一本化（商品勘定方式）
                 head["IsBold"] = "1";
                 head["IsGrayBackground"] = "1";
                 head["StaffCode"] = items[0].StaffCode;
@@ -208,7 +208,7 @@ ORDER BY
             string? prevProduct = null;
             decimal subtotalQty = 0m;
             decimal subtotalAmt = 0m;
-            int detailCountOnPage = 0;
+            // 改ページはPAGE_BREAKに一本化する（固定35行ロジックは使わない）
 
             foreach (var x in items)
             {
@@ -245,13 +245,7 @@ ORDER BY
                 subtotalAmt += x.DailyStockAmount;
                 prevProduct = x.ProductCode;
 
-                // ページ制御（明細行ベース）
-                detailCountOnPage++;
-                if (detailCountOnPage >= MaxRowsPerPage)
-                {
-                    AddPageBreak(dt, items[0].StaffCode, string.Empty);
-                    detailCountOnPage = 0;
-                }
+                // 固定行数によるPAGE_BREAK挿入は行わない（商品勘定と同じ方針）
             }
 
             // 最後の小計
@@ -268,17 +262,7 @@ ORDER BY
             return dt;
         }
 
-        private void AddPageBreak(DataTable dt, string staffCode, string staffName)
-        {
-            var br = dt.NewRow();
-            br["RowType"] = "PAGE_BREAK";
-            br["IsPageBreak"] = "1";
-            br["IsBold"] = "0";
-            br["IsGrayBackground"] = "0";
-            br["StaffCode"] = staffCode;
-            br["StaffName"] = staffName;
-            dt.Rows.Add(br);
-        }
+        private void AddPageBreak(DataTable dt, string staffCode, string staffName) { /* 現状未使用（自動改ページに任せる）*/ }
 
         private void AddSubtotalRow(DataTable dt, decimal qty, decimal amt, string staffCode, string staffName)
         {
@@ -337,7 +321,7 @@ ORDER BY
             var ds = report.GetDataSource("InventoryData");
             if (ds != null) ds.Enabled = true;
 
-            // 改ページトリガ
+            // 改ページトリガ（PAGE_BREAKに連動）
             var dataBand = report.FindObject("Data1") as FR.DataBand;
             if (dataBand != null)
             {
@@ -345,35 +329,32 @@ ORDER BY
                 startNewPageProperty?.SetValue(dataBand, "[InventoryData.IsPageBreak] == \"1\"");
             }
 
-            // ページ番号を全行に設定（商品勘定と同等のデータ列方式）
-            int currentPage = startPage;
-            int rowsInCurrentPage = 0;
+            // 商品勘定と同じ「実測ページ数で均等配分」によるページ番号設定
+            int nonBreakRows = 0;
+            foreach (DataRow r in dataTable.Rows)
+            {
+                if ((r["RowType"]?.ToString() ?? string.Empty) != "PAGE_BREAK")
+                    nonBreakRows++;
+            }
+
+            int rowsPerPage = Math.Max(1, (int)Math.Ceiling((double)Math.Max(0, nonBreakRows) / Math.Max(1, pageCount)));
+            int currentRowInPage = 0;
+
             foreach (DataRow row in dataTable.Rows)
             {
                 var rowType = row["RowType"]?.ToString() ?? string.Empty;
-                var isBreak = (row["IsPageBreak"]?.ToString() == "1");
-
-                // 行にページ番号を付与
-                row["CurrentPage"] = currentPage.ToString();
-                row["TotalPages"] = totalPages.ToString();
-
-                // PAGE_BREAK行はカウントせず、ページを進める
-                if (rowType == "PAGE_BREAK" || isBreak)
+                if (rowType == "PAGE_BREAK")
                 {
-                    if (rowsInCurrentPage > 0)
-                    {
-                        currentPage++;
-                        rowsInCurrentPage = 0;
-                    }
+                    row["CurrentPage"] = startPage.ToString();
+                    row["TotalPages"] = totalPages.ToString();
                     continue;
                 }
 
-                rowsInCurrentPage++;
-                if (rowsInCurrentPage >= MaxRowsPerPage)
-                {
-                    currentPage++;
-                    rowsInCurrentPage = 0;
-                }
+                int pageIndex = currentRowInPage / rowsPerPage;
+                int currentPage = startPage + Math.Min(pageIndex, Math.Max(0, pageCount - 1));
+                row["CurrentPage"] = currentPage.ToString();
+                row["TotalPages"] = totalPages.ToString();
+                currentRowInPage++;
             }
 
             report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy/MM/dd HH:mm"));
