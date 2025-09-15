@@ -218,7 +218,6 @@ ORDER BY
                     AddSubtotalRow(dt, subtotalQty, subtotalAmt, items[0].StaffCode, string.Empty);
                     subtotalQty = 0m;
                     subtotalAmt = 0m;
-                    detailCountOnPage += 2; // 前後の空行
                 }
 
                 var row = dt.NewRow();
