@@ -190,6 +190,9 @@ ORDER BY
             dt.Columns.Add("Col7", typeof(string));
             dt.Columns.Add("Col8", typeof(string));
             dt.Columns.Add("Col9", typeof(string));
+            // ページ番号列（frx参照用）
+            dt.Columns.Add("CurrentPage", typeof(string));
+            dt.Columns.Add("TotalPages", typeof(string));
 
             // ヘッダー（担当者）
             if (items.Count > 0)
@@ -214,7 +217,7 @@ ORDER BY
                 // 商品境界で小計
                 if (!string.IsNullOrEmpty(prevProduct) && prevProduct != x.ProductCode)
                 {
-                    AddSubtotalRow(dt, subtotalQty, subtotalAmt);
+                    AddSubtotalRow(dt, subtotalQty, subtotalAmt, items[0].StaffCode, items[0].StaffName);
                     subtotalQty = 0m;
                     subtotalAmt = 0m;
                     detailCountOnPage += 2; // 前後の空行
@@ -248,7 +251,7 @@ ORDER BY
                 detailCountOnPage++;
                 if (detailCountOnPage >= MaxRowsPerPage)
                 {
-                    AddPageBreak(dt);
+                    AddPageBreak(dt, items[0].StaffCode, items[0].StaffName);
                     detailCountOnPage = 0;
                 }
             }
@@ -256,65 +259,73 @@ ORDER BY
             // 最後の小計
             if (!string.IsNullOrEmpty(prevProduct))
             {
-                AddSubtotalRow(dt, subtotalQty, subtotalAmt);
+                AddSubtotalRow(dt, subtotalQty, subtotalAmt, items[0].StaffCode, items[0].StaffName);
             }
 
             // 担当者合計
             var totalQty = items.Sum(i => i.DailyStock);
             var totalAmt = items.Sum(i => i.DailyStockAmount);
-            AddStaffTotalRow(dt, totalQty, totalAmt);
+            AddStaffTotalRow(dt, totalQty, totalAmt, items[0].StaffCode, items[0].StaffName);
 
             return dt;
         }
 
-        private void AddPageBreak(DataTable dt)
+        private void AddPageBreak(DataTable dt, string staffCode, string staffName)
         {
             var br = dt.NewRow();
             br["RowType"] = "PAGE_BREAK";
             br["IsPageBreak"] = "1";
             br["IsBold"] = "0";
             br["IsGrayBackground"] = "0";
+            br["StaffCode"] = staffCode;
+            br["StaffName"] = staffName;
             dt.Rows.Add(br);
         }
 
-        private void AddSubtotalRow(DataTable dt, decimal qty, decimal amt)
+        private void AddSubtotalRow(DataTable dt, decimal qty, decimal amt, string staffCode, string staffName)
         {
-            AddBlank(dt);
+            AddBlank(dt, staffCode, staffName);
             var r = dt.NewRow();
             r["RowType"] = "PRODUCT_SUBTOTAL";
             r["IsPageBreak"] = "0";
             r["IsBold"] = "1";
             r["IsGrayBackground"] = "0";
+            r["StaffCode"] = staffCode;
+            r["StaffName"] = staffName;
             r["Col1"] = "＊　小　 計　＊";
             r["Col5"] = FormatQuantity(qty);
             r["Col7"] = FormatAmount(amt);
             dt.Rows.Add(r);
-            AddBlank(dt);
+            AddBlank(dt, staffCode, staffName);
         }
 
-        private void AddBlank(DataTable dt)
+        private void AddBlank(DataTable dt, string staffCode, string staffName)
         {
             var r = dt.NewRow();
             r["RowType"] = "BLANK";
             r["IsPageBreak"] = "0";
             r["IsBold"] = "0";
             r["IsGrayBackground"] = "0";
+            r["StaffCode"] = staffCode;
+            r["StaffName"] = staffName;
             dt.Rows.Add(r);
         }
 
-        private void AddStaffTotalRow(DataTable dt, decimal qty, decimal amt)
+        private void AddStaffTotalRow(DataTable dt, decimal qty, decimal amt, string staffCode, string staffName)
         {
-            AddBlank(dt);
+            AddBlank(dt, staffCode, staffName);
             var r = dt.NewRow();
             r["RowType"] = "STAFF_TOTAL";
             r["IsPageBreak"] = "0";
             r["IsBold"] = "1";
             r["IsGrayBackground"] = "1";
+            r["StaffCode"] = staffCode;
+            r["StaffName"] = staffName;
             r["Col1"] = "※　合　 計　※";
             r["Col5"] = FormatQuantity(qty);
             r["Col7"] = FormatAmount(amt);
             dt.Rows.Add(r);
-            AddBlank(dt);
+            AddBlank(dt, staffCode, staffName);
         }
 
         private byte[] GeneratePdfForDataTable(DataTable dataTable, DateTime jobDate, int startPage, int pageCount, int totalPages)
@@ -336,10 +347,39 @@ ORDER BY
                 startNewPageProperty?.SetValue(dataBand, "[InventoryData.IsPageBreak] == \"1\"");
             }
 
+            // ページ番号を全行に設定（商品勘定と同等のデータ列方式）
+            int currentPage = startPage;
+            int rowsInCurrentPage = 0;
+            foreach (DataRow row in dataTable.Rows)
+            {
+                var rowType = row["RowType"]?.ToString() ?? string.Empty;
+                var isBreak = (row["IsPageBreak"]?.ToString() == "1");
+
+                // 行にページ番号を付与
+                row["CurrentPage"] = currentPage.ToString();
+                row["TotalPages"] = totalPages.ToString();
+
+                // PAGE_BREAK行はカウントせず、ページを進める
+                if (rowType == "PAGE_BREAK" || isBreak)
+                {
+                    if (rowsInCurrentPage > 0)
+                    {
+                        currentPage++;
+                        rowsInCurrentPage = 0;
+                    }
+                    continue;
+                }
+
+                rowsInCurrentPage++;
+                if (rowsInCurrentPage >= MaxRowsPerPage)
+                {
+                    currentPage++;
+                    rowsInCurrentPage = 0;
+                }
+            }
+
             report.SetParameterValue("CreateDate", DateTime.Now.ToString("yyyy/MM/dd HH:mm"));
             report.SetParameterValue("JobDate", jobDate.ToString("yyyy/MM/dd"));
-            report.SetParameterValue("CurrentPage", startPage.ToString());
-            report.SetParameterValue("TotalPages", totalPages.ToString());
 
             report.Prepare();
             using var pdf = new PDFExport();
@@ -459,4 +499,3 @@ namespace InventorySystem.Reports.FastReport.Services
     }
 }
 #endif
-
