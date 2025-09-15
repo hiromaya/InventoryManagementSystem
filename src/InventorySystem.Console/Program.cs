@@ -260,6 +260,7 @@ namespace InventorySystem.Console
                 builder.Services.AddScoped(typeof(InventorySystem.Reports.Interfaces.IBusinessDailyReportService), businessDailyReportFastReportType);
                 builder.Services.AddScoped(typeof(IBusinessDailyReportReportService), businessDailyReportFastReportType);
                 builder.Services.AddScoped(inventoryListFastReportType);
+                builder.Services.AddScoped(typeof(InventorySystem.Reports.Interfaces.IInventoryListReportService), inventoryListFastReportType);
             }
             else
             {
@@ -1779,59 +1780,40 @@ builder.Services.AddScoped<IBusinessDailyReportReportService, BusinessDailyRepor
                         System.Console.WriteLine("📋 在庫表生成中...");
                         
                         #if WINDOWS
-                        var inventoryListService = scopedServices.GetService(Type.GetType("InventorySystem.Reports.FastReport.Services.InventoryListFastReportService, InventorySystem.Reports"));
+                        var reportService = scopedServices.GetRequiredService<InventorySystem.Reports.Interfaces.IInventoryListReportService>();
                         var fileManagementService = scopedServices.GetRequiredService<IFileManagementService>();
-                        
-                        if (inventoryListService != null)
+                        try
                         {
-                            try
+                            var pdfBytes = reportService.GenerateInventoryListReport(jobDate, null);
+
+                            if (pdfBytes != null && pdfBytes.Length > 0)
                             {
-                                var method = inventoryListService.GetType().GetMethod("GenerateInventoryListAsync");
-                                var task = (Task<byte[]>)method.Invoke(inventoryListService, new object[] { jobDate, "TEST_DATASET" });
-                                var pdfBytes = await task;
-                                
-                                if (pdfBytes != null && pdfBytes.Length > 0)
+                                var pdfPath = await fileManagementService.GetReportOutputPathAsync("InventoryList", jobDate, "pdf");
+                                await File.WriteAllBytesAsync(pdfPath, pdfBytes);
+
+                                System.Console.WriteLine($"✅ 在庫表を作成しました");
+                                System.Console.WriteLine($"出力ファイル: {pdfPath}");
+                                System.Console.WriteLine($"ファイルサイズ: {pdfBytes.Length:N0} bytes");
+
+                                try
                                 {
-                                    // FileManagementServiceで保存先パスを取得（統一ロジック）
-                                    var pdfPath = await fileManagementService.GetReportOutputPathAsync("InventoryList", jobDate, "pdf");
-                                    
-                                    // ファイル保存
-                                    await File.WriteAllBytesAsync(pdfPath, pdfBytes);
-                                    
-                                    // 統一形式でメッセージ表示
-                                    System.Console.WriteLine($"✅ 在庫表を作成しました");
-                                    System.Console.WriteLine($"出力ファイル: {pdfPath}");
-                                    System.Console.WriteLine($"ファイルサイズ: {pdfBytes.Length:N0} bytes");
-                                    
-                                    // Windows環境では自動でPDFを開く
-                                    try
-                                    {
-                                        var startInfo = new ProcessStartInfo
-                                        {
-                                            FileName = pdfPath,
-                                            UseShellExecute = true
-                                        };
-                                        Process.Start(startInfo);
-                                    }
-                                    catch (Exception openEx)
-                                    {
-                                        logger.LogWarning(openEx, "PDFファイルの自動表示に失敗しました");
-                                    }
+                                    var startInfo = new ProcessStartInfo { FileName = pdfPath, UseShellExecute = true };
+                                    Process.Start(startInfo);
                                 }
-                                else
+                                catch (Exception openEx)
                                 {
-                                    System.Console.WriteLine("⚠️ PDF生成がスキップされました（データなし）");
+                                    logger.LogWarning(openEx, "PDFファイルの自動表示に失敗しました");
                                 }
                             }
-                            catch (Exception pdfEx)
+                            else
                             {
-                                logger.LogError(pdfEx, "在庫表PDF生成中にエラーが発生しました");
-                                System.Console.WriteLine($"❌ PDF生成エラー: {pdfEx.Message}");
+                                System.Console.WriteLine("⚠️ PDF生成がスキップされました（データなし）");
                             }
                         }
-                        else
+                        catch (Exception pdfEx)
                         {
-                            System.Console.WriteLine("⚠️ InventoryListServiceの取得に失敗しました");
+                            logger.LogError(pdfEx, "在庫表PDF生成中にエラーが発生しました");
+                            System.Console.WriteLine($"❌ PDF生成エラー: {pdfEx.Message}");
                         }
                         #else
                         System.Console.WriteLine("⚠️ Linux環境ではPDF生成がスキップされます");

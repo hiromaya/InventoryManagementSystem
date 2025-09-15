@@ -97,8 +97,14 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
                 
                 var adjustmentResult = await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(reportDate);
                 _logger.LogInformation("在庫調整データ集計完了 - 更新件数: {Count}", adjustmentResult);
-                
-                // 3.5 最終入荷日（CP）更新（前日のCarryoverからの補完→当日の入荷に基づく更新）
+
+                // 3.5 当日入荷フラグの設定（仕入/在庫調整で当日入荷がある商品のみON）
+                _logger.LogInformation("当日入荷フラグ設定開始");
+                var flagCount = await _cpInventoryRepository.SetHasTodayReceiptFlagAsync(reportDate);
+                _logger.LogInformation("当日入荷フラグ設定完了: {Count}件", flagCount);
+
+                // 3.6 最終入荷日（CP）更新（従来ロジック）
+                // 在庫表側では HasTodayReceipt フラグに基づく更新を実施
                 _logger.LogInformation("最終入荷日（CP）更新開始");
                 await _cpInventoryRepository.UpdateLastReceiptDateAsync(reportDate);
                 _logger.LogInformation("最終入荷日（CP）更新完了");
