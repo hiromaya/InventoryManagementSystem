@@ -130,7 +130,6 @@ namespace InventorySystem.Reports.FastReport.Services
             const string sql = @"
 SELECT 
     ISNULL(p.ProductCategory1, '000') AS StaffCode,
-    ISNULL(s.StaffName, '担当者未設定') AS StaffName,
     cp.ProductCode,
     p.ProductName,
     cp.ShippingMarkCode,
@@ -146,7 +145,6 @@ SELECT
     cp.LastReceiptDate
 FROM CpInventoryMaster cp
 INNER JOIN ProductMaster p ON cp.ProductCode = p.ProductCode
-LEFT JOIN StaffMaster s ON p.ProductCategory1 = s.StaffCode
 WHERE cp.JobDate = @JobDate
   AND cp.DailyStock <> 0
 ORDER BY 
@@ -203,7 +201,7 @@ ORDER BY
                 head["IsBold"] = "1";
                 head["IsGrayBackground"] = "1";
                 head["StaffCode"] = items[0].StaffCode;
-                head["StaffName"] = $"担当者コード: {items[0].StaffCode}　{items[0].StaffName}";
+                head["StaffName"] = string.Empty; // 在庫表では担当者名は出力しない
                 dt.Rows.Add(head);
             }
 
@@ -217,7 +215,7 @@ ORDER BY
                 // 商品境界で小計
                 if (!string.IsNullOrEmpty(prevProduct) && prevProduct != x.ProductCode)
                 {
-                    AddSubtotalRow(dt, subtotalQty, subtotalAmt, items[0].StaffCode, items[0].StaffName);
+                    AddSubtotalRow(dt, subtotalQty, subtotalAmt, items[0].StaffCode, string.Empty);
                     subtotalQty = 0m;
                     subtotalAmt = 0m;
                     detailCountOnPage += 2; // 前後の空行
@@ -229,7 +227,7 @@ ORDER BY
                 row["IsBold"] = "0";
                 row["IsGrayBackground"] = "0";
                 row["StaffCode"] = x.StaffCode;
-                row["StaffName"] = string.Empty;
+                row["StaffName"] = string.Empty; // 在庫表は担当者名を出力しない
                 row["Col1"] = x.ProductName ?? string.Empty;
                 var shipping = string.IsNullOrEmpty(x.ManualShippingMark) ? (x.ShippingMarkName ?? x.ShippingMarkCode) : x.ManualShippingMark;
                 row["Col2"] = shipping ?? string.Empty;
@@ -251,7 +249,7 @@ ORDER BY
                 detailCountOnPage++;
                 if (detailCountOnPage >= MaxRowsPerPage)
                 {
-                    AddPageBreak(dt, items[0].StaffCode, items[0].StaffName);
+                    AddPageBreak(dt, items[0].StaffCode, string.Empty);
                     detailCountOnPage = 0;
                 }
             }
@@ -259,13 +257,13 @@ ORDER BY
             // 最後の小計
             if (!string.IsNullOrEmpty(prevProduct))
             {
-                AddSubtotalRow(dt, subtotalQty, subtotalAmt, items[0].StaffCode, items[0].StaffName);
+                AddSubtotalRow(dt, subtotalQty, subtotalAmt, items[0].StaffCode, string.Empty);
             }
 
             // 担当者合計
             var totalQty = items.Sum(i => i.DailyStock);
             var totalAmt = items.Sum(i => i.DailyStockAmount);
-            AddStaffTotalRow(dt, totalQty, totalAmt, items[0].StaffCode, items[0].StaffName);
+            AddStaffTotalRow(dt, totalQty, totalAmt, items[0].StaffCode, string.Empty);
 
             return dt;
         }
