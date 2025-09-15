@@ -779,6 +779,7 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             cp.UpdatedDate = GETDATE()
         FROM CpInventoryMaster cp
         WHERE cp.JobDate = @JobDate
+          AND cp.DailyStock != 0
           AND (
             EXISTS (
               SELECT 1 FROM PurchaseVouchers pv

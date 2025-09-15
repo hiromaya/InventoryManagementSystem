@@ -151,11 +151,21 @@ public class InventoryListService : IInventoryListService
 
         // 一時的なデータセットIDを生成（実際の実装では、ProcessInventoryListAsyncで生成されたIDを使用）
         var tempDataSetId = Guid.NewGuid().ToString();
-        
-        // 仮実装：CP在庫Mからデータを取得してInventoryListItemに変換
-        var cpInventories = await _cpInventoryRepository.GetAllAsync(); // 仮テーブル設計：全レコード取得
 
-        foreach (var cpInventory in cpInventories)
+        // CP在庫マスタから当日分データを取得
+        var cpInventories = await _cpInventoryRepository.GetByJobDateAsync(reportDate);
+
+        // DailyStock != 0 のみ対象（マイナス在庫も含む）
+        var inventoriesWithStock = cpInventories
+            .Where(cp => cp.DailyStock != 0)
+            .ToList();
+
+        _logger.LogInformation(
+            "在庫表対象商品: 全{Total}件中、当日残あり{HasStock}件（マイナス在庫含む）",
+            cpInventories.Count(),
+            inventoriesWithStock.Count);
+
+        foreach (var cpInventory in inventoriesWithStock)
         {
             var item = new InventoryListItem
             {
@@ -179,7 +189,7 @@ public class InventoryListService : IInventoryListService
             // 滞留マーク計算
             item.StagnationMark = InventoryListItem.CalculateStagnationMark(reportDate, item.LastReceiptDate);
 
-            // 印字対象の判定
+            // 印字対象の判定（DailyStock != 0 のみ）
             if (item.ShouldBePrinted())
             {
                 inventoryItems.Add(item);

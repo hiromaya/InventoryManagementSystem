@@ -100,15 +100,9 @@ namespace InventorySystem.Reports.FastReport.Services
             }
 
             var totalCount = cpInventoryData.Count();
-            _logger.LogInformation("CP在庫マスタから{Count}件取得", totalCount);
-
-            // 除外条件・ソート
-            // Current系の同義としてDaily系を使用（CpInventoryMasterの現行プロパティ名に準拠）
+            // DailyStock != 0 のみ対象（マイナス在庫も含む）
             var filtered = cpInventoryData
-                // 当日在庫数量/金額が共に0の行を除外（CurrentStock/Amount の同義）
-                .Where(x => !(x.DailyStock == 0 && x.DailyStockAmount == 0))
-                // 前日在庫0を除外（PreviousStock の同義）
-                .Where(x => x.PreviousDayStock != 0)
+                .Where(x => x.DailyStock != 0)
                 .OrderBy(x => string.IsNullOrEmpty(x.ProductCategory1) ? "000" : x.ProductCategory1)
                 .ThenBy(x => x.Key.ProductCode)
                 .ThenBy(x => x.Key.ShippingMarkCode)
@@ -117,8 +111,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 .ThenBy(x => x.Key.ClassCode)
                 .ToList();
 
-            var excluded = totalCount - filtered.Count;
-            _logger.LogInformation("除外件数: {Excluded}件, 対象件数: {Count}件", excluded, filtered.Count);
+            _logger.LogInformation(
+                "在庫表対象商品: 全{Total}件中、当日残あり{HasStock}件（マイナス在庫含む）",
+                totalCount, filtered.Count);
 
             string? previousProductCode = null;
             string? previousStaffCode = null;      // 担当者コードの前回値

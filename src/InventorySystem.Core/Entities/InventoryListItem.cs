@@ -99,18 +99,12 @@ public class InventoryListItem
     
     /// <summary>
     /// 印字対象かどうかを判定
-    /// 前日在庫数が0の行は印字しない
-    /// 当日在庫数量および当日在庫金額が0の明細は印字しない
+    /// DailyStock（= CurrentStockQuantity）が0でないものを印字（マイナス在庫も印字）
     /// </summary>
     public bool ShouldBePrinted()
     {
-        // 前日在庫数が0の行は印字しない
-        if (PreviousStockQuantity == 0) return false;
-        
-        // 当日在庫数量および当日在庫金額が0の明細は印字しない
-        if (CurrentStockQuantity == 0 && CurrentStockAmount == 0) return false;
-        
-        return true;
+        // DailyStock != 0 の商品を表示（マイナス在庫を含む）
+        return CurrentStockQuantity != 0;
     }
     
     /// <summary>
