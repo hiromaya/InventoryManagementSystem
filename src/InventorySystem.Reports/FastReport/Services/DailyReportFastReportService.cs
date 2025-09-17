@@ -142,6 +142,10 @@ namespace InventorySystem.Reports.FastReport.Services
             }
         }
         
+        private const string RowTypeItem = "ITEM";
+        private const string RowTypeSubtotal = "SUBTOTAL";
+        private const string RowTypeSpacer = "SPACER";
+
         private DataTable CreateDailyReportDataTable(
             List<DailyReportItem> items,
             List<DailyReportSubtotal> subtotals)
@@ -188,7 +192,9 @@ namespace InventorySystem.Reports.FastReport.Services
                 {
                     if (subtotalLookup.TryGetValue(currentCategory, out var subtotal))
                     {
+                        AddSpacerRow(table);
                         AddSubtotalDataRow(table, subtotal);
+                        AddSpacerRow(table);
                     }
                 }
 
@@ -199,7 +205,9 @@ namespace InventorySystem.Reports.FastReport.Services
             if (!string.IsNullOrEmpty(currentCategory) &&
                 subtotalLookup.TryGetValue(currentCategory, out var lastSubtotal))
             {
+                AddSpacerRow(table);
                 AddSubtotalDataRow(table, lastSubtotal);
+                AddSpacerRow(table);
             }
 
             return table;
@@ -227,7 +235,7 @@ namespace InventorySystem.Reports.FastReport.Services
             row["MonthlyGrossProfit2"] = FormatNumberWithTriangle(item.MonthlyGrossProfit2);
             row["MonthlyGrossProfitRate2"] = FormatRate(CalculateRate(item.MonthlyGrossProfit2, item.MonthlySalesAmount));
 
-            row["RowType"] = "ITEM";
+            row["RowType"] = RowTypeItem;
             row["IsSubtotal"] = false;
             row["ProductCategory1"] = item.ProductCategory1 ?? string.Empty;
 
@@ -256,10 +264,36 @@ namespace InventorySystem.Reports.FastReport.Services
             row["MonthlyGrossProfit2"] = FormatNumberWithTriangle(subtotal.TotalMonthlyGrossProfit2);
             row["MonthlyGrossProfitRate2"] = FormatRate(subtotal.TotalMonthlyGrossProfitRate2);
 
-            row["RowType"] = "SUBTOTAL";
+            row["RowType"] = RowTypeSubtotal;
             row["IsSubtotal"] = true;
             row["ProductCategory1"] = subtotal.ProductCategory1 ?? string.Empty;
 
+            table.Rows.Add(row);
+        }
+
+        private void AddSpacerRow(DataTable table)
+        {
+            var row = table.NewRow();
+            row["ProductName"] = string.Empty;
+            row["DailySalesQty"] = string.Empty;
+            row["DailySalesAmount"] = string.Empty;
+            row["PurchaseDiscount"] = string.Empty;
+            row["StockAdjust"] = string.Empty;
+            row["Processing"] = string.Empty;
+            row["Transfer"] = string.Empty;
+            row["Incentive"] = string.Empty;
+            row["GrossProfit1"] = string.Empty;
+            row["GrossProfitRate1"] = string.Empty;
+            row["GrossProfit2"] = string.Empty;
+            row["GrossProfitRate2"] = string.Empty;
+            row["MonthlySalesAmount"] = string.Empty;
+            row["MonthlyGrossProfit1"] = string.Empty;
+            row["MonthlyGrossProfitRate1"] = string.Empty;
+            row["MonthlyGrossProfit2"] = string.Empty;
+            row["MonthlyGrossProfitRate2"] = string.Empty;
+            row["RowType"] = RowTypeSpacer;
+            row["IsSubtotal"] = false;
+            row["ProductCategory1"] = string.Empty;
             table.Rows.Add(row);
         }
 
