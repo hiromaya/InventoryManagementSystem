@@ -65,18 +65,18 @@ public class InventoryListService : IInventoryListService
                 _logger.LogInformation("✅ アンマッチチェック検証合格 - 在庫表実行を継続します");
             }
 
-            // 1. CP在庫M作成
-            _logger.LogInformation("CP在庫マスタ作成開始");
-            var createResult = await _cpInventoryRepository.CreateCpInventoryFromCarryoverAsync(reportDate);
-            _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
+            // CP在庫マスタの存在確認（商品勘定が先行しているかチェック）
+            var cpInventoryCount = await _cpInventoryRepository.GetCountAsync();
+            if (cpInventoryCount == 0)
+            {
+                _logger.LogError("CP在庫マスタが存在しません。商品勘定を先に実行してください。");
+                throw new InvalidOperationException(
+                    "CP在庫マスタが存在しません。商品勘定（product-account）を先に実行してください。");
+            }
+            _logger.LogInformation("CP在庫マスタ確認完了 - 既存件数: {Count}件", cpInventoryCount);
 
-            // 2. 当日エリアクリア
-            _logger.LogInformation("当日エリアクリア開始");
-            await _cpInventoryRepository.ClearDailyAreaAsync();
-            _logger.LogInformation("当日エリアクリア完了");
-
-            // 3. 当日データ集計
-            _logger.LogInformation("当日データ集計開始");
+            // 1. 当日データ集計（既存CP在庫マスタを更新）
+            _logger.LogInformation("当日データ集計開始（既存CP在庫マスタを更新）");
             await _cpInventoryRepository.AggregateSalesDataAsync(reportDate);
             await _cpInventoryRepository.AggregatePurchaseDataAsync(reportDate);
             await _cpInventoryRepository.AggregateInventoryAdjustmentDataAsync(reportDate);

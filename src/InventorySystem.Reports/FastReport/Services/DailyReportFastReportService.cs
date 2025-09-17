@@ -21,6 +21,7 @@ namespace InventorySystem.Reports.FastReport.Services
     {
         private readonly ILogger<DailyReportFastReportService> _logger;
         private readonly string _templatePath;
+        private const float RowHeight = 18.9f;
         
         public DailyReportFastReportService(ILogger<DailyReportFastReportService> logger)
         {
@@ -169,12 +170,15 @@ namespace InventorySystem.Reports.FastReport.Services
                 if (!string.IsNullOrEmpty(currentCategory) && currentCategory != item.ProductCategory1)
                 {
                     _logger.LogDebug("商品分類変更検出: {OldCategory} → {NewCategory}", currentCategory, item.ProductCategory1);
+                    currentY += RowHeight; // 大分類計の前に1行分の余白
+
                     AddSubtotalRow(dataBand, currentY, currentCategory, 
                         categoryDailySalesQty, categoryDailySalesAmount, categoryPurchaseDiscount, 
                         categoryStockAdjust, categoryProcessing, categoryTransfer, categoryIncentive,
                         categoryGrossProfit1, categoryGrossProfit2, categoryMonthlySalesAmount,
                         categoryMonthlyGrossProfit1, categoryMonthlyGrossProfit2);
-                    currentY += 18.9f;
+                    currentY += RowHeight; // 大分類計の行高さ分を加算
+                    currentY += RowHeight; // 大分類計の後ろに1行分の余白
                     
                     // 小計値をリセット
                     categoryDailySalesQty = 0;
@@ -193,7 +197,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 
                 // 明細行を追加（正しい項目順序）
                 AddDetailRow(dataBand, currentY, item);
-                currentY += 18.9f;
+                currentY += RowHeight;
                 
                 // 小計に加算
                 currentCategory = item.ProductCategory1 ?? "";
@@ -215,12 +219,15 @@ namespace InventorySystem.Reports.FastReport.Services
             if (!string.IsNullOrEmpty(currentCategory))
             {
                 _logger.LogDebug("最後の商品分類の小計を出力: {Category}", currentCategory);
+                currentY += RowHeight; // 大分類計の前に1行分の余白
+
                 AddSubtotalRow(dataBand, currentY, currentCategory,
                     categoryDailySalesQty, categoryDailySalesAmount, categoryPurchaseDiscount, 
                     categoryStockAdjust, categoryProcessing, categoryTransfer, categoryIncentive,
                     categoryGrossProfit1, categoryGrossProfit2, categoryMonthlySalesAmount,
                     categoryMonthlyGrossProfit1, categoryMonthlyGrossProfit2);
-                currentY += 18.9f;
+                currentY += RowHeight; // 大分類計の行高さ分を加算
+                currentY += RowHeight; // 大分類計の後ろに1行分の余白
             }
             
             // DataBandの高さを調整
@@ -239,7 +246,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 Left = 0,
                 Top = y,
                 Width = 114.43f,
-                Height = 18.9f,
+                Height = RowHeight,
                 Text = item.ProductName ?? "",
                 Font = new Font("MS Gothic", 8),
                 VertAlign = FR.VertAlign.Center
@@ -275,7 +282,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 Left = left,
                 Top = y,
                 Width = width,
-                Height = 18.9f,
+                Height = RowHeight,
                 Text = text,
                 Font = new Font("MS Gothic", 8),
                 HorzAlign = FR.HorzAlign.Right,
@@ -297,7 +304,7 @@ namespace InventorySystem.Reports.FastReport.Services
                 Left = 0,
                 Top = y,
                 Width = 114.43f,
-                Height = 18.9f,
+                Height = RowHeight,
                 Text = "＊　大分類計　＊",
                 Font = new Font("MS Gothic", 8, FontStyle.Bold),
                 HorzAlign = FR.HorzAlign.Center,

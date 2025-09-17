@@ -75,20 +75,22 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
             {
                 // 新規作成時は InitializeProcess を使用してDataSetManagementに登録
                 context = await InitializeProcess(reportDate, "DAILY_REPORT", null, executedBy, allowDuplicateProcessing);
-                
+
                 _logger.LogInformation("新規データセット作成 - DataSetId: {DataSetId}", context.DataSetId);
-                // 1. CP在庫M作成
-                _logger.LogInformation("CP在庫マスタ作成開始");
-                var createResult = await _cpInventoryRepository.CreateCpInventoryFromCarryoverAsync(reportDate);
-                _logger.LogInformation("CP在庫マスタ作成完了 - 作成件数: {Count}", createResult);
 
-                // 2. 当日エリアクリア
-                _logger.LogInformation("当日エリアクリア開始");
-                await _cpInventoryRepository.ClearDailyAreaAsync();
-                _logger.LogInformation("当日エリアクリア完了");
+                // CP在庫マスタの存在確認（商品勘定が先行実行されているかのチェック）
+                var cpInventoryCount = await _cpInventoryRepository.GetCountAsync();
+                if (cpInventoryCount == 0)
+                {
+                    _logger.LogError("CP在庫マスタが存在しません。商品勘定を先に実行してください。");
+                    throw new InvalidOperationException(
+                        "CP在庫マスタが存在しません。商品勘定（product-account）を先に実行してください。" +
+                        "\n実行手順: dotnet run product-account " + reportDate.ToString("yyyy-MM-dd"));
+                }
+                _logger.LogInformation("CP在庫マスタ確認完了 - 既存件数: {Count}件", cpInventoryCount);
 
-                // 3. 当日データ集計
-                _logger.LogInformation("当日データ集計開始");
+                // 3. 当日データ集計（既存のCP在庫マスタを更新）
+                _logger.LogInformation("当日データ集計開始（既存CP在庫マスタを更新）");
                 var salesResult = await _cpInventoryRepository.AggregateSalesDataAsync(reportDate);
                 _logger.LogInformation("売上データ集計完了 - 更新件数: {Count}", salesResult);
                 

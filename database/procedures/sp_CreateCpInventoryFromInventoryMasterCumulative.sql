@@ -7,6 +7,12 @@ BEGIN
 END
 GO
 
+-- =============================================
+-- CP在庫マスタ作成ストアドプロシージャ
+-- 【重要】商品勘定専用 - 商品日報・在庫表からは呼び出し禁止
+-- 商品勘定（product-account）のみが実行権限を持つ
+-- =============================================
+
 CREATE PROCEDURE sp_CreateCpInventoryFromInventoryMasterCumulative
     @JobDate DATE = NULL
 AS

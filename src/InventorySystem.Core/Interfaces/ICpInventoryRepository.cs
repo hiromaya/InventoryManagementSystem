@@ -100,7 +100,12 @@ public interface ICpInventoryRepository
     /// ジョブ日付での件数を取得
     /// </summary>
     Task<int> GetCountAsync(DateTime jobDate);
-    
+
+    /// <summary>
+    /// CP在庫マスタの全件数を取得
+    /// </summary>
+    Task<int> GetCountAsync();
+
     /// <summary>
     /// 月計売上を更新する
     /// </summary>

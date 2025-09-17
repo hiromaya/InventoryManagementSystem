@@ -912,7 +912,22 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
         using var connection = CreateConnection();
         return await connection.ExecuteScalarAsync<int>(sql, new { jobDate });
     }
-    
+
+    /// <summary>
+    /// CP在庫マスタの全件数を取得（引数なし版）
+    /// </summary>
+    /// <returns>レコード件数</returns>
+    public async Task<int> GetCountAsync()
+    {
+        const string sql = "SELECT COUNT(*) FROM CpInventoryMaster";
+
+        using var connection = new SqlConnection(_connectionString);
+        var count = await connection.QuerySingleAsync<int>(sql);
+
+        _logger.LogInformation("CP在庫マスタ件数取得: {Count}件", count);
+        return count;
+    }
+
     /// <summary>
     /// 売上月計を更新
     /// </summary>
