@@ -1,6 +1,28 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Report ScriptLanguage="CSharp" ReportInfo.Created="01/01/2025 12:00:00" ReportInfo.Modified="09/17/2025 10:28:44" ReportInfo.CreatorVersion="2024.1.3.0">
   <Dictionary>
+    <TableDataSource Name="DailyReport" ReferenceName="DailyReport" DataType="System.Int32" Enabled="true">
+      <Column Name="ProductName" DataType="System.String"/>
+      <Column Name="DailySalesQty" DataType="System.String"/>
+      <Column Name="DailySalesAmount" DataType="System.String"/>
+      <Column Name="PurchaseDiscount" DataType="System.String"/>
+      <Column Name="StockAdjust" DataType="System.String"/>
+      <Column Name="Processing" DataType="System.String"/>
+      <Column Name="Transfer" DataType="System.String"/>
+      <Column Name="Incentive" DataType="System.String"/>
+      <Column Name="GrossProfit1" DataType="System.String"/>
+      <Column Name="GrossProfitRate1" DataType="System.String"/>
+      <Column Name="GrossProfit2" DataType="System.String"/>
+      <Column Name="GrossProfitRate2" DataType="System.String"/>
+      <Column Name="MonthlySalesAmount" DataType="System.String"/>
+      <Column Name="MonthlyGrossProfit1" DataType="System.String"/>
+      <Column Name="MonthlyGrossProfitRate1" DataType="System.String"/>
+      <Column Name="MonthlyGrossProfit2" DataType="System.String"/>
+      <Column Name="MonthlyGrossProfitRate2" DataType="System.String"/>
+      <Column Name="RowType" DataType="System.String"/>
+      <Column Name="IsSubtotal" DataType="System.Boolean"/>
+      <Column Name="ProductCategory1" DataType="System.String"/>
+    </TableDataSource>
     <Parameter Name="ReportDate" DataType="System.String" AsString=""/>
     <Parameter Name="CreateDateTime" DataType="System.String" AsString=""/>
     <Parameter Name="PageNumber" DataType="System.String" AsString=""/>
@@ -30,7 +52,25 @@
       <TextObject Name="ColMonthlyGrossProfit2" Left="1339.01" Top="97.8" Width="87.47" Height="25" Fill.Color="White" Text="２粗利益" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 11pt"/>
       <TextObject Name="ColMonthlyGrossProfitRate2" Left="1426.48" Top="97.8" Width="87.52" Height="25" Fill.Color="White" Text="２粗利率" VertAlign="Center" Font="ＭＳ ゴシック, 11pt"/>
     </PageHeaderBand>
-    <DataBand Name="Data1" Top="126.8" Width="1512" Height="20"/>
+    <DataBand Name="Data1" Top="126.8" Width="1512" Height="20" CanGrow="true" CanShrink="true" AllowSplit="true" DataSource="DailyReport">
+      <TextObject Name="DetailProductName" Left="0" Width="114.43" Height="20" Text="[DailyReport.ProductName]" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailDailySalesQty" Left="114.43" Width="87.47" Height="20" Text="[DailyReport.DailySalesQty]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailDailySalesAmount" Left="201.9" Width="87.47" Height="20" Text="[DailyReport.DailySalesAmount]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailPurchaseDiscount" Left="289.37" Width="87.47" Height="20" Text="[DailyReport.PurchaseDiscount]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailStockAdjust" Left="376.84" Width="87.47" Height="20" Text="[DailyReport.StockAdjust]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailProcessing" Left="464.31" Width="87.47" Height="20" Text="[DailyReport.Processing]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailTransfer" Left="551.78" Width="87.47" Height="20" Text="[DailyReport.Transfer]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailIncentive" Left="639.25" Width="87.47" Height="20" Text="[DailyReport.Incentive]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailGrossProfit1" Left="726.72" Width="87.47" Height="20" Text="[DailyReport.GrossProfit1]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailGrossProfitRate1" Left="814.19" Width="87.47" Height="20" Text="[DailyReport.GrossProfitRate1]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailGrossProfit2" Left="901.66" Width="87.47" Height="20" Text="[DailyReport.GrossProfit2]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailGrossProfitRate2" Left="989.13" Width="87.47" Height="20" Text="[DailyReport.GrossProfitRate2]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailMonthlySalesAmount" Left="1076.6" Width="87.47" Height="20" Text="[DailyReport.MonthlySalesAmount]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailMonthlyGrossProfit1" Left="1164.07" Width="87.47" Height="20" Text="[DailyReport.MonthlyGrossProfit1]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailMonthlyGrossProfitRate1" Left="1251.54" Width="87.47" Height="20" Text="[DailyReport.MonthlyGrossProfitRate1]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailMonthlyGrossProfit2" Left="1339.01" Width="87.47" Height="20" Text="[DailyReport.MonthlyGrossProfit2]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+      <TextObject Name="DetailMonthlyGrossProfitRate2" Left="1426.48" Width="87.52" Height="20" Text="[DailyReport.MonthlyGrossProfitRate2]" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 8pt"/>
+    </DataBand>
     <ReportSummaryBand Name="ReportSummary1" Top="1075.8" Width="1512" Height="20">
       <TextObject Name="TotalLabel" Width="114.43" Height="20" Fill.Color="White" Text="※ 合　 計 ※" VertAlign="Center" Font="ＭＳ ゴシック, 11pt, style=Bold"/>
       <TextObject Name="TotalDailySalesQty" Left="114.43" Width="87.47" Height="20" Fill.Color="White" HorzAlign="Right" VertAlign="Center" Font="ＭＳ ゴシック, 11pt"/>
