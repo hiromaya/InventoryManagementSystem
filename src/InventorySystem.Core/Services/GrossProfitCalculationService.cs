@@ -141,12 +141,25 @@ namespace InventorySystem.Core.Services
                     await UpdateSalesVouchersBatchAsync(updatedVouchers);
                 }
 
-                // 5. CP在庫マスタの粗利益・歩引き金額を更新
-                // 修正: UpdateDailyTotalsAsyncは全レコードに同じ値を設定してしまう問題があるため削除
-                // 個別の粗利益は売上伝票に設定済みで、CP在庫マスタへの集計はCalculateGrossProfitAsyncで実行される
-                // await UpdateCpInventoryTotalsAsync(jobDate, cpInventoryDataSetId, totalGrossProfit, totalDiscountAmount);
+                // 5. CP在庫マスタの粗利益を集計
+                _logger.LogInformation("CP在庫マスタの粗利益集計を開始");
+                var grossProfitUpdateCount = await _cpInventoryRepository.CalculateGrossProfitAsync(jobDate);
+                _logger.LogInformation("CP在庫マスタの粗利益集計完了: 更新件数={Count}", grossProfitUpdateCount);
 
-                _logger.LogInformation("Process 2-5 完了: 総粗利益={GrossProfit}, 総歩引き金={Discount}", 
+                // 6. その他の集計処理（仕入値引・奨励金・歩引き金）
+                _logger.LogInformation("仕入値引集計を開始");
+                var purchaseDiscountCount = await _cpInventoryRepository.CalculatePurchaseDiscountAsync(jobDate);
+                _logger.LogInformation("仕入値引集計完了: 更新件数={Count}", purchaseDiscountCount);
+
+                _logger.LogInformation("奨励金計算を開始");
+                var incentiveCount = await _cpInventoryRepository.CalculateIncentiveAsync(jobDate);
+                _logger.LogInformation("奨励金計算完了: 更新件数={Count}", incentiveCount);
+
+                _logger.LogInformation("歩引き金計算を開始");
+                var walkingCount = await _cpInventoryRepository.CalculateWalkingAmountAsync(jobDate);
+                _logger.LogInformation("歩引き金計算完了: 更新件数={Count}", walkingCount);
+
+                _logger.LogInformation("Process 2-5 完了: 総粗利益={GrossProfit}, 総歩引き金={Discount}",
                     totalGrossProfit, totalDiscountAmount);
             }
             catch (Exception ex)
