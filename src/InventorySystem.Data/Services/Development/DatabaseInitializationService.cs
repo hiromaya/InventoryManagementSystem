@@ -44,6 +44,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "012_AddGrossProfitColumnToSalesVouchers.sql",
         "013_AddImportTypeToInventoryMaster.sql",
         "014_AddMissingColumnsToInventoryMaster.sql",
+        "002_AddMonthlyYearlyColumns.sql",
         "015_AddMonthlyColumnsToCpInventoryMaster.sql",
         "016_AddMonthlyFieldsToCpInventory.sql",
         
