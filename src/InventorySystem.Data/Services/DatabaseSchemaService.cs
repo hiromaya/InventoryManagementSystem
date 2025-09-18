@@ -174,8 +174,14 @@ public class DatabaseSchemaService
     /// </summary>
     private async Task AddMonthlyColumnsAsync()
     {
+        await AddMonthlyColumnsToCpInventoryMasterAsync();
+        await AddMonthlyColumnsToInventoryMasterAsync();
+    }
+
+    private async Task AddMonthlyColumnsToCpInventoryMasterAsync()
+    {
         using var connection = new SqlConnection(_connectionString);
-        
+
         // 追加する月計カラムのリスト
         var monthlyColumns = new[]
         {
@@ -184,29 +190,29 @@ public class DatabaseSchemaService
             ("MonthlySalesAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
             ("MonthlySalesReturnQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
             ("MonthlySalesReturnAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
-            
+
             // 月計仕入関連
             ("MonthlyPurchaseQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
             ("MonthlyPurchaseAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
             ("MonthlyPurchaseReturnQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
             ("MonthlyPurchaseReturnAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
-            
+
             // 月計在庫調整関連
             ("MonthlyInventoryAdjustmentQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
             ("MonthlyInventoryAdjustmentAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
-            
+
             // 月計加工・振替関連
             ("MonthlyProcessingQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
             ("MonthlyProcessingAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
             ("MonthlyTransferQuantity", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
             ("MonthlyTransferAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
-            
+
             // 月計粗利益関連
             ("MonthlyGrossProfit", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
             ("MonthlyWalkingAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0"),
             ("MonthlyIncentiveAmount", "DECIMAL(18,4) NOT NULL DEFAULT 0")
         };
-        
+
         foreach (var (columnName, columnDefinition) in monthlyColumns)
         {
             var columnExists = await connection.ExecuteScalarAsync<int>($@"
@@ -220,6 +226,37 @@ public class DatabaseSchemaService
                 _logger.LogInformation($"CpInventoryMasterテーブルに{columnName}カラムを追加します...");
                 await connection.ExecuteAsync($@"
                     ALTER TABLE [dbo].[CpInventoryMaster]
+                    ADD [{columnName}] {columnDefinition}");
+            }
+        }
+    }
+
+    private async Task AddMonthlyColumnsToInventoryMasterAsync()
+    {
+        using var connection = new SqlConnection(_connectionString);
+
+        var inventoryMonthlyColumns = new[]
+        {
+            ("MonthlySalesAmount", "DECIMAL(18,2) NOT NULL DEFAULT 0"),
+            ("MonthlySalesReturnAmount", "DECIMAL(18,2) NOT NULL DEFAULT 0"),
+            ("MonthlyGrossProfit1", "DECIMAL(18,2) NOT NULL DEFAULT 0"),
+            ("MonthlyGrossProfit2", "DECIMAL(18,2) NOT NULL DEFAULT 0"),
+            ("MonthlyWalkingAmount", "DECIMAL(18,2) NOT NULL DEFAULT 0")
+        };
+
+        foreach (var (columnName, columnDefinition) in inventoryMonthlyColumns)
+        {
+            var columnExists = await connection.ExecuteScalarAsync<int>($@"
+                SELECT COUNT(*)
+                FROM sys.columns
+                WHERE object_id = OBJECT_ID(N'[dbo].[InventoryMaster]')
+                AND name = '{columnName}'") > 0;
+
+            if (!columnExists)
+            {
+                _logger.LogInformation($"InventoryMasterテーブルに{columnName}カラムを追加します...");
+                await connection.ExecuteAsync($@"
+                    ALTER TABLE [dbo].[InventoryMaster]
                     ADD [{columnName}] {columnDefinition}");
             }
         }

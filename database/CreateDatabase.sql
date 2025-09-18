@@ -42,6 +42,11 @@ BEGIN
         DailyStock DECIMAL(9,4) NOT NULL DEFAULT 0,        -- 当日在庫数
         DailyStockAmount DECIMAL(12,4) NOT NULL DEFAULT 0, -- 当日在庫金額
         DailyFlag NCHAR(1) NOT NULL DEFAULT '9',           -- 当日発生フラグ
+        MonthlySalesAmount DECIMAL(18,2) NOT NULL DEFAULT 0,        -- 月計売上金額
+        MonthlySalesReturnAmount DECIMAL(18,2) NOT NULL DEFAULT 0,  -- 月計売上返品金額
+        MonthlyGrossProfit1 DECIMAL(18,2) NOT NULL DEFAULT 0,       -- 月計粗利益1
+        MonthlyGrossProfit2 DECIMAL(18,2) NOT NULL DEFAULT 0,       -- 月計粗利益2（歩引後）
+        MonthlyWalkingAmount DECIMAL(18,2) NOT NULL DEFAULT 0,      -- 月計歩引き額
         DataSetId NVARCHAR(100),                           -- データセットID
         
         CONSTRAINT PK_InventoryMaster PRIMARY KEY (ProductCode, GradeCode, ClassCode, ShippingMarkCode, ManualShippingMark)

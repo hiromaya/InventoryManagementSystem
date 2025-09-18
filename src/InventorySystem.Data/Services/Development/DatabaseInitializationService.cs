@@ -47,6 +47,7 @@ public class DatabaseInitializationService : IDatabaseInitializationService
         "002_AddMonthlyYearlyColumns.sql",
         "015_AddMonthlyColumnsToCpInventoryMaster.sql",
         "016_AddMonthlyFieldsToCpInventory.sql",
+        "099_AddMonthlyColumnsToInventoryMaster.sql",
         
         // === IsActive管理の追加（伝票テーブル用） ===
         "058_Add_IsActive_To_Voucher_Tables.sql",                                // 伝票テーブルIsActive追加（高優先度）
