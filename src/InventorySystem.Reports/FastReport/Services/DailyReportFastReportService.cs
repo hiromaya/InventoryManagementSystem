@@ -317,39 +317,39 @@ namespace InventorySystem.Reports.FastReport.Services
         
         private string FormatNumber(decimal value, int decimals = 0)
         {
-            if (value == 0) return "";
-            
-            // 整数表示（小数点なし）、ゼロサプレス
             var format = decimals > 0 ? $"#,##0.{new string('0', decimals)}" : "#,##0";
-            
+
             if (value < 0)
             {
                 // マイナス値は末尾に"-"を付ける
                 return $"{Math.Abs(value).ToString(format)}-";
             }
+
             return value.ToString(format);
         }
 
         private string FormatNumberWithMinus(decimal value)
         {
-            if (value == 0) return "";
-            
             // 整数表示、マイナスは末尾
             if (value < 0)
+            {
                 return $"{Math.Abs(value):#,##0}-";
+            }
+
             return value.ToString("#,##0");
         }
-        
+
         private string FormatNumberWithTriangle(decimal value)
         {
-            if (value == 0) return "";
-            
             // 特定の条件で▲記号を使用（2粗利益など）、整数表示
             if (value < 0)
+            {
                 return $"{Math.Abs(value):#,##0}▲";
+            }
+
             return value.ToString("#,##0");
         }
-        
+
         private string FormatRate(decimal rate)
         {
             if (rate < 0)
@@ -363,11 +363,6 @@ namespace InventorySystem.Reports.FastReport.Services
 
         private string FormatRateWithTriangle(decimal rate)
         {
-            if (rate == 0)
-            {
-                return string.Empty;
-            }
-
             if (rate < 0)
             {
                 return $"{Math.Abs(rate):0.00}▲%";
