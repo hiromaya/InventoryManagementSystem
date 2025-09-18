@@ -1,7 +1,11 @@
+using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using Dapper;
 using InventorySystem.Core.Entities;
 using InventorySystem.Core.Interfaces;
+using InventorySystem.Core.Models;
 using Microsoft.Extensions.Logging;
 
 namespace InventorySystem.Data.Repositories;
@@ -22,6 +26,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
+                DailyWalkingAmount,
+                MonthlySalesAmount, MonthlySalesReturnAmount, MonthlyGrossProfit1, MonthlyGrossProfit2, MonthlyWalkingAmount,
                 DataSetId, PreviousMonthQuantity, PreviousMonthAmount,
                 IsActive, ParentDataSetId, ImportType, CreatedBy, CreatedAt, UpdatedAt
             FROM InventoryMaster 
@@ -51,6 +57,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
+                DailyWalkingAmount,
+                MonthlySalesAmount, MonthlySalesReturnAmount, MonthlyGrossProfit1, MonthlyGrossProfit2, MonthlyWalkingAmount,
                 DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             FROM InventoryMaster 
             WHERE ProductCode = @ProductCode 
@@ -91,6 +99,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
+                DailyWalkingAmount,
+                MonthlySalesAmount, MonthlySalesReturnAmount, MonthlyGrossProfit1, MonthlyGrossProfit2, MonthlyWalkingAmount,
                 DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             ) VALUES (
                 @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ManualShippingMark,
@@ -98,6 +108,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 @JobDate, @CreatedDate, @UpdatedDate,
                 @CurrentStock, @CurrentStockAmount, @DailyStock, @DailyStockAmount,
                 @DailyFlag, @DailyGrossProfit, @DailyAdjustmentAmount, @DailyProcessingCost, @FinalGrossProfit,
+                @DailyWalkingAmount,
+                @MonthlySalesAmount, @MonthlySalesReturnAmount, @MonthlyGrossProfit1, @MonthlyGrossProfit2, @MonthlyWalkingAmount,
                 @DataSetId, @PreviousMonthQuantity, @PreviousMonthAmount
             )";
 
@@ -135,6 +147,12 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 DailyAdjustmentAmount = @DailyAdjustmentAmount,
                 DailyProcessingCost = @DailyProcessingCost,
                 FinalGrossProfit = @FinalGrossProfit,
+                DailyWalkingAmount = @DailyWalkingAmount,
+                MonthlySalesAmount = @MonthlySalesAmount,
+                MonthlySalesReturnAmount = @MonthlySalesReturnAmount,
+                MonthlyGrossProfit1 = @MonthlyGrossProfit1,
+                MonthlyGrossProfit2 = @MonthlyGrossProfit2,
+                MonthlyWalkingAmount = @MonthlyWalkingAmount,
                 DataSetId = @DataSetId,
                 PreviousMonthQuantity = @PreviousMonthQuantity,
                 PreviousMonthAmount = @PreviousMonthAmount
@@ -185,7 +203,7 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             UPDATE InventoryMaster 
             SET DailyFlag = '9', UpdatedDate = GETDATE()
             WHERE JobDate = @JobDate";
-
+        
         try
         {
             using var connection = CreateConnection();
@@ -201,6 +219,48 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
         }
     }
 
+    public async Task<Dictionary<string, InventoryMonthlyTotals>> GetMonthlyTotalsByProductCodeAsync(DateTime jobDate)
+    {
+        const string sql = @"
+            SELECT 
+                ProductCode,
+                SUM(MonthlySalesAmount) AS MonthlySalesAmount,
+                SUM(MonthlySalesReturnAmount) AS MonthlySalesReturnAmount,
+                SUM(MonthlyGrossProfit1) AS MonthlyGrossProfit1,
+                SUM(MonthlyGrossProfit2) AS MonthlyGrossProfit2,
+                SUM(MonthlyWalkingAmount) AS MonthlyWalkingAmount
+            FROM InventoryMaster
+            WHERE JobDate = DATEADD(day, -1, @JobDate)
+            GROUP BY ProductCode";
+
+        try
+        {
+            using var connection = CreateConnection();
+            var records = await connection.QueryAsync(sql, new { JobDate = jobDate });
+
+            var result = new Dictionary<string, InventoryMonthlyTotals>(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in records)
+            {
+                var productCode = (string)row.ProductCode;
+                result[productCode] = new InventoryMonthlyTotals
+                {
+                    MonthlySalesAmount = (decimal?)row.MonthlySalesAmount ?? 0m,
+                    MonthlySalesReturnAmount = (decimal?)row.MonthlySalesReturnAmount ?? 0m,
+                    MonthlyGrossProfit1 = (decimal?)row.MonthlyGrossProfit1 ?? 0m,
+                    MonthlyGrossProfit2 = (decimal?)row.MonthlyGrossProfit2 ?? 0m,
+                    MonthlyWalkingAmount = (decimal?)row.MonthlyWalkingAmount ?? 0m
+                };
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, nameof(GetMonthlyTotalsByProductCodeAsync), new { jobDate });
+            throw;
+        }
+    }
+
     public async Task<int> BulkInsertAsync(IEnumerable<InventoryMaster> inventories)
     {
         const string sql = @"
@@ -210,6 +270,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
+                DailyWalkingAmount,
+                MonthlySalesAmount, MonthlySalesReturnAmount, MonthlyGrossProfit1, MonthlyGrossProfit2, MonthlyWalkingAmount,
                 DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             ) VALUES (
                 @ProductCode, @GradeCode, @ClassCode, @ShippingMarkCode, @ManualShippingMark,
@@ -217,6 +279,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 @JobDate, @CreatedDate, @UpdatedDate,
                 @CurrentStock, @CurrentStockAmount, @DailyStock, @DailyStockAmount,
                 @DailyFlag, @DailyGrossProfit, @DailyAdjustmentAmount, @DailyProcessingCost, @FinalGrossProfit,
+                @DailyWalkingAmount,
+                @MonthlySalesAmount, @MonthlySalesReturnAmount, @MonthlyGrossProfit1, @MonthlyGrossProfit2, @MonthlyWalkingAmount,
                 @DataSetId, @PreviousMonthQuantity, @PreviousMonthAmount
             )";
 
@@ -265,6 +329,12 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             DailyAdjustmentAmount = row.DailyAdjustmentAmount ?? 0m,
             DailyProcessingCost = row.DailyProcessingCost ?? 0m,
             FinalGrossProfit = row.FinalGrossProfit ?? 0m,
+            DailyWalkingAmount = row.DailyWalkingAmount ?? 0m,
+            MonthlySalesAmount = row.MonthlySalesAmount ?? 0m,
+            MonthlySalesReturnAmount = row.MonthlySalesReturnAmount ?? 0m,
+            MonthlyGrossProfit1 = row.MonthlyGrossProfit1 ?? 0m,
+            MonthlyGrossProfit2 = row.MonthlyGrossProfit2 ?? 0m,
+            MonthlyWalkingAmount = row.MonthlyWalkingAmount ?? 0m,
             DataSetId = row.DataSetId ?? string.Empty,
             PreviousMonthQuantity = row.PreviousMonthQuantity ?? 0m,
             PreviousMonthAmount = row.PreviousMonthAmount ?? 0m,
@@ -304,6 +374,12 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
             inventory.DailyAdjustmentAmount,
             inventory.DailyProcessingCost,
             inventory.FinalGrossProfit,
+            inventory.DailyWalkingAmount,
+            inventory.MonthlySalesAmount,
+            inventory.MonthlySalesReturnAmount,
+            inventory.MonthlyGrossProfit1,
+            inventory.MonthlyGrossProfit2,
+            inventory.MonthlyWalkingAmount,
             inventory.DataSetId,
             inventory.PreviousMonthQuantity,
             inventory.PreviousMonthAmount,
@@ -500,7 +576,13 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 im.DailyStockAmount = cp.DailyStockAmount,
                 im.DailyFlag = cp.DailyFlag,
                 im.DailyGrossProfit = cp.DailyGrossProfit,
+                im.DailyWalkingAmount = cp.DailyWalkingAmount,
                 im.FinalGrossProfit = cp.DailyGrossProfit,
+                im.MonthlySalesAmount = cp.MonthlySalesAmount,
+                im.MonthlySalesReturnAmount = cp.MonthlySalesReturnAmount,
+                im.MonthlyGrossProfit1 = cp.MonthlyGrossProfit,
+                im.MonthlyGrossProfit2 = cp.MonthlyGrossProfit - cp.MonthlyWalkingAmount,
+                im.MonthlyWalkingAmount = cp.MonthlyWalkingAmount,
                 im.UpdatedDate = GETDATE(),
                 im.DataSetId = cp.DataSetId,
                 im.JobDate = @JobDate  -- 最終処理日として更新
@@ -540,6 +622,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
+                DailyWalkingAmount,
+                MonthlySalesAmount, MonthlySalesReturnAmount, MonthlyGrossProfit1, MonthlyGrossProfit2, MonthlyWalkingAmount,
                 DataSetId, PreviousMonthQuantity, PreviousMonthAmount
             FROM InventoryMaster 
             WHERE ProductCode = @ProductCode 
@@ -703,6 +787,8 @@ public class InventoryRepository : BaseRepository, IInventoryRepository
                 JobDate, CreatedDate, UpdatedDate,
                 CurrentStock, CurrentStockAmount, DailyStock, DailyStockAmount,
                 DailyFlag, DailyGrossProfit, DailyAdjustmentAmount, DailyProcessingCost, FinalGrossProfit,
+                DailyWalkingAmount,
+                MonthlySalesAmount, MonthlySalesReturnAmount, MonthlyGrossProfit1, MonthlyGrossProfit2, MonthlyWalkingAmount,
                 DataSetId, PreviousMonthQuantity, PreviousMonthAmount,
                 IsActive, ParentDataSetId, ImportType, CreatedBy, CreatedAt, UpdatedAt
             FROM InventoryMaster 

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using InventorySystem.Core.Base;
 using InventorySystem.Core.Entities;
@@ -21,6 +22,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
     private readonly IInventoryAdjustmentRepository _inventoryAdjustmentRepository;
     private readonly GrossProfitCalculationService _grossProfitCalculationService;
     private readonly IUnmatchCheckValidationService _unmatchCheckValidationService;
+    private readonly IInventoryRepository _inventoryRepository;
 
     public DailyReportService(
         IDateValidationService dateValidator,
@@ -32,6 +34,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         IInventoryAdjustmentRepository inventoryAdjustmentRepository,
         GrossProfitCalculationService grossProfitCalculationService,
         IUnmatchCheckValidationService unmatchCheckValidationService,
+        IInventoryRepository inventoryRepository,
         ILogger<DailyReportService> logger)
         : base(dateValidator, dataSetManager, historyService, logger)
     {
@@ -41,6 +44,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         _inventoryAdjustmentRepository = inventoryAdjustmentRepository;
         _grossProfitCalculationService = grossProfitCalculationService;
         _unmatchCheckValidationService = unmatchCheckValidationService;
+        _inventoryRepository = inventoryRepository;
     }
 
     public async Task<DailyReportResult> ProcessDailyReportAsync(DateTime reportDate, string? existingDataSetId = null, bool allowDuplicateProcessing = false)
@@ -172,6 +176,10 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
             var reportItems = await GetDailyReportDataAsync(reportDate);
             _logger.LogInformation("商品日報データ生成完了 - データ件数: {Count}", reportItems.Count);
 
+            _logger.LogInformation("CP在庫マスタへの月計書き戻しを開始します");
+            await UpdateCpInventoryMonthlyTotals(reportDate, reportItems);
+            _logger.LogInformation("CP在庫マスタへの月計書き戻しが完了しました");
+
             // 6. 集計データ作成
             var subtotals = CreateSubtotals(reportItems);
             var total = CreateTotal(reportItems);
@@ -261,6 +269,9 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         // CP在庫Mから商品ごとに集計してDailyReportItemを作成
         var cpInventories = await _cpInventoryRepository.GetAllAsync(); // 仮テーブル設計：全レコード取得
         _logger.LogInformation("CP在庫Mデータ取得完了 - 件数: {Count}", cpInventories.Count());
+
+        var inventoryMonthlyTotals = await _inventoryRepository.GetMonthlyTotalsByProductCodeAsync(reportDate);
+        _logger.LogInformation("在庫マスタから月計取得完了 - 商品数: {Count}", inventoryMonthlyTotals.Count);
         
         // デバッグ: CP在庫データのサンプルを表示
         var cpSample = cpInventories.Take(5);
@@ -321,7 +332,7 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         }
 
         var groupedData = activeInventories
-            .GroupBy(cp => new { cp.Key.ProductCode, cp.ProductCategory1 })
+            .GroupBy(cp => cp.Key.ProductCode)
             .ToList();
             
         _logger.LogInformation("グループ化後のデータ件数: {Count}", groupedData.Count);
@@ -329,48 +340,70 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
         foreach (var group in groupedData)
         {
             var firstCp = group.First();
+            var productCode = group.Key;
+            var dailySalesQuantity = group.Sum(cp => cp.DailySalesQuantity);
+            var dailySalesAmountWithoutReturn = group.Sum(cp => cp.DailySalesAmount);
+            var dailySalesReturnAmount = group.Sum(cp => cp.DailySalesReturnAmount);
+            var dailySalesAmount = dailySalesAmountWithoutReturn + dailySalesReturnAmount;
+            var dailyPurchaseDiscount = group.Sum(cp => cp.DailyPurchaseDiscountAmount);
+            var dailyInventoryAdjustment = group.Sum(cp => cp.DailyInventoryAdjustmentAmount);
+            var dailyProcessingCost = group.Sum(cp => cp.DailyProcessingAmount);
+            var dailyTransfer = group.Sum(cp => cp.DailyTransferAmount);
+            var dailyIncentive = group.Sum(cp => cp.DailyIncentiveAmount);
+            var dailyGrossProfit1 = group.Sum(cp => cp.DailyGrossProfit);
+            var dailyDiscountAmount = group.Sum(cp => cp.DailyWalkingAmount);
+            var dailyGrossProfit2 = dailyGrossProfit1 - dailyDiscountAmount;
+
+            var monthlySalesAmount = dailySalesAmount;
+            var monthlySalesReturnAmount = dailySalesReturnAmount;
+            var monthlyGrossProfit1 = dailyGrossProfit1;
+            var monthlyWalkingAmount = dailyDiscountAmount;
+
+            if (inventoryMonthlyTotals.TryGetValue(productCode, out var previousMonthly))
+            {
+                monthlySalesAmount += previousMonthly.MonthlySalesAmount + previousMonthly.MonthlySalesReturnAmount;
+                monthlySalesReturnAmount += previousMonthly.MonthlySalesReturnAmount;
+                monthlyGrossProfit1 += previousMonthly.MonthlyGrossProfit1;
+                monthlyWalkingAmount += previousMonthly.MonthlyWalkingAmount;
+            }
+
+            var monthlyGrossProfit2 = monthlyGrossProfit1 - monthlyWalkingAmount;
+
             var item = new DailyReportItem
             {
-                ProductCode = group.Key.ProductCode,
-                ProductCategory1 = group.Key.ProductCategory1 ?? string.Empty,
-                ProductName = firstCp.ProductName ?? group.Key.ProductCode,
+                ProductCode = productCode,
+                ProductCategory1 = firstCp.ProductCategory1 ?? string.Empty,
+                ProductName = firstCp.ProductName ?? productCode,
                 GradeCode = firstCp.Key.GradeCode,
                 ClassCode = firstCp.Key.ClassCode,
                 ShippingMarkCode = firstCp.Key.ShippingMarkCode,
                 ManualShippingMark = firstCp.Key.ManualShippingMark,
-
-                // 日計項目（集計）
-                DailySalesQuantity = group.Sum(cp => cp.DailySalesQuantity),
-                DailySalesAmount = group.Sum(cp => cp.DailySalesAmount),
-                DailyPurchaseDiscount = group.Sum(cp => cp.DailyPurchaseDiscountAmount),
-                DailyInventoryAdjustment = group.Sum(cp => cp.DailyInventoryAdjustmentAmount),
-                DailyProcessingCost = group.Sum(cp => cp.DailyProcessingAmount),
-                DailyTransfer = group.Sum(cp => cp.DailyTransferAmount),
-                DailyIncentive = group.Sum(cp => cp.DailyIncentiveAmount),
-                DailyGrossProfit1 = group.Sum(cp => cp.DailyGrossProfit),
-                DailyDiscountAmount = group.Sum(cp => cp.DailyWalkingAmount),  // 歩引き額: DailyWalkingAmountを参照
-                
-                // 月計項目（実データを設定）
-                MonthlySalesAmount = group.Sum(cp => cp.MonthlySalesAmount + cp.MonthlySalesReturnAmount),
-                MonthlyGrossProfit1 = group.Sum(cp => cp.MonthlyGrossProfit),
-                MonthlyGrossProfit2 = group.Sum(cp => cp.MonthlyGrossProfit - cp.MonthlyWalkingAmount)
+                DailySalesQuantity = dailySalesQuantity,
+                DailySalesAmount = dailySalesAmount,
+                DailySalesReturnAmount = dailySalesReturnAmount,
+                DailyPurchaseDiscount = dailyPurchaseDiscount,
+                DailyInventoryAdjustment = dailyInventoryAdjustment,
+                DailyProcessingCost = dailyProcessingCost,
+                DailyTransfer = dailyTransfer,
+                DailyIncentive = dailyIncentive,
+                DailyGrossProfit1 = dailyGrossProfit1,
+                DailyDiscountAmount = dailyDiscountAmount,
+                DailyGrossProfit2 = dailyGrossProfit2,
+                MonthlySalesAmount = monthlySalesAmount,
+                MonthlySalesReturnAmount = monthlySalesReturnAmount,
+                MonthlyGrossProfit1 = monthlyGrossProfit1,
+                MonthlyGrossProfit2 = monthlyGrossProfit2,
+                MonthlyWalkingAmount = monthlyWalkingAmount
             };
 
-            // ２粗利益計算（１粗利益－歩引額）
-            item.DailyGrossProfit2 = item.DailyGrossProfit1 - item.DailyDiscountAmount;
-
-            // 粗利率計算（0除算対策）
             item.DailyGrossProfitRate1 = DailyReportItem.CalculateGrossProfitRate(item.DailyGrossProfit1, item.DailySalesAmount);
             item.DailyGrossProfitRate2 = DailyReportItem.CalculateGrossProfitRate(item.DailyGrossProfit2, item.DailySalesAmount);
-            
-            // 月計粗利率計算
             item.MonthlyGrossProfitRate1 = DailyReportItem.CalculateGrossProfitRate(item.MonthlyGrossProfit1, item.MonthlySalesAmount);
             item.MonthlyGrossProfitRate2 = DailyReportItem.CalculateGrossProfitRate(item.MonthlyGrossProfit2, item.MonthlySalesAmount);
 
-            // データがある場合は追加（すでにフィルタリング済み）
             reportItems.Add(item);
-            
-            _logger.LogDebug("商品データ追加: {ProductCode} - 売上: {SalesAmount}円", 
+
+            _logger.LogDebug("商品データ追加: {ProductCode} - 売上: {SalesAmount}円",
                 item.ProductCode, item.DailySalesAmount);
         }
 
@@ -386,6 +419,21 @@ public class DailyReportService : BatchProcessBase, IDailyReportService
 
         _logger.LogInformation("商品日報データ取得完了 - 件数: {Count}", sortedItems.Count);
         return sortedItems;
+    }
+
+    private async Task UpdateCpInventoryMonthlyTotals(DateTime reportDate, IEnumerable<DailyReportItem> reportItems)
+    {
+        foreach (var item in reportItems)
+        {
+            await _cpInventoryRepository.UpdateMonthlyTotalsByProductCode(
+                reportDate,
+                item.ProductCode,
+                item.MonthlySalesAmount,
+                item.MonthlySalesReturnAmount,
+                item.MonthlyGrossProfit1,
+                item.MonthlyGrossProfit2,
+                item.MonthlyWalkingAmount);
+        }
     }
 
     /// <summary>

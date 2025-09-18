@@ -36,6 +36,14 @@ public class InventoryMaster
     public decimal DailyAdjustmentAmount { get; set; }           // 当日在庫調整金額
     public decimal DailyProcessingCost { get; set; }             // 当日加工費
     public decimal FinalGrossProfit { get; set; }                // 最終粗利益
+    public decimal DailyWalkingAmount { get; set; }              // 日計歩引額
+
+    // 月計情報（商品日報用）
+    public decimal MonthlySalesAmount { get; set; }               // 月計売上金額
+    public decimal MonthlySalesReturnAmount { get; set; }         // 月計売上返品金額
+    public decimal MonthlyGrossProfit1 { get; set; }              // 月計1粗利益
+    public decimal MonthlyGrossProfit2 { get; set; }              // 月計2粗利益（歩引後）
+    public decimal MonthlyWalkingAmount { get; set; }             // 月計歩引額
     
     // データセットID管理
     public string DataSetId { get; set; } = string.Empty;       // データセットID

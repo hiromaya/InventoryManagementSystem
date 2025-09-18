@@ -51,6 +51,11 @@ public class DailyReportItem
     /// 2. 売上金額: ZZ,ZZZ,ZZ9-（売上金額＋売上返品金額）
     /// </summary>
     public decimal DailySalesAmount { get; set; }
+
+    /// <summary>
+    /// 売上返品金額（参考値）
+    /// </summary>
+    public decimal DailySalesReturnAmount { get; set; }
     
     /// <summary>
     /// 3. 仕入値引: ZZ,ZZZ,ZZ9-
@@ -103,6 +108,11 @@ public class DailyReportItem
     /// 1. 売上金額: ZZZ,ZZZ,ZZ9-
     /// </summary>
     public decimal MonthlySalesAmount { get; set; }
+
+    /// <summary>
+    /// 売上返品金額（参考値）
+    /// </summary>
+    public decimal MonthlySalesReturnAmount { get; set; }
     
     /// <summary>
     /// 2. １粗利益: ZZ,ZZZ,ZZ9-
@@ -123,6 +133,11 @@ public class DailyReportItem
     /// 5. ２粗利率: ZZ9.99-%
     /// </summary>
     public decimal MonthlyGrossProfitRate2 { get; set; }
+
+    /// <summary>
+    /// 月計歩引額
+    /// </summary>
+    public decimal MonthlyWalkingAmount { get; set; }
     
     /// <summary>
     /// 歩引額（２粗利益計算用）

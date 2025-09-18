@@ -216,4 +216,17 @@ public interface ICpInventoryRepository
     /// 当日入荷フラグがtrueの商品の最終入荷日を当日に更新する
     /// </summary>
     Task<int> UpdateLastReceiptDateByFlagAsync(DateTime jobDate);
+
+    /// <summary>
+    /// 商品コード単位で月計を更新する（商品日報からの書き戻し）
+    /// </summary>
+    Task<int> UpdateMonthlyTotalsByProductCode(
+        DateTime jobDate,
+        string productCode,
+        decimal monthlySalesAmount,
+        decimal monthlySalesReturnAmount,
+        decimal monthlyGrossProfit1,
+        decimal monthlyGrossProfit2,
+        decimal monthlyWalkingAmount);
+
 }

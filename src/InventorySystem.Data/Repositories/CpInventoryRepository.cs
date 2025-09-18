@@ -1727,4 +1727,36 @@ public class CpInventoryRepository : BaseRepository, ICpInventoryRepository
             _logger.LogError(ex, $"TrackInventoryStateFromCpInventoryMaster エラー: {processName}");
         }
     }
+
+    public async Task<int> UpdateMonthlyTotalsByProductCode(
+        DateTime jobDate,
+        string productCode,
+        decimal monthlySalesAmount,
+        decimal monthlySalesReturnAmount,
+        decimal monthlyGrossProfit1,
+        decimal monthlyGrossProfit2,
+        decimal monthlyWalkingAmount)
+    {
+        const string sql = @"
+            UPDATE CpInventoryMaster
+            SET MonthlySalesAmount = @MonthlySalesAmount,
+                MonthlySalesReturnAmount = @MonthlySalesReturnAmount,
+                MonthlyGrossProfit = @MonthlyGrossProfit1,
+                MonthlyWalkingAmount = @MonthlyWalkingAmount,
+                UpdatedDate = GETDATE()
+            WHERE JobDate = @JobDate
+              AND ProductCode = @ProductCode";
+
+        using var connection = CreateConnection();
+        return await connection.ExecuteAsync(sql, new
+        {
+            JobDate = jobDate,
+            ProductCode = productCode,
+            MonthlySalesAmount = monthlySalesAmount,
+            MonthlySalesReturnAmount = monthlySalesReturnAmount,
+            MonthlyGrossProfit1 = monthlyGrossProfit1,
+            MonthlyGrossProfit2 = monthlyGrossProfit2,
+            MonthlyWalkingAmount = monthlyWalkingAmount
+        });
+    }
 }

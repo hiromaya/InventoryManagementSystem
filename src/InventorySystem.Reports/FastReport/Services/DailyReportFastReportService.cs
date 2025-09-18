@@ -225,13 +225,13 @@ namespace InventorySystem.Reports.FastReport.Services
             row["Processing"] = FormatNumberWithMinus(item.DailyProcessingCost);
             row["Transfer"] = FormatNumberWithMinus(item.DailyTransfer);
             row["Incentive"] = FormatNumberWithMinus(item.DailyIncentive);
-            row["GrossProfit1"] = FormatNumber(item.DailyGrossProfit1);
-            row["GrossProfitRate1"] = FormatRate(CalculateRate(item.DailyGrossProfit1, item.DailySalesAmount));
+            row["GrossProfit1"] = FormatNumberWithTriangle(item.DailyGrossProfit1);
+            row["GrossProfitRate1"] = FormatRateWithTriangle(CalculateRate(item.DailyGrossProfit1, item.DailySalesAmount));
             row["GrossProfit2"] = FormatNumberWithTriangle(item.DailyGrossProfit2);
             row["GrossProfitRate2"] = FormatRate(CalculateRate(item.DailyGrossProfit2, item.DailySalesAmount));
             row["MonthlySalesAmount"] = FormatNumber(item.MonthlySalesAmount);
-            row["MonthlyGrossProfit1"] = FormatNumber(item.MonthlyGrossProfit1);
-            row["MonthlyGrossProfitRate1"] = FormatRate(CalculateRate(item.MonthlyGrossProfit1, item.MonthlySalesAmount));
+            row["MonthlyGrossProfit1"] = FormatNumberWithTriangle(item.MonthlyGrossProfit1);
+            row["MonthlyGrossProfitRate1"] = FormatRateWithTriangle(CalculateRate(item.MonthlyGrossProfit1, item.MonthlySalesAmount));
             row["MonthlyGrossProfit2"] = FormatNumberWithTriangle(item.MonthlyGrossProfit2);
             row["MonthlyGrossProfitRate2"] = FormatRate(CalculateRate(item.MonthlyGrossProfit2, item.MonthlySalesAmount));
 
@@ -254,13 +254,13 @@ namespace InventorySystem.Reports.FastReport.Services
             row["Processing"] = FormatNumberWithMinus(subtotal.TotalDailyProcessingCost);
             row["Transfer"] = FormatNumberWithMinus(subtotal.TotalDailyTransfer);
             row["Incentive"] = FormatNumberWithMinus(subtotal.TotalDailyIncentive);
-            row["GrossProfit1"] = FormatNumber(subtotal.TotalDailyGrossProfit1);
-            row["GrossProfitRate1"] = FormatRate(subtotal.TotalDailyGrossProfitRate1);
+            row["GrossProfit1"] = FormatNumberWithTriangle(subtotal.TotalDailyGrossProfit1);
+            row["GrossProfitRate1"] = FormatRateWithTriangle(subtotal.TotalDailyGrossProfitRate1);
             row["GrossProfit2"] = FormatNumberWithTriangle(subtotal.TotalDailyGrossProfit2);
             row["GrossProfitRate2"] = FormatRate(subtotal.TotalDailyGrossProfitRate2);
             row["MonthlySalesAmount"] = FormatNumber(subtotal.TotalMonthlySalesAmount);
-            row["MonthlyGrossProfit1"] = FormatNumber(subtotal.TotalMonthlyGrossProfit1);
-            row["MonthlyGrossProfitRate1"] = FormatRate(subtotal.TotalMonthlyGrossProfitRate1);
+            row["MonthlyGrossProfit1"] = FormatNumberWithTriangle(subtotal.TotalMonthlyGrossProfit1);
+            row["MonthlyGrossProfitRate1"] = FormatRateWithTriangle(subtotal.TotalMonthlyGrossProfitRate1);
             row["MonthlyGrossProfit2"] = FormatNumberWithTriangle(subtotal.TotalMonthlyGrossProfit2);
             row["MonthlyGrossProfitRate2"] = FormatRate(subtotal.TotalMonthlyGrossProfitRate2);
 
@@ -312,7 +312,7 @@ namespace InventorySystem.Reports.FastReport.Services
         private decimal CalculateRate(decimal profit, decimal amount)
         {
             if (amount == 0) return 0;
-            return Math.Round((profit * 100) / amount, 2);
+            return Math.Round((profit * 100) / amount, 2, MidpointRounding.AwayFromZero);
         }
         
         private string FormatNumber(decimal value, int decimals = 0)
@@ -352,13 +352,28 @@ namespace InventorySystem.Reports.FastReport.Services
         
         private string FormatRate(decimal rate)
         {
-            if (rate == 0) return "";
-            
-            // 率もマイナスの場合は末尾に"-"、小数2桁表示
             if (rate < 0)
+            {
+                // マイナス率は末尾を"-"にする
                 return $"{Math.Abs(rate):0.00}%-";
-            
-            return rate.ToString("0.00") + "%";
+            }
+
+            return $"{rate:0.00}%";
+        }
+
+        private string FormatRateWithTriangle(decimal rate)
+        {
+            if (rate == 0)
+            {
+                return string.Empty;
+            }
+
+            if (rate < 0)
+            {
+                return $"{Math.Abs(rate):0.00}▲%";
+            }
+
+            return $"{rate:0.00}%";
         }
         
         private void SetTotalValues(Report report, DailyReportTotal total)
@@ -371,15 +386,15 @@ namespace InventorySystem.Reports.FastReport.Services
             SetTextObjectValue(report, "TotalProcessing", FormatNumberWithMinus(total.GrandTotalDailyProcessingCost));
             SetTextObjectValue(report, "TotalTransfer", FormatNumberWithMinus(total.GrandTotalDailyTransfer));
             SetTextObjectValue(report, "TotalIncentive", FormatNumberWithMinus(total.GrandTotalDailyIncentive));
-            SetTextObjectValue(report, "TotalGrossProfit1", FormatNumber(total.GrandTotalDailyGrossProfit1));
-            SetTextObjectValue(report, "TotalGrossProfitRate1", FormatRate(CalculateRate(total.GrandTotalDailyGrossProfit1, total.GrandTotalDailySalesAmount)));
+            SetTextObjectValue(report, "TotalGrossProfit1", FormatNumberWithTriangle(total.GrandTotalDailyGrossProfit1));
+            SetTextObjectValue(report, "TotalGrossProfitRate1", FormatRateWithTriangle(total.GrandTotalDailyGrossProfitRate1));
             SetTextObjectValue(report, "TotalGrossProfit2", FormatNumberWithTriangle(total.GrandTotalDailyGrossProfit2));  // ▲記号使用
-            SetTextObjectValue(report, "TotalGrossProfitRate2", FormatRate(CalculateRate(total.GrandTotalDailyGrossProfit2, total.GrandTotalDailySalesAmount)));
+            SetTextObjectValue(report, "TotalGrossProfitRate2", FormatRate(total.GrandTotalDailyGrossProfitRate2));
             SetTextObjectValue(report, "TotalMonthlySalesAmount", FormatNumber(total.GrandTotalMonthlySalesAmount));
-            SetTextObjectValue(report, "TotalMonthlyGrossProfit1", FormatNumber(total.GrandTotalMonthlyGrossProfit1));
-            SetTextObjectValue(report, "TotalMonthlyGrossProfitRate1", FormatRate(CalculateRate(total.GrandTotalMonthlyGrossProfit1, total.GrandTotalMonthlySalesAmount)));
+            SetTextObjectValue(report, "TotalMonthlyGrossProfit1", FormatNumberWithTriangle(total.GrandTotalMonthlyGrossProfit1));
+            SetTextObjectValue(report, "TotalMonthlyGrossProfitRate1", FormatRateWithTriangle(total.GrandTotalMonthlyGrossProfitRate1));
             SetTextObjectValue(report, "TotalMonthlyGrossProfit2", FormatNumberWithTriangle(total.GrandTotalMonthlyGrossProfit2));  // ▲記号使用
-            SetTextObjectValue(report, "TotalMonthlyGrossProfitRate2", FormatRate(CalculateRate(total.GrandTotalMonthlyGrossProfit2, total.GrandTotalMonthlySalesAmount)));
+            SetTextObjectValue(report, "TotalMonthlyGrossProfitRate2", FormatRate(total.GrandTotalMonthlyGrossProfitRate2));
         }
         
         private void SetTextObjectValue(Report report, string objectName, string value)

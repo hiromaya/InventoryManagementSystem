@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using InventorySystem.Core.Entities;
+using InventorySystem.Core.Models;
 
 namespace InventorySystem.Core.Interfaces;
 
@@ -10,6 +12,7 @@ public interface IInventoryRepository
     Task<int> UpdateAsync(InventoryMaster inventory);
     Task<int> DeleteByJobDateAsync(DateTime jobDate);
     Task<int> ClearDailyFlagAsync(DateTime jobDate);
+    Task<Dictionary<string, InventoryMonthlyTotals>> GetMonthlyTotalsByProductCodeAsync(DateTime jobDate);
     Task<int> BulkInsertAsync(IEnumerable<InventoryMaster> inventories);
     
     /// <summary>
