@@ -186,7 +186,7 @@ public class DailyReportItem
 public class DailyReportSubtotal
 {
     public string ProductCategory1 { get; set; } = string.Empty;
-    public string SubtotalName => "＊　大分類計　＊";
+    public string SubtotalName => "＊ 大分類計 ＊";
     
     // 日計合計値
     public decimal TotalDailySalesQuantity { get; set; }
