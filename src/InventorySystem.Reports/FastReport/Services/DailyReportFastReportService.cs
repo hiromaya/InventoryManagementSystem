@@ -228,12 +228,12 @@ namespace InventorySystem.Reports.FastReport.Services
             row["GrossProfit1"] = FormatNumberWithTriangle(item.DailyGrossProfit1);
             row["GrossProfitRate1"] = FormatRateWithTriangle(CalculateRate(item.DailyGrossProfit1, item.DailySalesAmount));
             row["GrossProfit2"] = FormatNumberWithTriangle(item.DailyGrossProfit2);
-            row["GrossProfitRate2"] = FormatRate(CalculateRate(item.DailyGrossProfit2, item.DailySalesAmount));
+            row["GrossProfitRate2"] = FormatRateWithTriangle(CalculateRate(item.DailyGrossProfit2, item.DailySalesAmount));
             row["MonthlySalesAmount"] = FormatNumber(item.MonthlySalesAmount);
             row["MonthlyGrossProfit1"] = FormatNumberWithTriangle(item.MonthlyGrossProfit1);
             row["MonthlyGrossProfitRate1"] = FormatRateWithTriangle(CalculateRate(item.MonthlyGrossProfit1, item.MonthlySalesAmount));
             row["MonthlyGrossProfit2"] = FormatNumberWithTriangle(item.MonthlyGrossProfit2);
-            row["MonthlyGrossProfitRate2"] = FormatRate(CalculateRate(item.MonthlyGrossProfit2, item.MonthlySalesAmount));
+            row["MonthlyGrossProfitRate2"] = FormatRateWithTriangle(CalculateRate(item.MonthlyGrossProfit2, item.MonthlySalesAmount));
 
             row["RowType"] = RowTypeItem;
             row["IsSubtotal"] = false;
@@ -257,12 +257,12 @@ namespace InventorySystem.Reports.FastReport.Services
             row["GrossProfit1"] = FormatNumberWithTriangle(subtotal.TotalDailyGrossProfit1);
             row["GrossProfitRate1"] = FormatRateWithTriangle(subtotal.TotalDailyGrossProfitRate1);
             row["GrossProfit2"] = FormatNumberWithTriangle(subtotal.TotalDailyGrossProfit2);
-            row["GrossProfitRate2"] = FormatRate(subtotal.TotalDailyGrossProfitRate2);
+            row["GrossProfitRate2"] = FormatRateWithTriangle(subtotal.TotalDailyGrossProfitRate2);
             row["MonthlySalesAmount"] = FormatNumber(subtotal.TotalMonthlySalesAmount);
             row["MonthlyGrossProfit1"] = FormatNumberWithTriangle(subtotal.TotalMonthlyGrossProfit1);
             row["MonthlyGrossProfitRate1"] = FormatRateWithTriangle(subtotal.TotalMonthlyGrossProfitRate1);
             row["MonthlyGrossProfit2"] = FormatNumberWithTriangle(subtotal.TotalMonthlyGrossProfit2);
-            row["MonthlyGrossProfitRate2"] = FormatRate(subtotal.TotalMonthlyGrossProfitRate2);
+            row["MonthlyGrossProfitRate2"] = FormatRateWithTriangle(subtotal.TotalMonthlyGrossProfitRate2);
 
             row["RowType"] = RowTypeSubtotal;
             row["IsSubtotal"] = true;
@@ -384,12 +384,12 @@ namespace InventorySystem.Reports.FastReport.Services
             SetTextObjectValue(report, "TotalGrossProfit1", FormatNumberWithTriangle(total.GrandTotalDailyGrossProfit1));
             SetTextObjectValue(report, "TotalGrossProfitRate1", FormatRateWithTriangle(total.GrandTotalDailyGrossProfitRate1));
             SetTextObjectValue(report, "TotalGrossProfit2", FormatNumberWithTriangle(total.GrandTotalDailyGrossProfit2));  // ▲記号使用
-            SetTextObjectValue(report, "TotalGrossProfitRate2", FormatRate(total.GrandTotalDailyGrossProfitRate2));
+            SetTextObjectValue(report, "TotalGrossProfitRate2", FormatRateWithTriangle(total.GrandTotalDailyGrossProfitRate2));
             SetTextObjectValue(report, "TotalMonthlySalesAmount", FormatNumber(total.GrandTotalMonthlySalesAmount));
             SetTextObjectValue(report, "TotalMonthlyGrossProfit1", FormatNumberWithTriangle(total.GrandTotalMonthlyGrossProfit1));
             SetTextObjectValue(report, "TotalMonthlyGrossProfitRate1", FormatRateWithTriangle(total.GrandTotalMonthlyGrossProfitRate1));
             SetTextObjectValue(report, "TotalMonthlyGrossProfit2", FormatNumberWithTriangle(total.GrandTotalMonthlyGrossProfit2));  // ▲記号使用
-            SetTextObjectValue(report, "TotalMonthlyGrossProfitRate2", FormatRate(total.GrandTotalMonthlyGrossProfitRate2));
+            SetTextObjectValue(report, "TotalMonthlyGrossProfitRate2", FormatRateWithTriangle(total.GrandTotalMonthlyGrossProfitRate2));
         }
         
         private void SetTextObjectValue(Report report, string objectName, string value)
